@@ -35,7 +35,8 @@ open: [docs/status.md](docs/status.md).
 </picture>
 
 Modern IAF (in Hebrew: הזרוע הארוכה) is a flight sim of today's Israeli Air Force: three jets (F-16I Sufa, F-16D
-Barak, F-35I Adir), 3D cockpits, Israel at full scale, training missions, in Hebrew and English.
+Barak, F-35I Adir), 3D cockpits, Israel at full scale, training missions, in Hebrew and English. Pictures from the sim: the
+[showcase page](https://assapir.github.io/iaf-reborn/) (its source: `site/`, built by `python3 site/src/build.py`).
 
 **It needs no data from the original game.** Setup downloads open data once (0.6 GB of heights and 11.4 GB of
 satellite colour tiles) and builds the sim's data into `assets/`.

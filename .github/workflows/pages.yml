@@ -1,0 +1,42 @@
+# Modern IAF's public showcase page (site/src/build.py) on GitHub Pages. It publishes only when the page itself
+# changes (the user, 25 Nov 2026: "Only publish it when something has changed"): its words, pictures and build script,
+# the logo and font it copies, this file; or by hand (workflow_dispatch).
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "modern-iaf/branding/icon_small.svg"
+      - "modern-iaf/branding/lockup_*_dark.svg"
+      - "modern-iaf/data/fonts/Heebo-VariableFont_wght.ttf"
+      - "modern-iaf/data/fonts/OFL.txt"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: python3 site/src/build.py
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site/_site
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
