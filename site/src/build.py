@@ -209,6 +209,9 @@ window.addEventListener('hashchange',function(){if(location.hash==='#he'||locati
 })();
 """
 
+# Cloudflare Web Analytics (the user, 25 Nov 2026; no cookies), just before </body>; its token is public by design.
+ANALYTICS = """<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "8b94e3b455cf413b818a0aed5eccfeee"}'></script><!-- End Cloudflare Web Analytics -->"""
+
 
 def page():
     hero = ('<div class="hero"><h1><img lang="en" src="logo/lockup_en_dark.svg" alt="Modern IAF" width="609" height="326">'
@@ -229,7 +232,7 @@ def page():
 <div class="switch"><button data-l="he">עברית</button><button data-l="en">English</button></div></div></header>
 <main>{hero}
 {body}
-{foot}</main><script>{JS}</script></body></html>
+{foot}</main><script>{JS}</script>{ANALYTICS}</body></html>
 """
 
 
