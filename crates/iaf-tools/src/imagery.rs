@@ -460,12 +460,12 @@ const DARK_BLEND: f64 = 4000.0;
 
 /// The levels at grid point (e, n): the sheets' levels weighted by how far inside each one the
 /// point lies (½ on a border, 1 from DARK_BLEND / 2 inside, 0 from DARK_BLEND / 2 outside).
-pub(crate) fn levels_at(levels: &[([f64; 4], [f32; 4])], e: f64, n: f64) -> Option<[f32; 4]> {
-    let (mut sum, mut wsum) = ([0f32; 4], 0f32);
+pub(crate) fn levels_at<const N: usize>(levels: &[([f64; 4], [f32; N])], e: f64, n: f64) -> Option<[f32; N]> {
+    let (mut sum, mut wsum) = ([0f32; N], 0f32);
     for (b, lv) in levels {
         let inside = (e - b[0]).min(b[2] - e).min(n - b[1]).min(b[3] - n);
         let w = (0.5 + inside / DARK_BLEND).clamp(0.0, 1.0) as f32;
-        for c in 0..4 {
+        for c in 0..N {
             sum[c] += w * lv[c];
         }
         wsum += w;

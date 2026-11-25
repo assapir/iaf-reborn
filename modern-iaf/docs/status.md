@@ -1238,8 +1238,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   you will learn and how to fly it in prose, the keys as bound, scrolled by the wheel, the keys and the gamepad (every
   mission's texts in English and Hebrew, mission data `briefing`); the mission card holds the missions as tabs with
   their pass chips, the facts, the objectives, the Arming summary with Edit, Back, Arming (key A) and Fly; the
-  map's chips turn the taxi route, the labels and the photo off and zoom. The whole map's rectangles of other tones are
-  the Survey of Israel sheets' own levels (terrain.md §10, Open). From 2026-11-09: one zoomable map (the theatre's
+  map's chips turn the taxi route, the labels and the photo off and zoom. Until 2026-11-25 the whole map showed
+  rectangles of other tones: the Survey of Israel sheets' own levels. Since then the sheets are toned to each other
+  ([terrain.md](terrain.md) §4). From 2026-11-09: one zoomable map (the theatre's
   ground colour, roads, towns, the route, the whole airbase); from 2026-11-15 it zooms and scrolls over the whole theatre,
   its ground tiles, roads and towns loaded for the view (finish list C); Edit on the Arming summary opens the Loadout screen (until 2026-11-14 an Arming page with
   each jet's front view); the subtitles name the tail number and squadron, no wing; the missions' titles are their kinds ([front-end.md](front-end.md) §10, `IafBriefing`). `test_front_end.gd`, `cargo test -p iaf-tools --lib briefing`.
@@ -1341,6 +1342,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   (resumes a `.part`); every download logs its MB every 15 s ([terrain.md](terrain.md) §1, §2, §4).
   The Survey sheets' white fill shows Sentinel-2 instead, also where it lies far from the sheets' no-data (since
   2026-11-25: no grey-white blocks west of Ramon; [terrain.md](terrain.md) §4).
+  Since 2026-11-25 ("sheets1") the Survey sheets are toned to each other: one gain per sheet and band, from a
+  least-squares fit of the steps in brightness along their borders. The darker and lighter rectangles 10 to 25 km
+  wide no longer show from the air, among them the dark grey block south-west of Ramon. The terrain step redoes
+  the theatre's 8 m and 2 m nodes, about 1 h 40. It downloads nothing while the cache holds every 10 m tile
+  under them whole ([terrain.md](terrain.md) §4).
 - **The jets' limits have consequences (2026-11-19):** on the 6-DoF an over-g or an overspeed is counted, past
   1.15 × the g limit (1.1 × the speed limit) the structure is damaged (more drag, "Structural damage", the master
   caution), past 1.5 × the g limit (1.15 × the speed limit, flutter) it fails; the gear lowered past its speed is

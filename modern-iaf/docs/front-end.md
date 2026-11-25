@@ -1066,8 +1066,9 @@ one zoomable map shows both and leaves each the whole page (the user's A14, roun
 briefing sat beside a list of the missions, in three tabs (Briefing, Map, Arming) switched by the arrow keys; the
 map-first screen replaced them (the user's A25 round 3), the Arming page moving to the loadout screen.
 
-The whole map's ground shows rectangles of other tones and a step at the border with Sinai: the Survey of Israel
-sheets' own levels and the end of its coverage, where Sentinel-2 alone goes on ([terrain.md](terrain.md) §10, Open).
+Until 2026-11-25 the whole map's ground showed rectangles of other tones and a step at the border with Sinai: the
+Survey of Israel sheets' own levels and the end of its coverage, where Sentinel-2 alone goes on. The border has been
+toned since 2026-11-15 and the sheets to each other since 2026-11-25 ([terrain.md](terrain.md) §4).
 That is the theatre's colour as built, the same in flight, not the map's drawing (checked 2026-11-14 on the Mac's
 assets; inferred from the edges' places: not on the colour nodes' 32.8 km grid). Zoomed in on a base, the ground is
 the base's toned Sentinel-2 (terrain.md §4).
