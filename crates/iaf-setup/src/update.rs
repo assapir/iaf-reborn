@@ -149,12 +149,23 @@ fn unpack_into(archive: &Path, stage: &Path, app: &Path, os: &str, stop: &Atomic
         "macOS" => {
             let mnt = stage.join(".mnt");
             std::fs::create_dir_all(&mnt)?;
-            run(Command::new("hdiutil")
-                .args(["attach", "-nobrowse", "-readonly", "-noautoopen", "-mountpoint"])
+            // diskutil image where diskutil has it (hdiutil is deprecated there and warns); hdiutil on older macOS.
+            let diskutil = run(Command::new("diskutil")
+                .args(["image", "attach", "--readOnly", "--mountOptions", "nobrowse", "--mountPoint"])
                 .arg(&mnt)
-                .arg(archive))?;
+                .arg(archive))
+            .is_ok();
+            if !diskutil {
+                run(Command::new("hdiutil")
+                    .args(["attach", "-nobrowse", "-readonly", "-mountpoint"])
+                    .arg(&mnt)
+                    .arg(archive))?;
+            }
             let copied = run_until(Command::new("ditto").arg(mnt.join(name)).arg(stage.join(name)), stop);
-            let _ = run(Command::new("hdiutil").arg("detach").arg(&mnt).arg("-force"));
+            let _ = match diskutil {
+                true => run(Command::new("diskutil").args(["eject", "force"]).arg(&mnt)),
+                false => run(Command::new("hdiutil").arg("detach").arg(&mnt).arg("-force")),
+            };
             let _ = std::fs::remove_dir(&mnt);
             copied?;
         }
@@ -386,13 +397,18 @@ pub fn setup_stale(assets: &Path, repo: &Path, sim: bool) -> Vec<Stale> {
             .collect()
     };
     if sim {
-        if !assets.join("converted/modern-iaf/missions").is_dir() {
+        // Never set up: no choice file (the wizard's Include boxes write it, a run starts with it) or no step that
+        // finished a run (no stamp). Nothing then, also where some data is there.
+        if !crate::sim::sim_choice_file(assets).is_file() {
             return vec![];
         }
         let out = crate::sim_excluded(assets);
         let out: Vec<&str> = out.iter().map(String::as_str).collect();
         let inputs = SimInputs { survey: crate::sim_survey(assets, repo), ..Default::default() }.without(&out);
         let steps = crate::sim_plan(&inputs);
+        if !steps.iter().any(|s| crate::stamp::sim_stamp_path(assets, s.id).is_file()) {
+            return vec![];
+        }
         let ctx = SimCtx { assets: assets.into(), repo: repo.into(), inputs };
         let stamped = crate::stamped_with(&steps, &|s| crate::stamp::sim_of(s, &ctx));
         let optional = crate::sim_optional(assets);
@@ -541,6 +557,43 @@ mod tests {
         std::fs::remove_file(&started).unwrap();
         assert_eq!(go("exit 1", 10.0), Start::Ended);
         assert_eq!(go("sleep 5", 0.5), Start::Stopped);
+        std::fs::remove_dir_all(d).unwrap();
+    }
+
+    #[test]
+    fn the_setup_check_finds_nothing_before_the_first_setup() {
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let a = tmp("stale");
+        // Data but never set up (no choice file, no stamp): nothing, so Always download starts no first setup.
+        std::fs::create_dir_all(a.join("converted/modern-iaf/missions")).unwrap();
+        assert_eq!(setup_stale(&a, &repo, true), vec![]);
+        assert_eq!(setup_stale(&a, &repo, false), vec![], "the remake: no setup.json");
+        // A choice made on the wizard's Include boxes, no run: still nothing.
+        crate::save_sim_excluded(&a, &[]).unwrap();
+        assert_eq!(setup_stale(&a, &repo, true), vec![]);
+        // A run that finished a step (its stamp, from an older version): the steps whose stamps do not hold.
+        std::fs::write(crate::stamp::sim_stamp_path(&a, "sim-db"), "older").unwrap();
+        assert!(setup_stale(&a, &repo, true).iter().any(|s| s.id == "sim-db"));
+        std::fs::remove_dir_all(a).unwrap();
+    }
+
+    /// The disk image attached and the app copied out (macOS only: diskutil image, or hdiutil on older macOS).
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn unpack_copies_the_app_out_of_a_disk_image() {
+        let d = tmp("dmg");
+        std::fs::create_dir_all(d.join("src/Game.app")).unwrap();
+        std::fs::write(d.join("src/Game.app/x"), "3").unwrap();
+        let dmg = d.join("g.dmg");
+        run(Command::new("hdiutil")
+            .args(["create", "-quiet", "-format", "UDZO", "-srcfolder"])
+            .arg(d.join("src"))
+            .arg(&dmg))
+        .unwrap();
+        let app = d.join("Game.app");
+        let new = unpack(&dmg, &stage_dir(&app), &app, "macOS", &AtomicBool::new(false)).unwrap();
+        assert_eq!(std::fs::read_to_string(new.join("x")).unwrap(), "3");
+        assert!(!stage_dir(&app).join(".mnt").exists(), "detached, its mount point removed");
         std::fs::remove_dir_all(d).unwrap();
     }
 

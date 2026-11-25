@@ -255,7 +255,8 @@ Each game's first screen calls `Updater.start` (Modern IAF `menu/front_end.gd`, 
    line, while a shade over the screen holds the game. `update::verify` checks its size and SHA-256 against the
    manifest; a mismatch deletes the file and the line says the update failed.
 4. `update::unpack` unpacks it beside the game's folder, into `.<folder>.update/` (Linux: `tar`; Windows: the zip,
-   in Rust; macOS: the disk image attached read-only and the app copied with `ditto`, which keeps its signature).
+   in Rust; macOS: the disk image attached read-only with `diskutil image attach`, or `hdiutil attach` on an older
+   macOS whose `diskutil` has no `image` verb, and the app copied with `ditto`, which keeps its signature).
    When the game's folder's parent is not writable (an app run from the disk image, or translocated by macOS), the
    line says to move the game to a folder the player can write to. Later during the check or the unpack stops them
    (`IafSetup.cancel_jobs`): the check ends, `tar` or `ditto` is stopped and the unpack's folder is removed.
@@ -295,21 +296,28 @@ the patch, the Hebrew packs) keeps its stamp's line while its size is the one li
 image; a file that moved or changed size is read, and its step then shows when it would run again. Steps that keep
 no stamp of their own decide for themselves (imagery, the scenery's
 fetch, the guides) and are left out, as is the launcher in a bundle. Before the first setup it finds nothing (the
-game opens the wizard anyway). The dialog gives the number of steps and, when one of them would download a source that
-is not on the disk yet, its size (Modern IAF's scenery and textures from their pinned sizes, the terrain's tiles as
-"new data", the remake's F-15 sources). **Update** opens the setup wizard on its Install page and starts the run at
-once (`Settings.setup_update`); a finished run goes on to the front end, a failed one stays on the page with its log.
-Nothing on the disk is downloaded again: the steps' sources stay under `assets/source` by name.
+game opens the wizard anyway): a data folder counts as never set up, also when some data is there, without the last
+run's choices (Jane's IAF reborn's `setup.json`; Modern IAF's `converted/modern-iaf/setup.json`, which the wizard's
+Include boxes and a run's start write) or, in Modern IAF, without a stamp of a step a run finished. So Always
+download never starts a first setup. Data built only with `iaf-sim`, or by a wizard of before 12 November 2026
+(which wrote no choice file), gets no check: the wizard's own run finds its stale steps. The dialog gives the
+number of steps and, when one of them would download a source that is not on the disk yet, its size (Modern IAF's
+scenery and textures from their pinned sizes, the terrain's tiles as "new data", the remake's F-15 sources). **Update**
+opens the setup wizard on its Install page and starts the run at once (`Settings.setup_update`); a finished run goes on
+to the front end, a failed one stays on the page with its log. Nothing on the disk is downloaded again: the steps'
+sources stay under `assets/source` by name.
 
 ### 7.3 Checks
 
 - `cargo test -p iaf-setup update`: the version compare, the manifest's pick, the size and SHA-256 check, the swap
   (refused over an old folder), rollback and cleanup, a process waited for and one started in another folder, a
-  Linux bundle unpacked.
+  Linux bundle unpacked, on macOS a disk image unpacked, and setup's check finding nothing in a data folder never
+  set up.
 - `modern-iaf/tests/test_update.gd` (headless, offline): an older nightly against a local release folder finds the
   newer one, downloads, checks and unpacks it beside a scratch game folder, and the swap puts it in place; Always
   download does it without the dialog; a click outside the dialog is Later, and with Don't ask me again it sets Never; a wrong
-  SHA-256 is refused; with no newer one, setup's check on a scratch data folder shows its steps.
+  SHA-256 is refused; with no newer one, setup's check on a scratch data folder never set up (also with a choice
+  file only) finds nothing and Always download starts no setup, and once a step's stamp is there it shows its steps.
 - End to end, by hand: two runs of the workflow into the `nightly-test` channel (§4), the older build's bundle
   started with `IAF_UPDATE_URL=https://github.com/assapir/iaf-reborn/releases/download/nightly-test` and a scratch
   per-user folder (Linux: `XDG_DATA_HOME`), then the test release deleted (`gh release delete nightly-test

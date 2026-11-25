@@ -1,8 +1,8 @@
 # The update on start (docs/release.md §7) against a local fake release, offline: an older nightly finds the newer
 # one in the release's nightly.json, shows its dialog (a click outside is Later; Don't ask me again stores the choice;
 # Always download asks nothing), downloads, checks and unpacks it beside a scratch game folder, and the swap puts it
-# in place (the old one kept until cleanup); then setup's check on a scratch data folder whose steps never ran shows
-# its dialog. Linux and macOS (tar).
+# in place (the old one kept until cleanup); then setup's check on a scratch data folder finds nothing before a run
+# finished a step there (Always download starts none), and the steps to run again after. Linux and macOS (tar).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_update.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -115,15 +115,35 @@ func run() -> void:
 	check(u.later_button.visible and u.later_button.text == u.s("close"), "stuck: its line with Close: " + u.line.text)
 	u.queue_free()
 
-	# The same version or none newer: no line; setup's check on a data folder whose steps never ran: its line.
+	# The same version or none newer: no line. Setup's check on a data folder never set up (no choice file, no
+	# stamp), with Always download: nothing, no run. Once a run finished a step there: its line.
 	var assets := tmp.path_join("assets")
 	DirAccess.make_dir_recursive_absolute(assets.path_join("converted/modern-iaf/missions"))
 	OS.set_environment("IAF_ASSETS_DIR", assets)
-	u = updater.new()
-	u.own = NEW
-	u.base = release
-	u.os_name = "Linux"
-	root.add_child(u)
+	var mode: String = settings().update_mode
+	settings().update_mode = "always"
+	u = _stale_check(updater, release)
+	for i in 600:
+		if not is_instance_valid(u) or u.state == "":
+			break
+		await process_frame
+	check(not is_instance_valid(u) or u.stale.is_empty(), "never set up: no steps")
+	check(not settings().setup_update, "never set up: Always download starts no setup")
+	if is_instance_valid(u):
+		u.queue_free()
+	settings().update_mode = mode
+	# The Include boxes' choice alone (no run): still nothing.
+	IafSetup.sim_save_excluded(assets, PackedStringArray())
+	u = _stale_check(updater, release)
+	for i in 600:
+		if not is_instance_valid(u) or u.state == "":
+			break
+		await process_frame
+	check(not is_instance_valid(u) or u.stale.is_empty(), "a choice but no run: no steps")
+	if is_instance_valid(u):
+		u.queue_free()
+	FileAccess.open(assets.path_join("converted/modern-iaf/sim-db.stamp"), FileAccess.WRITE).store_string("older")
+	u = _stale_check(updater, release)
 	for i in 600:
 		if u.state == "" or not is_instance_valid(u):
 			break
@@ -134,6 +154,16 @@ func run() -> void:
 		u.queue_free()
 	OS.unset_environment("IAF_ASSETS_DIR")
 	OS.execute("rm", ["-rf", tmp])
+
+
+## An updater of version NEW (no newer one in the release), added to the tree: it goes on to setup's check.
+func _stale_check(updater: GDScript, release: String) -> CanvasLayer:
+	var u: CanvasLayer = updater.new()
+	u.own = NEW
+	u.base = release
+	u.os_name = "Linux"
+	root.add_child(u)
+	return u
 
 
 ## An updater of version OLD over the scratch game folder `app` and the local release, added to the tree.
