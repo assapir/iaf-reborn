@@ -1,7 +1,7 @@
 # Real-render pictures of Modern IAF's front end, every screen in English and Hebrew (modern-iaf/docs/front-end.md):
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/fe -- --log-file /tmp/fe.log --path modern-iaf \
 #     -s ../modern-iaf/tests/_front_end_shot.gd
-# Writes SHOT_DIR/<screen>_<lang>.png (free: the Scramble screen; free_time, free_random: its Time and Date rows at 2215
+# Writes SHOT_DIR/<screen>_<lang>.png (free: the Scramble screen; free_time, free_random: its Date and time row at 2215
 # on day 172 (21 June in 2026) and Random; the Settings: prefs_<section>_*, prefs_about_* (the pane on Buildings and
 # trees), prefs_search_*; the Pilot screens: _pilot) at 1920×1080 (the front end in a viewport of that size, whatever
 # the window's) with the sample pilot log and debrief of test_front_end.gd (debrief: the sample flight; debrief_fail: a

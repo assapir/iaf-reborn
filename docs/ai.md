@@ -2457,7 +2457,8 @@ start; the area is drawn, the skill is the Pilot screen's. Every distance and ti
     (`year_days`, `month_day`), stepped by a day round the year or a month with the day cut to the month's last
     (`date_step`); `start_day(seed, random, year, doy)` flies the set day, or with Random one drawn from the seed
     alike over the year's days (its own draw). Neither the time nor the date is stored ("No need to remember last
-    choice", the same day): each opening of the screen starts at 0800 today.
+    choice", the same day): each opening of the screen starts with both on Random ("by default both should be
+    random"), 0800 today under them.
 - **In flight** (`modern-iaf/flight/free_combat.gd`, a child of `sim_flight.gd` on a Scramble start): once the ground
   under the jet is loaded it rolls the enemy at the pilot's enemy skill and places the plan in order (the sites, the
   network, the fighters vectored by it, the convoy, the drones), all at that skill (§17). A based pair stands in the

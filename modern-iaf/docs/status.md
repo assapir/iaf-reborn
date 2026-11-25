@@ -658,13 +658,14 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **Scramble (2026-11-24, [front-end.md](front-end.md) §2.1, [../../docs/ai.md](../../docs/ai.md) §23):** the Scramble
   card (הזנקה) opens a screen of one panel: the flight (alone, pair, four-ship) and the start (in the air, the default;
   on the runway, engines running, lined up in pairs; cold at parking), the home base named, a line naming the Pilot
-  screen's enemy skill; Arming and Fly. The Time row (25 November): the start time in 24-hour military time (HHMM, an
-  hour and five-minute steps) or Random (drawn at Fly from the seed, shown on the notebook's DATA page); the Date row
-  (25 November): a day and month this year, or Random; the flight starts then, Israel time with summer time, so the
+  screen's enemy skill; Arming and Fly. The Date and time row (25 November), date first: a day and month this year,
+  or Random, then the start time in 24-hour military time (HHMM, an hour and five-minute steps) or Random (drawn at Fly
+  from the seed, shown on the notebook's DATA page); the flight starts then, Israel time with summer time, so the
   sun's path, the day's length and the moon follow the date (the temperature and the weather stay the same in every
-  season). Both start at 0800 today on each opening of the screen, never stored. Fly draws the fight's area (another
-  base within 180 km of the home base, `iaf_ai::free_combat::area`) and the enemy round it (`roll`: the task, its target
-  and one to three more threats by the skill, from MiG-29 pairs on CAP and on alert, the S-300 network, short-range air
+  season). Both start at Random on each opening of the screen (0800 today under it), never stored. Fly draws the
+  fight's area (another base within 180 km of the home base, `iaf_ai::free_combat::area`) and the enemy round it
+  (`roll`: the task, its target and one to three more threats by the skill, from MiG-29 pairs on CAP and on alert,
+  the S-300 network, short-range air
   defence, Shahed-136 drones and a convoy); the air start puts the flight 60 km from the area at 6,000 m. The Area and
   Enemy skill rows went on the user's round-3 word (24 November). The AWACS gives the task by radio once the jet is in
   the air, in English and Hebrew ("Kidon 1, attack the convoy, bearing 040, 25 miles, free to engage"), and every minute

@@ -171,24 +171,27 @@ placed in flight ([../../docs/ai.md](../../docs/ai.md) §23).
 - **The screen:** the title, Scramble, and under it the home base the flight flies from (the base of the jet picked in
   the Hangar) and one line on what comes: the fight's area and the enemy drawn at random, the task and where from the
   AWACS. One panel, Your flight, of rows, each row a label and its segments, the one picked lit: Flight (Alone, Pair,
-  Four-ship), Start (In the air; On the runway, engine running; Cold, at parking), Time and Date (below). Under the
+  Four-ship), Start (In the air; On the runway, engine running; Cold, at parking), Date and time (below). Under the
   rows one line names the enemy's skill, the Pilot screen's own value (docs/ai.md §17: "Enemy skill: Medium, as set on
   the Pilot screen."); it sizes the enemy, one to three threats beside the task's target.
 - **His round-3 words** (2026-11-24, A81: "why we choose area if in all other places the area is tied to the
   airplane? why we choose a enemies skill if that already by pilot?"; then "allow it to start in cold, runway or in
   air"): the Area and Enemy skill rows went; the Start row has the three starts, in the air by default.
-- **The Time row** (the user, 25 November 2026: "Add to scramble options: what time of the day is it. Or it should be
+- **The time** (the user, 25 November 2026: "Add to scramble options: what time of the day is it. Or it should be
   random, wdyt?", then "No, do a specific military time to choose", then "And random"): the flight's start time, Israel
   time, as 24-hour military time HHMM (0630, 1415, 2200; `IafFreeCombat.clock`), left to right in both languages as the
   digits read: the hour's ▼ ▲ (an hour), the time, the minutes' ▼ ▲ (five minutes; round the clock,
   `IafFreeCombat.time_step`), then the Random toggle. Random dims the time and its arrows and keeps the set time for
   when it is off again; Fly draws the time from the Scramble's seed, any five-minute step of the day
-  (`IafFreeCombat.start_time`). The flight starts at that time (misc `0x460`, `flight/fly.gd prepare_free`) on the Date
-  row's day, so the sun, the sky, the city lights and the night cockpit follow it ([terrain.md](terrain.md) §17). The
+  (`IafFreeCombat.start_time`). The flight starts at that time (misc `0x460`, `flight/fly.gd prepare_free`) on the
+  date's day, so the sun, the sky, the city lights and the night cockpit follow it ([terrain.md](terrain.md) §17). The
   notebook's DATA page shows the flight's start time (the drawn one under Random). The AWACS's calls state no time (none
   of the AWACS calls we have sources for names one: modern-iaf/docs/research/radio-terms.md). Hebrew שעה, the notebook's
   term for the same thing (no other term was found in IAF usage for a start time's row).
-- **The Date row** (the user, 25 November 2026: "Maybe we should add season, or date also?", then "Yes, but what about
+- **One row, date first** (the user, 25 November 2026: "put the date and taim on the same row, date first, by default
+  both should be random"): the date and the time share one row, Date and time (תאריך ושעה): the date's arrows,
+  the date and its Random, a gap, then the time's arrows, the time and its Random (`free_combat_page.gd` `_when_row`).
+- **The date** (the user, 25 November 2026: "Maybe we should add season, or date also?", then "Yes, but what about
   picking a year?", answered: no year now, the current year): the flight's day of this year, shown as the day and its
   month ("25 November", "25 בנובמבר"; `IafFreeCombat.month_day`), the day's ▼ ▲ (a day, round the year), the date, the
   month's ▼ ▲ (a month, the day cut to the month's last: `IafFreeCombat.date_step`), then Random; in Hebrew the row
@@ -200,8 +203,8 @@ placed in flight ([../../docs/ai.md](../../docs/ai.md) §23).
   notebook's DATA page shows the date ("21 December 2026"). Hebrew תאריך; the months by their Hebrew names in use
   (ינואר … דצמבר).
 - **Not remembered** (the user, 25 November 2026: "No need to remember last choice"): each opening of the screen from
-  the Missions screen starts at 0800 today, both Randoms off (`free_combat_page.gd` `reset`, `when`); a step or Random
-  holds for that visit (Arming and back keep it) and is never stored in the settings.
+  the Missions screen starts with both Randoms on, under them 0800 today (`free_combat_page.gd` `reset`, `when`); a
+  step or Random holds for that visit (Arming and back keep it) and is never stored in the settings.
 - **The fight's area** is drawn at Fly with the enemy (`flight/fly.gd free_area`, `IafFreeCombat.area`): one of the
   theatre's bases other than the home base, alike from those within 180 km of it (inferred: a short sortie; from Ramon
   Nevatim, Hatzerim or Tel Nof, from Ramat David Tel Nof, Hatzerim or Nevatim). The AWACS's call says where.
@@ -216,7 +219,7 @@ placed in flight ([../../docs/ai.md](../../docs/ai.md) §23).
   up in pairs on the home base's runway, Kidon 1-2 15 m left of the lead, the second element 60 m behind, every
   engine running (the start rule's 100 m of the lineup point, docs/ai.md §7.1), and the take-off in pairs, docs/ai.md
   §8.7).
-- **Keyboard:** Tab and Shift+Tab go through the segments row by row (the Time and Date rows' arrows and Randoms too),
+- **Keyboard:** Tab and Shift+Tab go through the segments row by row (the Date and time row's arrows and Randoms too),
   then Back, Arming, Fly; the arrows move by place; Enter or Space picks or steps.
 - **The flight:** the AWACS gives the task once the jet is in the air ("Kidon 1, attack the convoy, bearing 040, 25
   miles, free to engage") and again every minute while its target lives. It is not scored and stores no sortie; it

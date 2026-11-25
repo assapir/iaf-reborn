@@ -89,11 +89,21 @@ func _screen(lang: String) -> void:
 	check(not _b("Fly").disabled and _notice() == "", "%s: Fly on (%s)" % [lang, _notice()])
 	var sub: String = fe.s("base_ramon")
 	check(_has_text(fe, sub), "%s: the screen names the home base (%s)" % [lang, sub])
-	# The Time row: 0800 first; an hour up, five minutes down; round the clock; Random dims the arrows. Not stored.
+	# The Date and time row, date first, both Random as the screen opens (the user, 25 Nov 2026).
 	var page: GDScript = load("res://menu/free_combat_page.gd")
+	var when_row := fe.find_child("Row_when", true, false)
+	check(when_row != null and _has_text(fe, fe.s("fc_when")), "%s: the Date and time row" % lang)
+	if when_row != null:
+		var order: Array = when_row.find_children("*", "Label", true, false).map(func(n): return str(n.name))
+		check(order == ["Value_date", "Value_time"], "%s: date first (%s)" % [lang, order])
+	check(_b("date_random").button_pressed and _b("time_random").button_pressed, "%s: both Random first" % lang)
+	check(_b("time_hour_up").disabled and _b("date_day_up").disabled, "%s: arrows off under Random" % lang)
+	_b("time_random").button_pressed = false
+	_b("time_random").pressed.emit()
+	_b("date_random").button_pressed = false
+	_b("date_random").pressed.emit()
+	# The time: 0800 under Random; an hour up, five minutes down; round the clock; Random dims the arrows. Not stored.
 	var clock := fe.find_child("Value_time", true, false) as Label
-	check(fe.find_child("Row_time", true, false) != null and clock != null, "%s: the Time row" % lang)
-	check(_has_text(fe, fe.s("fc_time")), "%s: the Time label" % lang)
 	if clock != null:
 		check(clock.text == "0800", "%s: the time first 0800 (%s)" % [lang, clock.text])
 		_b("time_hour_up").pressed.emit()
@@ -103,17 +113,15 @@ func _screen(lang: String) -> void:
 			_b("time_hour_down").pressed.emit()
 		check(clock.text == "1755", "%s: round the clock to 1755 (%s)" % [lang, clock.text])
 		var rnd := _b("time_random")
-		check(rnd != null and not rnd.button_pressed, "%s: Random off first" % lang)
+		check(rnd != null and not rnd.button_pressed, "%s: Random off" % lang)
 		rnd.button_pressed = true
 		rnd.pressed.emit()
 		check(bool(page.when.time_random) and _b("time_hour_up").disabled, "%s: Random on, arrows off" % lang)
 		check(clock.text == "1755", "%s: the set time kept under Random" % lang)
-	# The Date row: today first; a day and a month on; Random dims the arrows.
+	# The date: today under Random; a day and a month on; Random dims the arrows.
 	var today := Time.get_date_dict_from_system()
 	var doy: int = IafFreeCombat.day_of_year(today.year, today.month, today.day)
 	var date := fe.find_child("Value_date", true, false) as Label
-	check(fe.find_child("Row_date", true, false) != null and date != null, "%s: the Date row" % lang)
-	check(_has_text(fe, fe.s("fc_date")), "%s: the Date label" % lang)
 	if date != null:
 		var want: String = fe.s("fc_date_fmt") % [today.day, fe.s("month_%d" % today.month)]
 		check(date.text == want, "%s: the date first today (%s, %s)" % [lang, date.text, want])
@@ -137,14 +145,14 @@ func _screen(lang: String) -> void:
 	key(fe, KEY_ESCAPE)
 	await frames(2)
 	check(fe.page == "missions", "%s: Esc back to the Missions screen" % lang)
-	# Opened again: 0800 today, Random off (the user, 25 Nov 2026: "No need to remember last choice").
+	# Opened again: Random, 0800 today under it (the user, 25 Nov 2026: "No need to remember last choice").
 	_b("Section_fly_now").pressed.emit()
 	await frames(2)
 	check(
-		page.when == {"time": 480, "time_random": false, "date": doy, "date_random": false},
+		page.when == {"time": 480, "time_random": true, "date": doy, "date_random": true},
 		"%s: reopened at 0800 today (%s)" % [lang, page.when]
 	)
-	check(not _b("time_random").button_pressed and not _b("date_random").button_pressed, "%s: Random off" % lang)
+	check(_b("time_random").button_pressed and _b("date_random").button_pressed, "%s: Random on" % lang)
 	key(fe, KEY_ESCAPE)
 	await frames(2)
 
