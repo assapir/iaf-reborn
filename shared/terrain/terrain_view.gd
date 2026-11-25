@@ -1689,7 +1689,10 @@ func mission_player_hit(ent: Dictionary, source: Dictionary, kind: String) -> vo
 
 
 ## A voice row of the sound table (FUN_004c4ea0 with a VOC code, e.g. the friendly-hit voice).
-func mission_voice(code: String) -> void:
+func mission_voice(code: String, by := {}) -> void:
+	# Ours: the voice of the unit saying it (sound_table.gd cast_voice), its own for the whole mission.
+	if not by.is_empty() and sounds.get("table") != null and ai != null and ai.has_method("member_number"):
+		sounds.table.speaker = ai.member_number(by)
 	sounds.play(code)
 
 

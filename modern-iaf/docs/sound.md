@@ -358,9 +358,9 @@ licence:
 |---|---|---|
 | Betty | `af_heart`, 1.3, +3 semitones | the VMS calls |
 | tower | `am_michael`, 1.1 | the tower's phrases, the friendly-fire call, the map edge |
-| pilot | `am_puck`, 1.1 | the player's radio-menu calls (helmet chain, §5.2; the requests to the AWACS, "Eitam, Kidon 1, picture"), "Roger", eject, the friendly-fire calls of the target and the wingman |
+| pilot | `am_puck`, 1.1 | the player's radio-menu calls (helmet chain, §5.2; the requests to the AWACS, "Eitam, Kidon 1, picture"), "Roger", the ejection; a woman's voice `af_sarah` for a pilot who picked it (§3.2) |
 | AWACS | `am_fenrir`, 1.1 | the contact calls `ACFT_FCTRL_LONG` / `_SHORT` ([ews.md](ews.md) §7); Scramble's task call `AWX_TASK` ([../../docs/ai.md](../../docs/ai.md) §23); the controller's answers to the radio menu's requests and the Eitam's call for help (`AWX_*`, [../../docs/ai.md](../../docs/ai.md) §24) |
-| wingman | `am_eric`, 1.1 | the four-ship's wingmen Kidon 1-2 to 1-4: their answers and calls (`WNG_*`, `radio.gd flight_call`; the words in [research/radio-terms.md](research/radio-terms.md)); the player's commands to them (`CMD_*`) are the pilot's |
+| wingman | `am_eric`, 1.1 | the four-ship's wingmen Kidon 1-2 to 1-4: their answers and calls (`WNG_*`, `radio.gd flight_call`; the words in [research/radio-terms.md](research/radio-terms.md)); the friendly-fire calls of the unit hit and of the shooter's wingman; the player's commands to them (`CMD_*`) are the pilot's |
 
 **Choice** (9 November 2026; the user on 3 November: "less British", American or neutral voices). Kokoro's
 American voices graded best by its own VOICES.md[^kokoro]: `af_heart` (A) and `af_bella` (A−) among the women,
@@ -512,8 +512,8 @@ flight are told apart:
 | `tamar` | woman | 200 Hz | 56 % | the instructor only, never a radio role (the user, 20 November 2026: "Always the same voice, female"); no instructor line exists yet |
 
 **The casts** (`voices.json` `he.casts`): eight, each giving the tower, the AWACS, the player's calls (`pilot`) and
-the wingmen Kidon 1-2, 1-3 and 1-4 one voice each, three men and three women in every cast. A mission flies cast number
-(mission id mod 8), so the voices stay the same for the whole flight and change from mission to mission. The tower is
+the wingmen Kidon 1-2, 1-3 and 1-4 one voice each, three men and three women in every cast. Which cast a mission flies
+is §3.2's rule. The tower is
 `david` or `lily`, the AWACS `jonathan` or `yael`, the player `ariel` or `shira`; the wingmen take the other three. The
 casts are data: `iaf-sim own` checks that every cast names known voices, has men and women, leaves out the
 instructor's voice and gives a voice to every role that has Hebrew clips (`sim.rs` `compile_voices_he`).
@@ -548,16 +548,48 @@ languages, and a joined particle plays only where its clip exists in the languag
 Hebrew-only joined particles (`he_only`, "MORNING+,+TAXI_RWY") hold a tower call's words after the callsign. So
 "כידון אחד" then "בוקר טוב, הסעה למסלול" plays, the same way in every seat, and a new callsign changes only the
 callsign particles (Kidon 5–8's, כידון חמש to כידון שמונה, for the tower, the player and the AWACS since 25 November
-2026). Another
-pilot's call that the English pilot voice says (the wingman's ejection, the friendly-fire calls) takes a wingman's voice
-in Hebrew (`role_he`), since `pilot` is the player's own there. 1152 clips (tower 147 lines × 2 voices, AWACS 197 × 2,
-the player's calls, readbacks and requests to the AWACS 109 × 2, the wingmen 41 × 6), as Ogg Vorbis,
+2026). A clip's
+Hebrew role is its `voice`, or its `role_he` where the two differ (none since 25 November 2026: the friendly-fire calls
+are the wingman's in both languages, and "Eject, eject, eject!", which plays when the player is hit, is the player's).
+1148 clips (tower 147 lines × 2 voices, AWACS 197 × 2,
+the player's calls, readbacks, requests to the AWACS and the ejection 110 × 2, the wingmen 40 × 6), as Ogg Vorbis,
 committed: the setup only copies them.
 
 **In the game**: `iaf-sim own` copies them to `converted/own/resource/soundfiles/he/` with `voices_he.json` (the casts
 and each Hebrew clip's role). `sound_table.gd` `hebrew()` swaps a clip for its Hebrew one when the language is Hebrew:
 the voice is the cast's for the clip's role, and for a wingman's call the voice of the wingman saying it
-(`radio.gd` `flight_call` sets `speaker`). The subtitles are unchanged (§5.4).
+(§3.2). The subtitles are unchanged (§5.4).
+
+### 3.2 The cast: who speaks in which voice
+The user, 25 November 2026: "We need to make sure that for each mission, the voices not switched in the middle. For
+ourselves, in the pilot preference, one should be picked male or female voice, for other, like AWACS and tower it's ok
+to be change (multiple operators) but things like boom operator or wingperson it should stay the same for the entire
+mission, ok to change between".
+
+One function holds the rule for every radio voice in both languages: `sound_table.gd` `cast_voice(role, who)`, the
+voice of `role` said by member `who` in this flight's cast (`cast()`):
+- **The player's own voice** is the pilot's pick on the Pilot screen, "Your radio voice": a man's or a woman's
+  (stored in the pilot's record, `IafPilotLog.set_voice`, `Settings.radio_voice()`; a man's for a pilot who never
+  picked, the voice the game had before). In Hebrew `ariel` or `shira`; in English `am_puck` or `af_sarah` (VOICES.md's
+  C+, among the women graded best after Betty's `af_heart` and the AWACS's `af_bella`; on disk, no download).
+- **The cast** is drawn once per mission, among the casts whose player's voice has the gender picked (four of the
+  eight each): the mission id mod their count. Every call of the mission resolves through the same cast, so no
+  speaker changes voice inside a mission; another mission may draw another cast. Since the casts give the player's
+  voice to no one else, no wingman ever speaks in the player's voice.
+- **The wingmen** Kidon 1-2 to 1-4 take the cast's `wingman` entries 1 to 3 (`radio.gd` `flight_call` sets the
+  speaker). **Another flight's member** (a friendly-fire call by the unit hit, or by the shooter's element mate)
+  takes the entry of its number, (number − 2) mod 3: Kidon 1-2 to 1-4 by their number, any other unit 5 and up by
+  its key (`ai_flights.gd` `member_number`), so each keeps one voice for the mission. In English every wingman is
+  `am_eric`.
+- **The tower and the AWACS** are the cast's, a man or a woman (§3, §3.1): one voice each for the mission. The rule
+  lets them change between calls (several operators); they keep one, which also holds it.
+- **A new role** that speaks (the tanker's boom operator) is one more key in every cast (`he.casts`) and one more
+  role of `voices.json`'s clips; its calls resolve through `cast_voice` like the others, and a woman's English voice
+  for it is `voices.<role>.other`.
+
+`modern-iaf/tests/test_voice_cast.gd` plays a mission's calls interleaved (the tower, the player, the wingmen, the
+AWACS, another flight's friendly-fire call, the ejection) in both languages for both picks and checks that each
+speaker keeps one voice, that the player's has the gender picked and that no wingman takes it.
 
 ## 4. Keys
 `data/keys.json` holds 126 records: the 117 of docs/controls.md §3, our own Start engine (Ctrl+E, command 200, a

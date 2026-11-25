@@ -925,7 +925,8 @@ func _friendly_hit(ent: Dictionary, source: Dictionary) -> void:
 			and int(e.get("control", 0)) != 0
 		)
 	var partner: Dictionary = host.ai.partner_of(source) if host.get("ai") != null else {}
-	host.mission_voice(DamageModel.friendly_voice(flying.call(ent), flying.call(partner)))
+	var code := DamageModel.friendly_voice(flying.call(ent), flying.call(partner))
+	host.mission_voice(code, ent if code == "VOC_TARGET_SAY_FRIENDLY_HIT" else partner)
 
 
 ## Sets a unit's damage level (FUN_004a8ae0 with damage 0 and a level): 3 fatally hit, 4 destroyed,

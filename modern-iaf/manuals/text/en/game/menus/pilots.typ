@@ -14,6 +14,7 @@ Select the pilot in the #term("Hangar")'s top bar to open the #scr("pilot") scre
   [#scr("pilot_name")], [The pilot's full name. A pilot needs a name to be saved.],
   [#scr("pilot_nickname")], [The short name that every screen's top bar shows. Without one the screens show the name.],
   [#scr("enemy_skill")], [How well the enemy flies and fights: #scr("skill_0"), #scr("skill_1") or #scr("skill_2"). It sets how fast the enemy's crews react, how well they aim and from how far they launch. Your flight and every friendly flight fly the same at every level. A pilot who never picked has #scr("skill_1").],
+  [#scr("radio_voice")], [#scr("radio_voice_0") or #scr("radio_voice_1"): the voice your own radio calls are said in, in English and in Hebrew. The flight's other jets, the tower and the AWACS take other voices, and each keeps the same voice for a whole flight. A pilot who never picked has a man's voice.],
   [The picture], [A frame in the shape of an identity photo. Without a picture it shows the name's initials.],
   [#scr("choose_picture")], [Opens the system's file dialog to pick a picture file. A click on the frame does the same. The picture is cut to fill the frame.],
   [#scr("logbook")], [For each jet flown, the one with the most flight time first: its flight time, its flights, how many passed and failed, and the same for each mission flown on it. A pilot without flights reads #scr("no_flights")],
@@ -24,7 +25,7 @@ Select the pilot in the #term("Hangar")'s top bar to open the #scr("pilot") scre
   [#scr("delete_profile")], [Deletes the pilot (@pilots-delete).],
   [#scr("other_pilots")], [Opens the list of pilots (@pilots-change).],
   [#scr("back")], [Goes back to the Hangar. #keycap("Esc") does the same.],
-  [#scr("save")], [Stores the name, the nickname, the picture and the enemy's skill, and opens the Hangar.],
+  [#scr("save")], [Stores the name, the nickname, the picture, the enemy's skill and the radio voice, and opens the Hangar.],
 )
 
 === Changing the name, the nickname or the picture <pilots-edit>

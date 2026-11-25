@@ -27,8 +27,14 @@ var _streams := {}
 ## Hebrew clip's role; empty where it is not built (the original game).
 var _he := {}
 var _he_dir := ""
-## The wingman (2–4) saying the call that plays now (radio.gd flight_call): his voice of the cast.
+## The member saying the call that plays now (radio.gd flight_call: the wingman 2–4; mission_voice: another
+## flight's member by its number): the voice of the cast (cast_voice) for a role of several speakers.
 var speaker := 2
+## This flight's cast (`cast`), drawn once for mission `_cast_mission`.
+var _cast := {}
+var _cast_mission := -1
+## Tests (modern-iaf/tests/test_voice_cast.gd): an Array logs each clip opened as [file, speaker, the path played].
+var heard = null
 
 
 static func load_table() -> RefCounted:
@@ -148,6 +154,8 @@ func stream(r: Dictionary) -> AudioStream:
 func stream_file(name: String) -> AudioStream:
 	var key := name.to_lower()
 	var he := hebrew(key) if Settings.language == "he" else english(key)
+	if heard is Array:
+		heard.append([key, speaker, he if he != "" else _files.get(key, "")])
 	if he != "":
 		key = he
 	if _streams.has(key):
@@ -169,8 +177,37 @@ func has_clip(name: String) -> bool:
 	return _files.has(name.to_lower())
 
 
-## Ours: in Hebrew, the path of clip `key`'s Hebrew line in the voice its speaker has in this mission's cast (cast =
-## mission id mod the casts' count: stable for the flight); "" in English, for a clip without one, or not built.
+## Ours (modern-iaf/docs/sound.md §3.2): this flight's cast, one of voices_he.json's `casts` whose player's voice
+## (`pilot`) has the gender the pilot picked on the Pilot screen (Settings.radio_voice()), drawn by the mission id:
+## fixed for the whole mission, a new draw for another mission. Empty where the voices are not built (the original).
+func cast() -> Dictionary:
+	if _he.is_empty() or _he.casts.is_empty():
+		return {}
+	if _cast_mission != Settings.mission_id or _cast.is_empty():
+		var g := "f" if Settings.radio_voice() == 1 else "m"
+		var genders: Dictionary = _he.get("genders", {})
+		var fit: Array = _he.casts.filter(func(c): return genders.get(c.get("pilot", ""), g) == g)
+		if fit.is_empty():
+			fit = _he.casts
+		_cast = fit[posmod(Settings.mission_id, fit.size())]
+		_cast_mission = Settings.mission_id
+	return _cast
+
+
+## Ours: THE rule of who speaks in which voice (modern-iaf/docs/sound.md §3.2), for every radio role: the voice
+## (voices_he.json's name; its English model follows its gender, `english`) of `role` (tower, awacs, pilot, wingman, or
+## a role a job adds to every cast) said by member `who` (a role of several speakers, an Array, gives member `who`
+## the entry (who - 2) mod its size: Kidon 1-2 the first, another flight's member by its number). The same for the
+## whole mission, so a speaker's voice never changes inside it; "" where the cast has no such role.
+func cast_voice(role: String, who := 0) -> String:
+	var v = cast().get(role, "")
+	if v is Array:
+		v = v[posmod(who - 2, v.size())] if not v.is_empty() else ""
+	return String(v)
+
+
+## Ours: in Hebrew, the path of clip `key`'s Hebrew line in the voice its speaker (`speaker`) has in this flight's cast
+## (cast_voice); "" in English, for a clip without one, or not built.
 func hebrew(key: String) -> String:
 	if Settings.language != "he" or _he.is_empty():
 		return ""
@@ -178,34 +215,26 @@ func hebrew(key: String) -> String:
 	var role: String = _he.roles.get(file, "")
 	if role == "":
 		return ""
-	var casts: Array = _he.casts
-	var voice = casts[posmod(Settings.mission_id, casts.size())].get(role, "")
-	if voice is Array:
-		voice = voice[clampi(speaker - 2, 0, voice.size() - 1)]
-	var path := _he_dir.path_join(String(voice)).path_join(file)
+	var path := _he_dir.path_join(cast_voice(role, speaker)).path_join(file)
 	return path if FileAccess.file_exists(path) else ""
 
 
-## Ours: in English, the path of clip `key` in its role's English voice of the other gender (voices_he.json `en`, the
-## AWACS's woman, modern-iaf/docs/sound.md §3) when this mission's cast gives that role a voice of that gender (the
-## same cast as the Hebrew voices: the flight hears one AWACS, a man or a woman, in either language); "" otherwise.
+## Ours: in English, the path of clip `key` in its role's English voice of the other gender (voices_he.json `en`:
+## the AWACS's and the player's woman, modern-iaf/docs/sound.md §3) when this flight's cast gives that role a voice of
+## that gender (cast_voice: one AWACS, one player's voice, the same in either language); "" otherwise. Each
+## other-gender model speaks one role, so the clip's file in its folder names the role.
 func english(key: String) -> String:
 	if Settings.language == "he" or _he.is_empty():
 		return ""
 	var file := key.get_basename() + ".ogg"
-	var role: String = _he.roles.get(file, "")
-	var other: Dictionary = _he.get("en", {}).get(role, {})
-	if other.is_empty():
-		return ""
-	var casts: Array = _he.casts
-	var voice = casts[posmod(Settings.mission_id, casts.size())].get(role, "")
-	if voice is Array:
-		return ""  # ponytail: a role of several speakers (the wingmen) has no other voice; add one when it gets one
-	var model := String(other.get(String(_he.get("genders", {}).get(voice, "")), ""))
-	if model == "":
-		return ""
-	var path := _he_dir.get_base_dir().path_join("en").path_join(model).path_join(file)
-	return path if FileAccess.file_exists(path) else ""
+	var genders: Dictionary = _he.get("genders", {})
+	var en: Dictionary = _he.get("en", {})
+	for role in en:
+		var model := String(en[role].get(String(genders.get(cast_voice(role, speaker), "")), ""))
+		var path := _he_dir.get_base_dir().path_join("en").path_join(model).path_join(file)
+		if model != "" and FileAccess.file_exists(path):
+			return path
+	return ""
 
 
 ## The clip at `path`, a WAV or an Ogg Vorbis file by its extension; a missing "x.wav" falls back to "x.ogg".

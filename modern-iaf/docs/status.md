@@ -284,6 +284,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   High answers in 0.5 s, drills in three quarters of the time, lays at 2 mrad and holds fire to 80 % of the range. The
   radars, missiles and rounds are the same at every level; the wingmen stay at Medium. The drones fly a programmed
   route and take none. Checked by `cargo test -p iaf-ai --test sites skill`.
+- **The voice cast (2026-11-25, the user: "for each mission, the voices not switched in the middle"; [sound.md](sound.md)
+  §3.2):** the player's own radio voice is picked per pilot on the Pilot screen (Man / Woman, a man's by default; in
+  English `am_puck` or `af_sarah`, in Hebrew `ariel` or `shira`); the flight's cast is drawn once per mission among
+  the casts with that voice, so the tower, the AWACS, each wingman and another flight's member keep one voice for the
+  whole mission and no wingman speaks in the player's. The friendly-fire calls are the wingman's voice in both
+  languages, "Eject, eject, eject!" the player's. One rule for every role (`sound_table.gd` `cast_voice`), a new role
+  (the boom operator) one key of the casts; `test_voice_cast.gd`.
 - **Enemy AI step 3: the SAM network (2026-11-21, the user: "Ok finish all enemies things you can";
   [ai-plan.md](ai-plan.md) K6; [../../docs/ai.md](../../docs/ai.md) §15.5):** an S-300 regiment's search radar (the
   64N6E2, 300 km, a sweep every 12 s) and command post (the 54K6E2) run the sites together. The post fuses the radar's

@@ -797,6 +797,13 @@ func enemy_skill() -> int:
 	return int(p.get("skill", 1)) if p is Dictionary else 1
 
 
+## The player's own radio voice the active pilot picked on the Pilot screen (docs/sound.md §3.2): 0 a man's, 1 a
+## woman's.
+func radio_voice() -> int:
+	var p = JSON.parse_string(IafPilotLog.pilot(records_db(), pilot()))
+	return int(p.get("voice", 0)) if p is Dictionary else 0
+
+
 ## The recorder with the RPM and avionics columns (docs/blackbox.schema.json version 2).
 func blackbox_version() -> int:
 	return 2

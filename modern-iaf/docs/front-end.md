@@ -252,6 +252,10 @@ cropped to fill the frame.
   Medium / High ("נמוכה / בינונית / גבוהה", the Settings' cost words). Part of the draft; Save stores it with the pilot
   (`IafPilotLog.set_skill`); a pilot who never picked, and every pilot from before, has Medium. It sets the enemy
   crews' reaction, drills, aim and launch range, never the wingmen's ([../../docs/ai.md](../../docs/ai.md) §17).
+- **The radio voice** (2026-11-25, the user: "in the pilot preference, one should be picked male or female voice"):
+  a row under the enemy's skill, "Your radio voice" / "הקול שלך בקשר", two segments Man / Woman ("גבר / אישה"). Part
+  of the draft; Save stores it with the pilot (`IafPilotLog.set_voice`); a pilot who never picked, and every pilot
+  from before, has a man's voice. It picks the player's own voice and the flight's cast ([sound.md](sound.md) §3.2).
 - **The picture** opens the file dialog on a click, as Choose a picture… does. Without a picture the frame shows the
   name's initials as they are typed, and a head and shoulders (`Look.person_icon`) before there is a name (F1,
   2026-11-14: the first start's frame was empty).
@@ -259,7 +263,9 @@ cropped to fill the frame.
   rest of the width. Before, the fields stood in a middle column with nothing under Nickname. Since 2026-11-24 (the
   user: "you can make the left side (name, nick etc) a bit smaller, then choose pic button as the bottom of the pic")
   the column is 520 px wide (it was 640), its titles 22 px (25), the picture 240 × 320 (255 × 340), and Choose a
-  picture… is the picture's bottom edge: as wide as the frame, right under it.
+  picture… is the picture's bottom edge: as wide as the frame, right under it. Since 2026-11-25 the radio voice row
+  takes the height the picture gave up: the picture is 165 × 220 and Choose a picture… 17 px, so the column fits a
+  1080-high window above the bottom bar.
 - **The keys:** Up and Down move between Name and Nickname (a text field keeps the arrows otherwise), Down from Nickname
   to the skill picked (a gamepad has no Tab). Tab goes the fields, the three skill segments, Choose a picture, More
   stats (when shown), the Pilot log, the bottom bar's buttons, the Hangar crumb, and round.

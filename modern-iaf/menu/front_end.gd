@@ -368,6 +368,7 @@ func show_page(p: String) -> void:
 			"nickname": str(was.get("nickname", "")),
 			"picture": "",
 			"skill": int(was.get("skill", 1)),
+			"voice": int(was.get("voice", 0)),
 		}
 	# The section's list again, except on a mission's own screens while the list is the picked jet's (the briefing and
 	# Arming keep the mission opened: a test's sample mission, modern-iaf/tests/data, too).
@@ -2144,8 +2145,9 @@ func play_sample(key: String) -> void:
 
 
 ## The Pilot screen (the Hangar → the pilot's name): the picture in a service ID photo's fixed 3:4 frame, the name,
-## the nickname (the one every screen's top bar shows) and the enemy's skill. The edits are a draft: Save stores them
-## in the records (IafPilotLog) and opens the Hangar; Back leaves them, after a prompt when something changed.
+## the nickname (the one every screen's top bar shows), the enemy's skill and the player's radio voice. The edits are a
+## draft: Save stores them in the records (IafPilotLog) and opens the Hangar; Back leaves them, after a prompt when
+## something changed.
 func _page_pilot() -> void:
 	var first := not creating and first_start()
 	_header(["pilot"] if first else ["hangar", "pilot"])
@@ -2163,7 +2165,8 @@ func _page_pilot() -> void:
 	var col := VBoxContainer.new()  # added under the fields below: the picture, Choose picture as its bottom edge
 	col.add_theme_constant_override("separation", 0)
 	col.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	var fr := _picture_frame(col, Vector2(240, 320), draft_picture())
+	# 165 × 220 (3:4): the fields, the enemy's skill and the radio voice above it fit the page's height at 1080.
+	var fr := _picture_frame(col, Vector2(165, 220), draft_picture())
 	fr.name = "Picture"
 	# The picture (or its placeholder) opens the file picker as the button does.
 	fr.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -2184,6 +2187,7 @@ func _page_pilot() -> void:
 		ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		ini.add_theme_color_override("font_color", Look.MUTED)
+		ini.add_theme_font_size_override("font_size", 87)  # the Jet size (127) scaled to the frame's width
 		# Set here: the frame is not in the tree yet, so _show_initials (find_child) would not reach it.
 		ini.text = initials(str(draft.name))
 		empty.visible = ini.text == ""
@@ -2192,7 +2196,7 @@ func _page_pilot() -> void:
 	pick.name = "ChoosePicture"
 	pick.size_flags_horizontal = Control.SIZE_FILL
 	pick.custom_minimum_size.x = 0  # the picture's width, its text in the narrower padding below
-	pick.add_theme_font_size_override("font_size", 22)
+	pick.add_theme_font_size_override("font_size", 17)  # within the 165 px picture
 	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var box: StyleBox = _theme.get_stylebox(st, "Secondary").duplicate()
 		box.content_margin_left = 10
@@ -2223,7 +2227,18 @@ func _page_pilot() -> void:
 		b.name = "Skill_%d" % i
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(func(): draft.skill = i)
-	_spacer_px(f, 12)
+	_spacer_px(f, 8)
+	# The player's own radio voice (modern-iaf/docs/sound.md §3.2): a man's or a woman's, a man's for a pilot who never
+	# picked; the wingmen and the tanker's boom operator take the cast's other voices.
+	_label(f, s("radio_voice"), "Strong").add_theme_font_size_override("font_size", 22)
+	var vs := _hbox(f, -1)
+	vs.name = "Voice"
+	var vg := ButtonGroup.new()
+	for i in 2:
+		var b := _segment(vs, s("radio_voice_%d" % i), vg, int(draft.get("voice", 0)) == i)
+		b.name = "Voice_%d" % i
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(func(): draft.voice = i)
 	f.add_child(col)
 	_logbook(h, creating or first)
 	var save := _action(s("save"), "Primary", save_pilot)
@@ -2244,8 +2259,9 @@ func _page_pilot() -> void:
 		other.name = "OtherPilots"
 		actions = [reset, del, other] + actions
 	_footer("", actions)
-	# Tab: the fields, the skill, the picture, the Pilot log, More stats, the bottom bar, the crumb.
-	var names := ["Field_name", "Field_nickname", "Skill_0", "Skill_1", "Skill_2", "ChoosePicture", "CombatMore"]
+	# Tab: the fields, the skill, the radio voice, the picture, the Pilot log, More stats, the bottom bar, the crumb.
+	var names := ["Field_name", "Field_nickname", "Skill_0", "Skill_1", "Skill_2", "Voice_0", "Voice_1"]
+	names += ["ChoosePicture", "CombatMore"]
 	var order := (names + ["pilot_log"]).map(func(n): return find_child(n, true, false))
 	_chain((order + actions + [find_child("Crumb_hangar", true, false)]).filter(func(c): return c != null))
 
@@ -2363,6 +2379,8 @@ func pilot_changed() -> bool:
 	for k in ["name", "nickname"]:
 		if str(draft.get(k, "")).strip_edges() != str(was.get(k, "")):
 			return true
+	if int(draft.get("voice", 0)) != int(was.get("voice", 0)):
+		return true
 	return str(draft.get("picture", "")) != "" or int(draft.get("skill", 1)) != int(was.get("skill", 1))
 
 
@@ -2381,6 +2399,7 @@ func save_pilot() -> void:
 	if draft.picture != "":
 		_pictures.erase(IafPilotLog.set_picture(db, Settings.pilot(), draft.picture))
 	IafPilotLog.set_skill(db, Settings.pilot(), int(draft.get("skill", 1)))
+	IafPilotLog.set_voice(db, Settings.pilot(), int(draft.get("voice", 0)))
 	show_page("hangar")
 
 
@@ -2407,7 +2426,7 @@ func _delete_now() -> void:
 	if not IafPilotLog.delete_pilot(db, Settings.pilot()):
 		return
 	_pictures.erase(str(profile().get("picture", "")))
-	draft = {"name": "", "nickname": "", "picture": "", "skill": 1}
+	draft = {"name": "", "nickname": "", "picture": "", "skill": 1, "voice": 0}
 	var others = JSON.parse_string(IafPilotLog.pilots(db))
 	show_page("pilots" if others is Array and not others.is_empty() else "pilot")
 

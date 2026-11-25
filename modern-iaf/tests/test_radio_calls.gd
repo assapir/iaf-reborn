@@ -152,7 +152,7 @@ func _hebrew(tv: Node, r: Node, at: int) -> void:
 		print("NEEDS DATA: the Hebrew clips (iaf-sim own)")
 		return
 	settings().language = "he"
-	var cast: Dictionary = table._he.casts[posmod(settings().mission_id, table._he.casts.size())]
+	var cast: Dictionary = table.cast()  # sound_table.gd: the cast the pilot's radio voice and the mission id draw
 	var plain := ["key_on.ogg", "key_off.ogg", "twr_pause.ogg", "radio_gap.ogg", "kch2.ogg"]
 	var calls := [[0, ""], [1, ""], [3, ""], [4, ""], [5, ""], [6, ""], [8, ""], [9, ""], [10, ""], [12, ""]]
 	for from in [2, 3, 4]:

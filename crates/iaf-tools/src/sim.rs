@@ -1311,8 +1311,8 @@ impl VoicesHe {
     }
 }
 
-/// A clip's role in Hebrew: its `role_he`, else its `voice` (another pilot's call is the player's English voice but a
-/// wingman's in Hebrew, where `pilot` is the player's own).
+/// A clip's role in Hebrew: its `role_he`, else its `voice` (`role_he` for a clip whose Hebrew speaker differs from its
+/// English role; no clip uses it now: every call is in its speaker's role in both languages).
 pub fn role_he(clip: &Value) -> &str {
     clip["role_he"].as_str().or(clip["voice"].as_str()).unwrap_or("")
 }

@@ -88,9 +88,10 @@ func _voice(tv: Node) -> void:
 	var both := {}
 	for i in casts.size():
 		s.mission_id = i
-		var woman: bool = table._he.genders.get(String(casts[i].awacs), "") == "f"
+		var awacs: String = table.cast_voice("awacs")  # this mission's cast (sound_table.gd cast)
+		var woman: bool = table._he.genders.get(awacs, "") == "f"
 		var path: String = table.english("awx_clean.ogg")
-		check(("en/af_bella/" in path) == woman, "voice: cast %d's AWACS (%s): %s" % [i, casts[i].awacs, path])
+		check(("en/af_bella/" in path) == woman, "voice: mission %d's AWACS (%s): %s" % [i, awacs, path])
 		both[woman] = true
 	check(both.size() == 2, "voice: a man in some casts, a woman in others")
 	s.mission_id = was

@@ -1,5 +1,5 @@
 {
-  "about": "Modern IAF's voices: every speech clip of modern-iaf/data/sounds, made by `iaf-sim voices` (Kokoro text to speech, tools/iaf-2026/kokoro_tts.py, through crates/iaf-tools/src/sim_voices.rs: modern-iaf/docs/sound.md §5), the tower's phrase particles and templates (compiled by iaf-sim own into phraseparticalsdata.trx / phrasetemplates.trx, and each particle's Hebrew subtitle text_he into phraseparticles_he.trx, the format shared/audio/radio.gd reads, docs/radio.md §1). voices: each role's Kokoro voice and speed. clips: file, voice (the role), say (said in one pass), say_he (the Hebrew line, said by BlueTTS: `iaf-sim voices --he`, tools/iaf-2026/blue_tts.py, into he/<voice>/<file>), mode: betty (Betty's chain, said `repeat` times), radio (the radio chain with the key clicks), phrase / particle (the radio chain and hiss, no clicks: radio.gd frames the call with key_on / key_off); cut: the head or tail of `say` at its ';' by Kokoro's word timing. A particle key joined by '+' (\"ALPHA_T+,+HOLD_POS\") is one clip for that run of particles, which radio.gd plays in place of the run. In Hebrew a callsign is always its own clip (a joined key plays only where its clip exists in the language spoken), so a joined key with a callsign has no say_he, and he_only marks a joined key with only a Hebrew clip (the words after the callsign). role_he: the clip's Hebrew role where it differs (another pilot's call, which the English pilot voice also says, is a wingman's voice in Hebrew; pilot is the player's own).",
+  "about": "Modern IAF's voices: every speech clip of modern-iaf/data/sounds, made by `iaf-sim voices` (Kokoro text to speech, tools/iaf-2026/kokoro_tts.py, through crates/iaf-tools/src/sim_voices.rs: modern-iaf/docs/sound.md §5), the tower's phrase particles and templates (compiled by iaf-sim own into phraseparticalsdata.trx / phrasetemplates.trx, and each particle's Hebrew subtitle text_he into phraseparticles_he.trx, the format shared/audio/radio.gd reads, docs/radio.md §1). voices: each role's Kokoro voice and speed. clips: file, voice (the role), say (said in one pass), say_he (the Hebrew line, said by BlueTTS: `iaf-sim voices --he`, tools/iaf-2026/blue_tts.py, into he/<voice>/<file>), mode: betty (Betty's chain, said `repeat` times), radio (the radio chain with the key clicks), phrase / particle (the radio chain and hiss, no clicks: radio.gd frames the call with key_on / key_off); cut: the head or tail of `say` at its ';' by Kokoro's word timing. A particle key joined by '+' (\"ALPHA_T+,+HOLD_POS\") is one clip for that run of particles, which radio.gd plays in place of the run. In Hebrew a callsign is always its own clip (a joined key plays only where its clip exists in the language spoken), so a joined key with a callsign has no say_he, and he_only marks a joined key with only a Hebrew clip (the words after the callsign). role_he: the clip's Hebrew role where it differs from voice (none now: every call is in its speaker's role in both languages, modern-iaf/docs/sound.md §3.2).",
   "voices": {
     "betty": {
       "model": "af_heart",
@@ -20,7 +20,14 @@
       "speed": 1.1,
       "url": "https://huggingface.co/hexgrad/Kokoro-82M",
       "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
-      "use": "the player, wingmen and other pilots (radio chain)"
+      "use": "the player's own calls (radio and helmet chains)",
+      "other": {
+        "model": "af_sarah",
+        "speed": 1.1,
+        "gender": "f",
+        "use": "the player's own English voice for a pilot who picked a woman's on the Pilot screen (he.casts' pilot: shira); af_sarah, VOICES.md's C+ (sound.md §3.2)"
+      },
+      "gender": "m"
     },
     "awacs": {
       "model": "am_fenrir",
@@ -143,24 +150,21 @@
       "voice": "pilot",
       "say": "Eject eject eject!",
       "mode": "radio",
-      "say_he": "נטישה, נטישה, נטישה!",
-      "role_he": "wingman"
+      "say_he": "נטישה, נטישה, נטישה!"
     },
     {
       "file": "voc_target_say_friendly_hit.ogg",
-      "voice": "pilot",
+      "voice": "wingman",
       "say": "Check fire, check fire, you are shooting at friendlies!",
       "mode": "radio",
-      "say_he": "חדל אש, חדל אש, ירי על כוחותינו!",
-      "role_he": "wingman"
+      "say_he": "חדל אש, חדל אש, ירי על כוחותינו!"
     },
     {
       "file": "voc_wingman_say_friendly_hit.ogg",
-      "voice": "pilot",
+      "voice": "wingman",
       "say": "Lead, check your fire, that was a friendly!",
       "mode": "radio",
-      "say_he": "מוביל, חדל אש, זה היה כוח שלנו!",
-      "role_he": "wingman"
+      "say_he": "מוביל, חדל אש, זה היה כוח שלנו!"
     },
     {
       "file": "voc_tower_say_friendly_hit.ogg",

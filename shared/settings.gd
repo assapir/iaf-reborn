@@ -1342,6 +1342,12 @@ func enemy_skill() -> int:
 	return 1
 
 
+## The player's own radio voice (modern-iaf/docs/sound.md §3.2): 0 a man's, 1 a woman's; Modern IAF's is the active
+## pilot's (sim_settings.gd).
+func radio_voice() -> int:
+	return 0
+
+
 ## The flight recorder's format (docs/blackbox.schema.json `blackbox`): 1 here; Modern IAF's 2 adds the RPM and avionics
 ## columns (terrain_view.gd blackbox_columns).
 func blackbox_version() -> int:

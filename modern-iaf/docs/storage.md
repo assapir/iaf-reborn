@@ -81,7 +81,7 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
 
 | table | columns |
 |---|---|
-| `pilots` | `id` (14, the default pilot; a new pilot from the front end's pilot list takes the next free id); since version 2 the profile of the Pilot screen: `name`, `nickname` (the one every screen shows), `picture` (the picture file's path relative to the database's folder, `pictures/pilot-<id>.<ext>`; `''` = none); since version 7 `skill` (the enemy's skill the pilot picked: 0 low, 1 medium, 2 high; 1 for every pilot before, [../../docs/ai.md](../../docs/ai.md) §17) |
+| `pilots` | `id` (14, the default pilot; a new pilot from the front end's pilot list takes the next free id); since version 2 the profile of the Pilot screen: `name`, `nickname` (the one every screen shows), `picture` (the picture file's path relative to the database's folder, `pictures/pilot-<id>.<ext>`; `''` = none); since version 7 `skill` (the enemy's skill the pilot picked: 0 low, 1 medium, 2 high; 1 for every pilot before, [../../docs/ai.md](../../docs/ai.md) §17); since version 9 `voice` (the player's radio voice the pilot picked: 0 a man's, 1 a woman's; 0 for every pilot before, [sound.md](sound.md) §3.2) |
 | `sorties` | `id` (autoincrement: the debrief's number), `pilot`, `mission_id` (the menu id), `mission` (the readable name), `date`, `result` (1 pass, 0 fail), `elapsed_s`, `debrief` (the whole record as JSON text, NULL when it was lost); since version 3 `plane` (the jet's unit id, `f16i`; `''` for a sortie stored before); since version 8 `combat` (the flight's combat record as JSON text, below; NULL for a sortie without one) |
 | `loadouts` | since version 4: `pilot`, `plane` (the jet's unit id), `stations` (the loadout as JSON text, real station number → the store and how many, `{"3": {"id": "mk-82", "count": 3}}`; a plain id, the first build's form, reads as one; since 2026-11-19 also `pre`, the GPS stores' PRE targets picked on the briefing: `{"4": {"target": 2}, "4-3": {"lat": 31.04, "lon": 34.61, "mission": "nevatim_range"}, "8": {"steer": 1}}`, a station's key its number, a rack bomb's "station-bomb" 1-based, the aim a mission target's or steerpoint's number or a map point of one mission; a loadout without it has no picks ([front-end.md](front-end.md) §10.2); no schema change); one row per pilot and jet, none while the loadout is the record's default |
 | `saved_loadouts` | since version 6: `id`, `pilot`, `plane` (the jet's unit id), `name` (the pilot's, unique per pilot and jet), `stations` (as `loadouts`); the Loadout screen's Saved list ([front-end.md](front-end.md) §10.1) |
@@ -134,6 +134,10 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
   [[name, fired, hits, gun]], `lost` [[cause, n]], `ejected`, `wingmen_lost`, and without a sortie `flights` (the
   sorties with combat, newest first, each with its kills, ground targets and jets lost). Reset and Delete profile
   delete it with the sorties.
+- **Version 9** (2026-11-25) adds `pilots.voice`, the player's radio voice from the Pilot screen ([front-end.md](front-end.md)
+  §3): `pilot(db, pilot)` answers it with the profile (`voice`, 0 for a pilot never stored), `set_voice(db, pilot,
+  voice)` stores 1 as a woman's and anything else as a man's; `Settings.radio_voice()` reads the active pilot's for the
+  cast ([sound.md](sound.md) §3.2).
 - **The combat record.** IafTraining's score counts it from the flight's recording (`combat_log::count`) into the
   debrief's `combat`: `kills` and `shared` (air kills by the unit's record id, `mig29a`; an air-defence site's part
   by its name, `5P85TE2`), `ground` (ground targets by type), `weapons` (per weapon name: `fired`, `hits`, `gun` for

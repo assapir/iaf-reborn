@@ -1184,6 +1184,15 @@ func follow(_p: Pilot, _leader) -> void:
 # --- brain host --------------------------------------------------------------------------------
 
 
+## Ours: the radio's number of unit `ent` (sound_table.gd cast_voice): 1–4 in the player's four-ship, another
+## flight's member 5 and up by its key (the same unit, the same number for the whole mission).
+func member_number(ent: Dictionary) -> int:
+	for m in _ai_members:
+		if m[1] == ent:
+			return int(m[0])
+	return 5 + posmod(hash(String(ent.get("key", ""))), 1000)
+
+
 ## brain+0x44 (FUN_0043eef0): the wingman of my formation, else its leader unless that is me.
 func partner_of(ent: Dictionary) -> Dictionary:
 	var f := _formation_of(ent)
