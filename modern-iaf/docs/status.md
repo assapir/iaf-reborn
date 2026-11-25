@@ -494,7 +494,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   records 219–221, and the notebook's pages records 222 / 223 (Page Up / Page Down, the laptop map's Option + Space /
   Shift + Space). Shift + N, the 1998 game's night-vision goggles' key, is record 255 since 2026-11-19 (the F-16s'
   goggles, the entry above). Tests: `test_fuel_brake_switches.gd`, `test_switches_click.gd`, `test_notebook.gd`; the iaf-flight and
-  iaf-avionics tests. Owed: the run on the Mac.
+  iaf-avionics tests.
 - **The F-16s' fuel and brake switches (2026-11-18, [cockpit.md](cockpit.md) §5.7):** PARKING BRAKE holds the jet
   (Shift + G; a ground start begins with it set; the F-35I's switch too), MASTER FUEL OFF flames the engine out
   (Ctrl + F), ENG FEED and FUEL QTY SEL work (Shift + E, Shift + U; over every tank since the entry above).
@@ -529,8 +529,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the cards' Throttle – OFF items carry their key (Shift + 1). For the Mac: chaff and flares on Ctrl + Z / Ctrl + X,
   the weapon view on F2, laptop keys for the eight commands on Page Up / Page Down / Home / End, and Ctrl + Q /
   Ctrl + M named with Ctrl. A test fails on a listed command with no key on a Mac laptop
-  (`every_listed_command_has_a_key_on_a_mac_laptop`); `modern-iaf/tests/test_switch_keys.gd`, `test_devices.gd`. Owed:
-  the run on the Mac. Not started (not in the user's words): a
+  (`every_listed_command_has_a_key_on_a_mac_laptop`); `modern-iaf/tests/test_switch_keys.gd`, `test_devices.gd`. Not started (not in the user's words): a
   SPD BRK switch to click (the cockpit models have none); the speedbrakes' own line on the F-16's landing card; a
   speedbrake button in the Hotas X's map (`data/devices/hotas_x.json`: its brake button is the wheel brakes now).
   The own keys' records and the notebook's laptop keys were done later the same day (the entry above).
@@ -893,8 +892,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   dropped until it pauses), clamped at both ends; the trackpad zooms too. The Barak, the Sufa and the F-35I open at the
   same wide view, the F-16s at the same eye ([cockpit.md](cockpit.md) §2). Home's Pilot log entry removed: the pilot
   block → the Pilot screen's Pilot log button ([front-end.md](front-end.md) §3). `test_cockpit_view.gd`,
-  `test_front_end.gd`. Open: the Barak's view looked closer on the Mac; at default settings both jets render the same
-  view (only the HUDs differ: the Barak's Block 50 frame against the Sufa's wide-angle glass).
+  `test_front_end.gd`. On the Mac at default settings the F-16I and F-16D cockpits have the same horizontal FOV (85°) and eye point
+  (only the HUDs differ: the Barak's Block 50 frame against the Sufa's wide-angle glass).
 - **Mouse look in the cockpit (2026-11-11, the Mac play test's finding 9):** hold the right button and move the mouse
   to turn the head, double right-click to centre it; the wheel zooms from the wide view through the true size to a
   narrow 20° view for reading the MFDs. The left button stays on the switches. No head lean with the mouse
@@ -931,12 +930,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   cockpit. A bisect switch now turns graphics features off for one run (`IAF_SAFE=all ./start-modern-iaf`, then half
   the names back on per run); after the first 10 frames the log lists every shader in use and whether it compiled,
   and a failed one opens the crash page; the start watch covers those frames too, and a pause no longer counts as a
-  hang (a 30 s frame only logs `hang:`: a Mac's first start can compile shaders that long in one frame) ([front-end.md](front-end.md) §11.1). Fixed on suspicion, not yet seen on a Mac:
-  the Levant sky's `acos` of a direction a hair over 1 gave NaN, which Metal carries into the radiance map, the fog
+  hang (a 30 s frame only logs `hang:`: a Mac's first start can compile shaders that long in one frame) ([front-end.md](front-end.md) §11.1). The Levant sky's `acos` of a direction a hair over 1 gave NaN, which Metal carries into the radiance map, the fog
   and the ambient light (`atmosphere.gdshader`, also `normalize` of a zero vector looking straight down and two
   reversed `smoothstep` edges; the same `acos` in `cloud_layer.gd`, an `exp` overflow in `city_glow.gdshaderinc`); and
   the cockpit's picture no longer goes through MetalFX, whose output need not keep its alpha (an opaque cockpit
-  picture would lay black over the world; `cockpit_origin.gd`). Open: the Mac's log with these.
+  picture would lay black over the world; `cockpit_origin.gd`). A Mac flight start at mission 2012 draws the world with no `hang:` and 0 failed shaders (first world frame 3.6 s).
 - **A flight's start: no hang, faster, watched (2026-11-10, the Mac's P1 finding):** the mission card opened at the
   start under the loading screen and froze the flight, so the loading never ended on a player's machine (every
   scripted run skipped the card); the card is gone since 2026-11-13. The jet, the 3D cockpit and the pilot's body parse on
@@ -1171,7 +1169,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   command 207). From the seat the F-16s' two top inboard buttons of each MFD and the right MFD's GAIN rocker stay
   behind the ICP's corners, as in the real jet; the lean and the full view show and click them
   ([cockpit.md](cockpit.md) §2, "The MFDs from the seat"). `test_mfd_buttons_seen.gd`, `test_cockpit_view.gd`.
-  Owed: the real-window run of the test on the Mac. The views moved from Shift + N / M to Shift + , / . the same day:
+  The views moved from Shift + N / M to Shift + , / . the same day:
   Shift + N is the night-vision goggles' key (`terrain_view.gd` `_own_key`), and the manuals' build now stops when a
   key `_own_key` reads has no row in `modern-iaf/manuals/own_keys.json`. The goggles got their own record on
   2026-11-19 (record 255, command 303; the F-16s' goggles entry above).
