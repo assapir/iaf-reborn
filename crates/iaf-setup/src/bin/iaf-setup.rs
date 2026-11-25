@@ -106,8 +106,10 @@ fn main() -> Result<()> {
     iaf_setup::save_inputs(&assets, &inputs)?;
     let game = iaf_setup::Game::checkout(&repo);
     let guide_assets = assets.clone();
+    // --redo-all renders every guide picture and makes every PDF again.
     let render = |pr: &dyn Progress, cancel: &AtomicBool| {
-        iaf_setup::make_guides(&repo, &guide_assets, &game, &Default::default(), pr, cancel)
+        let o = iaf_setup::GuideOptions { force: redo_all, ..Default::default() };
+        iaf_setup::make_guides(&repo, &guide_assets, &game, &o, pr, cancel)
     };
     let ctx = Ctx {
         assets,

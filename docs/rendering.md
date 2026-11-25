@@ -549,6 +549,13 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
   Xvfb the Intel Vulkan driver finds no present queue ("None of the devices supports both graphics and present
   queues"), so Godot falls back to the desktop's Wayland compositor.
 
+  Hidden renders on Linux (2026-11-25): that fallback happens only while WAYLAND_DISPLAY points at the desktop. With
+  it taken away, Godot under Xvfb logs the same error, keeps the Intel GPU, renders the frames and captures them; no
+  window reaches the desktop. `tools/godot_window.sh` and the guide shots (`crates/iaf-setup/src/guides.rs`) run so
+  (the F-16I's `external` guide shot came out as before). Tried and dropped the same day: GNOME's mutter as a private
+  headless compositor (`mutter --headless --virtual-monitor`): Godot's frames stopped after 1–3 s in 3 of 4 runs, a
+  probe project's as well as the game's.
+
   The workaround (2026-11-01, `crates/iaf-godot/src/exit_wake.rs`): at the extension's last deinit stage (Scene,
   after the main loop and the pool, before Godot deletes its display server) a thread starts when a "Wayland Events"
   thread runs. After 1 s it sends that thread SIGURG every 250 ms (a handler that does nothing) until the thread is

@@ -150,17 +150,25 @@ checksums are `SCENERY`, `SCENERY_THEATRE` and `ROADS` in `crates/iaf-tools/src/
 The pilot guide PDFs (`crates/iaf-tools/src/guide_pdf.rs`, [guides/README.md](guides/README.md#pictures-and-pdfs)) are set
 in fonts built into the program, in `crates/iaf-tools/fonts/` with their licences:
 
-- Liberation Sans (regular, bold, italic, bold italic) and Liberation Mono 2.1.5, "Digitized data copyright (c) 2010
-  Google Corporation. Copyright (c) 2012 Red Hat, Inc.", under the SIL Open Font License 1.1
-  (`LICENSE-Liberation.txt`), from Arch Linux's `ttf-liberation` package[^liberation].
-- The arrows, maths operators and geometric shapes of DejaVu Sans 2.37 (U+2190–22FF, U+25A0–25FF, cut out with
-  fontTools' `pyftsubset`; the font keeps its name), "Copyright (c) 2003 by Bitstream, Inc. All Rights Reserved.
-  Copyright (c) 2006 by Tavmjong Bah. All Rights Reserved. DejaVu changes are in public domain", under the Bitstream
-  Vera Fonts licence and the Arev Fonts licence (`LICENSE-DejaVu.txt`), from Arch Linux's `ttf-dejavu`
-  package[^dejavu]. Liberation lacks ⊗ and ⊖ (the F-15 guide's pitch ladder marks).
+- Heebo, "Copyright 2014 The Heebo Project Authors", under the SIL Open Font License 1.1 (`LICENSE-Heebo.txt`),
+  Modern IAF's own font (§ Modern IAF's font) as static fonts at weights 400 and 700 (`Heebo-Regular.ttf`,
+  `Heebo-Bold.ttf`, made by `tools/guide_fonts.py`): all the text, Hebrew included; italic is the same font slanted.
+- Noto Sans Mono 2.014, "Copyright 2022 The Noto Project Authors", cut to Latin, punctuation, arrows, maths and
+  geometric shapes by `tools/guide_fonts.py`, under the SIL Open Font License 1.1 (`LICENSE-Noto.txt`), from Arch
+  Linux's `noto-fonts` package[^noto]: the code text.
+- The arrows, maths operators, geometric shapes and Cyrillic of DejaVu Sans 2.37 (U+0400–052F, U+2190–22FF,
+  U+25A0–25FF, cut out by `tools/guide_fonts.py`; the font keeps its name), "Copyright (c) 2003 by Bitstream, Inc.
+  All Rights Reserved. Copyright (c) 2006 by Tavmjong Bah. All Rights Reserved. DejaVu changes are in public domain",
+  under the Bitstream Vera Fonts licence and the Arev Fonts licence (`LICENSE-DejaVu.txt`), from Arch Linux's
+  `ttf-dejavu` package[^dejavu]: the characters Heebo lacks.
 
-Both games' release bundles carry the two licence files in `licenses/` (`tools/release/bundle.sh`); the original game's
+Both games' release bundles carry the three licence files in `licenses/` (`tools/release/bundle.sh`); the original game's
 wizard Attributions and credits roll name them (`shared/credits.json`).
+
+The PDFs are written with these Rust libraries, built into the program: krilla[^krilla] (the PDF, its embedded font
+subsets; with pdf-writer, subsetter and skrifa, MIT or Apache-2.0), rustybuzz[^rustybuzz] (text shaping, MIT),
+unicode-bidi (Hebrew's right-to-left order, MIT or Apache-2.0) and unicode-linebreak (line-break opportunities,
+Apache-2.0).
 
 ## Modern IAF data
 
@@ -302,5 +310,7 @@ are Heebo (§ Modern IAF's font) set as paths; the roundel is a ring and a six-p
 [^heebo]: Google Fonts, Heebo (`ofl/heebo/Heebo[wght].ttf` and `OFL.txt`): https://github.com/google/fonts/tree/main/ofl/heebo
 [^cop-dem]: "Licence for the use of the Copernicus WorldDEM-30", Article 6: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf
 [^bsc5]: The Bright Star Catalogue, 5th revised edition, ASCII file `ybsc5.gz` (the CDS catalogue V/50 layout), Harvard-Smithsonian Center for Astrophysics: http://tdc-www.harvard.edu/catalogs/bsc5.html
-[^liberation]: Liberation Fonts: https://github.com/liberationfonts/liberation-fonts
 [^dejavu]: DejaVu Fonts, "License": https://dejavu-fonts.github.io/License.html
+[^krilla]: krilla, a PDF library: https://github.com/LaurenzV/krilla
+[^rustybuzz]: rustybuzz, a HarfBuzz port to Rust: https://github.com/harfbuzz/rustybuzz
+[^noto]: Noto Sans Mono, the Noto Project: https://github.com/notofonts/latin-greek-cyrillic

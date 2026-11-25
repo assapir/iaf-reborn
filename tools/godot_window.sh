@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Runs Godot with a real renderer (screenshots, benches) out of the user's way: on macOS as a hidden app that never takes
-# the focus (open -g -j: it renders, no window shows); on Linux under xvfb-run when it is installed, else plainly (with
-# Vulkan on Intel, Godot finds no present queue on Xvfb and opens on the desktop's Wayland: docs/rendering.md §1.5).
+# the focus (open -g -j: it renders, no window shows); on Linux under xvfb-run when it is installed, with the desktop's
+# WAYLAND_DISPLAY taken away (else Godot, finding no Vulkan present queue on Xvfb with Intel, opened on the desktop's
+# Wayland: docs/rendering.md §1.5; without it, it renders on the GPU inside Xvfb), else plainly.
 # VAR=value words before `--` are passed to Godot's environment; the rest are Godot's arguments. --log-file is required:
 # Godot's output goes there (open has no stdout), and the script prints it when Godot exits.
 # The hidden window renders at the size it is given (--resolution); --fullscreen does not resize it. On a Mac with a
@@ -44,7 +45,7 @@ else
 		((fd > 2 && fd != 255)) && eval "exec $fd>&-"
 	done 2>/dev/null || true
 	run=(godot)
-	command -v xvfb-run >/dev/null && run=(xvfb-run -a godot)
+	command -v xvfb-run >/dev/null && run=(env -u WAYLAND_DISPLAY xvfb-run -a godot)
 	env ${envs[@]+"${envs[@]}"} setsid "${run[@]}" "${args[@]}" >/dev/null 2>&1 &
 	pid=$!
 	trap 'kill -TERM -- -$pid 2>/dev/null || true' EXIT

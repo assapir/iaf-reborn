@@ -37,7 +37,7 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
 - Everything comes from the player's own ISO; the repo (github.com/assapir/iaf-reborn, GPL-3.0) holds no game data.
 - **Download (2026-11-23, [release.md](release.md)):** the nightly pre-release has the game for Linux, macOS (Apple
   silicon, unsigned) and Windows, version `1.1.0-nightly.<date>+<hash>`; the game opens its setup wizard and keeps
-  its data in a per-user folder; the bundle carries curl and GDAL for setup, and its wizards neither check nor list them. Open: Intel Macs are not built for. The pilot guides are made in every bundle with nothing installed: the game renders the pictures, Rust draws the PDFs (setup.md "Outside programs").
+  its data in a per-user folder; the bundle carries curl and GDAL for setup, and its wizards neither check nor list them. Open: Intel Macs are not built for. The pilot guides are made in every bundle: the game renders the pictures (on Linux out of sight under `xvfb-run`, which it then needs), Rust draws the PDFs in Heebo (guides/README.md); the wizard's redo of the step renders them again. Open: Windows opens the render windows on the desktop, and Windows / macOS renders are not tested here (no Windows machine, the Mac off-limits).
 - **Updates on start (2026-11-24, the user: "auto update on startup for released assests", "same for setup";
   [release.md](release.md) §7):** a bundle offers a newer nightly (download, size and SHA-256 check, swap with the old
   version kept until the new one starts, rollback); bundle and checkout offer the setup steps whose stamps no longer

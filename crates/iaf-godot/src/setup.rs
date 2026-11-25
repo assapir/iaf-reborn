@@ -407,9 +407,12 @@ impl IafSetup {
         self.launch(steps.clone(), &header, log_file, prefix, move |sink, cancel| {
             // The pictures by this game's own executable (a bundle's, or the checkout's Godot), the PDFs in Rust.
             let game = iaf_setup::Game::this_one(&repo);
+            // A redo of the step (or of everything) renders every picture and makes every PDF again.
+            let force = redo.iter().any(|r| r == "*" || r == "guides");
             let guides = |pr: &dyn Progress, c: &AtomicBool| {
                 let game = game.as_ref().map_err(|e| anyhow::anyhow!("{e:#}"))?;
-                iaf_setup::make_guides(&repo, &assets, game, &Default::default(), pr, c)
+                let o = iaf_setup::GuideOptions { force, ..Default::default() };
+                iaf_setup::make_guides(&repo, &assets, game, &o, pr, c)
             };
             let ctx = Ctx { assets: assets.clone(), repo: repo.clone(), inputs: i, guides: Some(&guides) };
             iaf_setup::run(&steps, &ctx, &|id| redo.iter().any(|r| r == "*" || r == id), sink, cancel)

@@ -75,8 +75,10 @@ are never committed. From the checkout, by hand: `target/release/iaf-setup guide
 1. The pictures: the game started with `-- --guide-shots` runs `iaf-reborn/setup/guide_shots.gd` in place of its
    menu (`menu/startup.gd`; Godot's export templates run no `-s` script; the header holds the entries' schema) for each
    entry of `<jet>.shots.json` (`crates/iaf-setup/src/guides.rs` starts the processes) into `shots/<jet>/<name>.png`,
-   in a 3840×2160 frame whatever the screen's size. On macOS the game runs as a hidden app (`open -g -j`); on Linux
-   under `xvfb-run` when it is installed.
+   in a 3840×2160 frame whatever the screen's size. No window reaches the screen: on macOS the game runs as a hidden
+   app (`open -g -j`); on Linux under `xvfb-run` with the desktop's `WAYLAND_DISPLAY` taken away (it renders on the
+   GPU inside Xvfb, [rendering.md](../rendering.md) §1.5); Linux without `xvfb-run` fails the step and says to install
+   it. Windows opens the game's windows on the desktop (not tested here: no Windows machine).
    - An entry sets the settings, the mission (`mc` builds a Mission Creator mission, 666: the MiGs fly only there),
      the start (mission, airborne, dive, final approach, the briefing TSD with its GPS targets panel, or the Arming screen), a placed
      target, actions (a radar lock, a store, the MFDs' pages, a camera on the target, a radar-designated point, the GPS bombs' PRE
@@ -100,8 +102,24 @@ are never committed. From the checkout, by hand: `target/release/iaf-setup guide
      failure line ends with its process's log file, and the step's error lists the failed processes' logs.
 2. The PDFs: each guide as an A4 PDF, drawn in Rust with no browser: a title page with the Reference screen's
    picture of the jet (a guide outside the records: its own `external` shot, if it has one), contents with links,
-   the pictures with their legends kept on the same page. The look is the earlier HTML print's (its CSS's sizes and
-   colours); the fonts are built into the program: Liberation Sans and Liberation Mono (Helvetica's and Courier's
-   widths, so the lines break where Helvetica's would) and DejaVu Sans's arrows and maths symbols for the few
-   characters Liberation lacks ([credits.md](../credits.md)). It warns when a legend's length differs from the
-   picture's callouts. A PDF newer than its Markdown, shots list and pictures is kept unless `--force`.
+   the pictures with their legends kept on the same page. The layout keeps the earlier HTML print's CSS sizes and
+   colours; the text is set in Modern IAF's Heebo (the user, 25 Nov 2026: "Use heebo for guides also."), so lines and
+   pages break differently from the old Firefox print (checked on all 12 guides, 2026-11-25):
+   - The fonts, built into the program ([credits.md](../credits.md#the-pilot-guides-fonts)): Heebo for all text,
+     Hebrew included, slanted for italic (Heebo has no italic); Noto Sans Mono for code; DejaVu Sans's arrows, maths
+     signs and Cyrillic, which Heebo lacks. Text is shaped by rustybuzz (kerning, ligatures), Hebrew put in
+     right-to-left order by unicode-bidi, and the PDF written by krilla with subsets of the fonts embedded, so its
+     text can be searched and copied.
+   - Line breaks at Unicode's line-break opportunities (UAX #14, unicode-linebreak): at spaces, after a hyphen or a
+     slash before a letter (`F-16`, `1/2` stay whole), around dashes. A break inside a code span keeps room for the
+     span's end padding.
+   - Line heights: each inline box (bold, italic, code, a superscript raised 0.34 em, a fallback font) is its
+     line height split around its font's ascent and descent rounded to 0.5 pt; a line is as tall as its boxes reach.
+   - Borders print 0.5 pt (1 px) and 1.5 pt (2.5 px); table columns are CSS's automatic widths, header cells centred
+     vertically; a picture keeps its ratio inside its border.
+   - Page breaks: a line, a table row or a figure that does not fit starts the next page; a heading and a table's
+     header row go to the next page with what follows them; a table's header row repeats.
+   It warns when a legend's length differs from the picture's callouts. A PDF newer than its Markdown, shots list
+   and pictures, and made by the current layout (its producer's version, `PRODUCER` in guide_pdf.rs: an older PDF is
+   made again), is kept unless `--force` (the wizard's "redo" on the Pilot guides step, and `iaf-setup --redo-all`,
+   force the pictures and the PDFs).

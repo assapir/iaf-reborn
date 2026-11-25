@@ -1,6 +1,8 @@
 //! A pilot guide (docs/guides/<jet>.md) as a print-styled A4 PDF: assets/converted/guides/<jet>.pdf, drawn with
-//! pdf.rs and the fonts in crates/iaf-tools/fonts (Liberation Sans and Mono, Helvetica's metrics; DejaVu Sans's
-//! symbols for what Liberation lacks), so a release bundle makes it with nothing installed (docs/setup.md).
+//! pdf.rs and the fonts in crates/iaf-tools/fonts (tools/guide_fonts.py: the game's Heebo for all text, Hebrew
+//! included, slanted for italic; Noto Sans Mono for code; DejaVu Sans's arrows, maths signs and Cyrillic, which Heebo
+//! lacks), so a release bundle makes it with nothing installed (docs/setup.md). Text is shaped with rustybuzz,
+//! ordered with unicode-bidi and broken at unicode-linebreak's opportunities.
 //!
 //! The Markdown subset is the in-game viewer's (iaf-reborn/menu/guide_md.gd): # / ## / ### headings, paragraphs,
 //! **bold**, *italic*, `code`, one-level bullet / numbered lists, pipe tables, `---`, [text](link) and pictures on a
@@ -9,23 +11,29 @@
 //! picture's numbered callouts, `annotations` in <jet>.shots.json: the counts must match, else a warning), kept on the
 //! picture's page with badges like the callouts. A title page with the Reference screen's picture of the jet
 //! (assets/converted/reference/img/<jet>.png, else the guide's `external` shot), then a table of contents with links.
-//! The look is the one the earlier HTML print had (its CSS's sizes, in mm and pt, are the constants below). The PDF
-//! holds the original art, so it stays under assets/ (never committed).
+//! The layout follows the earlier HTML print (docs/guides/README.md "Pictures and PDFs"): its CSS's sizes (in mm and
+//! pt, the constants below) and a browser's line heights, table columns and page breaks, in Firefox's 1/80 pt units.
+//! The PDF holds the original art, so it stays under assets/ (never committed).
 
-use crate::pdf::{A4, Doc, Font, Image, Op, Rgb};
+use crate::pdf::{Doc, Font, Glyph, Image, Op, Rgb};
 use crate::progress::Progress;
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use unicode_bidi::{BidiInfo, Level};
+use unicode_linebreak::linebreaks;
 
 const MM: f32 = 72.0 / 25.4;
-const PX: f32 = 0.75;
-/// The page's margins: top, side, bottom.
-const TOP: f32 = 18.0 * MM;
-const SIDE: f32 = 17.0 * MM;
-const BOTTOM: f32 = 20.0 * MM;
-const WIDTH: f32 = A4.0 - 2.0 * SIDE;
+/// Firefox's page: A4 and the print CSS's margins (top 18 mm, sides 17 mm, bottom 20 mm), in its units.
+const PAGE: (f32, f32) = (595.275, 841.8875);
+const TOP: f32 = 51.025;
+const SIDE: f32 = 48.1875;
+const BOTTOM: f32 = 56.6875;
+const WIDTH: f32 = 498.9;
+/// A 1 px border as printed (Firefox rounds borders down to its 0.5 pt device pixels), and the h2's 2.5 px one.
+const BORDER: f32 = 0.5;
+const H2_BORDER: f32 = 1.5;
 const BODY: f32 = 10.2;
 const CODE: f32 = 9.0;
 const INK: Rgb = Rgb::hex(0x1d1f24);
@@ -36,17 +44,30 @@ const BOLD: usize = 1;
 const ITALIC: usize = 2;
 const BOLD_ITALIC: usize = 3;
 const MONO: usize = 4;
+/// What Heebo lacks: arrows, maths signs, geometric shapes, Cyrillic.
 const SYMBOLS: usize = 5;
+
+/// Firefox's layout unit: 1/80 pt (1/60 CSS px).
+fn au(v: f32) -> f32 {
+    (v * 80.0).round() / 80.0
+}
+
+fn mm(v: f32) -> f32 {
+    au(v * MM)
+}
+
+const HEEBO: &[u8] = include_bytes!("../fonts/Heebo-Regular.ttf");
+const HEEBO_BOLD: &[u8] = include_bytes!("../fonts/Heebo-Bold.ttf");
 
 fn fonts() -> &'static [Font] {
     static F: OnceLock<Vec<Font>> = OnceLock::new();
     F.get_or_init(|| {
         vec![
-            Font::parse("LiberationSans", include_bytes!("../fonts/LiberationSans-Regular.ttf")),
-            Font::parse("LiberationSans-Bold", include_bytes!("../fonts/LiberationSans-Bold.ttf")),
-            Font::parse("LiberationSans-Italic", include_bytes!("../fonts/LiberationSans-Italic.ttf")),
-            Font::parse("LiberationSans-BoldItalic", include_bytes!("../fonts/LiberationSans-BoldItalic.ttf")),
-            Font::parse("LiberationMono", include_bytes!("../fonts/LiberationMono-Regular.ttf")),
+            Font::parse("Heebo-Regular", HEEBO),
+            Font::parse("Heebo-Bold", HEEBO_BOLD),
+            Font::parse("Heebo-Regular", HEEBO).oblique(),
+            Font::parse("Heebo-Bold", HEEBO_BOLD).oblique(),
+            Font::parse("NotoSansMono-Regular", include_bytes!("../fonts/NotoSansMono-Regular.ttf")),
             Font::parse("DejaVuSans-Symbols", include_bytes!("../fonts/DejaVuSans-Symbols.ttf")),
         ]
     })
@@ -206,71 +227,41 @@ fn inline(t: &str) -> Vec<Run> {
 
 // ---- Text layout ------------------------------------------------------------------------------------------------
 
-/// A shaped piece of one font.
-#[derive(Clone)]
-struct Piece {
+fn face(bold: bool, italic: bool) -> usize {
+    match (bold, italic) {
+        (false, false) => REG,
+        (true, false) => BOLD,
+        (false, true) => ITALIC,
+        (true, true) => BOLD_ITALIC,
+    }
+}
+
+/// An inline element's box on a line (CSS 2.1 §10.8): its font, size, line height and raise above the baseline.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct InlineBox {
     font: usize,
     size: f32,
+    lh: f32,
     rise: f32,
-    glyphs: Vec<(u16, char)>,
-    w: f32,
-    code_span: Option<usize>,
 }
 
-fn face(sty: Sty, bold_base: bool, italic_base: bool) -> usize {
-    let (b, i) = (sty.bold || bold_base, sty.italic || italic_base);
-    if sty.code {
-        MONO
-    } else {
-        match (b, i) {
-            (false, false) => REG,
-            (true, false) => BOLD,
-            (false, true) => ITALIC,
-            (true, true) => BOLD_ITALIC,
-        }
+impl InlineBox {
+    fn new(font: usize, size: f32, rise: f32) -> InlineBox {
+        InlineBox { font, size, lh: au(1.5 * size), rise }
+    }
+
+    /// How far it reaches above and below the baseline: its line height split evenly around the font's ascent and
+    /// descent, which Firefox rounds to its 0.5 pt device pixels.
+    fn extent(&self) -> (f32, f32) {
+        let f = &fonts()[self.font];
+        let half = |v: f32| (v * 2.0 + 0.5).floor() / 2.0;
+        let (a, d) = (half(f.line_ascent * self.size), half(f.line_descent * self.size));
+        (self.rise + (self.lh + a - d) / 2.0, (self.lh - a + d) / 2.0 - self.rise)
     }
 }
 
-/// The text's glyphs in `font`, a character it lacks from the symbols font (else .notdef), as pieces.
-fn shape(text: &str, font: usize, size: f32, rise: f32, code_span: Option<usize>) -> Vec<Piece> {
-    let f = fonts();
-    let mut out: Vec<Piece> = vec![];
-    for c in text.chars() {
-        let (fi, g) = match f[font].glyph(c) {
-            Some(g) => (font, g),
-            None => f[SYMBOLS].glyph(c).map(|g| (SYMBOLS, g)).unwrap_or((font, 0)),
-        };
-        let w = f[fi].advance(g) * size;
-        match out.last_mut() {
-            Some(p) if p.font == fi => {
-                p.glyphs.push((g, c));
-                p.w += w;
-            }
-            _ => out.push(Piece { font: fi, size, rise, glyphs: vec![(g, c)], w, code_span }),
-        }
-    }
-    out
-}
-
-/// A word in the order it is drawn: each run of Hebrew letters reversed (right to left within the word).
-/// ponytail: one word at a time; a phrase of several Hebrew words would also need its words' order reversed.
-fn visual(word: &str) -> String {
-    let hebrew = |c: &char| ('\u{0590}'..='\u{05ff}').contains(c);
-    let mut out = String::new();
-    let mut run: Vec<char> = vec![];
-    for c in word.chars() {
-        if hebrew(&c) {
-            run.push(c);
-        } else {
-            out.extend(run.drain(..).rev());
-            out.push(c);
-        }
-    }
-    out.extend(run.into_iter().rev());
-    out
-}
-
-/// A paragraph's style: size, line height, colour, the base weight / slant (headings, captions), alignment.
+/// A paragraph's style: size, line height, colour, the base weight / slant (headings, captions), alignment, letter
+/// spacing.
 #[derive(Clone, Copy)]
 struct Para {
     size: f32,
@@ -284,152 +275,319 @@ struct Para {
 
 impl Para {
     fn new(size: f32) -> Para {
-        Para { size, lh: size * 1.5, color: INK, bold: false, italic: false, center: false, spacing: 0.0 }
+        Para { size, lh: au(1.5 * size), color: INK, bold: false, italic: false, center: false, spacing: 0.0 }
+    }
+
+    /// The paragraph's own box on every line (CSS's strut).
+    fn strut(&self) -> InlineBox {
+        InlineBox { font: face(self.bold, self.italic), size: self.size, lh: self.lh, rise: 0.0 }
     }
 }
 
-/// A word: pieces with no break between them, and the width of the space before it.
-struct Word {
-    pieces: Vec<Piece>,
-    w: f32,
-    space: f32,
+/// One character as laid out.
+#[derive(Clone)]
+struct Ch {
+    c: char,
+    /// The glyphs its cluster draws, on its first character (none on the others of a ligature and on spaces).
+    glyphs: Vec<Glyph>,
+    /// How many characters its cluster covers (0 inside another's).
+    cluster: usize,
+    /// Its bidi embedding level (odd: right to left).
+    level: Level,
+    font: usize,
+    size: f32,
+    rise: f32,
+    /// Its cluster's advance, in Firefox's units.
+    adv: f32,
+    /// Its code span, and that span's padding before / after it.
+    span: Option<usize>,
+    pad_l: f32,
+    pad_r: f32,
+    /// The inline boxes it sits in (bold, italic, code, superscript, a fallback font's).
+    boxes: Vec<InlineBox>,
 }
 
-fn words(runs: &[Run], p: &Para) -> Vec<Word> {
-    let mut out: Vec<Word> = vec![];
-    let mut space = 0.0;
-    let mut fresh = true;
-    for r in runs {
-        let font = face(r.sty, p.bold, p.italic);
+/// A paragraph's characters: fonts, sizes, inline boxes, code padding, bidi levels and the advances shaped by
+/// rustybuzz (a run of one font, style and direction at a time, as a browser shapes). Spaces collapse, as in HTML.
+fn chars(runs: &[Run], p: &Para) -> Vec<Ch> {
+    let f = fonts();
+    let mut out: Vec<Ch> = vec![];
+    let mut run_of: Vec<usize> = vec![];
+    for (ri, r) in runs.iter().enumerate() {
+        let (b, i) = (r.sty.bold || p.bold, r.sty.italic || p.italic);
+        // CSS: code is 9 pt wherever it is; sup is `smaller` (÷ 1.2), raised 0.34 em of its parent.
         let size = if r.sty.code {
-            CODE // CSS: code is 9 pt wherever it is
+            CODE
         } else if r.sty.sup {
-            p.size * 0.83
+            p.size / 1.2
         } else {
             p.size
         };
-        let rise = if r.sty.sup { p.size * 0.33 } else { 0.0 };
-        let span = r.sty.code.then_some(r.span);
-        for (k, part) in r.text.split(' ').enumerate() {
-            if k > 0 {
-                space += fonts()[font].glyph(' ').map(|g| fonts()[font].advance(g) * size).unwrap_or(size * 0.28)
-                    + p.spacing;
-                fresh = true;
-            }
-            if part.is_empty() {
+        let rise = if r.sty.sup { au(0.34 * p.size) } else { 0.0 };
+        let mut boxes = vec![];
+        if r.sty.bold {
+            boxes.push(InlineBox::new(face(true, p.italic), p.size, 0.0));
+        }
+        if r.sty.italic {
+            boxes.push(InlineBox::new(face(p.bold, true), p.size, 0.0));
+        }
+        if r.sty.bold && r.sty.italic {
+            boxes.push(InlineBox::new(BOLD_ITALIC, p.size, 0.0));
+        }
+        if r.sty.sup {
+            boxes.push(InlineBox::new(face(b, i), size, rise));
+        }
+        if r.sty.code {
+            boxes.push(InlineBox::new(MONO, CODE, rise));
+        }
+        let main = if r.sty.code { MONO } else { face(b, i) };
+        for c in r.text.chars() {
+            if c == ' ' && out.last().is_none_or(|l| l.c == ' ') {
                 continue;
             }
-            let pieces = shape(&visual(part), font, size, rise, span);
-            let w: f32 = pieces.iter().map(|x| x.w + p.spacing * x.glyphs.len() as f32).sum();
-            if fresh || out.is_empty() {
-                out.push(Word { pieces, w, space: if out.is_empty() { 0.0 } else { space } });
-                fresh = false;
-            } else {
-                let last = out.last_mut().expect("a word");
-                last.pieces.extend(pieces);
-                last.w += w;
+            // The run's font, else the first fallback that has the character.
+            let font = [main, REG, SYMBOLS, MONO].into_iter().find(|&k| c == ' ' || f[k].has(c)).unwrap_or(main);
+            let mut bx = boxes.clone();
+            if font != main {
+                bx.push(InlineBox::new(font, size, rise));
             }
-            space = 0.0;
+            let span = r.sty.code.then_some(r.span);
+            let level = Level::ltr();
+            let ch = Ch {
+                c,
+                glyphs: vec![],
+                cluster: 0,
+                level,
+                font,
+                size,
+                rise,
+                adv: 0.0,
+                span,
+                pad_l: 0.0,
+                pad_r: 0.0,
+                boxes: bx,
+            };
+            out.push(ch);
+            run_of.push(ri);
+        }
+    }
+    while out.last().is_some_and(|l| l.c == ' ') {
+        out.pop();
+        run_of.pop();
+    }
+    // Bidi levels: the paragraph's direction from its first strong character.
+    let text: String = out.iter().map(|c| c.c).collect();
+    let bidi = BidiInfo::new(&text, None);
+    for (c, (at, _)) in out.iter_mut().zip(text.char_indices()) {
+        c.level = bidi.levels[at];
+    }
+    // Shaping, run by run.
+    let mut i = 0;
+    while i < out.len() {
+        let mut j = i + 1;
+        while j < out.len() && run_of[j] == run_of[i] && out[j].font == out[i].font && out[j].level == out[i].level {
+            j += 1;
+        }
+        let font = &f[out[i].font];
+        let run: String = out[i..j].iter().map(|c| c.c).collect();
+        let at: Vec<usize> = run.char_indices().map(|(b, _)| b).collect();
+        let of_byte = |b: usize| at.iter().position(|&x| x == b).unwrap_or(at.len());
+        let size = out[i].size;
+        for g in font.shape(&run, out[i].level.is_rtl()) {
+            let k = i + of_byte(g.cluster.start);
+            let ch = &mut out[k];
+            ch.cluster = of_byte(g.cluster.end) - of_byte(g.cluster.start);
+            ch.glyphs.push(Glyph { id: g.id, text: 0..0, adv: g.adv * size, dx: g.dx * size, dy: g.dy * size });
+        }
+        for ch in &mut out[i..j] {
+            let w: f32 = ch.glyphs.iter().map(|g| g.adv).sum();
+            if ch.cluster > 0 {
+                ch.adv = au(w) + p.spacing;
+                if let Some(last) = ch.glyphs.last_mut() {
+                    last.adv += ch.adv - w;
+                }
+            }
+            if ch.c == ' ' {
+                ch.glyphs.clear();
+            }
+        }
+        i = j;
+    }
+    // A code span's padding: before its first character, after its last.
+    let pad = mm(1.2);
+    for k in 0..out.len() {
+        if let Some(s) = out[k].span {
+            if k == 0 || out[k - 1].span != Some(s) {
+                out[k].pad_l = pad;
+            }
+            if out.get(k + 1).is_none_or(|n| n.span != Some(s)) {
+                out[k].pad_r = pad;
+            }
         }
     }
     out
 }
 
-/// The widest word and the whole text on one line (a table cell's min / max content widths).
+/// An unbreakable piece of a paragraph: its characters, the width of the space before it and its own width.
+struct Seg {
+    chars: std::ops::Range<usize>,
+    space: f32,
+    w: f32,
+}
+
+/// The paragraph's unbreakable pieces: split at spaces and at UAX #14's other break opportunities.
+fn segments(cs: &[Ch]) -> Vec<Seg> {
+    let seg = |r: std::ops::Range<usize>, space: f32| {
+        let w = cs[r.clone()].iter().map(|c| c.adv + c.pad_l + c.pad_r).sum();
+        Seg { chars: r, space, w }
+    };
+    // UAX #14's break opportunities, as the characters they come before.
+    let text: String = cs.iter().map(|c| c.c).collect();
+    let at: Vec<usize> = text.char_indices().map(|(b, _)| b).collect();
+    let mut breaks = vec![false; cs.len() + 1];
+    for (b, _) in linebreaks(&text) {
+        breaks[at.iter().position(|&x| x == b).unwrap_or(cs.len())] = true;
+    }
+    let mut out = vec![];
+    let mut start: Option<usize> = None;
+    let mut space = 0.0;
+    for k in 0..cs.len() {
+        if cs[k].c == ' ' {
+            if let Some(s) = start.take() {
+                out.push(seg(s..k, space));
+            }
+            space = cs[k].adv + cs[k].pad_l + cs[k].pad_r;
+            continue;
+        }
+        let s = *start.get_or_insert(k);
+        if cs.get(k + 1).is_some_and(|n| n.c != ' ') && breaks[k + 1] {
+            out.push(seg(s..k + 1, space));
+            start = None;
+            space = 0.0;
+        }
+    }
+    if let Some(s) = start {
+        out.push(seg(s..cs.len(), space));
+    }
+    out
+}
+
+/// The widest unbreakable piece and the whole text on one line (a table cell's min / max content widths).
 fn text_widths(runs: &[Run], p: &Para) -> (f32, f32) {
-    let ws = words(runs, p);
-    let min = ws.iter().map(|w| w.w).fold(0.0, f32::max);
-    let max = ws.iter().map(|w| w.w + w.space).sum();
+    let segs = segments(&chars(runs, p));
+    let min = segs.iter().map(|s| s.w).fold(0.0, f32::max);
+    let max = segs.iter().enumerate().map(|(k, s)| s.w + if k > 0 { s.space } else { 0.0 }).sum();
     (min, max)
 }
 
-/// The text broken into lines `width` wide: one op list per line, its top at y 0, from x 0.
-fn wrap(runs: &[Run], p: &Para, width: f32) -> Vec<Vec<Op>> {
-    let ws = words(runs, p);
-    let mut rows: Vec<Vec<&Word>> = vec![];
+/// The text broken into lines `width` wide, greedily as Firefox does: one op list per line (its top at y 0, from
+/// x 0) and the line's height.
+fn wrap(runs: &[Run], p: &Para, width: f32) -> Vec<(Vec<Op>, f32)> {
+    let cs = chars(runs, p);
+    let segs = segments(&cs);
+    let pad = mm(1.2);
+    let mut rows: Vec<Vec<&Seg>> = vec![];
     let mut w = 0.0;
-    for word in &ws {
+    for seg in &segs {
+        // A break inside a code span keeps room for the span's end padding (Firefox reserves an open inline's end).
+        let last = &cs[seg.chars.end - 1];
+        let reserve = if last.span.is_some() && last.pad_r == 0.0 { pad } else { 0.0 };
         match rows.last_mut() {
-            Some(row) if w + word.space + word.w <= width + 0.01 => {
-                w += word.space + word.w;
-                row.push(word);
+            Some(row) if w + seg.space + seg.w + reserve <= width + 0.001 => {
+                w += seg.space + seg.w;
+                row.push(seg);
             }
             _ => {
-                rows.push(vec![word]);
-                w = word.w;
+                rows.push(vec![seg]);
+                w = seg.w;
             }
         }
     }
-    let f = fonts();
-    let base = &f[face(Sty::default(), p.bold, p.italic)];
-    let baseline = (p.lh - (base.ascent + base.descent) * p.size) / 2.0 + base.ascent * p.size;
+    let mono = fonts()[MONO].line_ascent * CODE;
+    let half = |v: f32| (v * 2.0 + 0.5).floor() / 2.0;
+    let (code_up, code_h) = (half(mono), half(mono) + half(fonts()[MONO].line_descent * CODE));
     rows.iter()
         .map(|row| {
-            let total: f32 = row.iter().enumerate().map(|(i, w)| w.w + if i > 0 { w.space } else { 0.0 }).sum();
-            let mut x = if p.center { (width - total) / 2.0 } else { 0.0 };
-            let mut ops = vec![];
-            // A code span's background: from its first piece to its last on the line.
-            let mut boxes: Vec<(usize, f32, f32)> = vec![];
-            let mut text = vec![];
-            let pad = 1.2 * MM;
-            let mut last: Option<usize> = None; // the code span of the piece before
-            for (i, word) in row.iter().enumerate() {
-                let first = word.pieces.first().and_then(|p| p.code_span);
-                if last.is_some() && first != last {
-                    x += pad; // the closing pad, before the space
-                }
-                if i > 0 {
-                    x += word.space;
-                }
-                for (k, piece) in word.pieces.iter().enumerate() {
-                    if k > 0 && last.is_some() && piece.code_span != last {
-                        x += pad;
-                    }
-                    if let Some(s) = piece.code_span {
-                        match boxes.last_mut() {
-                            Some(b) if b.0 == s => b.2 = x + piece.w + pad,
-                            _ => {
-                                x += pad;
-                                boxes.push((s, x - pad, x + piece.w + pad));
-                            }
-                        }
-                    }
-                    last = piece.code_span;
-                    text.push(Op::Text {
-                        x,
-                        y: baseline - piece.rise,
-                        font: piece.font,
-                        size: piece.size,
-                        color: p.color,
-                        glyphs: piece.glyphs.clone(),
-                        spacing: p.spacing,
-                    });
-                    x += piece.w + p.spacing * piece.glyphs.len() as f32;
-                }
-                if i + 1 < row.len() && last.is_some() {
-                    let next = row[i + 1].pieces.first().and_then(|p| p.code_span);
-                    if next == last {
-                        last = None; // the span goes on: no closing pad
+            let (mut up, mut down) = p.strut().extent();
+            for seg in row {
+                for c in &cs[seg.chars.clone()] {
+                    for b in &c.boxes {
+                        let (u, d) = b.extent();
+                        up = up.max(u);
+                        down = down.max(d);
                     }
                 }
             }
-            // The box of the print's monospace font (Noto Sans Mono: 1.069 em up, 0.293 down), taller than Liberation
-            // Mono's.
-            for (_, x0, x1) in boxes {
-                let top = baseline - 1.069 * CODE - 0.2 * MM;
-                let h = 1.362 * CODE + 0.4 * MM;
-                ops.push(Op::Rect {
+            let (up, down) = (au(up), au(down));
+            let total: f32 = row.iter().enumerate().map(|(k, s)| s.w + if k > 0 { s.space } else { 0.0 }).sum();
+            let mut x = if p.center { (width - total) / 2.0 } else { 0.0 };
+            let mut text: Vec<Op> = vec![];
+            // A code span's background: from its padding's start to its end on this line.
+            let mut boxes: Vec<(usize, f32, f32)> = vec![];
+            let mut gap = true; // a space or padding since the last glyph: a new text op
+            // The line's characters in visual order (UAX #9's reordering of its levels).
+            let line = row[0].chars.start..row[row.len() - 1].chars.end;
+            let levels: Vec<Level> = cs[line.clone()].iter().map(|c| c.level).collect();
+            for k in BidiInfo::reorder_visual(&levels) {
+                let k = line.start + k;
+                let c = &cs[k];
+                let x0 = x;
+                if c.pad_l > 0.0 {
+                    x += c.pad_l;
+                    gap = true;
+                }
+                if !c.glyphs.is_empty() {
+                    let joins = !gap
+                        && matches!(text.last(), Some(Op::Text { font, size, y, .. })
+                            if *font == c.font && *size == c.size && *y == up - c.rise);
+                    if !joins {
+                        text.push(Op::Text {
+                            x,
+                            y: up - c.rise,
+                            font: c.font,
+                            size: c.size,
+                            color: p.color,
+                            text: String::new(),
+                            glyphs: vec![],
+                        });
+                    }
+                    if let Some(Op::Text { text: t, glyphs, .. }) = text.last_mut() {
+                        // The cluster's characters: this one and the next ones it covers (a ligature).
+                        let shown: String = cs[k..(k + c.cluster).min(cs.len())].iter().map(|c| c.c).collect();
+                        let r = t.len()..t.len() + shown.len();
+                        t.push_str(&shown);
+                        glyphs.extend(c.glyphs.iter().map(|g| Glyph { text: r.clone(), ..g.clone() }));
+                    }
+                    gap = false;
+                } else if c.adv > 0.0 {
+                    gap = true;
+                }
+                x += c.adv;
+                if c.pad_r > 0.0 {
+                    x += c.pad_r;
+                    gap = true;
+                }
+                if let Some(s) = c.span {
+                    match boxes.last_mut() {
+                        Some(b) if b.0 == s => b.2 = x,
+                        _ => boxes.push((s, x0, x)),
+                    }
+                }
+            }
+            let mut ops: Vec<Op> = boxes
+                .into_iter()
+                .map(|(_, x0, x1)| Op::Rect {
                     x: x0,
-                    y: top,
+                    y: up - code_up - mm(0.2),
                     w: x1 - x0,
-                    h,
+                    h: code_h + 2.0 * mm(0.2),
                     r: MM,
                     fill: Some(Rgb::hex(0xeef0f3)),
                     stroke: None,
-                });
-            }
+                })
+                .collect();
             ops.extend(text);
-            ops
+            (ops, up + down)
         })
         .collect()
 }
@@ -442,8 +600,8 @@ fn shift(ops: Vec<Op>, dx: f32, dy: f32) -> Vec<Op> {
             Op::Line { x0, y0, x1, y1, color, width } => {
                 Op::Line { x0: x0 + dx, y0: y0 + dy, x1: x1 + dx, y1: y1 + dy, color, width }
             }
-            Op::Text { x, y, font, size, color, glyphs, spacing } => {
-                Op::Text { x: x + dx, y: y + dy, font, size, color, glyphs, spacing }
+            Op::Text { x, y, font, size, color, text, glyphs } => {
+                Op::Text { x: x + dx, y: y + dy, font, size, color, text, glyphs }
             }
             Op::Image { x, y, w, h, r, img } => Op::Image { x: x + dx, y: y + dy, w, h, r, img },
             Op::Link { x, y, w, h, dest } => Op::Link { x: x + dx, y: y + dy, w, h, dest },
@@ -453,9 +611,13 @@ fn shift(ops: Vec<Op>, dx: f32, dy: f32) -> Vec<Op> {
 
 /// A paragraph as one block of ops (all its lines) and its height.
 fn block(runs: &[Run], p: &Para, width: f32) -> (Vec<Op>, f32) {
-    let ls = wrap(runs, p, width);
-    let h = ls.len() as f32 * p.lh;
-    (ls.into_iter().enumerate().flat_map(|(i, l)| shift(l, 0.0, i as f32 * p.lh)).collect(), h)
+    let mut ops = vec![];
+    let mut h = 0.0;
+    for (l, lh) in wrap(runs, p, width) {
+        ops.extend(shift(l, 0.0, h));
+        h += lh;
+    }
+    (ops, h)
 }
 
 // ---- Blocks and pages -------------------------------------------------------------------------------------------
@@ -467,14 +629,14 @@ struct Slice {
     mt: f32,
     mb: f32,
     ops: Vec<Op>,
-    /// No page break between this slice and the next (a heading).
-    keep_next: bool,
     /// A page break after it.
     break_after: bool,
-    /// The table header that starts a page this row starts (index into Flow::headers).
+    /// A table row's header, repeated at the top of a page the row starts (index into Flow::headers).
     header: Option<usize>,
     /// Destinations at its top (a heading's id).
     anchors: Vec<String>,
+    /// Kept on the page of the slice after it (a heading, a table's header row).
+    keep: bool,
 }
 
 #[derive(Default)]
@@ -488,9 +650,9 @@ impl Flow {
     fn para(&mut self, runs: &[Run], p: &Para, x: f32, width: f32, mt: f32, mb: f32) {
         let ls = wrap(runs, p, width);
         let n = ls.len();
-        for (i, l) in ls.into_iter().enumerate() {
+        for (i, (l, h)) in ls.into_iter().enumerate() {
             self.slices.push(Slice {
-                h: p.lh,
+                h,
                 mt: if i == 0 { mt } else { 0.0 },
                 mb: if i + 1 == n { mb } else { 0.0 },
                 ops: shift(l, x, 0.0),
@@ -535,7 +697,7 @@ fn picture(doc: &mut Doc, p: &Path) -> Result<usize> {
     let img =
         if p.extension().is_some_and(|e| e == "jpg") || (p.extension().is_some_and(|e| e == "png") && jpg.is_file()) {
             let f = if p.extension().is_some_and(|e| e == "jpg") { p } else { jpg.as_path() };
-            Image::jpeg(std::fs::read(f).with_context(|| format!("{}", f.display()))?)?
+            Image::Jpeg(std::fs::read(f).with_context(|| format!("{}", f.display()))?)
         } else {
             let rgb = image::open(p).with_context(|| format!("{}", p.display()))?.to_rgb8();
             Image::Rgb { w: rgb.width(), h: rgb.height(), pixels: rgb.into_raw() }
@@ -551,23 +713,23 @@ fn legend(items: &[String], first: usize, x: f32, width: f32) -> (Vec<Op>, f32) 
     let mut y = 0.0;
     for (i, it) in items.iter().enumerate() {
         if i > 0 {
-            y += MM;
+            y += mm(1.0);
         }
-        let d = 5.0 * MM;
-        let (t, h) = block(&inline(it), &p, width - 7.5 * MM);
+        let d = mm(5.0);
+        let (t, h) = block(&inline(it), &p, width - mm(7.5));
         ops.push(Op::Rect {
             x,
-            y: y + 0.2 * MM,
+            y: y + mm(0.2),
             w: d,
             h: d,
             r: d / 2.0,
             fill: Some(Rgb::hex(0xffcc1a)),
-            stroke: Some((Rgb::hex(0x0d0d0d), 1.2 * PX)),
+            stroke: Some((Rgb::hex(0x0d0d0d), BORDER)),
         });
         let n = Para { center: true, bold: true, lh: d, ..Para::new(7.6) };
         let (num, _) = block(&[Run { text: (first + i + 1).to_string(), sty: Sty::default(), span: 0 }], &n, d);
-        ops.extend(shift(num, x, y + 0.2 * MM));
-        ops.extend(shift(t, x + 7.5 * MM, y));
+        ops.extend(shift(num, x, y + mm(0.2)));
+        ops.extend(shift(t, x + mm(7.5), y));
         y += h;
     }
     (ops, y)
@@ -600,7 +762,7 @@ fn body(
     let body = Para::new(BODY);
     let flush = |flow: &mut Flow, para: &mut Vec<String>| {
         if !para.is_empty() {
-            flow.para(&inline(&para.join(" ")), &body, SIDE, WIDTH, 0.0, 3.0 * MM);
+            flow.para(&inline(&para.join(" ")), &body, SIDE, WIDTH, 0.0, mm(3.0));
             para.clear();
         }
     };
@@ -622,24 +784,26 @@ fn body(
                     toc.push((level, text.clone(), id.clone()));
                 }
                 let (size, mt, mb, color) = match level {
-                    1 => (22.0, 0.0, 4.0 * MM, INK),
-                    2 => (16.0, 9.0 * MM, 3.0 * MM, INK),
-                    _ => (12.0, 6.0 * MM, 2.0 * MM, GREEN),
+                    1 => (22.0, 0.0, mm(4.0), INK),
+                    2 => (16.0, mm(9.0), mm(3.0), INK),
+                    _ => (12.0, mm(6.0), mm(2.0), GREEN),
                 };
                 let p = Para { bold: true, color, ..Para::new(size) };
                 let (mut ops, mut h) = block(&inline(&text), &p, WIDTH);
                 if level == 2 {
-                    h += 2.0 * MM + 2.5 * PX;
-                    let y = h - 2.5 * PX / 2.0;
-                    ops.push(Op::Line { x0: 0.0, y0: y, x1: WIDTH, y1: y, color: GREEN, width: 2.5 * PX });
+                    h += mm(2.0) + H2_BORDER;
+                    let y = h - H2_BORDER / 2.0;
+                    ops.push(Op::Line { x0: 0.0, y0: y, x1: WIDTH, y1: y, color: GREEN, width: H2_BORDER });
                 }
+                // CSS: main > h2:first-child has no top margin.
+                let mt = if level == 2 && flow.slices.is_empty() { 0.0 } else { mt };
                 flow.slices.push(Slice {
                     h,
                     mt,
                     mb,
                     ops: shift(ops, SIDE, 0.0),
-                    keep_next: true,
                     anchors: vec![id],
+                    keep: true,
                     ..Default::default()
                 });
             }
@@ -649,10 +813,17 @@ fn body(
             if !next.starts_with("## ") {
                 let color = Rgb::hex(0xd4d6dc);
                 flow.slices.push(Slice {
-                    h: PX,
-                    mt: 5.0 * MM,
-                    mb: 5.0 * MM,
-                    ops: vec![Op::Line { x0: SIDE, y0: PX / 2.0, x1: SIDE + WIDTH, y1: PX / 2.0, color, width: PX }],
+                    h: BORDER,
+                    mt: mm(5.0),
+                    mb: mm(5.0),
+                    ops: vec![Op::Line {
+                        x0: SIDE,
+                        y0: BORDER / 2.0,
+                        x1: SIDE + WIDTH,
+                        y1: BORDER / 2.0,
+                        color,
+                        width: BORDER,
+                    }],
                     ..Default::default()
                 });
             }
@@ -685,39 +856,40 @@ fn body(
             if path.is_file() {
                 let (pw, ph) = image::image_dimensions(&path).with_context(|| format!("{}", path.display()))?;
                 let small = ph as f32 >= pw as f32 * 0.9; // the square MFD crops not page-wide
-                let w = if small { WIDTH * 0.46 } else { WIDTH };
-                let h = w * ph as f32 / pw as f32;
+                let w = if small { au(WIDTH * 0.46) } else { WIDTH };
+                // CSS: border-box sizing, so the picture's ratio holds inside its 1 px border.
+                let h = au((w - 2.0 * BORDER) * ph as f32 / pw as f32 + 2.0 * BORDER);
                 let x = SIDE + (WIDTH - w) / 2.0;
                 let img = picture(doc, &path)?;
                 let border = Rgb::hex(0xc8cbd2);
                 let mut ops = vec![
-                    Op::Image { x, y: 0.0, w, h, r: 1.5 * MM, img },
-                    Op::Rect { x, y: 0.0, w, h, r: 1.5 * MM, fill: None, stroke: Some((border, PX)) },
+                    Op::Image { x, y: 0.0, w, h, r: mm(1.5), img },
+                    Op::Rect { x, y: 0.0, w, h, r: mm(1.5), fill: None, stroke: Some((border, BORDER)) },
                 ];
                 let (c, ch) = block(&inline(cap), &caption, WIDTH);
-                ops.extend(shift(c, SIDE, h + 1.8 * MM));
-                let mut total = h + 1.8 * MM + ch;
-                let pic = Slice { h: total, mt: 3.0 * MM, mb: 6.0 * MM, ops: ops.clone(), ..Default::default() };
+                ops.extend(shift(c, SIDE, h + mm(1.8)));
+                let mut total = h + mm(1.8) + ch;
+                let pic = Slice { h: total, mt: mm(3.0), mb: mm(6.0), ops: ops.clone(), ..Default::default() };
                 if !items.is_empty() {
                     let (l, lh) = legend(&items, 0, SIDE, WIDTH);
-                    ops.extend(shift(l, 0.0, total + 2.5 * MM));
-                    total += 2.5 * MM + lh;
+                    ops.extend(shift(l, 0.0, total + mm(2.5)));
+                    total += mm(2.5) + lh;
                 }
-                if total <= A4.1 - TOP - BOTTOM {
-                    flow.slices.push(Slice { h: total, mt: 3.0 * MM, mb: 6.0 * MM, ops, ..Default::default() });
+                if total <= PAGE.1 - TOP - BOTTOM {
+                    flow.slices.push(Slice { h: total, mt: mm(3.0), mb: mm(6.0), ops, ..Default::default() });
                 } else {
                     // Taller than a page: the legend's items flow on.
-                    flow.slices.push(Slice { mb: 2.5 * MM, ..pic });
+                    flow.slices.push(Slice { mb: mm(2.5), ..pic });
                     for (k, it) in items.iter().enumerate() {
                         let (l, lh) = legend(std::slice::from_ref(it), k, SIDE, WIDTH);
-                        flow.slices.push(Slice { h: lh, mt: MM, mb: MM, ops: l, ..Default::default() });
+                        flow.slices.push(Slice { h: lh, mt: mm(1.0), mb: mm(1.0), ops: l, ..Default::default() });
                     }
                 }
             } else {
-                flow.para(&inline(cap), &Para { italic: true, ..body }, SIDE, WIDTH, 0.0, 3.0 * MM);
+                flow.para(&inline(cap), &Para { italic: true, ..body }, SIDE, WIDTH, 0.0, mm(3.0));
                 if !items.is_empty() {
                     let (l, lh) = legend(&items, 0, SIDE, WIDTH);
-                    flow.slices.push(Slice { h: lh, mt: 2.5 * MM, mb: MM, ops: l, ..Default::default() });
+                    flow.slices.push(Slice { h: lh, mt: mm(2.5), mb: mm(1.0), ops: l, ..Default::default() });
                 }
             }
         } else if t.starts_with('|') {
@@ -747,23 +919,18 @@ fn body(
                 flow.para(
                     &inline(it),
                     &body,
-                    SIDE + 6.0 * MM,
-                    WIDTH - 6.0 * MM,
-                    0.6 * MM,
-                    if k + 1 == n { 3.0 * MM } else { 0.6 * MM },
+                    SIDE + mm(6.0),
+                    WIDTH - mm(6.0),
+                    mm(0.6),
+                    if k + 1 == n { mm(3.0) } else { mm(0.6) },
                 );
                 // The marker and a space end 0.15 em before the item's text (the print's gap).
                 let marker = if ordered { format!("{}. ", k + 1) } else { "\u{2022} ".to_string() };
                 let mrun = [Run { text: marker, sty: Sty::default(), span: 0 }];
-                let mw: f32 = mrun[0]
-                    .text
-                    .chars()
-                    .map(|c| fonts()[REG].glyph(c).map_or(0.0, |g| fonts()[REG].advance(g)))
-                    .sum::<f32>()
-                    * BODY;
+                let mw: f32 = fonts()[REG].shape(&mrun[0].text, false).iter().map(|g| g.adv).sum::<f32>() * BODY;
                 let ml = wrap(&mrun, &body, WIDTH);
-                if let (Some(first), Some(m)) = (flow.slices.get_mut(at), ml.into_iter().next()) {
-                    first.ops.extend(shift(m, SIDE + 6.0 * MM - mw - 0.15 * BODY, 0.0));
+                if let (Some(first), Some((m, _))) = (flow.slices.get_mut(at), ml.into_iter().next()) {
+                    first.ops.extend(shift(m, SIDE + mm(6.0) - mw - 0.15 * BODY, 0.0));
                 }
             }
         } else {
@@ -785,18 +952,12 @@ fn body(
 fn contents(flow: &mut Flow, toc: &[(usize, String, String)]) {
     let p = Para { bold: true, ..Para::new(16.0) };
     let (ops, h) = block(&inline("Contents"), &p, WIDTH);
-    flow.slices.push(Slice {
-        h: h + 2.0 * MM,
-        mb: 3.0 * MM,
-        ops: shift(ops, SIDE, 0.0),
-        keep_next: true,
-        ..Default::default()
-    });
+    flow.slices.push(Slice { h: h + mm(2.0), mb: mm(3.0), ops: shift(ops, SIDE, 0.0), ..Default::default() });
     for (level, text, id) in toc {
         let (p, pad, indent) = if *level == 2 {
-            (Para::new(BODY), 1.6 * MM, 0.0)
+            (Para::new(BODY), mm(1.6), 0.0)
         } else {
-            (Para { color: Rgb::hex(0x4b4f5a), ..Para::new(9.4) }, 0.6 * MM, 7.0 * MM)
+            (Para { color: Rgb::hex(0x4b4f5a), ..Para::new(9.4) }, mm(0.6), mm(7.0))
         };
         let (t, th) = block(&inline(text), &p, WIDTH - indent);
         let mut ops = shift(t, SIDE + indent, pad);
@@ -804,16 +965,16 @@ fn contents(flow: &mut Flow, toc: &[(usize, String, String)]) {
         if *level == 2 {
             ops.push(Op::Line {
                 x0: SIDE,
-                y0: h + PX / 2.0,
+                y0: h + BORDER / 2.0,
                 x1: SIDE + WIDTH,
-                y1: h + PX / 2.0,
+                y1: h + BORDER / 2.0,
                 color: Rgb::hex(0xe3e4e8),
-                width: PX,
+                width: BORDER,
             });
-            h += PX;
+            h += BORDER;
         }
         ops.push(Op::Link { x: SIDE, y: 0.0, w: WIDTH, h, dest: id.clone() });
-        flow.slices.push(Slice { h, mt: 0.6 * MM, mb: 0.6 * MM, ops, ..Default::default() });
+        flow.slices.push(Slice { h, mt: mm(0.6), mb: mm(0.6), ops, ..Default::default() });
     }
 }
 
@@ -824,7 +985,7 @@ fn table(flow: &mut Flow, rows: &[Vec<String>]) {
     if n == 0 {
         return;
     }
-    let pad = 2.2 * MM;
+    let pad = mm(2.2);
     let cell = Para::new(9.0);
     let head = Para { bold: true, color: Rgb::hex(0xffffff), ..cell };
     let cells: Vec<Vec<Vec<Run>>> =
@@ -846,19 +1007,21 @@ fn table(flow: &mut Flow, rows: &[Vec<String>]) {
         let d = (smax - smin).max(1e-3);
         (0..n).map(|k| min[k] + (WIDTH - smin) * (max[k] - min[k]) / d).collect()
     };
-    let row = |r: &[Vec<Run>], p: &Para, vpad: f32| -> (Vec<Op>, f32) {
+    // A header cell sits in the middle of its row (the browser's vertical-align for th), a body cell at the top.
+    let row = |r: &[Vec<Run>], p: &Para, vpad: f32, middle: bool| -> (Vec<Op>, f32) {
+        let blocks: Vec<(Vec<Op>, f32)> =
+            r.iter().enumerate().map(|(k, c)| block(c, p, widths[k] - 2.0 * pad)).collect();
+        let h = blocks.iter().map(|b| b.1).fold(0.0, f32::max);
         let mut ops = vec![];
         let mut x = SIDE;
-        let mut h: f32 = 0.0;
-        for (k, c) in r.iter().enumerate() {
-            let (t, th) = block(c, p, widths[k] - 2.0 * pad);
-            ops.extend(shift(t, x + pad, vpad));
-            h = h.max(th);
+        for (k, (t, th)) in blocks.into_iter().enumerate() {
+            let dy = if middle { (h - th) / 2.0 } else { 0.0 };
+            ops.extend(shift(t, x + pad, vpad + dy));
             x += widths[k];
         }
         (ops, h + 2.0 * vpad)
     };
-    let (hops, hh) = row(&cells[0], &head, 1.6 * MM);
+    let (hops, hh) = row(&cells[0], &head, mm(1.6), true);
     let mut ops =
         vec![Op::Rect { x: SIDE, y: 0.0, w: WIDTH, h: hh, r: 0.0, fill: Some(Rgb::hex(0x2f3440)), stroke: None }];
     ops.extend(hops);
@@ -866,21 +1029,22 @@ fn table(flow: &mut Flow, rows: &[Vec<String>]) {
     flow.headers.push(header.clone());
     let hi = flow.headers.len() - 1;
     let alone = cells.len() == 1; // a header and no rows: the table's bottom margin on it
-    flow.slices.push(Slice { mt: 2.0 * MM, mb: if alone { 5.0 * MM } else { 0.0 }, keep_next: !alone, ..header });
+    flow.slices.push(Slice { mt: mm(2.0), mb: if alone { mm(5.0) } else { 0.0 }, keep: !alone, ..header });
     let last = cells.len() - 1;
     for (ri, r) in cells.iter().enumerate().skip(1) {
-        let (t, th) = row(r, &cell, 1.4 * MM);
-        let h = th + PX;
+        let (t, th) = row(r, &cell, mm(1.4), false);
+        let h = th + BORDER;
         let mut ops = vec![];
         if ri % 2 == 0 {
             ops.push(Op::Rect { x: SIDE, y: 0.0, w: WIDTH, h, r: 0.0, fill: Some(Rgb::hex(0xf5f6f8)), stroke: None });
         }
         ops.extend(t);
         let color = Rgb::hex(0xdfe1e6);
-        ops.push(Op::Line { x0: SIDE, y0: h - PX / 2.0, x1: SIDE + WIDTH, y1: h - PX / 2.0, color, width: PX });
+        let y = h - BORDER / 2.0;
+        ops.push(Op::Line { x0: SIDE, y0: y, x1: SIDE + WIDTH, y1: y, color, width: BORDER });
         flow.slices.push(Slice {
             h,
-            mb: if ri == last { 5.0 * MM } else { 0.0 },
+            mb: if ri == last { mm(5.0) } else { 0.0 },
             ops,
             header: Some(hi),
             ..Default::default()
@@ -888,64 +1052,53 @@ fn table(flow: &mut Flow, rows: &[Vec<String>]) {
     }
 }
 
-/// The flow on pages after the ones in `doc`: margins collapse between slices and vanish at a page's top; a heading
-/// moves to the next page with what follows it; a table row that starts a page brings its table's header.
+/// The flow on pages after the ones in `doc`: a slice that does not fit starts the next page;
+/// margins collapse between slices and vanish at a page's top; a table row that starts a page brings its table's
+/// header; a heading moves to the next page with the slice after it.
 fn paginate(doc: &mut Doc, flow: Flow) {
-    let bottom = A4.1 - BOTTOM;
+    let bottom = PAGE.1 - BOTTOM;
     let mut page: Vec<Op> = vec![];
     let mut y = TOP;
     let mut pending = 0.0f32; // the last slice's bottom margin
     let mut fresh = true;
-    let mut i = 0;
-    let s = &flow.slices;
-    while i < s.len() {
-        // The chain kept together: slices joined by keep_next, and the one after them.
-        let mut end = i;
-        while s[end].keep_next && end + 1 < s.len() {
-            end += 1;
+    for (i, sl) in flow.slices.iter().enumerate() {
+        // The height down to the end of the first slice after this one and the headings that follow it.
+        let mut need = sl.mt.max(pending) + sl.h;
+        let mut k = i;
+        while flow.slices[k].keep && k + 1 < flow.slices.len() {
+            need += flow.slices[k + 1].mt.max(flow.slices[k].mb) + flow.slices[k + 1].h;
+            k += 1;
         }
-        let gap = |k: usize, prev: f32| s[k].mt.max(prev);
-        let mut need = s[i].h;
-        for k in i + 1..=end {
-            need += gap(k, s[k - 1].mb) + s[k].h;
+        // A chain taller than a page cannot be kept together: the slice alone decides.
+        if need > bottom - TOP {
+            need = sl.mt.max(pending) + sl.h;
         }
-        let m = if fresh { 0.0 } else { gap(i, pending) };
-        let new_page = !fresh && y + m + need > bottom;
-        if new_page {
+        if !fresh && y + need > bottom + 0.001 {
             doc.pages.push(std::mem::take(&mut page));
             y = TOP;
             fresh = true;
         }
-        let place =
-            |sl: &Slice, y: &mut f32, fresh: &mut bool, pending: &mut f32, page: &mut Vec<Op>, doc: &mut Doc| {
-                if !*fresh {
-                    *y += sl.mt.max(*pending);
-                }
-                for a in &sl.anchors {
-                    doc.dest(a, doc.pages.len(), *y);
-                }
-                page.extend(shift(sl.ops.clone(), 0.0, *y));
-                *y += sl.h;
-                *pending = sl.mb;
-                *fresh = false;
-            };
-        for k in i..=end {
-            if fresh
-                && k == i
-                && let Some(h) = s[k].header
-                && k > 0
-                && s[k - 1].header.is_some()
-            {
-                place(&flow.headers[h], &mut y, &mut fresh, &mut pending, &mut page, doc);
+        let parts = match sl.header {
+            Some(h) if fresh => vec![&flow.headers[h], sl],
+            _ => vec![sl],
+        };
+        for part in parts {
+            if !fresh {
+                y += part.mt.max(pending);
             }
-            place(&s[k], &mut y, &mut fresh, &mut pending, &mut page, doc);
-            if s[k].break_after {
-                doc.pages.push(std::mem::take(&mut page));
-                y = TOP;
-                fresh = true;
+            for a in &part.anchors {
+                doc.dest(a, doc.pages.len(), y);
             }
+            page.extend(shift(part.ops.clone(), 0.0, y));
+            y += part.h;
+            pending = part.mb;
+            fresh = false;
         }
-        i = end + 1;
+        if sl.break_after {
+            doc.pages.push(std::mem::take(&mut page));
+            y = TOP;
+            fresh = true;
+        }
     }
     if !page.is_empty() {
         doc.pages.push(page);
@@ -954,18 +1107,18 @@ fn paginate(doc: &mut Doc, flow: Flow) {
 
 /// The title page: the dark cover with the jet's picture.
 fn cover(doc: &mut Doc, name: &str, img: &Path) -> Result<()> {
-    let (pw, ph) = A4;
-    let (x, w) = (22.0 * MM, pw - 44.0 * MM);
+    let (pw, ph) = PAGE;
+    let (x, w) = (mm(22.0), pw - mm(44.0));
     let mut ops = vec![Op::Rect { x: 0.0, y: 0.0, w: pw, h: ph, r: 0.0, fill: Some(Rgb::hex(0x23252c)), stroke: None }];
-    let mut y = 34.0 * MM;
+    let mut y = mm(34.0);
     let kicker = Para { color: Rgb::hex(0x9ea3b0), spacing: 0.32 * 10.0, ..Para::new(10.0) };
     let (k, kh) = block(&inline("JANE'S IAF \u{b7} REBORN"), &kicker, w);
     ops.extend(shift(k, x, y));
-    y += kh + 6.0 * MM;
+    y += kh + mm(6.0);
     let h1 = Para { bold: true, color: Rgb::hex(0xf2f2f4), lh: 44.0, ..Para::new(40.0) };
     let (t, th) = block(&inline(name), &h1, w);
     ops.extend(shift(t, x, y));
-    y += th + 4.0 * MM;
+    y += th + mm(4.0);
     let sub = Para { color: Rgb::hex(0xc9ccd4), ..Para::new(13.0) };
     let (s, sh) = block(
         &inline(
@@ -973,10 +1126,10 @@ fn cover(doc: &mut Doc, name: &str, img: &Path) -> Result<()> {
              examples, and the numbers that change how it flies.",
         ),
         &sub,
-        140.0 * MM,
+        mm(140.0),
     );
     ops.extend(shift(s, x, y));
-    y += sh + 18.0 * MM;
+    y += sh + mm(18.0);
     if img.is_file() {
         // The picture a little greyed (the print's grayscale(15%)).
         let mut rgb = image::open(img).with_context(|| format!("{}", img.display()))?.to_rgb8();
@@ -989,11 +1142,11 @@ fn cover(doc: &mut Doc, name: &str, img: &Path) -> Result<()> {
         let h = w * rgb.height() as f32 / rgb.width() as f32;
         doc.images.push(Image::Rgb { w: rgb.width(), h: rgb.height(), pixels: rgb.into_raw() });
         ops.push(Op::Image { x, y, w, h, r: 0.0, img: doc.images.len() - 1 });
-        ops.push(Op::Rect { x, y, w, h, r: 0.0, fill: None, stroke: Some((Rgb::hex(0x4a4d57), PX)) });
+        ops.push(Op::Rect { x, y, w, h, r: 0.0, fill: None, stroke: Some((Rgb::hex(0x4a4d57), BORDER)) });
     }
     let foot = Para { color: Rgb::hex(0x8a8f9c), ..Para::new(9.0) };
     let (f, fh) = block(&inline("Pictures rendered from your own install of the game."), &foot, w);
-    ops.extend(shift(f, x, ph - 16.0 * MM - fh));
+    ops.extend(shift(f, x, ph - mm(16.0) - fh));
     doc.pages.push(ops);
     Ok(())
 }
@@ -1016,7 +1169,7 @@ fn pdf(docs: &Path, assets: &Path, jet: &str, pr: &dyn Progress) -> Result<Vec<u
         vec![]
     };
     let out = assets.join("converted/guides");
-    let mut doc = Doc::new(fonts(), "");
+    let mut doc = Doc::new(fonts(), "", PRODUCER);
     let (flow, title) = body(&mut doc, &md, &out, &callouts, pr)?;
     let name = if title.is_empty() { jet.to_uppercase() } else { title };
     doc.title = name.clone();
@@ -1055,6 +1208,19 @@ pub fn all(docs: &Path) -> Vec<String> {
     v
 }
 
+/// The PDFs' producer: its version names the layout (2: Heebo, krilla), so an older PDF is made again.
+const PRODUCER: &str = "iaf-tools guide_pdf 2";
+
+/// Whether the PDF at `p` was made by this layout: its producer, in the document information near the file's end.
+fn made_by_this(p: &Path) -> bool {
+    use std::io::{Read, Seek, SeekFrom};
+    let Ok(mut f) = std::fs::File::open(p) else { return false };
+    let mut tail = vec![];
+    f.seek(SeekFrom::End(-65536)).or_else(|_| f.seek(SeekFrom::Start(0))).is_ok()
+        && f.read_to_end(&mut tail).is_ok()
+        && tail.windows(PRODUCER.len()).any(|w| w == PRODUCER.as_bytes())
+}
+
 /// The PDFs of `jets` (empty: every guide) into assets/converted/guides; one newer than all its inputs is kept unless
 /// `force`. A PDF that fails is named and the rest go on; then the first error.
 pub fn make(docs: &Path, assets: &Path, jets: &[String], force: bool, pr: &dyn Progress) -> Result<()> {
@@ -1066,8 +1232,10 @@ pub fn make(docs: &Path, assets: &Path, jets: &[String], force: bool, pr: &dyn P
         .par_iter()
         .filter_map(|jet| {
             let file = out.join(format!("{jet}.pdf"));
-            // ponytail: inputs' times only, so a change to this code keeps the PDFs (--force remakes them).
+            // ponytail: inputs' times and the layout's version only; another code change keeps the PDFs (--force
+            // remakes them). Bump PRODUCER when the look changes.
             let fresh = !force
+                && made_by_this(&file)
                 && mtime(&file)
                     .is_some_and(|t| inputs(docs, assets, jet).iter().all(|p| mtime(p).is_some_and(|m| m <= t)));
             if fresh {
@@ -1123,10 +1291,30 @@ mod tests {
         assert_eq!(styled("[^n]: Source")[0], s("[n]", true, false, false, false));
     }
 
+    /// Line heights and break opportunities (docs/guides/README.md "Pictures and PDFs").
+    #[test]
+    fn line_heights_and_breaks() {
+        let p = Para::new(9.0);
+        let h = |t: &str, p: &Para| wrap(&inline(t), p, 1000.0)[0].1;
+        assert!((h("plain", &p) - 13.5).abs() < 1e-3);
+        assert!(h("a note[^1]", &Para::new(BODY)) > au(1.5 * BODY), "a superscript raises the line");
+        let pieces = segments(&chars(&inline("F-16 target-aspect 1/2 AN/APG"), &p)).len();
+        assert_eq!(pieces, 6, "F-16 | target- aspect | 1/2 | AN/ APG");
+    }
+
     #[test]
     fn hebrew_drawn_right_to_left() {
-        assert_eq!(visual("\"אדיר\","), "\"רידא\",");
-        assert_eq!(visual("F-35I"), "F-35I");
+        let p = Para::new(9.0);
+        let (ops, _) = block(&inline("F-35I (Hebrew \"אדיר\") flies"), &p, 1000.0);
+        let shown: String = ops
+            .iter()
+            .filter_map(|o| match o {
+                Op::Text { text, .. } => Some(text.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert!(shown.contains("רידא"), "the Hebrew word in visual order: {shown}");
+        assert!(shown.starts_with("F-35I"), "{shown}");
     }
 
     #[test]
@@ -1147,9 +1335,10 @@ mod tests {
             fn log(&self, _: &str) {}
         }
         make(&docs, &dir, &[], false, &Quiet).unwrap();
+        assert!(made_by_this(&dir.join("converted/guides/x.pdf")), "the producer marks this layout's PDF");
         let b = std::fs::read(dir.join("converted/guides/x.pdf")).unwrap();
-        assert!(b.starts_with(b"%PDF-1.7") && b.ends_with(b"%%EOF\n"));
-        let pages = b.windows(13).filter(|w| w == b"/Type /Page /").count();
+        assert!(b.starts_with(b"%PDF-") && b.windows(5).any(|w| w == b"%%EOF"));
+        let pages = b.windows(11).filter(|w| w.starts_with(b"/Type/Page") && w[10] != b's').count();
         assert!(pages >= 4, "cover, contents, the table over two pages: {pages}");
         std::fs::remove_dir_all(&dir).unwrap();
     }

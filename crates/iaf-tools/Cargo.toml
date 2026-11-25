@@ -17,4 +17,8 @@ image = { version = "0.25.10", default-features = false, features = ["bmp", "tga
 sha2 = "0.10"
 texpresso = { version = "2.0.2", features = ["rayon"] }
 rayon = "1.11"
+krilla = { version = "0.8.2", default-features = false, features = ["simple-text", "raster-images"] }
+rustybuzz = "0.20.1"
+unicode-bidi = "0.3.18"
+unicode-linebreak = "0.1.5"
 rusqlite = { version = "0.41.1", features = ["bundled"] }

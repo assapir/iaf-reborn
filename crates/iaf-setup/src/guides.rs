@@ -248,9 +248,11 @@ fn parallel() -> usize {
     (cores / 2).min(mem).max(1)
 }
 
-/// The command for one process; on macOS the app started hidden (open -g -j: it renders, no window takes the focus),
-/// on Linux under xvfb-run when it is there (out of the desktop's way).
-fn command(game: &Game, envs: &[(&str, String)], args: &[String]) -> Command {
+/// The command for one process, its window never on the player's screen: on macOS the app started hidden (open -g -j:
+/// it renders, no window takes the focus); on Linux under xvfb-run with the desktop's WAYLAND_DISPLAY taken away, so
+/// Godot cannot fall back to the desktop's compositor (it did: docs/rendering.md §1.5) and renders on the GPU in the
+/// virtual X server. Linux without xvfb-run renders nothing: an error.
+fn command(game: &Game, envs: &[(&str, String)], args: &[String]) -> Result<Command> {
     let all: Vec<String> = game.args.iter().chain(args).cloned().collect();
     let exe = real_path(&game.exe).to_string_lossy().into_owned();
     if cfg!(target_os = "macos")
@@ -262,22 +264,30 @@ fn command(game: &Game, envs: &[(&str, String)], args: &[String]) -> Command {
             c.args(["--env", &format!("{k}={v}")]);
         }
         c.arg("--args").args(&all);
-        return c;
+        return Ok(c);
     }
-    let xvfb = cfg!(target_os = "linux") && Command::new("xvfb-run").arg("--help").output().is_ok();
-    let mut c = if xvfb {
+    let mut c = if !cfg!(target_os = "linux") {
+        Command::new(&game.exe)
+    } else if on_path("xvfb-run") {
         let mut c = Command::new("xvfb-run");
         c.arg("-a").arg(&game.exe);
         c
     } else {
-        Command::new(&game.exe)
+        bail!("the pictures render out of sight in xvfb-run: install it (the xvfb package)")
     };
     c.args(&all);
     for (k, v) in envs {
         c.env(k, v);
     }
+    if cfg!(target_os = "linux") {
+        c.env_remove("DISPLAY").env_remove("WAYLAND_DISPLAY");
+    }
     // In the caller's process group, so a Ctrl-C or a stopped setup stops the renders too.
-    c
+    Ok(c)
+}
+
+fn on_path(name: &str) -> bool {
+    std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(name).is_file()))
 }
 
 /// The executable as a file: a bare name looked up on the PATH, links resolved (a macOS app is found by its
@@ -337,8 +347,10 @@ fn run_one(r: &Shots, jet: &str, names: &[String], log: &Path) -> Vec<String> {
             .to_vec();
     let _ = std::fs::create_dir_all(out.join(jet));
     let mut note = None;
-    match command(game, &envs, &args).stdout(Stdio::null()).stderr(Stdio::null()).spawn() {
-        Err(e) => note = Some(format!("FAIL {jet} {}: could not start the game: {e}", names.join(","))),
+    match command(game, &envs, &args)
+        .and_then(|mut c| c.stdout(Stdio::null()).stderr(Stdio::null()).spawn().map_err(Into::into))
+    {
+        Err(e) => note = Some(format!("FAIL {jet} {}: could not start the game: {e:#}", names.join(","))),
         Ok(mut child) => {
             let per = std::env::var("GUIDE_TIMEOUT").ok().and_then(|v| v.parse().ok()).unwrap_or(600u64);
             let limit = Duration::from_secs(per * names.len() as u64);
