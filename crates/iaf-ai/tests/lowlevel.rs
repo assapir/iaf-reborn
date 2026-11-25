@@ -251,9 +251,9 @@ fn low_run_in_pops_up_into_the_dive() {
     let (lo, hi) = phase(20_000.0, 9_000.0).fold((f64::MAX, 0.0f64), |(a, b), h| (a.min(h), b.max(h)));
     let apex = phase(7_408.0, 0.0).fold(0.0f64, f64::max);
     println!(
-        "#2: in {:?} alpha {:?} done {:?}; run-in {lo:.0}..{hi:.0} m, apex {apex:.0} m, release {release:?}, least {low_all:.0} m",
+        "#2: in {:?} release {:?} done {:?}; run-in {lo:.0}..{hi:.0} m, apex {apex:.0} m, release {release:?}, least {low_all:.0} m",
         said(&calls, "in"),
-        said(&calls, "alpha"),
+        said(&calls, "release"),
         said(&calls, "done")
     );
     assert!(said(&calls, "done").is_some(), "#2 done: {calls:?}");

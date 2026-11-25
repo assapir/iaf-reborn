@@ -204,7 +204,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   aircraft locked attacks the player's ground target (the radar's locked ground unit, else the one nearest the SPI,
   else the SPI; no SPI: "unable"): each wingman with bombs in turn, a 30° dive for plain bombs, a level run for
   guided ones, the release by the CCIP's vacuum impact through combat.gd's AI ripple, the egress and the rejoin; calls in / נכנס, bombs away /
-  אלפא, done / ביצעתי. A new order from the lead (engage my target again, cover me, split, rejoin, RTB) ends the
+  חימוש שוחרר, shack / אלפא on the target destroyed (the jet that released last), done / ביצעתי. A new order from the lead (engage my target again, cover me, split, rejoin, RTB) ends the
   attack at once and is obeyed. An enemy pair attacks on its lead's own order (the dev hook `ai_flights.gd enemy_strike`, a
   target unit or a base's point; a MiG-29A with MK-83s standing in for its FAB-500s by `spawn`'s `arm`). Tests:
   `crates/iaf-ai/tests/strike.rs`, `modern-iaf/tests/test_ground_attack.gd`. No mission orders one; the pop-up

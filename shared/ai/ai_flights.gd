@@ -764,11 +764,13 @@ func attack(to: int, t: Dictionary) -> bool:
 
 
 ## The ground target `t` of the flight `ai` (members [[number, entity]]) this frame, and each AI jet's air-to-ground
-## weapon; a target destroyed or gone from the world is {} (the jets end their attack). Returns the target kept.
+## weapon; a target destroyed or gone from the world is {} (the jets end their attack; destroyed: IafAi.ground_hit,
+## the last jet to release calls "alpha"). Returns the target kept.
 func _feed_strike(ai, members: Array, t: Dictionary) -> Dictionary:
-	var gone: bool = (
-		not t.is_empty() and (int(t.state) >= 3 or (String(t.key) != "" and not runtime.entities.has(t.key)))
-	)
+	var hit: bool = not t.is_empty() and int(t.state) >= 3
+	var gone: bool = hit or (not t.is_empty() and String(t.key) != "" and not runtime.entities.has(t.key))
+	if hit:
+		ai.ground_hit(runtime.now)
 	if gone:
 		t = {}
 	var at: Vector3 = host.world_to_scene(world_of(t)) if not t.is_empty() else Vector3.ZERO
@@ -797,7 +799,7 @@ static func _pylons_of(u) -> PackedInt64Array:
 
 
 ## Jet `n`'s release this frame (IafAi.release) on the ground target `t`: the pylon IafAi.ground_release names selected,
-## its stores in one AI ripple (combat.gd release); IafAi told (released: "alpha").
+## its stores in one AI ripple (combat.gd release); IafAi told (released: "release").
 func _release(ai, n: int, ent: Dictionary, t: Dictionary) -> void:
 	var u = combat.units.get(ent.key)
 	if t.is_empty() or u == null or not ai.release(n) or combat._releasing(u):

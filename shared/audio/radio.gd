@@ -1129,6 +1129,7 @@ const WING_WORDS := {
 	"splash": "WNG_SPLASH",
 	"winchester": "WNG_WINCHESTER",
 	"in": "WNG_IN",
+	"release": "WNG_RELEASE",
 	"alpha": "WNG_ALPHA",
 	"done": "WNG_DONE",
 }

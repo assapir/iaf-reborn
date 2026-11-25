@@ -5,8 +5,8 @@
 #     first with nothing designated and no route (no SPI: each "unable"), then designated on the radar (the SPI);
 #     "engage my target" to the flight through the radio menu: Kidon 1-2, 1-3 and
 #     1-4 acknowledge and attack it one after the other: "in" with its subtitle, the release through combat.gd's AI
-#     ripple ("alpha"), the radar destroyed, "done", each back on the slot. A second order to Kidon 1-2 in its run:
-#     "ack" (not "unable"), the run broken off and flown again.
+#     ripple ("release"), the radar destroyed ("alpha", the hit), "done", each back on the slot. A second order to
+#     Kidon 1-2 in its run: "ack" (not "unable"), the run broken off and flown again.
 #   - A MiG-29A pair (spawned by `spawn` with two MK-83s each standing in for its FAB-500s, flown by `enemy_flight`)
 #     on its lead's own order (`enemy_strike`) against a 64N6E2 of our side: the lead releases on it, it is destroyed
 #     (the target gone ends the wingman's turn), the lead goes back to its CAP.
@@ -125,12 +125,14 @@ func _ours(tv: Node) -> void:
 	var twice := func():
 		return _tv.ai.flight_calls.filter(func(c): return int(c.from) == 2 and c.id == "in").size() >= 2
 	check(await _until(tv, twice, 30.0), "and runs in again (%s)" % _calls())
-	var alpha := func(): return _said(2, "alpha", t0)
-	check(await _until(tv, alpha, 240.0), "Kidon 1-2 releases: alpha (%s; %s)" % [_calls(), fa.state(2)])
+	var rel := func(): return _said(2, "release", t0)
+	check(await _until(tv, rel, 240.0), "Kidon 1-2 releases: release (%s; %s)" % [_calls(), fa.state(2)])
 	var dropped := func(): return tv.weapons.bombs.any(func(b): return is_same(b.owner, _wing[0]))
 	check(dropped.call() or int(radar.state) >= 3, "its MK-82s fall")
 	var down := func(): return int(radar.state) >= 3
 	check(await _until(tv, down, 300.0), "the 64N6E2 destroyed (%s)" % _calls())
+	var alpha := func(): return [2, 3, 4].any(func(n): return _said(n, "alpha", t0))
+	check(await _until(tv, alpha, 10.0), "the last to release calls alpha, the hit (%s)" % _calls())
 	var done := func(): return [2, 3, 4].any(func(n): return _said(n, "done", t0))
 	check(await _until(tv, done, 120.0), "an attacker reports done (%s)" % _calls())
 	var over := func(): return [2, 3, 4].all(func(n): return String(fa.state(n).strike) == "")

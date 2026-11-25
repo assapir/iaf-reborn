@@ -882,7 +882,7 @@ English is NATO brevity[^brevity]:
 | `mud` | "Kidon 1-2, mud" | "כידון 1-2, נעילה מהקרקע" (ours around נעילה) | NATO MUD, "RWR ground threat displayed with no launch indication" |
 | `defending` | "Kidon 1-2, defending" | "כידון 1-2, בהתחמקות" (ours around מתחמק) | NATO DEFENDING, "in a defensive position and maneuvering with reference to a radar threat"; Hebrew: מתחמק[^mako-102] |
 | `break_left` / `break_right` | "Kidon 1-3, break left!" | none found. Ours: "כידון 1-3, שבירה שמאלה" | NATO BREAK (direction), "an immediate maximum performance turn"; Hebrew open |
-| `contact` | "Kidon 1-2, contact." | none found. Ours: "כידון 1-2, יש מגע" | NATO CONTACT, "sensor information at the stated position"; Hebrew open |
+| `contact` | "Kidon 1-2, contact." | "כידון 1-2, מגע" (the user's pick, A113, 25 Nov 2026) | NATO CONTACT, "sensor information at the stated position"; Hebrew: no IAF source found |
 | split | "Kidon 1, element 3–4, split." | none found. Ours: "כידון 1, זוג 3–4, פיצול" (the pair: זוג) | NATO SPLIT, "flight member is leaving formation to pursue a separate attack"; Hebrew open |
 | regroup | "Kidon 1, element 3–4, rejoin." | "כידון 1, זוג 3–4, הצטרפות" | the four-ship's rejoin term (slice 3's research) |
 | engage | "Kidon 1-2, engage my target." | none found. Ours: "כידון 1-2, תקיפת המטרה שלי" | NATO ENGAGE, "a fire control order used to direct or authorize units to fire on a designated target"; Hebrew open |
@@ -890,7 +890,7 @@ English is NATO brevity[^brevity]:
 | sort | "Kidon 1, sort." | none found. Ours around the sourced מטרה: "כידון 1, חלוקת מטרות" | NATO SORT, "assignment of responsibility within a GROUP"[^brevity]; Hebrew open |
 | weapons free | "Kidon 1, weapons free." | "כידון 1, אש חופשית" (an F-15 crew's clearance on the radio, "רשאי אש חופשית": [radio-terms.md](../modern-iaf/docs/research/radio-terms.md)) | NATO WEAPONS FREE, "at targets not identified as FRIENDLY"[^brevity] |
 | `targeted` | "Kidon 1-3, targeted." | none found. Ours around the sourced מטרה: "כידון 1-3, יש מטרה" | NATO TARGETED, "fighter has acquired assigned GROUP and has assumed responsibility for it"[^brevity]; Hebrew open |
-| `engaged` | "Kidon 1-2, engaged!" | none found. Ours: "כידון 1-2, בקרב" | NATO ENGAGED (attacking the stated group; paraphrased)[^brevity]; Hebrew open |
+| `engaged` | "Kidon 1-2, engaged!" | "כידון 1-2, בתקיפה" (the user's pick, A113, 25 Nov 2026, the root of תקיפה) | NATO ENGAGED (attacking the stated group; paraphrased)[^brevity]; Hebrew: no IAF source found |
 | `fox_1` / `fox_2` / `fox_3` | "Kidon 1-2, Fox two!" | "כידון 1-2, שיגור" for all three (the launch verb **שיגור** an IAF base commander used on the F-35I's kill; no IAF word for the seeker type found: [radio-terms.md](../modern-iaf/docs/research/radio-terms.md)) | NATO FOX ONE / TWO / THREE (the launch of a semi-active radar, an infrared, an active radar missile)[^brevity] |
 | `guns` | "Kidon 1-2, guns!" | none found. Ours: "כידון 1-2, תותח" | NATO GUNS (a gun engagement; paraphrased)[^brevity]; Hebrew open |
 | `splash` | "Kidon 1-2, splash!" | "כידון 1-2, המטרה נפלה" (an F-35I pilot's words on his kill: [radio-terms.md](../modern-iaf/docs/research/radio-terms.md)) | NATO SPLASH (the target destroyed, air to air; paraphrased)[^brevity] |
@@ -1002,8 +1002,12 @@ wingman" (modern-iaf/docs/ai-plan.md F15, K15). Our wingmen and the enemy fighte
 - **The egress:** on along its track, pulling out and climbing at 20° on the BFM loop while it is below 1,500 m above
   the target or going down faster than 10 m/s, then level on the steer loop, until 8 km from the target; then back to
   its slot ("in position"), an enemy pair to its CAP, a based one home. The target destroyed or gone ends every attack.
-- **The calls** (IAF Hebrew from the radio-terms research; voices.json): "in" / "נכנס" at the run-in, "alpha" /
-  "אלפא" ("bombs away" in English) at the release, "done" / "ביצעתי" once 8 km clear, "unable" for a run given up.
+- **The calls** (IAF Hebrew from the radio-terms research; voices.json): "in" / "נכנס" at the run-in, "release" /
+  "חימוש שוחרר" ("bombs away" in English) at the release, "alpha" / "אלפא" ("shack", NATO's hit) when the target is
+  destroyed, by the jet still in its attack that released last (`Flight::ground_hit`, the host's; inferred: that
+  release is the one that hit), "done" / "ביצעתי" once 8 km clear, "unable" / "שלילי" for a run given up. The user,
+  25 Nov 2026 (A113): "Alpha is for exact hit, not for bomb release. bomb release, if can't find it, is "חימוש
+  שוחרר"" (no IAF release call was found).
   The enemy's calls are not heard.
 - **The MiG-29A's strike load:** the MiG-29 (9.12) carries "4 × FAB-500-M62 500kg general purpose bomb" (Wikipedia,
   "Mikoyan MiG-29", Specifications, read 23 Nov 2026); the sim has no FAB record, so the generic MK-83 (447 kg)

@@ -36,7 +36,7 @@ strings.
 | lead change ("Three has the lead") | ours around the term: "ההובלה אצל כידון 1-3" (term: **לקחת את ההובלה**, to take the lead) | "Kidon 1, Kidon 1-3 has the lead." | the lead is hit and the next pilot "צריך לקחת את ההובלה"[^mako-kaz]; a pilot's account: "המוביל היה מתחלף"[^mustov]; English: Navy T-6A manual, second-hand[^lead-change] |
 | **Wingman to lead** | | | |
 | acknowledgement | "כידון 1-2" (the jet's callsign, kidon style: the callsign row; the position's name is **מספר שתיים**; a reply of the callsign alone is inferred) | "Kidon 1-2." | the callsign: Hebrew Wikipedia[^hewiki-formation], the user's decision (20 November 2026); the position's name: IAF site, second-hand[^iaf-number2], press[^walla-2012]; Hebrew radio speech says "מספר שתיים", not "שני"[^takanot]; English: Navy T-2C manual[^tpub-t2c] |
-| unable | none found. Ours: "כידון 1-2, אין אפשרות" | "Kidon 1-2, unable." | no IAF term found, NATO[^alsa] |
+| unable | none found. The user's pick (25 Nov 2026): "כידון 1-2, שלילי" | "Kidon 1-2, unable." | no IAF term found, NATO[^alsa] |
 | rejoined / in position | none found. Ours: "כידון 1-2 במקום" | "Kidon 1-2, in position." (inferred) | no IAF term found; no NATO brevity word; open |
 | bingo (fuel to return) | "כידון 1-2, **בינגו**" (the English loanword; Hebrew writers use "דלק בינגו") | "Kidon 1-2, bingo." | no IAF term found, NATO[^alsa][^tpub-wingman]; the loanword in Hebrew: press[^ynet-sims] |
 | joker (fuel for one more task) | "כידון 1-2, **ג'וקר**" (the loanword; inferred: no Hebrew source found) | "Kidon 1-2, joker." | no IAF term found, NATO[^alsa][^tpub-wingman] |
@@ -54,11 +54,11 @@ strings.
 | mud (a ground radar's lock) | ours: "כידון 1-2, נעילה מהקרקע" (as spike) | "Kidon 1-2, mud!" | no IAF call found; NATO: MUD "Radar warning receiver ground threat displayed with no launch indication"[^alsa] |
 | defending (a missile at it) | ours around the press's **מתחמק** (evades SAMs)[^mako-102]: "כידון 1-2, בהתחמקות" | "Kidon 1-2, defending!" | no IAF call found, NATO: DEFENDING[^alsa] |
 | break left / right (the mate's call) | none found. Ours: "כידון 1-2, שבירה שמאלה" / "ימינה" | "Kidon 1-2, break left!" | no IAF term found (searches for the Hebrew call found none); NATO: BREAK "Perform an immediate maximum performance turn in the indicated direction"[^alsa]; the form "Eagle, break right, missile in the air": US Navy, second-hand (search quote)[^tpub-break] |
-| contact (an AWACS call's contact on its radar) | none found. Ours: "כידון 1-3, יש מגע" | "Kidon 1-3, contact." | no IAF term found, NATO: CONTACT "Sensor information at the stated position"[^alsa] |
+| contact (an AWACS call's contact on its radar) | none found. The user's pick (25 Nov 2026): "כידון 1-3, מגע" | "Kidon 1-3, contact." | no IAF term found, NATO: CONTACT "Sensor information at the stated position"[^alsa] |
 | lead change (the new lead's call) | ours: "כידון 1-3 בהובלה" (term: **לקחת את ההובלה**[^mako-kaz]) | "Kidon 1-3 has the lead." | as the lead-change row above |
 | **Third search: the fight's words (22 November 2026, the wingmen in battle)** | | | |
 | cover me (the lead's command) | ours around the press's **חיפוי** (fighters "שחיפו על החילוץ", search summary, second-hand): "כידון 1-4, חיפוי" | "Kidon 1-4, cover me." | no IAF call found; NATO COVER (a defensive, supporting posture)[^alsa] |
-| engaged (a wingman takes a foe by itself) | none found. Ours: "כידון 1-2, בקרב" | "Kidon 1-2, engaged!" | no IAF call found, NATO ENGAGED[^alsa] |
+| engaged (a wingman takes a foe by itself) | none found. The user's pick (25 Nov 2026): "כידון 1-2, בתקיפה" | "Kidon 1-2, engaged!" | no IAF call found, NATO ENGAGED[^alsa] |
 | Fox one / two / three (a missile launched: semi-active radar, infrared, active radar) | "כידון 1-2, **שיגור**" for all three (the fourth search: no IAF word for the seeker type found, so one line, inferred) | "Kidon 1-2, Fox two!" | the launch verb: the Nevatim commander on the F-35I's kill, "ושיגרנו עליו" (second-hand)[^jdn-yak]; "פוקס" in IAF use: none found; NATO FOX[^alsa] |
 | guns (a gun burst) | none found. Ours: "כידון 1-2, תותח" | "Kidon 1-2, guns!" | no IAF call found, NATO GUNS[^alsa] |
 | splash (a kill) | "כידון 1-2, **המטרה נפלה**" (the fourth search; **הפלה** stays the noun for a kill in debriefs and scores) | "Kidon 1-2, splash!" | an F-35I pilot on his kill, "ביצעתי, המטרה נפלה, נמשיך לתקיפה"[^jdn-f35]; an F-15 crew's radio, "המטרה הופלה"[^ynet-uav]; that it is a fixed call: inferred; NATO SPLASH[^alsa] |
@@ -66,7 +66,7 @@ strings.
 | **Fifth search: the lead's targets (23 November 2026, target-assign)** | | | |
 | sort (the lead shares the bandits out) | none found. Ours around the sourced **מטרה**[^ynet-uav]: "כידון 1, חלוקת מטרות" | "Kidon 1, sort." | no IAF call found; NATO SORT, "assignment of responsibility within a GROUP"[^alsa] |
 | weapons free (hunt any bandit in an area) | "כידון 1, **אש חופשית**" (from an F-15 crew's clearance on the radio, "רשאי אש חופשית"[^ynet-uav]) | "Kidon 1, weapons free." | NATO WEAPONS FREE, "at targets not identified as FRIENDLY"[^alsa]; "search and destroy" is no brevity word |
-| targeted (a pair's lead has its group) | none found. Ours around **מטרה**: "כידון 1-3, יש מטרה" (as "יש מגע") | "Kidon 1-3, targeted." | no IAF call found; NATO TARGETED, "fighter has acquired assigned GROUP and has assumed responsibility for it"[^alsa] |
+| targeted (a pair's lead has its group) | none found. Ours around **מטרה**: "כידון 1-3, יש מטרה" | "Kidon 1-3, targeted." | no IAF call found; NATO TARGETED, "fighter has acquired assigned GROUP and has assumed responsibility for it"[^alsa] |
 | cover me (now: defend the lead) | as the third search's row: "כידון 1-4, חיפוי" | "Kidon 1-4, cover me." | the word kept; the wingman now fights a jet that attacks the lead (docs/ai.md §8.11) |
 | **Sixth search: the low level (23 November 2026, lowlevel)** | | | |
 | low level (the flight follows the terrain low) | "כידון 1, **גובה נמוך**" (from the press on IAF strike training: trainees "ילמדו להפעיל חימוש חכם ולהגיע **בגובה נמוך** מאוד ומאתגר", read on the page[^mako-kaz]) | "Kidon 1, low level." | no IAF call found; no NATO brevity word for the order; the English inferred |
@@ -116,10 +116,10 @@ kill, break, ejection, the AWACS and the tower were searched again in Hebrew and
   exact form was not found, so "שבירה ימינה" stays. Eject: **נטישה** (press on IAF ejection training, second-hand[^walla-eject]).
   The AWACS's **רשאי לתקוף** and **מטרה** (an F-15 crew's radio: "רשאי אש חופשית – המטרה הופלה", "כי זו מטרת
   אויב"[^ynet-uav]).
-- **Kept, ours (no source found).** Engaged "בקרב", winchester "אין חימוש" (it agrees with **חימוש**, the IAF's word for
+- **Kept, ours (no source found).** Engaged "בקרב" (changed on 25 November 2026, below), winchester "אין חימוש" (it agrees with **חימוש**, the IAF's word for
   stores[^mitgaisim]), cover me "חיפוי", defending, contact, unable, in position, the tower's lines and the AWACS's
   bearings and ranges. voices.json marks the fight's three in each clip's `note`.
-- **Sourced, no call in the game yet.** Bomb release: **אלפא** ("לאחר השחרור מוכרז בקשר "אלפא" - אות לכך שהפצצה
+- **Sourced, no call in the game yet** (superseded on 25 November 2026, below). Bomb release: **אלפא** ("לאחר השחרור מוכרז בקשר "אלפא" - אות לכך שהפצצה
   שוחררה בהצלחה"[^walla-alpha]; a Kan opinion piece uses it as a known figure, second-hand[^kan-alpha]); so אלפא means
   only the release, never a callsign. The attack run: **נכנס** ("כשאחד הודיע "נכנס""[^iafe-1967], 1967; current use
   not confirmed). The attack report: **ביצעתי**[^jdn-f35]. Scramble: **הזנק**[^ynet-uav]. The pickle button:
@@ -149,6 +149,18 @@ press writes **בגובה נמוך** for an IAF strike's low approach[^mako-kaz]
 - The wingman: **מספר 2** names the position, **בן הזוג** the partner; both are in IAF-related sources. The press
   writes the digit ("מספר 2"); the IAF site and the radio rules spell it out ("מספר שתיים").
 
+**The user's picks on the calls** (25 November 2026, the Approvals page's A113; each applies to every Hebrew voice
+line, subtitle and manual). His words: "A113: "Engaged" -> בתקיפה or so, based on the past/present etc / Alpha is for
+exact hit, not for bomb release. bomb release, if can't find it, is "חימוש שוחרר". / "contact" - just מגע / "unable" -
+שלילי / in genral, remove the ask words (נא for example)".
+- Engaged: **בתקיפה** (the wingman's call as it takes on an aircraft: present, an attack under way).
+- Alpha: **אלפא** is the hit, called when the target is destroyed by the wingman that released last (the Kan figure
+  "להכריז 'אלפא' - המטרה הושגה"[^kan-alpha] reads the same way; the English is NATO's SHACK, a hit). The release:
+  **חימוש שוחרר**. Searched once more for the IAF's own release call (Hebrew: "שחררתי", "חימוש שוחרר", "פצצות באוויר"
+  with טייס, קשר, חיל האוויר): none found.
+- Contact: **מגע**. Unable: **שלילי**.
+- No request words: the AWACS's "please identify" is **לזהות** (was "נא לזהות"); no other Hebrew radio line had one.
+- The rest of the table keeps the game's lines.
 
 **The user's corrections** (20 November 2026; each applies to every Hebrew screen, subtitle and voice line)
 - The callsigns: kidon style (the callsign row): "Use kidon style, where kidon 1 is the first formation the second is

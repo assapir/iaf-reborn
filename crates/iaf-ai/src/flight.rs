@@ -1012,15 +1012,28 @@ impl Flight {
         }
     }
 
-    /// Jet `number`'s bombing manoeuvre released at `now` (the host's AI ripple started): in its run it calls "alpha" and
-    /// egresses.
+    /// Jet `number`'s bombing manoeuvre released at `now` (the host's AI ripple started): in its run it calls "release"
+    /// and egresses.
     pub fn released(&mut self, now: f64, number: u8) {
         if let Some(i) = self.index(number) {
             let m = &mut self.members[i];
             if m.strike.phase == Phase::Run && !m.strike.released {
-                m.strike.released = true;
-                self.calls.push((now, Call { from: m.number, id: "alpha" }));
+                (m.strike.released, m.strike.released_at) = (true, now);
+                self.calls.push((now, Call { from: m.number, id: "release" }));
             }
+        }
+    }
+
+    /// The attacked ground target destroyed at `now` (the host's, before [`Flight::ground_target`] says it is gone):
+    /// the jet still in its attack that released last calls "alpha", the hit (the user, 25 Nov 2026: "Alpha is for
+    /// exact hit"). Inferred: the last release is the one that hit; a kill by another (the player's bomb) is said too.
+    pub fn ground_hit(&mut self, now: f64) {
+        if self.ground.is_none() {
+            return;
+        }
+        let hit = self.members.iter().filter(|m| m.strike.phase != Phase::None && m.strike.released);
+        if let Some(m) = hit.max_by(|a, b| a.strike.released_at.total_cmp(&b.strike.released_at)) {
+            self.calls.push((now, Call { from: m.number, id: "alpha" }));
         }
     }
 

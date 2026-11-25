@@ -1,8 +1,8 @@
 //! The AI jets' air-to-ground attack (docs/ai.md §8.10; modern-iaf/docs/ai-plan.md F15, K15) on the 6-DoF: the player's
 //! four-ship of Sufas (#1 scripted, flying straight) on the lead's "attack my target", and a MiG-29A pair on its AI
 //! lead's own order. Each jet's run by its weapon (a 30° dive for bombs, a level run for a guided bomb), the release (the host's AI ripple: here the steered fall of `iaf_avionics::bombs::Bomb`, as combat.gd's AI
-//! stores fall, aimed at the target), the egress, the calls (in, alpha, done) and the rejoin. Skips with a message
-//! when `assets/converted/own` is not built.
+//! stores fall, aimed at the target), the egress, the calls (in, release, alpha, done) and the rejoin. Skips with a
+//! message when `assets/converted/own` is not built.
 
 use std::path::{Path, PathBuf};
 
@@ -161,7 +161,7 @@ impl Strike {
 #[test]
 fn four_ship_attacks_my_target() {
     // "Attack my target" to the flight on a ground target 30 km ahead: #2 and #3 with bombs dive, #4 with a guided bomb
-    // runs level, one after the other 20 s apart, each calling "in", "alpha" at its release and
+    // runs level, one after the other 20 s apart, each calling "in", "release" at its release and
     // "done" once 8 km clear; the steered store lands within the blast radius; all rejoin ("in position").
     let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm)") };
     let mut w = Strike::new(&dir, "F-16I", 4, true, 4000.0);
@@ -176,9 +176,9 @@ fn four_ship_attacks_my_target() {
     for n in 2..=4u8 {
         let i = n as usize - 1;
         println!(
-            "#{n}: in {:?} alpha {:?} done {:?} release {:?} low {:.0} m modes {:x?}",
+            "#{n}: in {:?} release call {:?} done {:?} release {:?} low {:.0} m modes {:x?}",
             w.said(n, "in"),
-            w.said(n, "alpha"),
+            w.said(n, "release"),
             w.said(n, "done"),
             w.releases[i],
             w.low[i],
@@ -193,8 +193,8 @@ fn four_ship_attacks_my_target() {
     for n in 2..=4u8 {
         let i = n as usize - 1;
         let (tr, miss, _) = w.releases[i].expect("released");
-        let alpha = w.said(n, "alpha").unwrap();
-        assert!(alpha >= tr && alpha > w.said(n, "in").unwrap() && w.said(n, "done").unwrap() > alpha);
+        let rel = w.said(n, "release").unwrap();
+        assert!(rel >= tr && rel > w.said(n, "in").unwrap() && w.said(n, "done").unwrap() > rel);
         assert!(miss < BLAST_M, "#{n}'s store {miss:.0} m off");
         assert!(w.low[i] > 300.0, "#{n} at {:.0} m", w.low[i]);
         // The dives on the BFM loop, released below the run-in's 2,500 m; the level run on the steer loop at its height.
@@ -259,16 +259,40 @@ fn unable_target_gone_and_rejoin() {
     w.until(3.0, &|_| false);
     assert!(w.said(2, "unable").is_some() && w.said(3, "ack").is_some() && w.said(4, "ack").is_some());
     assert_eq!(w.flight.member(4).unwrap().strike.phase.name(), "wait");
+    w.flight.ground_hit(w.t);
     w.target = None;
     w.until(2.0, &|_| false);
     assert_eq!(w.flight.member(4).unwrap().strike.phase.name(), "");
     assert!(w.said(4, "done").is_none() && w.said(4, "in").is_none());
+    assert!(w.calls.iter().all(|(_, c)| c.id != "alpha"), "no release, no hit");
     w.target = Some(at);
     assert_eq!(w.flight.attack(w.t, 4, Some(Bogey { pos: at, vel: Vec3::ZERO })), Some(true));
     w.until(2.0, &|_| false);
     assert!(w.flight.command(w.t, 4, "rejoin"));
     w.until(1.0, &|_| false);
     assert_eq!(w.flight.member(4).unwrap().strike.phase.name(), "");
+}
+
+#[test]
+fn alpha_on_the_hit() {
+    // #2 dives and calls "release"; the target destroyed (the host's ground_hit, then gone): #2, the last to release,
+    // calls "alpha" (the hit) and "done"; #3, not yet released, says neither.
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own (iaf-sim fm)") };
+    let mut w = Strike::new(&dir, "F-16I", 3, true, 4000.0);
+    for n in [2, 3] {
+        w.flight.ground_weapon(n, Some(false));
+    }
+    w.until(1.0, &|_| false);
+    let at = Vec3::new(0.0, 30_000.0, 0.0);
+    w.target = Some(at);
+    assert_eq!(w.flight.attack(w.t, 0, Some(Bogey { pos: at, vel: Vec3::ZERO })), Some(true));
+    assert!(w.until(400.0, &|w| w.said(2, "release").is_some()).is_some(), "#2 released");
+    w.flight.ground_hit(w.t);
+    w.target = None;
+    w.until(2.0, &|_| false);
+    let alpha = w.said(2, "alpha").expect("#2 alpha");
+    assert!(alpha >= w.said(2, "release").unwrap() && w.said(2, "done").is_some());
+    assert!(w.said(3, "alpha").is_none() && w.said(3, "release").is_none());
 }
 
 #[test]

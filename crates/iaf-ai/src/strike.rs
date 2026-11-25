@@ -5,8 +5,9 @@
 //! impact (`iaf_avionics::bombs::fall_time`, the CCIP's fall) on the target, within the release permission
 //! (`iaf_avionics::release::release_allowed`); the host releases the stores through its AI ripple (combat.gd,
 //! [`crate::Order::release`]) and reports it ([`crate::Flight::released`]). Then the egress away from the target,
-//! climbing, and the rejoin. The calls: "in" at the run-in, "alpha" at the release, "done" once clear (IAF Hebrew נכנס,
-//! אלפא, ביצעתי). Every figure here is inferred unless it says otherwise.
+//! climbing, and the rejoin. The calls: "in" at the run-in, "release" at the release, "alpha" on a hit (the target
+//! destroyed, [`crate::Flight::ground_hit`]), "done" once clear (IAF Hebrew נכנס, חימוש שוחרר, אלפא, ביצעתי). Every
+//! figure here is inferred unless it says otherwise.
 //!
 //! The original's own bombing manoeuvres (LevelBomb, DiveBomb; docs/ai.md §13.3) were tried first and dropped on 23
 //! November 2026: on the 6-DoF DiveBomb ran in at 357 m/s, overshot its dive and flew into the ground without a release;
@@ -143,8 +144,9 @@ pub struct Strike {
     pub(crate) turn: f64,
     /// When its phase began (s).
     pub(crate) since: f64,
-    /// The host reported its release ([`crate::Flight::released`]).
+    /// The host reported its release ([`crate::Flight::released`]), at this time (s).
     pub released: bool,
+    pub(crate) released_at: f64,
     /// The run (fixed at its start).
     pub profile: Profile,
     /// The dive's run: rolled in; too near for the dive, extending away on its track.
@@ -255,7 +257,7 @@ fn fly_to(m: &mut Member, mode: u8, to: Vec3, g: f32) -> Status {
 
 /// The attack's leaf: before its turn, and while another jet of the flight flies its run, it fails (the slot, the
 /// route; the Hold while the flight lead flies its run);
-/// then the run ("in"), the egress after the release ("alpha", the host's) or after [`RUN_MAX_S`] without one, and
+/// then the run ("in"), the egress after the release ("release", the host's) or after [`RUN_MAX_S`] without one, and
 /// "done" once [`EGRESS_M`] away (a run given up: "unable"). The target gone (destroyed, lost) ends it: "done" after
 /// its release.
 pub(crate) fn fly(m: &mut Member) -> Status {

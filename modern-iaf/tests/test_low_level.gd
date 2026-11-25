@@ -5,7 +5,7 @@
 #     acknowledges and flies low; record 257 (Ctrl + \, command 108 p1 8) gives back to altitude, then low again.
 #   Then low at 200 ft by the dev hook `flight_low`.
 #   - "Engage my target" on an enemy 64N6E2 (air_defence.gd `spawn_net`) 25 km ahead, to Kidon 1-2: its run comes
-#     down to the terrain following (profile "pop"), runs in low over the Negev, pops up, dives, releases ("alpha"),
+#     down to the terrain following (profile "pop"), runs in low over the Negev, pops up, dives, releases ("release"),
 #     egresses and reports "done"; never under the ground collision avoidance's floor.
 #   - A site's march on the roads (K5): an S-300 battery placed on the road nearest a point 20 km ahead, its alternate
 #     position on the road nearest a point 10 km further (the convoy's ends in test_convoy.gd, joined by roads); the
@@ -127,7 +127,7 @@ func _attack(tv: Node, wing: Dictionary) -> void:
 	print("Kidon 1-2: run-in %.0f..%.0f m, apex %.0f m, least %.0f m" % [band[0], band[1], apex, least])
 	check(band[1] > 0.0 and band[0] > FLOOR_M and band[1] < 200.0, "the run-in low on the terrain following")
 	check(apex > 1000.0, "the pop-up (%.0f m)" % apex)
-	check(_said(2, "alpha", t0), "Kidon 1-2 releases: alpha (%s)" % _calls())
+	check(_said(2, "release", t0), "Kidon 1-2 releases: release (%s)" % _calls())
 	check(_said(2, "done", t0), "and reports done (%s)" % _calls())
 	check(least > FLOOR_M, "never under the floor (%.0f m)" % least)
 

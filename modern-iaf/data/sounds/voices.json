@@ -3929,7 +3929,7 @@
       "voice": "awacs",
       "say": "please identify",
       "mode": "particle",
-      "say_he": "נא לזהות"
+      "say_he": "לזהות"
     },
     {
       "file": "awx_task_miles_40.ogg",
@@ -4045,7 +4045,7 @@
       "voice": "wingman",
       "say": "Unable.",
       "mode": "particle",
-      "say_he": "אין אפשרות."
+      "say_he": "שלילי."
     },
     {
       "file": "flt_wng_in_position.ogg",
@@ -4115,15 +4115,15 @@
       "voice": "wingman",
       "say": "Contact.",
       "mode": "particle",
-      "say_he": "יש מגע."
+      "say_he": "מגע."
     },
     {
       "file": "flt_wng_engaged.ogg",
       "voice": "wingman",
       "say": "Engaged!",
       "mode": "particle",
-      "say_he": "בקרב!",
-      "note": "Hebrew ours: no IAF call found (modern-iaf/docs/research/radio-terms.md)"
+      "say_he": "בתקיפה!",
+      "note": "Hebrew: the user's pick (A113, 25 Nov 2026), the root of the IAF's תקיפה; no IAF call found (modern-iaf/docs/research/radio-terms.md)"
     },
     {
       "file": "flt_wng_targeted.ogg",
@@ -4185,12 +4185,20 @@
       "note": "the run-in; Hebrew: the IAF's call for committing to the attack run (a 1967 squadron diary, briefs iaf-radio-terms.md B); English: NATO brevity IN"
     },
     {
-      "file": "flt_wng_alpha.ogg",
+      "file": "flt_wng_release.ogg",
       "voice": "wingman",
       "say": "Bombs away.",
       "mode": "particle",
+      "say_he": "חימוש שוחרר.",
+      "note": "the release; Hebrew: the user's words (A113, 25 Nov 2026; no IAF release call found); English ours: NATO has no brevity word for a bomb's release"
+    },
+    {
+      "file": "flt_wng_alpha.ogg",
+      "voice": "wingman",
+      "say": "Shack!",
+      "mode": "particle",
       "say_he": "אלפא!",
-      "note": "the release; Hebrew: the IAF's bomb-release call (Walla, 8 March 2026, briefs iaf-radio-terms.md B); English ours: NATO has no brevity word for a bomb's release"
+      "note": "the hit on the target; Hebrew: the IAF's call for the target achieved (Kan, second-hand; the user, A113, 25 Nov 2026: 'Alpha is for exact hit'); English: NATO brevity SHACK"
     },
     {
       "file": "flt_wng_done.ogg",
@@ -9220,7 +9228,7 @@
     "PLEASE_IDENTIFY": {
       "file": "awx_please_identify.ogg",
       "text": "please identify",
-      "text_he": "נא לזהות"
+      "text_he": "לזהות"
     },
     "WNG_ONE": {
       "file": "flt_wng_kidon1_1.ogg",
@@ -9245,7 +9253,7 @@
     "WNG_UNABLE": {
       "file": "flt_wng_unable.ogg",
       "text": "unable",
-      "text_he": "אין אפשרות"
+      "text_he": "שלילי"
     },
     "WNG_IN_POSITION": {
       "file": "flt_wng_in_position.ogg",
@@ -9295,12 +9303,12 @@
     "WNG_CONTACT": {
       "file": "flt_wng_contact.ogg",
       "text": "contact",
-      "text_he": "יש מגע"
+      "text_he": "מגע"
     },
     "WNG_ENGAGED": {
       "file": "flt_wng_engaged.ogg",
       "text": "engaged",
-      "text_he": "בקרב"
+      "text_he": "בתקיפה"
     },
     "WNG_TARGETED": {
       "file": "flt_wng_targeted.ogg",
@@ -9342,9 +9350,14 @@
       "text": "in",
       "text_he": "נכנס"
     },
+    "WNG_RELEASE": {
+      "file": "flt_wng_release.ogg",
+      "text": "bombs away",
+      "text_he": "חימוש שוחרר"
+    },
     "WNG_ALPHA": {
       "file": "flt_wng_alpha.ogg",
-      "text": "bombs away",
+      "text": "shack",
       "text_he": "אלפא"
     },
     "WNG_DONE": {

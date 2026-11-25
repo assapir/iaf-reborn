@@ -211,7 +211,7 @@ RADIO = {
         ("awacs", "AWX_BRAA", ["ALPHA_R", "BEARING040", "MILES30", "AWX_ALT20", "AWX_HOT", "AWX_HOSTILE"], *_EITAM,
          "Kidon 1, group bearing 040, 30 miles, 20 thousand, hot, hostile.",
          "כידון 1, מבנה אזימוט 040, 30 מייל, גובה 20 אלף, מתקרב, עוין."),
-        ("wingman", "WNG_CALL", ["WNG_TWO", "WNG_CONTACT"], *_K12, "Kidon 1-2, contact.", "כידון \u20661-2\u2069, יש מגע."),
+        ("wingman", "WNG_CALL", ["WNG_TWO", "WNG_CONTACT"], *_K12, "Kidon 1-2, contact.", "כידון \u20661-2\u2069, מגע."),
         ("pilot", "FLT_CMD", ["CMD_KIDON1_2", "CMD_FREE"], *_K1, "Kidon 1-2, weapons free.", "כידון \u20661-2\u2069, אש חופשית."),
         ("wingman", "WNG_CALL", ["WNG_TWO", "WNG_FOX3"], *_K12, "Kidon 1-2, Fox three!", "כידון \u20661-2\u2069, שיגור!"),
         ("wingman", "WNG_CALL", ["WNG_TWO", "WNG_SPLASH"], *_K12, "Kidon 1-2, splash!", "כידון \u20661-2\u2069, המטרה נפלה!"),

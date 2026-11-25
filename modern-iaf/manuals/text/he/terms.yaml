@@ -42,6 +42,11 @@
 - {en: tower, he: מגדל, from: game}
 - {en: clearance, he: אישור, from: field}
 - {en: radio, he: קשר, from: game, not: [רדיו]}
+- {en: '"engaged" (a radio call)', he: בתקיפה, from: game}
+- {en: '"contact" (a radio call)', he: מגע, from: game, not: [יש מגע]}
+- {en: '"unable" (a radio call)', he: שלילי, from: game, not: [אין אפשרות]}
+- {en: '"bombs away" (a radio call)', he: חימוש שוחרר, from: game}
+- {en: '"shack", a hit on the target (a radio call)', he: אלפא, from: field}
 - {en: callsign, he: אות קריאה, from: game}
 - {en: start-up / engine start, he: התנעה, from: game}
 - {en: hot start, he: Hot start, from: english, not: [התנעה חמה]}

@@ -198,10 +198,17 @@ impl IafAi {
     }
 
     /// Jet `number`'s release made at `now` (after `step`'s `release` order: combat.gd's AI ripple started): it calls
-    /// "alpha" and egresses.
+    /// "release" and egresses.
     #[func]
     fn released(&mut self, number: i64, now: f64) {
         self.flight.released(now, number.clamp(0, 255) as u8);
+    }
+
+    /// The ground target destroyed at `now` (before `set_ground_target` says it is gone): the jet that released last
+    /// calls "alpha", the hit.
+    #[func]
+    fn ground_hit(&mut self, now: f64) {
+        self.flight.ground_hit(now);
     }
 
     /// Jet `number` releases its air-to-ground weapon this frame (after `step`; the host's AI ripple, combat.gd).
@@ -341,8 +348,8 @@ impl IafAi {
     /// One frame at `now` (s), after every jet's steps of the frame (one instant, `Flight::sense`): the AI's decisions
     /// and its jets' orders for their next `ap_step`. Returns the calls due, each
     /// {from: number, id: ack, unable, joker, bingo, rtb, fuel_state, lead_change, in_position, spike, mud, defending,
-    /// break_left, break_right, contact, engaged, targeted, splash, winchester, in, alpha, done; the tower's to it:
-    /// tower_land, tower_park}. `ground` (Callable(Vector3) -> float or null, at a world point) is the terrain the
+    /// break_left, break_right, contact, engaged, targeted, splash, winchester, in, release, alpha, done; the tower's to
+    /// it: tower_land, tower_park}. `ground` (Callable(Vector3) -> float or null, at a world point) is the terrain the
     /// radars see over; `origin` the terrain's world origin (the flight's frame is the scene's: world = scene + origin).
     #[func]
     fn step(&mut self, now: f64, ground: Callable, origin: Vector2) -> VarArray {
