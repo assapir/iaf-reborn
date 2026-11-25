@@ -115,9 +115,10 @@ func run() -> void:
 	s.pilot_name = ""
 
 
-## The Pilot screens with a sample profile (a drawn silhouette as its picture): the first start's (pilot_first), the
-## Pilot screen with the sample log's logbook (pilot), the Reset's warning (pilot_reset), the pilot list with a second
-## pilot (pilots) and the Hangar with the name, nickname and picture (hangar_pilot); then the profile put back.
+## The Pilot screens with a sample profile and no picture (the game's default, the initials): the first start's
+## (pilot_first), the Pilot screen with the sample log's logbook (pilot), the Reset's warning (pilot_reset), the pilot
+## list with a second pilot (pilots) and the Hangar with the name and nickname (hangar_pilot); then the profile put
+## back.
 func _pilot(fe: Control, vp: SubViewport, dir: String, lang: String) -> void:
 	var s := settings()
 	var db: String = s.records_db()
@@ -127,9 +128,6 @@ func _pilot(fe: Control, vp: SubViewport, dir: String, lang: String) -> void:
 	fe.show_page("hangar")
 	await _shot(vp, dir, "pilot_first_" + lang)
 	IafPilotLog.set_pilot(db, s.pilot(), "נועה גולן" if he else "Noa Golan", "עקרב" if he else "Viper")
-	var png := OS.get_temp_dir().path_join("iaf2026-shot-pilot-%d.png" % OS.get_process_id())
-	_silhouette().save_png(png)
-	IafPilotLog.set_picture(db, s.pilot(), png)
 	fe.show_page("credits")
 	fe.show_page("pilot")
 	await _shot(vp, dir, "pilot_" + lang)
@@ -143,8 +141,6 @@ func _pilot(fe: Control, vp: SubViewport, dir: String, lang: String) -> void:
 	await _shot(vp, dir, "hangar_pilot_" + lang)
 	IafPilotLog.set_pilot(db, other, "", "")
 	IafPilotLog.set_pilot(db, s.pilot(), "", "")
-	IafPilotLog.set_picture(db, s.pilot(), "")
-	DirAccess.remove_absolute(png)
 
 
 ## A fresh install: the Hangar and the mission screen with an empty assets folder (IAF_ASSETS_DIR), then the real one.
@@ -211,17 +207,3 @@ func _shot(vp: SubViewport, dir: String, name: String) -> void:
 	await frames(10)
 	var path: String = dir.path_join(name + ".png")
 	check(vp.get_texture().get_image().save_png(path) == OK, "saved " + path)
-
-
-## A sample ID photo, 600 × 800: a head and shoulders in slate on a blue-grey ground.
-static func _silhouette() -> Image:
-	var img := Image.create(600, 800, false, Image.FORMAT_RGB8)
-	var dark := Color("2b3440")
-	for y in 800:
-		var ground := Color("9fb3c8").lerp(Color("5d7186"), y / 800.0)
-		for x in 600:
-			var head := Vector2(x - 300, y - 310).length() < 130
-			var neck := absi(x - 300) < 40 and y > 400
-			var body := Vector2((x - 300) / 260.0, (y - 820) / 260.0).length() < 1.0
-			img.set_pixel(x, y, dark if head or neck or body else ground)
-	return img

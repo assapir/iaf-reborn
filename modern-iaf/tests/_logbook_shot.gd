@@ -6,8 +6,6 @@
 # Writes <prefix>{pilot,log,more_pilot,debrief,more_debrief}_<lang>.png.
 extends "res://../tests/godot/base.gd"
 
-const Shot := preload("res://tests/_front_end_shot.gd")
-
 ## Sample flights: [menu id, mission, date, pass, elapsed s, combat record (combat_log.rs) or none].
 const FLIGHTS := [
 	[2011, "ramon_startup", "2026-11-03T08:10:00", true, 540.0],
@@ -86,15 +84,12 @@ func run() -> void:
 	var fe: Control = load("res://main.tscn").instantiate()
 	vp.add_child(fe)
 	await frames(5)
-	var png := OS.get_temp_dir().path_join("iaf2026-logbook-pilot-%d.png" % OS.get_process_id())
-	Shot._silhouette().save_png(png)
 	for lang in ["en", "he"]:
 		var he: bool = lang == "he"
 		s.language = lang
 		s.sim_jet = "f16i"
 		s.pilot_name = "נועה גולן" if he else "Noa Golan"
 		IafPilotLog.set_pilot(db, s.pilot(), "נועה גולן" if he else "Noa Golan", "עקרב" if he else "Viper")
-		IafPilotLog.set_picture(db, s.pilot(), png)
 		fe.show_page("credits")
 		fe.show_page("pilot")
 		await _shot(vp, dir, pre + "pilot_" + lang)
@@ -108,8 +103,6 @@ func run() -> void:
 		fe.find_child("CombatMore", true, false).pressed.emit()
 		await _shot(vp, dir, pre + "more_debrief_" + lang)
 	IafPilotLog.set_pilot(db, s.pilot(), "", "")
-	IafPilotLog.set_picture(db, s.pilot(), "")
-	DirAccess.remove_absolute(png)
 	s.language = "en"
 	s.pilot_name = ""
 

@@ -175,6 +175,11 @@ func pilot(fe: Control, lang: String) -> void:
 	await frames(2)
 	check(fe.page == "pilot" and fe.is_layout_rtl() == (lang == "he"), "%s: the block opens the Pilot screen" % lang)
 	check(not _has_part(fe, "בראש כל מסך" if he else "every screen"), "%s: Pilot: no note on where it shows" % lang)
+	var ini: Label = fe.find_child("Initials", true, false)
+	check(
+		ini != null and ini.text != "" and not fe.find_child("Placeholder", true, false).visible,
+		"%s: no picture yet: the name's initials, not the head and shoulders" % lang
+	)
 	var nick: LineEdit = fe.find_child("Field_nickname", true, false)
 	check(
 		nick.text == "" and nick.placeholder_text != fe.pilot_name(),

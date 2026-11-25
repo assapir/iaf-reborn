@@ -432,7 +432,7 @@ without `_en`; a prefix per script): `_front_end_shot.gd` (no prefix), `_loadout
 `more_pilot` (24 November 2026, the combat logbook's sample flights). The setup wizard's (`setup_*`) and the loading screen's are the pictures of
 `_setup_wizard_shot.gd` (`setup_welcome`, `setup_imagery`, `setup_install`, and since 25 November 2026 the skipped
 step and the remove dialog, `setup_install_skipped` and `setup_install_remove`, staged on its Install page) and `front-end/loading_en.webp`. Only the pictures a section uses are
-kept. The pilot on them is the shot scripts' sample pilot. Every screen picture of both editions but the logbook's (`pilot`, `log`, `more_stats`) and the ground's was taken again on 25 November 2026: those of 18 November showed the top bar from before the logo (19 November) and the screens from before the Hebrew wording fixes; `devices_joystick_two` (a second device) was added.
+kept. The pilot on them is the shot scripts' sample pilot, without a picture: the game's default, the name's initials (25 November 2026; the user: "use the current default"). Every screen picture of both editions but the ground's was taken again on 25 November 2026 (the logbook's `pilot`, `log` and `more_stats` with the Pilot screens, for the initials): those of 18 November showed the top bar from before the logo (19 November) and the screens from before the Hebrew wording fixes; `devices_joystick_two` (a second device) was added.
 
 **A screen's numbered parts** (the user, 18 November 2026: "in game manual: use numbers on the screen shot instead
 of where coulmn in the table"). The shot script writes beside a screen's picture `<screen>_<lang>.json`: `parts`, the

@@ -2184,7 +2184,9 @@ func _page_pilot() -> void:
 		ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		ini.add_theme_color_override("font_color", Look.MUTED)
-		_show_initials()
+		# Set here: the frame is not in the tree yet, so _show_initials (find_child) would not reach it.
+		ini.text = initials(str(draft.name))
+		empty.visible = ini.text == ""
 	# Choose picture as the picture's bottom (the user, 24 Nov 2026: "choose pic button as the bottom of the pic").
 	var pick := _button(col, s("choose_picture"), "Secondary", choose_picture)
 	pick.name = "ChoosePicture"
