@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The AWACS controller's rules and the Eitam's (2026-11-25, the user: "Full AWACS"; ai-plan C1, C2, K10;
+  [../../docs/ai.md](../../docs/ai.md) §24):** in Rust, not yet in the game: the answers to picture, bogey dope,
+  declare and the vectors to the target, home and the tanker in NATO brevity (BRAA from the player), from the Eitam's
+  radar where it flies (450 km, the radar horizon) or the virtual AWACS; the Eitam's standoff racetrack behind the
+  flight's way at 41,000 ft and Mach 0.80, its retreat at Mach 0.85 from a threat with a call for help; a lost Eitam
+  ends the service. Next: the radio menu's AWACS page with the voices, then the Eitam flying in Scramble.
+  `cargo test -p iaf-ai --lib -- awacs eitam`.
 - **Every seat's radio calls whole, Kidon 5–8 voiced (2026-11-25, the game gaps' row 15; [sound.md](sound.md) §3,
   §5.2):** the player's call to a tower ("Hatzerim tower, Kidon 3, request taxi") is one clip as Kidon 1 to 8 (160
   English clips; before, Kidon 2–4 played the address, the callsign and the request apart); the tower's "negative,

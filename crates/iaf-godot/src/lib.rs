@@ -5,6 +5,7 @@ use godot::prelude::*;
 mod ai;
 mod airframe;
 mod autorun;
+mod awacs;
 mod bases;
 mod bc1;
 mod bombs;

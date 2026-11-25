@@ -896,8 +896,7 @@ English is NATO brevity[^brevity]:
 | `splash` | "Kidon 1-2, splash!" | "כידון 1-2, המטרה נפלה" (an F-35I pilot's words on his kill: [radio-terms.md](../modern-iaf/docs/research/radio-terms.md)) | NATO SPLASH (the target destroyed, air to air; paraphrased)[^brevity] |
 | `winchester` | "Kidon 1-2, winchester." | none found. Ours: "כידון 1-2, אין חימוש" | NATO WINCHESTER (no ordnance left; paraphrased)[^brevity]; Hebrew open |
 
-Later (outside this slice): a commit on the AWACS's call (the element turns to the contact); the controller's answers
-to requests (picture, bogey dope, declare, vectors: ai-plan Q12); a memory of contacts already reported (each call is
+Later (outside this slice): a commit on the AWACS's call (the element turns to the contact); a memory of contacts already reported (each call is
 answered once today); a mate's call of a lock it sees on its own RWR; the break's direction in the defender's own call.
 
 ### 8.9 Ours: the wingmen in the fight
@@ -2444,9 +2443,8 @@ start; the area is drawn, the skill is the Pilot screen's. Every distance and ti
   until the first task call is said (`radio.gd hold_calls`), then follow it in order, so the AWACS speaks first
   (2026-11-24: the wingman's contact calls came before it and its subtitle waited behind theirs, about 15 s in).
   Nothing is scored; the flight ends from the pause menu.
-- **Not started** (outside the user's words of 24 November): the full AWACS (the picture, bogey dope and vectors on
-  request, the Eitam flying in the sky: ai-plan.md C1, Q12), a call when the task is done, the task's choice by the
-  player.
+- **Not started** (outside the user's words of 24 November): a call when the task is done, the task's choice by the
+  player. The full AWACS (the requests, the Eitam in the sky) is §24.
 - **Tests:** `cargo test -p iaf-ai --lib free_combat` (the area: never home, in reach, every base in reach drawn;
   the runway start's places; the start time: HHMM, the steps round the clock, Random by seed over every hour, the day
   of the year, Israel's summer time; the date: month and day, the steps round the year, the month's last day, Random
@@ -2458,6 +2456,142 @@ start; the area is drawn, the skill is the Pilot screen's. Every distance and ti
   runway start lined up with both engines running; the same start on the ground, cold at Ramon; the Time and Date
   rows en + he: 0800 today first, the steps, Random, 0800 today again on the next opening, nothing stored; a 2200
   start at night on 21 December, the notebook's time and date; 0630 dark in December, day in June).
+
+## 24. Modern IAF's AWACS: the controller and the Eitam (ours)
+
+The user, 25 November 2026, picking "Full AWACS" from the features never started; his earlier words: the AI plan's
+Q12, 19 November 2026 ("a controller that answers requests (picture, bogey dope, declare, vectors) PLUS an Eitam
+flying in the sky that the enemy can target, from the start", "Plus Eitam in the sky now"); the radio menu, 19
+November ("3 will be AWACS"); the wingmen and other flights "response to AWACS" (§8.8). On the Eitam's place, 25
+November 2026: "The eitam should be in the sky in makes sense place - where it not directly in the middle of the
+flight. It's ai should know to run away if needed or call for help". The 1998 game is unchanged: its AWACS calls stay
+`fctrl.rs`'s (docs/radio.md §4). Every figure not footnoted is ours (inferred).
+
+The rules are Rust: the controller `crates/iaf-ai/src/awacs.rs`, the Eitam `crates/iaf-ai/src/eitam.rs`, both behind
+gdext `IafAwacs` (`crates/iaf-godot/src/awacs.rs`). `shared/audio/radio.gd` asks and says; the radio menu
+(`modern-iaf/flight/sim_flight.gd`) offers the requests.
+
+### 24.1 The controller's sensor
+
+- **The Eitam's radar** where the flight has an Eitam (§24.3): the EL/W-2085 tracks "to a range of 243 nmi (450
+  km)"[^w-elw2085], in sight over the earth's curvature (the sites' radar horizon on the 4/3 earth, `site::visible`,
+  at sea level: the terrain under a far contact is not loaded). From 41,000 ft its own horizon is about 460 km, so at
+  its height every contact inside its range is in sight; lower, a low contact far out is under it.
+- **The virtual AWACS** where the flight has none (the training missions, the range): the 1998 game's sphere round
+  the player, 96.3 km (`fctrl.rs`).
+- **Neither** once the Eitam is shot down: the service ends. The radio menu's AWACS page (§24.5, the next merge) shows every request off
+  with "The Eitam is lost: no AWACS" ("העיטם אבד: אין בקר מוטס"), the contact calls stop and the data link loses the
+  AWACS's tracks (§24.4).
+- Both see an aircraft only above the terrain + 175 m, the floor of the 1998 contact calls and of the data link
+  (`fctrl::CONTACT_AGL`), so the picture, the calls and the HSD agree.
+- **Identity**: an enemy the player's side knows (the contact calls' `known`) is hostile, another enemy a bogey, our
+  own friendly (NATO HOSTILE, BOGEY, FRIENDLY[^brevity]).
+
+### 24.2 The requests and the answers
+
+The radio menu's third line (AWACS) opens the controller's page (§24.5, the next merge). Each request is the pilot's call, the radio's
+gap, then the controller's answer in the AWACS voice with its subtitle. The words are NATO brevity[^brevity]; the
+controller answers in the BRAA form, the bearing, range, altitude and aspect from the requester ("Provides target
+BRAA relative to the specified FRIENDLY aircraft"[^brevity]), since the sim has no bullseye.
+
+| request | NATO meaning[^brevity] | the answer |
+|---|---|---|
+| Picture | "A request to provide information pertinent to the mission" | "Kidon 1, two groups." then each group, the nearest three: "Group bearing 040, 30 miles, 20 thousand, hot, hostile." Nothing seen: "Kidon 1, clean." |
+| Bogey dope | "Request for information on indicated or closest GROUP in bearing, range, altitude, and aspect (BRAA) format" | the nearest group: "Kidon 1, group bearing 040, 30 miles, 20 thousand, hot, hostile.", else "Kidon 1, clean." |
+| Declare | "Inquiry as to the ID of specified track(s)"; CLEAN among its answers | the player's radar's locked track: "Kidon 1, hostile." / "bogey." / "friendly."; a track the sensor does not see: "Kidon 1, clean." Off without a lock: "Lock a target to ask for its identity" |
+| Vector to target | VECTOR: "Alter heading to indicated" | "Kidon 1, vector 040, 25 miles, target.": Scramble's task target (its nearest, as the task call), else the nearest hostile group; none: clean |
+| Vector home | HOME PLATE: "Home airfield or ship" | "Kidon 1, vector 220, 60 miles, home plate.": the flight's home base |
+| Vector to tanker | | "Kidon 1, vector 130, 40 miles, tanker.": the nearest friendly tanker. No tanker flies yet (air refuelling is its own job), so the line is off: "No tanker in the air" |
+
+- **The words.** A group is any contacts within 3 NM of each other ("Any number of air CONTACTS within 3 nautical
+  miles in azimuth and range of each other"[^brevity]; `sort::groups`, as the sort's); hostile when any of its
+  contacts is, else a bogey; its height the highest contact's. The bearing in tens as the contact calls'
+  (`fctrl::tens`). The range in nautical miles, truncated: 1 to 10, fives to 50, tens to 150, fifties to 250. The
+  height in thousands of feet, rounded: 1 to 10, fives to 50. The aspect by the angle off the group's nose of the line
+  to the requester, the brevity's "from nose" bands: HOT 0–30°, FLANK 31–70°, BEAM 71–120°, DRAG 121–180°[^brevity].
+  A picture says the number of groups (up to nine) and describes the nearest three (inferred: the call stays short).
+- **The flight hears it.** Each group the answer names goes to the flight AI as a contact call does (`Flight::awacs`,
+  §8.8): the first AI jet holding it reports "contact".
+
+The Hebrew lines (every line has one; IAF radio words are not public, so most are ours, around the words the Hebrew
+writing on the subject uses):
+
+| English | Hebrew | source |
+|---|---|---|
+| the Eitam; its crew | עיטם; בקר מוטס | sourced: "\"עיטם\" (גאלפסטרים G-550) שמו", "במטוס ה"עיטם" יושבים הבקרים המוטסים"[^jdn-eitam] |
+| picture | תמונה אווירית | sourced: "אחראי על יצירת התמונה האווירית"[^hamichlol-control] |
+| group; two groups | מבנה; שני מבנים | the pilots' word for a formation ("חזרתי למבנה"[^walla-dogfight]) applied to the enemy's: ours |
+| hostile | עוין | sourced: "כלי-טיס עוינים ומטוסי אויב"[^jdn-uav] |
+| bogey | לא מזוהה | second-hand: "כלי טיס בלתי מזוהה" (a search engine's quote); the contact calls' "מגעים לא מזוהים" |
+| friendly | ידידותי | second-hand: "לזהות כלי טיס ידידותי" (Hamichlol on IFF) |
+| clean | אין מגעים | ours around the sourced מגע ("יצרנו מגע מכ"מי ראשוני"[^ynet-uav]) |
+| hot; flank; beam; drag | מתקרב; באלכסון; בניצב; מתרחק | ours |
+| bogey dope | המגע הקרוב | ours around מגע |
+| declare | זיהוי | sourced as the word: "היכולת לזהות ולסווג מטרות"[^jdn-eitam] |
+| vector 040 | הכוונה אפס ארבע אפס | the word sourced: "בוצע היירוט הראשון בהכוונת בקר"[^hamichlol-control]; the call's form ours |
+| target; home plate; tanker | מטרה; בסיס הבית; מטוס התדלוק | מטרה sourced (§8.8); the others ours (the IAF's 707 tanker is "ראם", second-hand, a name not a word) |
+| threat; Eitam retrograding; commit | איום; עיטם בנסיגה; יירוט | יירוט sourced ("במטרה ליירט אותם מוקדם ככל האפשר"[^jdn-eitam]); the others ours |
+| 20 thousand | גובה עשרים אלף | ours (רגל left out, as the English "feet") |
+
+### 24.3 The Eitam in the sky
+
+The IAF's Eitam is the Gulfstream G550 with the EL/W-2085 (the CAEW)[^w-elw2085][^w-g550]. In the sim it is a point
+mass, as the one-way drones are (§16): the G550 has no public aerodynamic data, and the 6-DoF's only tables are a
+fighter's (open, modern-iaf/docs/ai-plan.md X2).
+
+| figure | value | source |
+|---|---|---|
+| height | 41,000 ft | the G550's cruise altitude: "Long Range Cruise: M0.80 at 41,000 ft"[^w-g550] |
+| speed on station; retreating | Mach 0.80 (236 m/s); Mach 0.85 (251 m/s) | the long-range and the high-speed cruise[^w-g550] |
+| span, length | 28.50 m, 29.39 m | [^w-g550] |
+| turns | 25° of bank: 1.1°/s at Mach 0.80 | inferred |
+| speed change | 1 m/s² | inferred (no thrust or drag modelled) |
+
+- **The station** (`eitam::station`): the user's "not directly in the middle of the flight". Along the line from the
+  fight's area to the flight's home base, the rearmost of the base and the flight's start (an air start beyond the
+  base), then 40 km further back and 30 km to the left of that line, at 41,000 ft. So it never flies on the flight's
+  way to the fight nor over it, and the fight stays well inside its radar (Scramble's area is within 180 km of the
+  base: at most about 230 km). The orbit is a racetrack of 50 km legs across the axis to the fight, flown out and
+  back, the turns at 25° of bank (about a 12 km radius).
+- **The threat** (NATO THREAT, "Untargeted HOSTILE, BANDIT, or BOGEY is within a briefed range of a FRIENDLY
+  aircraft"[^brevity]): a hostile group its own radar sees within 100 km pointing at it (hot or flank), or within 50
+  km whatever it does.
+- **The retreat** (RETROGRADE, "Withdraw(ing) while executing defensive procedures in response to a threat"
+  [^brevity]): it turns away from the threat at Mach 0.85; the threat's start moves its station to 60 km from the
+  planned one, away from the threat (always from the planned one, so two threats never add up). 30 s clear, it goes
+  back on that station at Mach 0.80.
+- **The call for help**, at the threat's start and every 60 s while it lasts, to the player's flight with the threat
+  as BRAA from the player: "Kidon 1, threat, group bearing 040, 30 miles, 25 thousand, Eitam retrograding, commit."
+  (COMMIT: "Intercept the GROUP(S) of interest"[^brevity]). The player sends the flight with the Wingmen page
+  (engage, weapons free); the AI jets holding the group report "contact" (§24.2).
+- **A target.** It is a friendly aircraft in the world: the enemy fighters, the network and the sites see and attack
+  it as any of ours; shot down, the controller's service ends (§24.1).
+- **Where it flies**: on Scramble (§23), placed with the flight. Other flights (the training missions) have none:
+  the virtual AWACS serves them.
+
+### 24.4 The data link and the contact calls
+
+The plan (the merge that flies the Eitam). The data link's AWACS tracks (`datalink.rs`, the HSD and the FCR) and the contact calls (`fctrl.rs` scan) take the
+controller's sensor: the Eitam's radar where it flies (the contact calls still call contacts within 35 NM of the
+player, the 1998 rule), nothing once it is lost; the virtual sphere where the flight has none, as before.
+
+### 24.5 The radio menu's AWACS page
+
+The plan (the next merge). The first page's third line, AWACS (Hebrew בקר מוטס), opens the page: 1 Picture, 2 Bogey dope, 3 Declare, 4 Vector
+to target, 5 Vector home, 6 Vector to tanker (Hebrew: תמונה אווירית, המגע הקרוב, זיהוי, הכוונה למטרה, הכוונה לבסיס,
+הכוונה למטוס התדלוק). A request that cannot be made now is shown off with its reason in one line (`IafAwacs.refusal`):
+the Eitam lost, no lock, no tanker, no home base.
+
+### 24.6 Tests and status
+
+`cargo test -p iaf-ai --lib -- awacs eitam` (the words: miles, thousands, aspect; the picture and the bogey dope from
+the virtual sphere and from the Eitam; the Eitam's reach and horizon; declare with and without a lock, the vectors,
+the refusals, a lost Eitam; the station off the flight's way with the fight in reach for an hour; the threat, the
+call for help, the retreat at Mach 0.85, the call again after a minute, the return; a downed Eitam silent).
+
+Status (25 November 2026): the rules (§24.1–24.3) and `IafAwacs` are built. Next: the menu page, the voices and the
+answers in the game (§24.2, §24.5); then the Eitam flying in Scramble with its model, as the enemy's target, the data
+link and the contact calls on its radar (§24.3, §24.4).
 
 ## UNCERTAIN
 Open questions in this document:
@@ -2478,7 +2612,7 @@ Open questions in this document:
 [^ni-beast]: The National Interest, "The F-35 Has a 'Beast Mode' (But There's a Catch)", https://nationalinterest.org/node/180849 (external hardpoints "drastically increase" the radar cross-section; second-hand: as quoted by a search engine on 2026-11-19).
 [^hamichlol-rwr]: Hamichlol, "מקלט התרעת מכ"ם", https://www.hamichlol.org.il/%D7%9E%D7%A7%D7%9C%D7%98_%D7%94%D7%9E%D7%96%D7%94%D7%99%D7%A8_%D7%91%D7%A4%D7%A0%D7%99_%D7%9E%D7%9B%22%D7%9D (a search radar's warning "ואחריה נעילה ומעקב"; read as quoted by a search engine on 2026-11-19, second-hand).
 [^mako-102]: Mako, "pzm-magazine", on the 102 Squadron's air-combat training, https://www.mako.co.il/pzm-magazine/Article-1c3f6f796402d61027.htm (a good pilot "תוקף ומתחמק מטילי נ"מ"; read as quoted by a search engine on 2026-11-19, second-hand).
-[^brevity]: Wikipedia, "Multiservice tactical brevity code", https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code (SPIKE, MUD, DEFENDING, BREAK, CONTACT, SPLIT, read 2026-11-19; GROUP, AZIMUTH, RANGE, SORT, TARGETED, WEAPONS FREE, read 2026-11-23).
+[^brevity]: Wikipedia, "Multiservice tactical brevity code", https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code (SPIKE, MUD, DEFENDING, BREAK, CONTACT, SPLIT, read 2026-11-19; GROUP, AZIMUTH, RANGE, SORT, TARGETED, WEAPONS FREE, read 2026-11-23; PICTURE, BOGEY DOPE, DECLARE, BRAA, BOGEY, HOSTILE, FRIENDLY, CLEAN, HOT, FLANK, BEAM, DRAG, VECTOR, HOME PLATE, THREAT, RETROGRADE, COMMIT, read 2026-11-25).
 [^w-shahed]: Wikipedia, "HESA Shahed 136", https://en.wikipedia.org/wiki/HESA_Shahed_136 (length 3.5 m, span 2.5 m, mass 200 kg, about 185 km/h; "typically fired in multiples from a launch rack"; "extra-low" altitude flight; read 2026-11-19).
 [^csis-shahed]: CSIS Missile Defense Project, "Shahed-131 and 136", https://missilethreat.csis.org/missile/shahed-131-and-136/ ("approximately 180 km per hour"; read 2026-11-19).
 [^ar-shahed]: Army Recognition, "Shahed-136 loitering munition kamikaze suicide drone technical data", https://armyrecognition.com/military-products/army/unmanned-systems/unmanned-aerial-vehicles/shahed-136-loitering-munition-kamikaze-suicide-drone-technical-data ("It can fly at an altitude from 60 to 4,000 m"; read 2026-11-19).
@@ -2514,3 +2648,10 @@ Open questions in this document:
 [^p1213-parade]: CNATRA P-1213 (draft), Flight Training Instruction T-45 advanced, Parade Turns: "rolling into 30 degrees AOB at the parade rate of roll" (read 2026-11-25): https://navyflightmanuals.tpub.com/Draft_P-1213/Parade-Turns-Draft_P-12130041-41.htm
 [^p1213-cruise]: CNATRA P-1213 (draft), Cruise Position: the cruise position gives the section more maneuverability than parade, the lead not held to 30° of bank (second-hand: a search engine's quote, read 2026-11-25): https://navyflightmanuals.tpub.com/Draft_P-1213/Cruise-Position-Draft_P-12130050-50.htm
 [^w-f16-span]: Wikipedia, "General Dynamics F-16 Fighting Falcon", specifications (span 32 ft 8 in, 9.96 m): https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
+[^w-elw2085]: Wikipedia, "IAI EL/W-2085" ("Up to 1000 targets can be tracked simultaneously to a range of 243 nmi (450 km)"; Israel's G550-based "Eitam"; read 2026-11-25): https://en.wikipedia.org/wiki/IAI_EL/W-2085
+[^w-g550]: Wikipedia, "Gulfstream G550", specifications (length 29.39 m, span 28.50 m; "Long Range Cruise: M0.80 at 41,000 ft"; "High Speed Cruise: M0.85 at 41,000 ft"; Israel's G550s "fitted with the EL/W-2085 sensor package"; read 2026-11-25): https://en.wikipedia.org/wiki/Gulfstream_G550
+[^jdn-eitam]: JDN (from IAF material), "הכירו: האנשים שמזהים ומתריעים מפני איומים אוויריים הרחק מגבולות המדינה", 16 January 2024 (read 2026-11-25): https://www.jdn.co.il/news/2121657/
+[^jdn-uav]: JDN, "חרבות ברזל: כיצד מיירטים כטב"ם אויב", 17 October 2023 (read 2026-11-25): https://www.jdn.co.il/news/2056122/
+[^hamichlol-control]: Hamichlol, "מערך הבקרה האווירית" (read 2026-11-25): https://www.hamichlol.org.il/%D7%98%D7%99%D7%99%D7%A1%D7%AA_505
+[^walla-dogfight]: Walla, "בלדה לקרבות אויר", 14 May 2010 (read 2026-11-25): https://www.walla.co.il/news/israel/1674210
+[^ynet-uav]: ynet, Yoav Zitun, "הפלה בגיחה הראשונה: 'רשאי אש חופשית – המטרה הופלה'" (two F-15 pilots on downing a drone, with the radio audio: "יצרנו מגע מכ"מי ראשוני"; read 2026-11-25): https://www.ynet.co.il/news/article/ryZCtM5rD
