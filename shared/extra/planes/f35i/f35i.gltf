@@ -642,6 +642,9 @@
 			},
 			"normalTexture":{
 				"index":14
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -659,6 +662,9 @@
 			},
 			"normalTexture":{
 				"index":16
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -676,6 +682,9 @@
 			},
 			"normalTexture":{
 				"index":18
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -693,6 +702,9 @@
 			},
 			"normalTexture":{
 				"index":20
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -710,6 +722,9 @@
 			},
 			"normalTexture":{
 				"index":22
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -742,6 +757,9 @@
 			},
 			"normalTexture":{
 				"index":24
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -773,6 +791,9 @@
 			},
 			"normalTexture":{
 				"index":26
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -790,6 +811,9 @@
 			},
 			"normalTexture":{
 				"index":28
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -807,6 +831,9 @@
 			},
 			"normalTexture":{
 				"index":30
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -934,6 +961,9 @@
 			},
 			"normalTexture":{
 				"index":32
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -951,6 +981,9 @@
 			},
 			"normalTexture":{
 				"index":34
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -1038,6 +1071,9 @@
 			},
 			"normalTexture":{
 				"index":36
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -1057,17 +1093,17 @@
 		{
 			"doubleSided":true,
 			"emissiveFactor":[
-				0.02465829998254776,
-				1,
-				0
+				0.004,
+				0.02,
+				0.004
 			],
 			"name":"Glowing_green",
 			"pbrMetallicRoughness":{
 				"baseColorFactor":[
-					0.800000011920929,
-					0.800000011920929,
-					0.800000011920929,
-					1
+					0.28,
+					0.34,
+					0.22,
+					1.0
 				],
 				"metallicFactor":0,
 				"roughnessFactor":0.5
@@ -1076,17 +1112,17 @@
 		{
 			"doubleSided":true,
 			"emissiveFactor":[
-				0,
-				1,
-				0.009615739807486534
+				0.0,
+				0.0,
+				0.0
 			],
 			"name":"Grey",
 			"pbrMetallicRoughness":{
 				"baseColorFactor":[
-					0.13599899411201477,
-					0.13836100697517395,
-					0.15743599832057953,
-					1
+					0.28,
+					0.34,
+					0.22,
+					1.0
 				],
 				"metallicFactor":0,
 				"roughnessFactor":0.5

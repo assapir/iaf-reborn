@@ -135,6 +135,10 @@ static func _own_textures(state: GLTFState, dir: String) -> void:
 				bm.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
 				bm.metallic_texture = t
 				bm.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_BLUE
+		# A material's own specular level (0.5 default; the F-35I's coating, docs/f35i.md §5.1): glTF has no core field.
+		var extras: Dictionary = json_mats[i].get("extras", {})
+		if extras.has("specular"):
+			bm.metallic_specular = float(extras.specular)
 
 
 ## The texture of glTF texture index `ti` (null for none), made once per image (`made`): its image decoded and

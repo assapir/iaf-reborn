@@ -2,7 +2,8 @@
 # of its surface: Scramble's air start from Nevatim (one jet) on a fixed date, held level by the autopilot, the chase
 # camera at each pose, every graphics setting at its best. SHOT_OUT names the folder; SHOT_MIN the local start time
 # (minutes after midnight; default 660, 11:00; 985 = 16:25, dusk on the date); SHOT_TAG ends each file name
-# (<pose>_<tag>.png). Prints "pose <name> gpu <ms>", the mean GPU time of 60 frames at each pose. A real render:
+# (<pose>_<tag>.png); SHOT_POSES a comma list of the poses to shoot (default all). Prints "pose <name> gpu <ms>",
+# the mean GPU time of 60 frames at each pose. A real render:
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> SHOT_TAG=after \
 #     -- --log-file <temp> --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_adir_surface_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -20,6 +21,10 @@ const POSES := [
 	["close_below", 120.0, -28.0, 15.0],
 	["mid_rear_quarter", 150.0, 15.0, 35.0],
 	["mid_side", 85.0, 6.0, 40.0],
+	# The reference photos' angles (docs/f35i.md §5.1): 901 from above on its left, 930 on its right, the pair from below.
+	["photo_2016", 260.0, 28.0, 17.0],
+	["photo_930", 75.0, 2.0, 18.0],
+	["photo_below", 100.0, -60.0, 18.0],
 ]
 const BEST := {
 	"object_detail": 1.0,
@@ -63,7 +68,10 @@ func run() -> void:
 	var vp := root.get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(vp, true)
 	tv.in_cockpit = false
+	var only := _env("SHOT_POSES", "").split(",", false)  # names to shoot (default all)
 	for p in POSES:
+		if not only.is_empty() and p[0] not in only:
+			continue
 		tv.views.orbit_heading = deg_to_rad(p[1]) - PI
 		tv.views.orbit_pitch = -deg_to_rad(p[2])
 		tv.views.dist = p[3]
