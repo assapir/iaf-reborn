@@ -10,8 +10,9 @@ source found.
 17 November 2026 (avionics slice 5, part A; [avionics-plan.md](avionics-plan.md) H1–H4, N1–N4, N6's radios, N7's DGFT;
 gaps G2, G17, G18, G28, G29). The Sufa's and the Barak's ICP and DED, the HUD control panel, the INS's effect, TACAN,
 markpoints and the throttle's DGFT / MSL OVRD switch. The logic is Rust: `crates/iaf-avionics/src/ufc.rs` (every DED
-page, the data entry, TACAN, the radios), `real_hud/f16.rs` (the HUD panel's symbology), `master.rs` `Override` and
-`radar.rs` `override_mode` (DGFT / MSL OVRD), `iaf-flight` `start.rs` `ins_status` (the alignment's progress). The
+page, the data entry, TACAN, the radios; a page's sub-page is typed per page, `Sub`), `real_hud/f16.rs` (the HUD
+panel's symbology), `master.rs` `Override` and `radar.rs` `override_mode` (DGFT / MSL OVRD), `iaf-flight` `start.rs`
+`ins_status` (the alignment's progress). The
 bridge is `IafUfc` (`crates/iaf-godot/src/ufc.rs`); `shared/cockpit/cockpit.gd` holds it and applies what a key
 changes. It exists with the modern F-16 MFDs only (`Settings.modern_mfds()` and the jet's real MFD look), so
 reborn's jets keep their CNI page and HUD, and the F-35I has none.
@@ -137,9 +138,10 @@ mode before come back; a lock (STT) is kept (inferred). While the switch is thro
 ## 6. Tests
 
 - Rust: `ufc.rs` (every line 24 wide, CNI, STPT entry, RCL, bingo and ALOW, markpoints, TACAN and its line of sight,
-  CRUS, the INS page, the radios, the hack and the laser code, the bullseye), `f16.rs` `the_hud_panel_switches`,
-  `master.rs` `dgft_and_msl_override`, `radar.rs` `set_mode_for_dgft_and_back`, `start.rs` (the INS status), `gaaf.rs`
-  (the ALOW setting).
+  CRUS, the INS page, the radios, the hack and the laser code, the bullseye; `seq_steps_the_sub_pages_round`: SEQ steps
+  CRUS, MARK, FIX, EWS and IFF through their sub-pages in order, each page opens on its first), `f16.rs`
+  `the_hud_panel_switches`, `master.rs` `dgft_and_msl_override`, `radar.rs` `set_mode_for_dgft_and_back`, `start.rs`
+  (the INS status), `gaaf.rs` (the ALOW setting).
 - `modern-iaf/tests/test_sim_ded.gd` on the range: the DED dark cold, the pages by their keys, TACAN to Ramon, the
   EHSI's TCN, ALOW, BINGO and the HUD's FUEL, a steerpoint's elevation, markpoint 26 steered to, COM1 and the backup
   UHF, the INS's ALIGN and its effect, the HUD panel, SIMULATE, the 3D ICP's keys, DGFT and MSL OVRD.

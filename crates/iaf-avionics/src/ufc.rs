@@ -382,13 +382,112 @@ impl Radio {
     }
 }
 
+/// CRUS's sub-pages.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CrusPage {
+    Tos,
+    Rng,
+    Home,
+    Edr,
+}
+
+/// MARK's and FIX's sensor: OFLY the jet's position under it, FCR / TGP / HUD their points.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MarkSensor {
+    Ofly,
+    Fcr,
+    Tgp,
+    Hud,
+}
+
+impl MarkSensor {
+    pub fn name(self) -> &'static str {
+        match self {
+            MarkSensor::Ofly => "OFLY",
+            MarkSensor::Fcr => "FCR",
+            MarkSensor::Tgp => "TGP",
+            MarkSensor::Hud => "HUD",
+        }
+    }
+}
+
+/// The EWS pages: CONTROLS, BINGO, the chaff and the flare program.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EwsPage {
+    Controls,
+    Bingo,
+    Chaff,
+    Flare,
+}
+
+/// The IFF pages: the transponder, then the AIFF's.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IffPage {
+    Xpdr,
+    Aiff,
+}
+
+/// A page's sub-page or mode, typed per page (SEQ steps it, in this order, round).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Sub {
+    /// A page without sub-pages.
+    #[default]
+    None,
+    Crus(CrusPage),
+    /// MARK and FIX.
+    Sensor(MarkSensor),
+    Ews(EwsPage),
+    Iff(IffPage),
+}
+
+impl Sub {
+    /// The sub-page a page opens on.
+    pub fn first(page: Page) -> Sub {
+        match page {
+            Page::Crus => Sub::Crus(CrusPage::Tos),
+            Page::Mark | Page::Fix => Sub::Sensor(MarkSensor::Ofly),
+            Page::Ews => Sub::Ews(EwsPage::Controls),
+            Page::Iff => Sub::Iff(IffPage::Xpdr),
+            _ => Sub::None,
+        }
+    }
+
+    /// SEQ: the next one.
+    pub fn next(self) -> Sub {
+        match self {
+            Sub::None => Sub::None,
+            Sub::Crus(c) => Sub::Crus(match c {
+                CrusPage::Tos => CrusPage::Rng,
+                CrusPage::Rng => CrusPage::Home,
+                CrusPage::Home => CrusPage::Edr,
+                CrusPage::Edr => CrusPage::Tos,
+            }),
+            Sub::Sensor(m) => Sub::Sensor(match m {
+                MarkSensor::Ofly => MarkSensor::Fcr,
+                MarkSensor::Fcr => MarkSensor::Tgp,
+                MarkSensor::Tgp => MarkSensor::Hud,
+                MarkSensor::Hud => MarkSensor::Ofly,
+            }),
+            Sub::Ews(e) => Sub::Ews(match e {
+                EwsPage::Controls => EwsPage::Bingo,
+                EwsPage::Bingo => EwsPage::Chaff,
+                EwsPage::Chaff => EwsPage::Flare,
+                EwsPage::Flare => EwsPage::Controls,
+            }),
+            Sub::Iff(i) => Sub::Iff(match i {
+                IffPage::Xpdr => IffPage::Aiff,
+                IffPage::Aiff => IffPage::Xpdr,
+            }),
+        }
+    }
+}
+
 /// The UFC's state.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ufc {
     pub page: Page,
-    /// The page's sub-page or mode (SEQ): CRUS TOS / RNG / HOME / EDR; MARK and FIX OFLY / FCR / TGP / HUD; T-ILS's
-    /// TACAN mode REC / T/R / A/A TR.
-    pub sub: u8,
+    /// The page's sub-page or mode (SEQ; T-ILS's TACAN mode is `tcn_mode`).
+    pub sub: Sub,
     field: usize,
     scratch: String,
     /// CARA ALOW and the MSL floor (ft): the HUD's AL and the GAAF's low-altitude warning read the first.
@@ -427,7 +526,7 @@ impl Default for Ufc {
     fn default() -> Self {
         Ufc {
             page: Page::Cni,
-            sub: 1,
+            sub: Sub::None,
             field: 0,
             scratch: String::new(),
             alow_ft: crate::gaaf::ALOW_FT,
@@ -533,15 +632,17 @@ impl Ufc {
             Page::Alow => &[Fld::Alow, Fld::Floor],
             Page::Bngo => &[Fld::Bingo],
             Page::Time => &[Fld::Hack, Fld::DeltaTos],
-            Page::Crus if self.sub == 3 => &[Fld::Home],
+            Page::Crus if self.sub == Sub::Crus(CrusPage::Home) => &[Fld::Home],
             Page::Com1 | Page::Com2 => &[Fld::Radio],
             Page::Lasr => &[Fld::Code],
             Page::Bull => &[Fld::Toggle, Fld::BullNo],
             Page::Mode => &[Fld::Toggle],
-            Page::Iff if self.sub == 1 => &[Fld::Mode(0), Fld::Mode(1), Fld::Mode(2), Fld::Mode(3)],
+            Page::Iff if self.sub == Sub::Iff(IffPage::Xpdr) => {
+                &[Fld::Mode(0), Fld::Mode(1), Fld::Mode(2), Fld::Mode(3)]
+            }
             Page::Ews => match self.sub {
-                1 => &[Fld::Opt(0), Fld::Opt(1), Fld::Opt(2), Fld::Opt(3)],
-                2 => &[Fld::ChaffBingo, Fld::FlareBingo],
+                Sub::Ews(EwsPage::Controls) => &[Fld::Opt(0), Fld::Opt(1), Fld::Opt(2), Fld::Opt(3)],
+                Sub::Ews(EwsPage::Bingo) => &[Fld::ChaffBingo, Fld::FlareBingo],
                 _ => &[Fld::Bq, Fld::Bi, Fld::Sq, Fld::Si],
             },
             _ => &[],
@@ -631,7 +732,7 @@ impl Ufc {
             ],
             Page::Crus => self.crus(nav),
             Page::Mark => {
-                let kind = ["OFLY", "FCR", "TGP", "HUD"][usize::from(self.sub.min(3))];
+                let kind = self.sensor().name();
                 let no = MARK_FIRST + self.next_mark;
                 let at = self.mark_point(nav);
                 let [lon, lat] = at.map_or([0.0, 0.0], |p| utm36n_geo(p[0], p[1]));
@@ -644,7 +745,7 @@ impl Ufc {
                 ]
             }
             Page::Fix => {
-                let kind = ["OFLY", "FCR", "TGP", "HUD"][usize::from(self.sub.min(3))];
+                let kind = self.sensor().name();
                 let no = nav.selected().map_or(0, |p| p.number);
                 // The sim's INS keeps its position exactly (no drift): every fix finds no error (inferred).
                 [
@@ -770,14 +871,14 @@ impl Ufc {
         let on = |b: bool| if b { "ON " } else { "OFF" }.to_string();
         let blank = String::new;
         match self.page {
-            Page::Ews if self.sub == 1 => [
+            Page::Ews if self.sub == Sub::Ews(EwsPage::Controls) => [
                 format!("   EWS CONTROLS  {}", e.mode),
                 format!(" CH {:>3}    REQCTR{}", e.chaff, self.show(0, on(e.opts[0]))),
                 format!(" FL {:>3}    BINGO {}", e.flares, self.show(1, on(e.opts[1]))),
                 format!("            FDBK  {}", self.show(2, on(e.opts[2]))),
                 format!("            REQJAM{}", self.show(3, on(e.opts[3]))),
             ],
-            Page::Ews if self.sub == 2 => [
+            Page::Ews if self.sub == Sub::Ews(EwsPage::Bingo) => [
                 "     CMDS  BINGO".to_string(),
                 format!("   CHAFF {}", self.show(0, format!("{:>3}", e.bingo[0]))),
                 format!("   FLARE {}", self.show(1, format!("{:>3}", e.bingo[1]))),
@@ -786,7 +887,8 @@ impl Ufc {
             ],
             Page::Ews => {
                 let p = e.programs[self.ews_prog.min(3)];
-                let (name, d) = if self.sub == 3 { ("CHAFF", p.chaff) } else { ("FLARE", p.flare) };
+                let (name, d) =
+                    if self.sub == Sub::Ews(EwsPage::Chaff) { ("CHAFF", p.chaff) } else { ("FLARE", p.flare) };
                 [
                     format!(" CMDS {name} PRGM {ARROW}{}", self.ews_prog + 1),
                     format!("   BQ {}", self.show(0, format!("{:>2}", d.bq))),
@@ -795,7 +897,7 @@ impl Ufc {
                     format!("   SI {}", self.show(3, format!("{:6.2}", d.si))),
                 ]
             }
-            Page::Iff if self.sub == 1 => {
+            Page::Iff if self.sub == Sub::Iff(IffPage::Xpdr) => {
                 let x = self.xpdr;
                 let mode = |i: usize, name: &str| {
                     let code = match i {
@@ -848,7 +950,7 @@ impl Ufc {
         let lbs = |v: Option<f64>| v.map_or("-----".to_string(), |v| format!("{:>5}", v.max(0.0).round() as i64));
         let wind = format!("  WIND  {:03.0}\u{b0} {:>3}KT", nav.wind_from_deg.rem_euclid(360.0), nav.wind_kt.round());
         match self.sub {
-            1 => {
+            Sub::Crus(CrusPage::Tos) => {
                 let eta = dist.and_then(|d| nav.time_for(d)).map(|t| nav.tod_s + t);
                 let want = p.and_then(|p| p.tos_s).map(|t| t + self.delta_tos_s);
                 let rqd =
@@ -861,14 +963,14 @@ impl Ufc {
                     format!("  RQD G/S  {:>5}KT", rqd.map_or("---".into(), |v| format!("{}", v.round() as i64))),
                 ]
             }
-            2 => [
+            Sub::Crus(CrusPage::Rng) => [
                 format!("  CRUS  RNG   {ARROW}{no:>2}"),
                 format!("  FUEL  {}LBS", lbs(dist.and_then(fuel_after))),
                 String::new(),
                 wind,
                 String::new(),
             ],
-            3 => {
+            Sub::Crus(CrusPage::Home) => {
                 let home = nav.route.iter().find(|s| s.number == self.home);
                 let d = home.map(|h| nav.to(h.e, h.n).1);
                 [
@@ -900,12 +1002,17 @@ impl Ufc {
     /// The MARK page's point (UTM metres, elevation ft) for its sensor: OFLY the jet's position under it, FCR / TGP /
     /// HUD their points.
     fn mark_point(&self, nav: &Nav) -> Option<[f64; 3]> {
-        match self.sub {
-            1 => nav.fcr_at,
-            2 => nav.tgp_at,
-            3 => nav.hud_at,
-            _ => Some([nav.e, nav.n, f64::NAN]),
+        match self.sensor() {
+            MarkSensor::Fcr => nav.fcr_at,
+            MarkSensor::Tgp => nav.tgp_at,
+            MarkSensor::Hud => nav.hud_at,
+            MarkSensor::Ofly => Some([nav.e, nav.n, f64::NAN]),
         }
+    }
+
+    /// MARK's and FIX's sensor (OFLY on any other page).
+    fn sensor(&self) -> MarkSensor {
+        if let Sub::Sensor(m) = self.sub { m } else { MarkSensor::Ofly }
     }
 
     /// The selected TACAN station in reach, (name, bearing °, slant range m): T/R gives both, REC the bearing only
@@ -926,7 +1033,7 @@ impl Ufc {
     pub fn press(&mut self, b: Btn, nav: &Nav) -> Effect {
         let page = |p: Page, me: &mut Ufc| {
             me.page = p;
-            me.sub = 1;
+            me.sub = Sub::first(p);
             me.field = 0;
             me.scratch.clear();
             Effect::None
@@ -941,17 +1048,12 @@ impl Ufc {
             Btn::Seq => {
                 self.scratch.clear();
                 match self.page {
-                    Page::Crus => self.sub = self.sub % 4 + 1,
-                    Page::Mark | Page::Fix => self.sub = (self.sub + 1) % 4,
+                    Page::Crus | Page::Mark | Page::Fix => self.sub = self.sub.next(),
                     Page::Tils => self.tcn_mode = (self.tcn_mode + 1) % 3,
                     Page::Stpt => self.auto_seq = !self.auto_seq,
-                    Page::Ews => {
-                        self.sub = self.sub % 4 + 1;
-                        self.field = 0;
-                    }
-                    // The transponder, then the AIFF's page (inferred: one IFF page each).
-                    Page::Iff => {
-                        self.sub = self.sub % 2 + 1;
+                    // IFF: the transponder, then the AIFF's page (inferred: one IFF page each).
+                    Page::Ews | Page::Iff => {
+                        self.sub = self.sub.next();
                         self.field = 0;
                     }
                     _ => {}
@@ -1033,7 +1135,7 @@ impl Ufc {
             _ => return Effect::None,
         };
         self.page = to;
-        self.sub = if matches!(to, Page::Mark | Page::Fix) { 0 } else { 1 };
+        self.sub = Sub::first(to);
         self.field = 0;
         self.scratch.clear();
         Effect::None
@@ -1055,7 +1157,7 @@ impl Ufc {
                 }
                 Effect::None
             }
-            Page::Ews if self.sub >= 3 => {
+            Page::Ews if matches!(self.sub, Sub::Ews(EwsPage::Chaff | EwsPage::Flare)) => {
                 self.ews_prog = (self.ews_prog as i64 + i64::from(d)).rem_euclid(4) as usize;
                 self.field = 0;
                 self.scratch.clear();
@@ -1224,7 +1326,7 @@ impl Ufc {
             (Fld::Bq | Fld::Bi | Fld::Sq | Fld::Si, Some(v)) => {
                 let Some(e) = &nav.ews else { return Effect::None };
                 let p = e.programs[self.ews_prog.min(3)];
-                let flare = self.sub == 4;
+                let flare = self.sub == Sub::Ews(EwsPage::Flare);
                 let mut d = if flare { p.flare } else { p.chaff };
                 match f {
                     Fld::Bq if v <= 99 => d.bq = v,
@@ -1526,6 +1628,51 @@ mod tests {
         let fx = keys(&mut u, &n, &[17, 17, 4, 10]);
         let Effect::Cmds(CmdsEdit::Program { index: 1, flare: true, d }) = fx else { panic!("{fx:?}") };
         assert_eq!(d.sq, 4);
+    }
+
+    #[test]
+    fn seq_steps_the_sub_pages_round() {
+        let n = ews_nav();
+        let mut u = Ufc::default();
+        // The heading of each SEQ step from the page's first, round to the first again.
+        let mut round = |open: &[i64], steps: usize| -> Vec<String> {
+            keys(&mut u, &n, open);
+            let mut seen = vec![u.lines(&n)[0].clone()];
+            for _ in 0..steps {
+                keys(&mut u, &n, &[19]);
+                seen.push(u.lines(&n)[0].clone());
+            }
+            assert_eq!(seen.first(), seen.last());
+            seen
+        };
+        let crus = round(&[18, 5], 4);
+        for (l, w) in crus.iter().zip(["TOS", "RNG", "HOME", "EDR"]) {
+            assert!(l.contains(&format!("CRUS  {w}")), "{crus:?}");
+        }
+        for page in [7, 8] {
+            let mark = round(&[18, page], 4);
+            for (l, w) in mark.iter().zip(["OFLY", "FCR", "TGP", "HUD"]) {
+                assert!(l.contains(&format!("*{w}*")), "{mark:?}");
+            }
+        }
+        let ews = round(&[12, 7], 4);
+        for (l, w) in ews.iter().zip(["EWS CONTROLS", "CMDS  BINGO", "CMDS CHAFF", "CMDS FLARE"]) {
+            assert!(l.contains(w), "{ews:?}");
+        }
+        let iff = round(&[18, 15], 2);
+        assert!(iff[0].contains("IFF  XPDR") && !iff[1].contains("XPDR"), "{iff:?}");
+        // A page opens on its first sub-page whatever SEQ left on the last; MARK keeps its sensor to FIX's OFLY.
+        keys(&mut u, &n, &[18, 7, 19, 19, 18, 8]);
+        assert!(u.lines(&n)[0].contains("*OFLY*") && u.sub == Sub::Sensor(MarkSensor::Ofly));
+        keys(&mut u, &n, &[18, 5, 19, 18, 5]);
+        assert_eq!(u.sub, Sub::Crus(CrusPage::Tos));
+        keys(&mut u, &n, &[18]);
+        assert_eq!(u.sub, Sub::None);
+        // INC steps the EWS program only on the chaff and flare pages.
+        keys(&mut u, &n, &[12, 7, 20]);
+        assert_eq!(u.ews_prog, 0);
+        keys(&mut u, &n, &[19, 19, 20, 19, 20]);
+        assert_eq!(u.ews_prog, 2);
     }
 
     #[test]
