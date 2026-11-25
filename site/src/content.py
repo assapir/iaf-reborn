@@ -147,7 +147,7 @@ SECTIONS = [
         ],
         "figs": [
             ("ramatdavid_air", "Ramat David ahead.", "רמת דוד (כנף 1) לפנינו."),
-            ("bases_hatzerim_shelter_day", "A shelter at Hatzerim with its jet.", "דת\"ק בחצרים עם המטוס שבו."),
+            ("bases_ramon_shelter_day", "A shelter at Ramon with its jet.", "דת\"ק ברמון עם המטוס שבו."),
             ("bases_nevatim_shelter_night", "A Nevatim shelter at night.", "דת\"ק בנבטים בלילה."),
             ("bases_telnof_night", "Tel Nof at night.", "תל נוף בלילה."),
         ],

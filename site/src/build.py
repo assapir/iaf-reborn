@@ -54,11 +54,11 @@ def jpg(name):
         if os.path.getsize(out) > MAX_KB[sub] * 1024:
             sys.exit(f"{out} is over {MAX_KB[sub]} KB")
         USED.add(f"{sub}/{name}.jpg")
-    # small/<name>.webp: 640 wide, what a phone or a half-width figure loads (srcset); made from the thumb.
+    # small/<name>.webp: 800 wide, what a phone or a half-width figure loads (srcset); made from the thumb.
     small, thumb = os.path.join(HERE, "small", name + ".webp"), os.path.join(HERE, "thumb", name + ".jpg")
     if shutil.which("magick") and (not os.path.exists(small) or os.path.getmtime(small) < os.path.getmtime(thumb)):
         os.makedirs(os.path.dirname(small), exist_ok=True)
-        subprocess.run(["magick", thumb, "-resize", "640x>", "-strip", "-quality", "78", small], check=True)
+        subprocess.run(["magick", thumb, "-resize", "800x>", "-strip", "-quality", "78", small], check=True)
     if not os.path.exists(small):
         sys.exit("missing " + small)
     if os.path.getsize(small) > MAX_KB["small"] * 1024:
@@ -80,7 +80,7 @@ def img(name, alt_en, alt_he, lang=None, hero=False):
     load = 'fetchpriority="high"' if hero else 'loading="lazy"'
     sizes = "(max-width:1240px) 100vw, 1192px" if hero else "(max-width:800px) 100vw, 600px"
     return (f'<a{la} class="pic" href="full/{name}.jpg">'
-            f'<img src="thumb/{name}.jpg" srcset="small/{name}.webp 640w, thumb/{name}.jpg {w}w" sizes="{sizes}" '
+            f'<img src="thumb/{name}.jpg" srcset="small/{name}.webp 800w, thumb/{name}.jpg {w}w" sizes="{sizes}" '
             f'alt="{alt}" {load} width="{w}" height="{h}"></a>')
 
 
@@ -241,8 +241,7 @@ def page():
     return f"""<!DOCTYPE html>
 <html lang="en" data-lang="en" dir="ltr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{TITLE}</title>
-<link rel="preload" href="fonts/Heebo.ttf" as="font" type="font/ttf" crossorigin><style>{CSS}</style></head><body>
+<title>{TITLE}</title><style>{CSS}</style></head><body>
 <header><div class="bar"><div class="brand"><img src="logo/icon_small.svg" alt="">{both("Modern IAF", "הזרוע הארוכה")}</div><nav>{nav}</nav>
 <div class="switch"><button data-l="he">עברית</button><button data-l="en">English</button></div></div></header>
 <main>{hero}
