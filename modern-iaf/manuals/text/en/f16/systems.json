@@ -185,7 +185,7 @@
   "CHAN": "Channel",
   "BRK": "Brake"
  },
- "words": ["FLY", "HARD", "LIMIT", "LO", "OBSTACLE", "SOFT", "NOSE", "A3", "A6", "AREA", "B1", "B2", "B4", "BAND", "BINGO", "BLANK", "BORE", "COMPLETE", "CONTROLS", "DBS1", "DBS2", "DEGR", "EXP1", "EXP2", "FAULTS", "HOME", "LOAD", "LVL", "M1", "MK", "NAV1", "NM", "NO", "OK", "PAIR", "PASS", "PM", "POD", "PROF1", "PROF2", "PROG", "RAD", "RINGS", "SEA", "SIM", "SLEW", "SWAP", "TR", "TRK", "WIDE", 
+ "words": ["FLY", "HARD", "HI", "LIMIT", "LO", "OBSTACLE", "SOFT", "NOSE", "A3", "A6", "AREA", "B1", "B2", "B4", "BAND", "BINGO", "BLANK", "BORE", "COMPLETE", "CONTROLS", "DBS1", "DBS2", "DEGR", "EXP1", "EXP2", "FAULTS", "HOME", "LOAD", "LVL", "M1", "MK", "NAV1", "NM", "NO", "OK", "PAIR", "PASS", "PM", "POD", "PROF1", "PROF2", "PROG", "RAD", "RINGS", "SEA", "SIM", "SLEW", "SWAP", "TR", "TRK", "WIDE", 
   "VI", "JP", "NATO", "A1",
   "ACTIVE",
   "AERIAL",

@@ -119,6 +119,8 @@ The #term("Dead zone") goes from 0 to 50 %. Its default is 25 % on the stick and
 
 #idx("Joystick, second device")A separate throttle or rudder pedals work beside the joystick. Plug them in, and their axes are listed under their name: give one of them a role as above, and that role reads the device. A device plugged in during a flight works at once. A device pulled out during a flight lets its stick and rudder axes go to the centre, and their keys work again. Two devices with the same name are listed as "#2" for the one plugged in second.
 
+#screen("devices_joystick_two", [Rudder pedals as a second device: their axes under their name, the rudder on their axis 3.], width: 80%)
+
 An axis is read only when its setting says so: #scr("flight_controls") on #scr("joystick") for the stick, #scr("rudder") on #scr("pedals"), #scr("throttle") on #scr("lever") (@settings-devices).
 
 === Joystick buttons and the hat <keys-joystick-buttons>

@@ -59,6 +59,8 @@ The picture is a fan: the jet at its foot, the range up, the bearing off the nos
 
 A wide scan with many bars takes longer to come back to the same place. With a target marked, the scan centres on it.
 
+Looking down at a target, the radar also receives the ground behind it, and tells the target apart by its speed along the line of sight. A target that flies across the beam, or slower than 60 kt along the line of sight, is lost in the ground's return: it drops off the fan, and a lock on it breaks. A target that flies at you or away from you, or is above you or level with you, stays. The 60 kt are inferred; the ground's return is not drawn.
+
 === To lock a target <radar-aa-lock>
 
 + *Move the cursor onto the track* with #key("Slew EO sensor / radar cursor up"), #key("Slew EO sensor / radar cursor down"), #key("Slew EO sensor / radar cursor left") and #key("Slew EO sensor / radar cursor right").

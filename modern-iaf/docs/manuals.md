@@ -430,9 +430,9 @@ without `_en`; a prefix per script): `_front_end_shot.gd` (no prefix), `_loadout
 `_briefing_shot.gd` (no prefix), `_notebook_shot.gd` (`notebook_`), `_flight_ui_shot.gd` (`flight_`),
 `_devices_shot.gd` (`devices_`); `pilot`, `log` and `more_stats` are `_logbook_shot.gd`'s `pilot`, `log` and
 `more_pilot` (24 November 2026, the combat logbook's sample flights). The setup wizard's (`setup_*`) and the loading screen's are the pictures of
-`_setup_wizard_shot.gd` (`setup_welcome`, `setup_imagery`, `setup_install`) and, converted, the pictures of
-`modern-iaf/docs/pictures/setup/` (the skipped step, the remove dialog) and `front-end/loading_en.webp`. Only the pictures a section uses are
-kept. The pilot on them is the shot scripts' sample pilot.
+`_setup_wizard_shot.gd` (`setup_welcome`, `setup_imagery`, `setup_install`, and since 25 November 2026 the skipped
+step and the remove dialog, `setup_install_skipped` and `setup_install_remove`, staged on its Install page) and `front-end/loading_en.webp`. Only the pictures a section uses are
+kept. The pilot on them is the shot scripts' sample pilot. Every screen picture of both editions but the logbook's (`pilot`, `log`, `more_stats`) and the ground's was taken again on 25 November 2026: those of 18 November showed the top bar from before the logo (19 November) and the screens from before the Hebrew wording fixes; `devices_joystick_two` (a second device) was added.
 
 **A screen's numbered parts** (the user, 18 November 2026: "in game manual: use numbers on the screen shot instead
 of where coulmn in the table"). The shot script writes beside a screen's picture `<screen>_<lang>.json`: `parts`, the
@@ -458,7 +458,7 @@ English and Hebrew, cropped to 1,520 x 380 px).
 (`<name>_he.png`), scaled the same way. Three pictures have no language in their script: `notebook_radio` and
 `notebook_training` are taken with `SHOT_LANG=he NB_SHOTS=radio,training` (`_notebook_shot.gd`), `devices_keys_mac`
 with `SHOT_LANG=he` (`_devices_shot.gd`). `flight_mfd_view` shows a display of the jet, which is English in both.
-`setup_install_remove` and `setup_install_skipped` are converted from `modern-iaf/docs/pictures/setup/*_he.webp`.
+`setup_install_remove` and `setup_install_skipped` are the same script's Hebrew pictures.
 
 **Black captures** (found 18 November 2026). `_mfd_s4_shot.gd`, `_fcr_ag_shot.gd` and `_avionics_s5_shot.gd` put the
 jet in the air and then sent the "start engine" command (213). An air start has every system running; the command ran

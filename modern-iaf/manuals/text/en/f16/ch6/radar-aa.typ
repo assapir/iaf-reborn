@@ -35,6 +35,7 @@ The cursor is two short vertical lines. Move it with the cursor control's keys (
 - *VSR, velocity search.* It shows only closing targets, placed up the scope by their closing speed.
 - *Single-target track.* The radar follows one target and stops searching; the top legend names the mode the lock came from. #key("Radar: drop bug / lock (TMS down)") or #key("Drop target lock") returns to the search.
 - *A jammer.* An aircraft that jams your radar shows only inside its #term("burn-through range"). Farther out, but within the range at which the radar would see it, the search shows its bearing: a dashed line from the bottom to the top of the scope. The line gives no range. The #jet.short's own jamming symbol is not public; the sim draws the angle-only jam strobe of a fighter radar's display (inferred).
+- *Looking down.* When the radar looks down at a target, the ground behind the target returns the beam too. The radar tells the target from the ground by the target's speed along the line of sight. A target that flies across the beam, or flies slowly, sits in the ground's return and is lost: it drops off the scope, and a lock on it breaks. A target that flies at you or away from you, or is above you or level with you, stays. MTR on the control page sets that least speed (inferred).
 
 === The dogfight patterns (ACM)
 
@@ -51,10 +52,11 @@ In ACM the radar shows no returns: it locks the first target inside its pattern.
 
 #display("fcr_pages", [Left: EXP about the bugged target. Middle: the control page. Right: OVRD, with NO RAD.], width: 100%)
 
-#osb(5) opens it and closes it. TGT HIS (#osb(18)) sets how many past sweeps' returns stay on the scope, the older ones dimmer. MTR (#osb(20)) sets the least speed along the line of sight that a return needs to show. The page's other options (CHAN, MK INT, BAND, PM, ALT TRK, LVL) step their value and change nothing in the sim.
+#osb(5) opens it and closes it. TGT HIS (#osb(18)) sets how many past sweeps' returns stay on the scope, the older ones dimmer. MTR (#osb(20)) sets the least speed along the line of sight that a return needs to show while the radar looks down: 60 kt at LO, the default, or 100 kt at HI. The page's other options (CHAN, MK INT, BAND, PM, ALT TRK, LVL) step their value and change nothing in the sim.
 
 #in-sim[
   - The modes and controls above work as described. The scan's bar height and rate and the shapes of the dogfight patterns are inferred.
   - With a lock the HUD shows a box on the target (@hud).
+  - Looking down, every air mode loses a target slower than MTR along the line of sight, the lock included. The ground's return itself is not drawn on the scope. The two speeds are inferred: the radar's own are not public.
   - #term("Not modelled"): the radar's channels, bands and pulse options, and the cues after a missile's launch.
 ]
