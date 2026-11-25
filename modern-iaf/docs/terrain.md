@@ -798,7 +798,7 @@ Check: `modern-iaf/tests/test_real_sun.gd` (sunrise and sunset, the sun's place 
 ### 17.1 The moon, the stars and the night's light (2026-11-25)
 
 The night is as dark as the moon makes it: a moonless night is near black with only the lights and the stars, a
-full moon high up gives a dim grey light with shadows. The user's words, 25 November 2026: "night should be much
+full moon high up gives a dim grey light. The user's words, 25 November 2026: "night should be much
 darker [...] real dark based on the moon phase based on date". The code is in `shared/terrain/time_of_day.gd`
 (`real_moon_at`, `scene_light`), `shared/terrain/night_lights.gd` (`sky_at`) and `shared/terrain/terrain_view.gd`
 (`_real_night`).
@@ -817,8 +817,8 @@ darker [...] real dark based on the moon phase based on date". The code is in `s
   one value (`scene_lux`) drives the night's look and the night-vision goggles' noise.
 - **What the eye sees**: the scene's light level is (lux / 0.3)^0.4, 1 under a full moon at the zenith (inferred: an
   eye adapted to the dark sees a wide range of light as a narrower one). The ambient light is 0.12 × the level (at
-  most the sunset's), the moon's own light comes from its place by its own level, and it casts shadows above
-  0.03 lux (a gibbous moon high up). So the ambient light under a full moon at the zenith is about a quarter of the
+  most the sunset's), the moon's own light comes from its place by its own level. It casts no shadows
+  (tried and dropped, below). So the ambient light under a full moon at the zenith is about a quarter of the
   old fixed night's, and on a moonless night about 3 %. The Volumetric clouds' night light follows the same level: grey under a full moon,
   near black on a moonless night, so a clear night's thin cloud no longer veils the stars.
 - **The stars**: the 5,080 stars of the Yale Bright Star Catalogue to magnitude 6.0[^bsc5] (`shared/terrain/
@@ -844,10 +844,14 @@ Tel Aviv (24 November, 00:00; the moon behind the camera), a crescent after suns
 | Half moon | | ![after](pictures/night/half_after.jpg) |
 
 Frame time (the root viewport's GPU time, the same views, this Iris Xe laptop, other jobs' renders between them): the
-moonless Negev 17.6 → 16.6 ms outside, 18.7 → 17.2 ms in the cockpit; the full moon over Tel Aviv 32.8 → 35.6 ms
-outside and 30.1 → 32.9 ms in the cockpit: the moon's shadows (with Shadows on, the day's own cost; the night had
-none before). The moon, the stars and the light are a few
-GDScript lines once a sim second and one point sprite: no measurable cost.
+moonless Negev 17.6 → 16.6 ms outside, 18.7 → 17.2 ms in the cockpit: the moon, the stars and the light are a few
+GDScript lines once a sim second and one point sprite, no measurable cost.
+
+Tried and dropped (25 Nov 2026): the moon's shadows above 0.03 lux (a gibbous moon high up), as the brief asked ("a
+full moon high gives dim grey light with moon shadows"). Over Tel Aviv under the full moon they cost +2.8 ms in the
+sun's four cascades to 2.5 km (32.8 → 35.6 ms outside, 30.1 → 32.9 ms in the cockpit), and still +3 ms in two
+cascades to 300 m (outside 30.7 / 31.5 → 34.3 / 34.5 ms, cockpit 28.2 / 26.6 → 30.9 / 30.4 ms, two runs each): the
+night's budget is 0.3 ms, and in the dim light the shadows barely show. So the night has none.
 
 Check: `modern-iaf/tests/test_night_moon.gd` (a full moon at the 3 March 2026 lunar eclipse, a new moon at the
 12 August 2026 solar eclipse, the full moon of 24 November high in the south at midnight, the light values).

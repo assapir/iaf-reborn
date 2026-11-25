@@ -1135,8 +1135,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The moon, the stars and dark nights (2026-11-25, the user: "night should be much darker [...] real dark based on
   the moon phase based on date"; [terrain.md](terrain.md) §17.1):** the moon at its real place and phase for the
   flight's date, hour and place (a mission without a date: today's), drawn lit on its sun side; the night's light in
-  lux from the twilight, the moon and the stars drives the ambient and the moon's light (with shadows under a bright
-  moon), the Volumetric clouds' night light and the goggles' grain. A moonless night is near black; a full moon a dim
+  lux from the twilight, the moon and the stars drives the ambient and the moon's light (no moon shadows: +3 ms,
+  dropped), the Volumetric clouds' night light and the goggles' grain. A moonless night is near black; a full moon a dim
   grey. The stars are the Yale Bright Star Catalogue's 5,080 (public domain, credited) at their real places. The
   1998 game keeps its fixed moon and random stars. `test_night_moon.gd`.
 - **Wall shading and long shadows (2026-11-09, the look study's proposal 5):** the buildings' walls away from the sun

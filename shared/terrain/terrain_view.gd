@@ -817,12 +817,11 @@ func _night_detailed(sun: DirectionalLight3D, env: Environment, night: bool) -> 
 ## Modern IAF's night (modern-iaf/docs/terrain.md §17.1) by its light, TimeOfDay.scene_light (lux), as the eye adapted
 ## to the dark sees it: a level (lux / FULL_MOON_LUX)^NIGHT_CURVE (1 under a full moon at the zenith; inferred). The
 ## ambient NIGHT_AMBIENT × the level (at most the sunset's, the original's 0.2), the moon's own light from its place
-## by its own level, with shadows once it lights the ground as a gibbous moon high up does (MOON_SHADOW_LUX), the moon
-## at its place and phase, the stars at theirs, fading in through the nautical twilight and under a bright moon; the
-## Volumetric clouds' night light by the level (dark on a moonless night).
+## by its own level (no shadows), the moon at its place and phase, the stars at theirs, fading in through the
+## nautical twilight and under a bright moon; the Volumetric clouds' night light by the level (dark on a moonless
+## night).
 const NIGHT_CURVE := 0.4
 const NIGHT_AMBIENT := 0.12
-const MOON_SHADOW_LUX := 0.03
 ## Modern IAF: the scene's light (TimeOfDay.scene_light, refreshed once a sim second), the one value the night's
 ## look and the night-vision goggles' picture follow (lux; -1: the 1998 game, none).
 var scene_lux := -1.0
@@ -838,7 +837,7 @@ func _real_night(sun: DirectionalLight3D, env: Environment) -> void:
 	env.ambient_light_energy = minf(NIGHT_AMBIENT * level, 0.2 / 0.6)
 	sun.basis = Basis.looking_at(-md, Vector3.UP if absf(md.y) < 0.99 else Vector3.FORWARD)
 	sun.light_color = NightLights.MOON_LIGHT * pow(nl.moon_lux / TimeOfDay.FULL_MOON_LUX, NIGHT_CURVE)
-	sun.shadow_enabled = Settings.shadows and nl.moon_lux > MOON_SHADOW_LUX
+	sun.shadow_enabled = false  # no moon shadows: their cost is the day's, beyond the night's budget (terrain.md §17.1)
 	var stars: float = smoothstep(-4.0, -12.0, float(nl.sun_el)) / (1.0 + float(nl.moon_lux) / 0.1)
 	NightLights.sky_at(
 		_night_sky, TimeOfDay.sidereal(TimeOfDay.j2000_days(time_of_day())), md, g.call(m.sun), float(m.phase), stars

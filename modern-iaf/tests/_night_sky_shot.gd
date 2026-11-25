@@ -2,8 +2,9 @@
 # SHOT_MISSION (default the free flight) at SHOT_HOUR (h), posed by terrain_view's user args (`-- --at X Y ALT HDG
 # PITCH`): the cockpit and the chase view (SHOT_ORBIT "yaw,pitch,dist", default 150,8,40), saved to
 # SHOT_OUT/<SHOT_NAME>_{cockpit,external}.jpg, and the mean frame time of each view over 4 s (vsync off, "BENCH").
-# SHOT_DATE=YYYY-MM-DD flies on that date (the moon's phase and place, the sun's day; default today's moon on the
-# equinox's sun, as a mission). SHOT_SET=key=value,... sets settings first (all settings on:
+# SHOT_EXPOSURE=k brightens the picture k times (a long exposure). SHOT_DATE=YYYY-MM-DD flies on that date (the
+# moon's phase and place, the sun's day; default today's moon on the equinox's sun, as a mission).
+# SHOT_SET=key=value,... sets settings first (all settings on:
 # antialiasing=taa,upscaling=quality,clouds=volumetric).
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> SHOT_NAME=h22 \
 #     SHOT_HOUR=22 -- --log-file <t> --resolution 1600x900 --path modern-iaf -s ../modern-iaf/tests/_night_sky_shot.gd \
@@ -38,6 +39,9 @@ func run() -> void:
 	for c in tv.get_children():
 		if c is CanvasLayer:
 			c.visible = false
+	# SHOT_EXPOSURE=k: a photographer's longer exposure, the picture k times brighter (the game draws k = 1).
+	var env: Environment = (tv.get_node("WorldEnvironment") as WorldEnvironment).environment
+	env.tonemap_exposure *= float(_env("SHOT_EXPOSURE", "1"))
 	tv.frozen = true
 	tv.fm_stopped = true
 	await ground_streamed(tv, 30000, 20)
