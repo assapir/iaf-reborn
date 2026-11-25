@@ -30,7 +30,7 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | Keyboard stick edges | a DirectInput key event per press / release | Godot key state polled once per frame for edges | a press + release within one frame is lost; a modifier pressed while an arrow is held counts as its release | terrain_view.gd `_read_controls` |
 | g readout on the ground | not traced | 1.0 | display only | flight.rs |
 | Envelope math | float32 / x87 | f64 | last-digit rounding only | flight-model.md §15.9 |
-| Updates on start | none | a line over the start-up and menu: a newer nightly (a release bundle) or setup steps to run again, with Update / Later; Extras → "Updates on start" turns it off | the user, 24 Nov 2026: auto update on start, "same for setup"; outside the game itself | release.md §7 |
+| Updates on start | none | a dialog over the start-up and menu: a newer nightly (a release bundle) or setup steps to run again, with Update / Later and Don't ask me again; Extras → "Updates on start": Ask / Always download / Never | the user, 24 Nov 2026: auto update on start, "same for setup"; outside the game itself | release.md §7 |
 | Flight channels | sampled with the X-axis time; angles fmod 2π | each channel's own base time (re-based together); angles wrapped ±180° | negligible difference | flight-model.md §15.11 |
 | Lift-ramp / β slopes | globals from the **last aircraft type set up** (leak between types) | each aircraft keeps its own | only matters with several flight-model types | flight-model.md §10 |
 | Parachuter | freezes at "land − 10 s" (factor 4) | descends to 20 m AGL | original bug; flight has ended by then in single player | part-animation.md |

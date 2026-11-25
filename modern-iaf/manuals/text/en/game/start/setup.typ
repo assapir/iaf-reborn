@@ -22,18 +22,30 @@ The downloaded game keeps its data in a folder of your user account (@start-game
 
 === Updates on start <setup-updates>
 
-#idx("Updates")#idx("Setup, after a change")On each start the game looks for two things, and shows a line at the top of the screen with #strong(upd("update")) and #strong(upd("later")) when it finds one:
+#idx("Updates")#idx("Setup, after a change")On each start the game looks for two things, and shows a dialog in the middle of the screen with #strong(upd("update")), #strong(upd("later")) and #strong(upd("dont_ask")) when it finds one:
 
 #grid-table(
   (auto, 1fr),
   ([What], [What #strong(upd("update")) does]),
-  [A newer version of the downloaded game, on the "nightly" release (the downloaded game only).], [Downloads it, with its progress on the line, and checks its size and checksum against the release. The game then closes, puts the new version in its folder and starts again. The old version stays on the disk until the new one has started; when the new one does not start, the old one comes back. The data folder stays as it is.],
-  [Setup steps to run again: a new version changed what they build, or added a step.], [Opens the setup wizard on #stp("page_install") and runs those steps at once, with their progress. When the run finishes, the game's first screen opens. A step downloads only a source that is not on the disk yet; the line gives its size first.],
+  [A newer version of the downloaded game, on the "nightly" release (the downloaded game only).], [Downloads it, with its progress in the dialog, and checks its size and checksum against the release. The game then closes, puts the new version in its folder and starts again. The old version stays on the disk until the new one has started; when the new one does not start, the old one comes back. The data folder stays as it is.],
+  [Setup steps to run again: a new version changed what they build, or added a step.], [Opens the setup wizard on #stp("page_install") and runs those steps at once, with their progress. When the run finishes, the game's first screen opens. A step downloads only a source that is not on the disk yet; the dialog gives its size first.],
 )
 
-#strong(upd("later")) closes the line; the game asks again on the next start. Without the internet, the game finds no new version; the setup steps line still shows. The setting #scr("update_check") turns both checks off (@settings-updates).
+#strong(upd("later")) closes the dialog, and so does a click outside it; the game asks again on the next start. Without the internet, the game finds no new version; the setup steps dialog still shows.
 
-The new version goes into the same folder as the old one, so the game's folder must be one you can write to: on macOS, the app in Applications. When it is not, the line says so. The data folder must be outside the game's folder (the old version goes once the new one has started); when it is inside, the line asks you to choose another one in setup first.
+The setting #scr("update_mode") (@settings-updates) decides whether the game asks:
+
+#grid-table(
+  (auto, 1fr),
+  ([Value], [On start]),
+  [#scr("update_mode_ask")], [The dialog.],
+  [#scr("update_mode_always")], [No question: a newer version downloads and installs at once, its progress in the dialog; setup steps run at once in the wizard. When that run fails, #stp("back") goes on to the game.],
+  [#scr("update_mode_never")], [No check.],
+)
+
+With #strong(upd("dont_ask")) ticked, the button you press becomes the setting: #strong(upd("update")) sets #scr("update_mode_always"), #strong(upd("later")) or a click outside sets #scr("update_mode_never").
+
+The new version goes into the same folder as the old one, so the game's folder must be one you can write to: on macOS, the app in Applications. When it is not, the dialog says so. The data folder must be outside the game's folder (the old version goes once the new one has started); when it is inside, the dialog asks you to choose another one in setup first.
 
 === Starting the wizard <setup-start>
 

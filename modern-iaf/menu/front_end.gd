@@ -91,7 +91,16 @@ const PREFS := [
 		]
 	],
 	["language", [["language", "segments"]]],
-	["updates", [["update_check", "switch", []]]],
+	[
+		"updates",
+		[
+			[
+				"update_mode",
+				"segments",
+				[["update_mode_ask", "ask"], ["update_mode_always", "always"], ["update_mode_never", "never"]]
+			]
+		]
+	],
 	[
 		"sound",
 		[

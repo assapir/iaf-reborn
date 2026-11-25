@@ -41,7 +41,8 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
 - **Updates on start (2026-11-24, the user: "auto update on startup for released assests", "same for setup";
   [release.md](release.md) §7):** a bundle offers a newer nightly (download, size and SHA-256 check, swap with the old
   version kept until the new one starts, rollback); bundle and checkout offer the setup steps whose stamps no longer
-  hold and run them in the wizard. Extras → "Updates on start".
+  hold and run them in the wizard. A dialog asks (a click outside is Later; Don't ask me again); Extras → "Updates
+  on start": Ask / Always download / Never (2026-11-25).
 
 ## Priorities (user decision: 1. player experience, 2. enemies, 3. missions and general fixes)
 1. **Player experience:** built (Done table). Open: the stores that look detached (Small bugs).

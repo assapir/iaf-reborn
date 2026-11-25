@@ -1454,7 +1454,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
   * **Extras rows** (`front_end.gd` `EXTRAS` and `_extras_rows`, less the Graphics → MORE rows; each switch is in
     deviations.md §2): Flight data, Weapon data, F-16 version (Barak (F-16D) / Sufa (F-16I), docs/f16i.md), Weapons (Original (1998) / Modern, docs/weapons.md §13), Language (English / Hebrew; Hebrew only when the pack is installed),
     Flight info (Ctrl+F12), Blackbox, HUD pitch ladder, HUD (Original (1998) / Real), Real HUD bingo (500-5,000 lb, 1,500 by default), All keys on the Keyboard page,
-    F-35I replaces (Off / one of the seven jets, docs/f35i.md), HARM targets, CD launcher (§18.1), Updates on start (On / Off, release.md §7), Mouse wheel
+    F-35I replaces (Off / one of the seven jets, docs/f35i.md), HARM targets, CD launcher (§18.1), Updates on start (Ask / Always download / Never, release.md §7), Mouse wheel
     (below), Better cockpit (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"), Mission Creator
     (Original / Better, §19.4), RWR (Original / Real, docs/rwr.md §7), Briefing map (Original (1998) / Modern, §8), Bomb release (Original / Real, docs/weapons.md §9.10), MFDs (F-16) (Original (1998) / Real: the Barak's real MFD formats; the Sufa has them always, docs/mfd.md §9), Cockpit (Original 2D / 3D: the F-16's 3D front cockpit, docs/cockpit.md "3D cockpit"), Extra sounds (Off / Modern IAF set, docs/sound.md §7), Real Betty (Off / Modern IAF voices, docs/real-betty.md §7; both "Not built" without Modern IAF's sound set), World scale (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard
     page's scrollbar beyond. DEFAULT resets every row except Language and Settings file.

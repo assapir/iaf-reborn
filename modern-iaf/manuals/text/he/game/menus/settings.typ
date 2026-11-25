@@ -130,12 +130,12 @@
 === עדכונים <settings-updates>
 
 #idx("עדכונים")
-#settings-table(("update_check",))
+#settings-table(("update_mode",))
 
 #grid-table(
   (auto, 1fr, auto),
   ([הגדרה], [ערכים], [ברירת מחדל]),
-  [#scr("update_check")], [#scr("off"), #scr("on")], [#scr("on")],
+  [#scr("update_mode")], [#scr("update_mode_ask"), #scr("update_mode_always"), #scr("update_mode_never")], [#scr("update_mode_ask")],
 )
 
 מה המשחק בודק בהפעלה, ומה עושה #strong(upd("update")), מתואר ב@setup-updates.

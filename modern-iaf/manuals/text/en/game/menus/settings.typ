@@ -130,12 +130,12 @@ What the language changes is in @language.
 === Updates <settings-updates>
 
 #idx("Updates")
-#settings-table(("update_check",))
+#settings-table(("update_mode",))
 
 #grid-table(
   (auto, 1fr, auto),
   ([Setting], [Values], [Default]),
-  [#scr("update_check")], [#scr("off"), #scr("on")], [#scr("on")],
+  [#scr("update_mode")], [#scr("update_mode_ask"), #scr("update_mode_always"), #scr("update_mode_never")], [#scr("update_mode_ask")],
 )
 
 What the game looks for on start, and what #strong(upd("update")) does, is in @setup-updates.

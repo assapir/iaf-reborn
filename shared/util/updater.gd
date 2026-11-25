@@ -1,12 +1,14 @@
-# The update on start (docs/release.md §7), both games: one line over the front end with Update / Later.
+# The update on start (docs/release.md §7), both games: a dialog over the front end with Update / Later and "Don't ask
+# me again"; a click outside it is Later.
 #   - A release bundle looks for a newer nightly of itself for this system (the release's nightly.json). Update
 #     downloads it with its progress, checks its size and SHA-256, unpacks it beside the game's folder and starts it
 #     from there; that copy swaps the folders once this one has quit, starts the game again and keeps the old version
 #     until the new one has started (else it puts the old one back). The logic is Rust's (iaf_setup::update).
 #   - Both games, in a bundle and in the checkout, look for setup steps to run again (their stamps no longer hold:
 #     iaf_setup::update::setup_stale). Update runs them in the setup wizard with its progress, then the front end.
-# Preferences' "Check for updates on start" (Settings.update_check) turns both off. Offline: no new version (the
-# setup line still shows), play on.
+# Preferences' Updates (Settings.update_mode): Ask (the dialog), Always download (no dialog: the update and the
+# steps run at once) or Never (no check). "Don't ask me again" stores the button pressed: Update → Always download,
+# Later → Never. Offline: no new version (the setup dialog still shows), play on.
 # Entry: Updater.start(tree) from each game's first screen; it returns true when this start is the update's own
 # (the swap) and the screen should show nothing else.
 extends CanvasLayer
@@ -41,9 +43,12 @@ var stale := []
 var state := ""
 var archive := ""
 var bar: PanelContainer
-## Over the screen while the update downloads and installs: the game waits for it.
+## Over the screen while the dialog shows: a click on it is Later (while asking, or after a failure); while the update
+## downloads and installs the game waits.
 var block: ColorRect
 var line: Label
+var dont_ask: CheckBox
+var dont_ask_note: Label
 var update_button: Button
 var later_button: Button
 var http: HTTPRequest
@@ -68,7 +73,7 @@ static func start(tree: SceneTree) -> bool:
 		IafSetup.update_finish(int(_arg(args, "--update-pid")), u.app)
 	if "--update-failed" in args:
 		u.state = "failed"
-	elif not Settings.update_check or OS.get_environment("IAF_DEFAULT_SETTINGS") == "1" or "--mission" in args:
+	elif Settings.update_mode == "never" or OS.get_environment("IAF_DEFAULT_SETTINGS") == "1" or "--mission" in args:
 		u.free()
 		return false
 	tree.root.add_child.call_deferred(u)
@@ -112,48 +117,90 @@ func _build() -> void:
 	block.color = Color(0, 0, 0, 0.5)
 	block.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	block.visible = false
+	block.gui_input.connect(_on_outside)
 	add_child(block)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	block.add_child(center)
 	bar = PanelContainer.new()
 	bar.name = "UpdateBar"
 	bar.visible = false
-	bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	bar.position.y = 12
 	if Settings.language == "he":
 		bar.layout_direction = Control.LAYOUT_DIRECTION_RTL
-	add_child(bar)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	bar.add_child(row)
+	center.add_child(bar)
+	var margin := MarginContainer.new()
+	for side in ["left", "right"]:
+		margin.add_theme_constant_override("margin_" + side, 48)
+	for side in ["top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 40)
+	bar.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 22)
+	margin.add_child(box)
 	line = Label.new()
 	line.name = "Line"
-	row.add_child(line)
-	update_button = Button.new()
-	update_button.name = "Update"
-	update_button.text = s("update")
-	update_button.pressed.connect(_on_update)
-	row.add_child(update_button)
+	line.theme_type_variation = "Row"
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(line)
+	dont_ask = CheckBox.new()
+	dont_ask.name = "DontAsk"
+	dont_ask.text = s("dont_ask")
+	box.add_child(dont_ask)
+	dont_ask_note = Label.new()
+	dont_ask_note.theme_type_variation = "Small"
+	dont_ask_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dont_ask_note.text = s("dont_ask_note")
+	box.add_child(dont_ask_note)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_END
+	row.add_theme_constant_override("separation", 20)
+	box.add_child(row)
 	later_button = Button.new()
 	later_button.name = "Later"
+	later_button.theme_type_variation = "Secondary"
 	later_button.text = s("later")
 	later_button.pressed.connect(_on_later)
 	row.add_child(later_button)
+	update_button = Button.new()
+	update_button.name = "Update"
+	update_button.theme_type_variation = "Primary"
+	update_button.text = s("update")
+	update_button.pressed.connect(_on_update)
+	row.add_child(update_button)
 
 
-## The line `text`; `ask`: with Update / Later (else Later alone, as Close).
+## The dialog with `text`; `ask`: with Update / Later and "Don't ask me again" (else Later alone, as Close).
 func _show(text: String, ask := true) -> void:
 	# The screen's normal text: its theme (Modern IAF), else the size its text has at this window's height.
 	var sc := get_tree().current_scene
 	if sc is Control and sc.theme != null:
 		bar.theme = sc.theme
+		bar.custom_minimum_size.x = 760
 	else:
-		var size := roundi(get_viewport().get_visible_rect().size.y / 1080.0 * 22.0)
-		for c in [line, update_button, later_button]:
-			c.add_theme_font_size_override("font_size", size)
+		var k := get_viewport().get_visible_rect().size.y / 1080.0
+		for c in [line, dont_ask, dont_ask_note, update_button, later_button]:
+			c.add_theme_font_size_override("font_size", roundi(22 * k))
+		bar.custom_minimum_size.x = 760 * k
 	line.text = text
 	update_button.visible = ask
+	dont_ask.visible = ask
+	dont_ask_note.visible = ask
 	later_button.text = s("later") if ask else s("close")
+	block.visible = true
 	bar.visible = true
+
+
+## A click outside the dialog: Later, while it asks or after a failure (never during the download and install).
+func _on_outside(e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.pressed and bar.visible and state in ["", "failed"]:
+		_on_later()
+
+
+## "Don't ask me again" ticked: the button pressed becomes Preferences' Updates.
+func _keep(mode: String) -> void:
+	if dont_ask.visible and dont_ask.button_pressed:
+		Settings.update_mode = mode
+		Settings.save()
 
 
 # --- the check ---
@@ -192,7 +239,9 @@ func _on_manifest(text: String) -> void:
 		offer = o
 		state = ""
 		# The version kept left to right inside a Hebrew line (isolated).
-		_show(s("new_version") % ["\u2066" + o.version + "\u2069", _mb(o.size)])
+		_show(s("new_version") % ["\u2066" + o.version + "\u2069", _mb(o.size)], Settings.update_mode == "ask")
+		if Settings.update_mode == "always":
+			download()
 		return
 	_check_setup()
 
@@ -220,6 +269,9 @@ func _on_stale(v) -> void:
 		text += " " + s("setup_download") % _mb(bytes)
 	elif unknown:
 		text += " " + s("setup_download_some")
+	if Settings.update_mode == "always":
+		_on_update()
+		return
 	_show(text)
 
 
@@ -232,19 +284,22 @@ func _mb(bytes: int) -> String:
 
 
 func _on_later() -> void:
+	_keep("never")
 	if http != null and is_instance_valid(http):
 		http.cancel_request()
 	if state in ["download", "verify", "unpack"]:
 		DirAccess.remove_absolute(archive)
-	if not offer.is_empty() and state in ["", "failed"]:
+	if not offer.is_empty() and state in ["", "failed"] and Settings.update_mode != "never":
 		offer = {}
 		bar.visible = false
+		block.visible = false
 		_check_setup()
 		return
 	queue_free()
 
 
 func _on_update() -> void:
+	_keep("always")
 	if offer.is_empty():
 		Settings.setup_update = true
 		get_tree().change_scene_to_file.call_deferred("res://setup/wizard.tscn")
@@ -271,6 +326,8 @@ func download() -> void:
 	state = "download"
 	block.visible = true
 	update_button.visible = false
+	dont_ask.visible = false
+	dont_ask_note.visible = false
 	later_button.text = s("cancel")
 	if not base.contains("://"):
 		var err := DirAccess.copy_absolute(base.path_join(offer.name), archive)
@@ -369,7 +426,6 @@ func _fail(text: String) -> void:
 	if archive != "":
 		DirAccess.remove_absolute(archive)
 	state = "failed"
-	block.visible = false
 	_show(text, false)
 
 
@@ -423,6 +479,5 @@ func _relaunch(exe: String, args: Array, to: String) -> void:
 ## The old version could not be put back into `to`: the line says where it is; this copy stays until Close.
 func _stuck(to: String) -> void:
 	state = "failed"
-	block.visible = false
 	var old := to.get_base_dir().path_join(".%s.old" % to.get_file())
 	_show(s("stuck") % ["\u2066" + old + "\u2069", "\u2066" + to + "\u2069"], false)

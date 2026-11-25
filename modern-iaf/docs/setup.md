@@ -235,9 +235,10 @@ and read only while one of the terrain's Sentinel-2 units is still to do: a buil
 ### After a change
 
 On each start, `./start-modern-iaf` and the downloaded game look for steps whose stamps no longer hold (a new
-version changed their code, or added a step) and offer to run them: one line with Update / Later and the size of any
+version changed their code, or added a step) and offer to run them: a dialog with Update / Later and the size of any
 new download. Update opens the wizard on Install, runs those steps with their progress and goes on to the Hangar
-([../../docs/release.md](../../docs/release.md) §7.2). Settings → Updates turns it off.
+([../../docs/release.md](../../docs/release.md) §7.2). Settings → Updates chooses Ask (the dialog), Always download
+(the steps run without asking) or Never.
 
 ## 4. Sizes and times
 

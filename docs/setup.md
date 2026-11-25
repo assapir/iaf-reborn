@@ -123,8 +123,9 @@ fills its pages from them; the CLI uses them when no ISO is given, plus the opti
 `--imagery sentinel2`, and only its steps and the steps that wait for them run.
 
 On each start the game itself looks for steps whose stamps no longer hold (a new version changed their code, or
-added a step) and offers to run them: a line with Update / Later, the size of any new download first; Update runs
-those steps in the wizard with its progress and goes on to the menu ([release.md](release.md) §7.2).
+added a step) and offers to run them: a dialog with Update / Later, the size of any new download first; Update runs
+those steps in the wizard with its progress and goes on to the menu ([release.md](release.md) §7.2). Extras →
+"Updates on start" chooses Ask (the dialog), Always download (the steps run without asking) or Never.
 
 ### A step's sources
 

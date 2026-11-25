@@ -222,7 +222,7 @@
 /// A name on the setup wizard (setup/strings), bold; and as plain text.
 #let stp(k) = strong(string-of(setup-strings, "setup", k))
 #let stp-text(k) = string-of(setup-strings, "setup", k)
-/// The update line over the front end (shared/util/update_strings), as plain text.
+/// The update dialog over the front end (shared/util/update_strings), as plain text.
 #let update-strings = json("/shared/util/update_strings_" + lang + ".json")
 #let upd(k) = {
   assert(k in update-strings, message: "shared/util/update_strings_" + lang + ".json has no \"" + k + "\"")

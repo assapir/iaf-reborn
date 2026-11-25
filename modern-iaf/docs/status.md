@@ -102,7 +102,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **Updates on start (2026-11-24, the user: "auto update on startup for released assests", "same for setup";
   [../../docs/release.md](../../docs/release.md) §7):** the bundle offers a newer nightly (download, size and SHA-256
   check, swap with the old version kept until the new one starts, rollback); the bundle and `./start-modern-iaf` offer
-  the setup steps whose stamps no longer hold and run them in the wizard. Settings → Updates.
+  the setup steps whose stamps no longer hold and run them in the wizard. A dialog asks (a click outside is Later;
+  Don't ask me again); Settings → Updates: Ask / Always download / Never (2026-11-25).
 - **The lead assigns targets (2026-11-23, the user, 22 Nov: "The leader (on our side) should assign targets to the
   other pair and to their wingman"; [ai-plan.md](ai-plan.md) F5; [../../docs/ai.md](../../docs/ai.md) §8.11):** with
   no order the wingmen keep their slots, call each new radar contact and fight only a jet that attacks them. Engage my

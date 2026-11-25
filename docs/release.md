@@ -210,25 +210,39 @@ IAF_ASSETS_DIR=<built data> tools/release/smoke.sh <bundle> --quit-after 3000 --
 
 ## 7. Updates on start
 
-On each start, both games look for two things and show one line at the top of the screen with **Update** and
-**Later** (en / he, `shared/util/update_strings_*.json`) when they find one. The user's request (24 November 2026):
-"we need to add auto update on startup for released assests", then "same for setup". Preferences' "Check for updates
-on start" (`Settings.update_check`, on by default; Modern IAF: Preferences → Updates, Jane's IAF reborn: Extras →
-"Updates on start") turns both off. Scripted runs (`IAF_DEFAULT_SETTINGS=1`) and `--mission` runs check nothing.
+On each start, both games look for two things and, when they find one, show a dialog in the middle of the screen
+with **Update**, **Later** and a **Don't ask me again** box (en / he, `shared/util/update_strings_*.json`). A click
+outside the dialog is Later. The user's requests: "we need to add auto update on startup for released assests", then
+"same for setup" (24 November 2026); "a pop-up, not like that? Clicking outside dismiss it, have don't ask me again
+option. In setting, add option to always download and never ask or download" (25 November 2026).
+
+The setting "Updates on start" (`Settings.update_mode`; Modern IAF: Settings → Updates, Jane's IAF reborn: Extras)
+has three choices:
+
+| Choice | On start |
+| --- | --- |
+| Ask (the default) | the dialog |
+| Always download | no question: a newer nightly downloads and installs at once (its progress shows in the dialog); setup's steps run in the wizard, whose Back goes on to the game after a failed run |
+| Never | no check |
+
+With **Don't ask me again** ticked, the button pressed becomes the setting: **Update** sets Always download,
+**Later** (or a click outside) sets Never. A line under the box says so. A settings file from before the three
+choices keeps its choice: the old switch's Off reads as Never. Scripted runs (`IAF_DEFAULT_SETTINGS=1`) and
+`--mission` runs check nothing.
 The logic is Rust's (`crates/iaf-setup/src/update.rs`, through `IafSetup`); `shared/util/updater.gd` shows it.
 Each game's first screen calls `Updater.start` (Modern IAF `menu/front_end.gd`, Jane's IAF reborn `menu/startup.gd`).
 
 ### 7.1 A newer nightly (a bundle only)
 
 1. The game reads the release's `nightly.json` (`<release>/nightly.json`, one HTTPS request with the User-Agent
-   `IAF-update` and an 8 s timeout). Offline, or without the file: no line, the game goes on. The checkout's
+   `IAF-update` and an 8 s timeout). Offline, or without the file: no dialog, the game goes on. The checkout's
    version is `dev` and checks no release.
 2. `update::pick` takes this game's download for this system from the manifest; `update::newer` compares its version
    with the game's own: a later base, then a later day; on the same base and day a different build (the nightly is
    the latest one). Never from or to a version that is not a nightly's. A second run of the workflow on the same day
    is newer by this rule; so is an older commit published again that day (a re-run of an old ref): the release then
    holds that build, and the game takes it, as the release is what the nightly is.
-3. **Update** first refuses, with one line, when the data folder is inside the game's folder (it would go with the
+3. **Update** first refuses, with one line in the dialog, when the data folder is inside the game's folder (it would go with the
    old version), and removes an earlier update's leftovers beside the game's folder (`update::cleanup`). It then
    downloads it into the per-user folder's `updates/` (`Settings.data_home()`), with the percentage on the
    line, while a shade over the screen holds the game. `update::verify` checks its size and SHA-256 against the
@@ -272,7 +286,7 @@ the patch, the Hebrew packs) keeps its stamp's line while its size is the one li
 image; a file that moved or changed size is read, and its step then shows when it would run again. Steps that keep
 no stamp of their own decide for themselves (imagery, the scenery's
 fetch, the guides) and are left out, as is the launcher in a bundle. Before the first setup it finds nothing (the
-game opens the wizard anyway). The line gives the number of steps and, when one of them would download a source that
+game opens the wizard anyway). The dialog gives the number of steps and, when one of them would download a source that
 is not on the disk yet, its size (Modern IAF's scenery and textures from their pinned sizes, the terrain's tiles as
 "new data", the remake's F-15 sources). **Update** opens the setup wizard on its Install page and starts the run at
 once (`Settings.setup_update`); a finished run goes on to the front end, a failed one stays on the page with its log.
@@ -284,7 +298,8 @@ Nothing on the disk is downloaded again: the steps' sources stay under `assets/s
   (refused over an old folder), rollback and cleanup, a process waited for and one started in another folder, a
   Linux bundle unpacked.
 - `modern-iaf/tests/test_update.gd` (headless, offline): an older nightly against a local release folder finds the
-  newer one, downloads, checks and unpacks it beside a scratch game folder, and the swap puts it in place; a wrong
+  newer one, downloads, checks and unpacks it beside a scratch game folder, and the swap puts it in place; Always
+  download does it without the dialog; a click outside the dialog is Later, and with Don't ask me again it sets Never; a wrong
   SHA-256 is refused; with no newer one, setup's check on a scratch data folder shows its steps.
 - End to end, by hand: two runs of the workflow into the `nightly-test` channel (§4), the older build's bundle
   started with `IAF_UPDATE_URL=https://github.com/assapir/iaf-reborn/releases/download/nightly-test` and a scratch

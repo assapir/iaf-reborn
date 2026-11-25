@@ -1,11 +1,12 @@
 # Dev helper (not run by tools/test.sh): real-render pictures of the update on start (docs/release.md §7) in either
 # game, English and Hebrew, at 1920x1080, into SHOT_DIR: update_line_<lang> (a newer nightly offered, from a local
 # fake release), setup_line_<lang> (setup steps to run again), prefs_<lang> (Modern IAF's Settings → Updates; the
-# remake's Extras row: _prefs_shot.gd PREF_PAGE=Extras PREF_ROW=update_check), wizard_<lang> (Update: the wizard runs
+# remake's Extras row: _prefs_shot.gd PREF_PAGE=Extras PREF_ROW=update_mode), wizard_<lang> (Update: the wizard runs
 # the stale steps), back_<lang> (the front end after the run). IAF_ASSETS_DIR must be a scratch copy of the data: the
 # wizard writes into it (WIZARD_CANCEL=1: cancelled after its picture; IAF_LAUNCHER_ROOT=<scratch folder> keeps a
-# launcher step off the desktop). WIZARD_STAMP=<stamp under it, e.g. converted/terrain/theatre.stamp> is removed
-# before each language, so its step runs. UPDATE_LIST=1 only prints the stale steps.
+# launcher step off the desktop; UPDATE_NO_WIZARD=1 skips the wizard). WIZARD_STAMP=<stamp under it, e.g.
+# converted/terrain/theatre.stamp> is removed before each language, so its step runs. UPDATE_LIST=1 only prints the
+# stale steps; UPDATE_FAKE_STALE=1 shows two made-up steps when the data has none.
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 IAF_ASSETS_DIR=<scratch> SHOT_DIR=<dir> -- --resolution 1920x1080 \
 #     --log-file <log> --path modern-iaf -s ../tests/godot/_update_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -67,6 +68,13 @@ func run() -> void:
 		await shot("update_line_" + lang)
 		u.queue_free()
 		u = await line(entry.version, release)
+		if not is_instance_valid(u) and OS.get_environment("UPDATE_FAKE_STALE") == "1":
+			# Data with nothing to run again: the dialog of two steps, one of them a 120 MB download.
+			u = updater.new()
+			u.state = "swap"
+			root.add_child(u)
+			await frames(2)
+			u._on_stale([{"download": 0}, {"download": 120000000}])
 		if is_instance_valid(u):
 			await shot("setup_line_" + lang)
 			u.queue_free()
@@ -76,7 +84,9 @@ func run() -> void:
 			await shot("prefs_" + lang)
 		fe.queue_free()
 		await frames(2)
-	# Update on the setup line: the wizard runs the stale steps, then the front end.
+	if OS.get_environment("UPDATE_NO_WIZARD") == "1":
+		return
+	# Update on the setup dialog: the wizard runs the stale steps, then the front end.
 	for lang in ["en", "he"]:
 		settings().language = lang
 		_drop_stamp()

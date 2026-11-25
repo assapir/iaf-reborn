@@ -172,6 +172,10 @@ func _on_back() -> void:
 		setup.cancel()
 		_note(s("cancelling"))
 		return
+	# The front end's Update (or Updates' Always download) that failed or was cancelled: Back goes on to the game.
+	if then_front:
+		get_tree().change_scene_to_file.call_deferred(Settings.front_end_scene())
+		return
 	# Leaving Install forgets the last run: changed choices can be installed.
 	if at() == "install":
 		finished = false

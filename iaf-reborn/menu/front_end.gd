@@ -273,7 +273,7 @@ const EXTRAS := [
 	# Ours: the CD's autorun launcher before the main menu (menu/startup.gd, docs/front-end.md §18).
 	["cd_launcher", "CD launcher", [["Off", false], ["On", true]]],
 	# Ours: a newer nightly and setup steps to run again, looked for on start (shared/util/updater.gd, release.md §7).
-	["update_check", "Updates on start", [["On", true], ["Off", false]]],
+	["update_mode", "Updates on start", [["Ask", "ask"], ["Always download", "always"], ["Never", "never"]]],
 	# Ours: the wheel / trackpad scroll direction (Settings.wheel_steps; the original has no wheel).
 	["wheel_scroll", "Mouse wheel", [["Regular", "regular"], ["Natural", "natural"]]],
 	# Ours: the cockpit improvements (Settings.BETTER_COCKPIT: the turning compass / HSI, the engine, fuel and clock

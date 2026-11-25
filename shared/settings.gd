@@ -134,7 +134,7 @@ const PREFS := {
 		"shadow_reach",
 		"town_labels",
 		"cd_launcher",
-		"update_check",
+		"update_mode",
 		"wheel_scroll",
 		"better_cockpit",
 		"better_mc",
@@ -341,9 +341,10 @@ var shadow_reach := "original"
 ## Town labels (ours, Extras page; docs/scenery.md §3.5, terrain/town_labels.gd): the towns' names over the view at
 ## their places. Needs the places setup's scenery step writes.
 var town_labels := false
-## Check for updates on start (ours; Modern IAF's Preferences, the Extras page; docs/release.md §7): a release
+## Updates on start (ours; Modern IAF's Preferences → Updates, the Extras page; docs/release.md §7): a release
 ## bundle looks for a newer nightly, and both games, in a bundle and in the checkout, for setup steps to run again.
-var update_check := true
+## "ask" (a dialog with Update / Later), "always" (downloads and runs them without asking) or "never" (no check).
+var update_mode := "ask"
 ## Set by the front end's Update for a setup that changed (shared/util/updater.gd): the wizard runs at once.
 var setup_update := false
 ## CD launcher (ours, Extras page; docs/front-end.md §18.1): the CD's autorun poster (Jauto.exe) before the main menu.
@@ -751,6 +752,11 @@ func read_config(cfg: ConfigFile) -> void:
 				key_bindings[int(k.substr(1))] = [
 					null if v[0] == null else int(v[0]), null if v[1] == null else int(v[1])
 				]
+	# The earlier on / off switch: Off is Never.
+	if cfg.get_value("graphics", "update_check", true) == false and not cfg.has_section_key("graphics", "update_mode"):
+		update_mode = "never"
+	if update_mode not in ["ask", "always", "never"]:
+		update_mode = "ask"
 	# Ground textures and Model detail only with setup's download (docs/rendering.md §1.4, §9): a saved "ambientcg"
 	# without it is Original.
 	if ground_textures == "ambientcg" and not load("res://shared/terrain/ground_textures.gd").available():
