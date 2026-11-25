@@ -17,8 +17,8 @@ HERO = {
     ],
     "asof_en": "Real renders from the sim, November 2026.",
     "asof_he": "צילומי מסך אמיתיים מהסימולטור, נובמבר 2026.",
-    "fig": ("sufa_armed", "The F-16I Sufa armed with Mk 84 bombs and AIM-120 and AIM-9 missiles, over the Negev.",
-            "סופה חמושה בפצצות MK-84, בטילי אמראם (AIM-120) ובטילי סיידוויינדר (AIM-9), מעל הנגב.", "wide"),
+    "fig": ("sufa_armed", "The F-16I Sufa armed with GBU-31 JDAM bombs and AIM-120 and AIM-9 missiles, over the Negev.",
+            "סופה חמושה בפצצות JDAM (GBU-31), בטילי אמראם (AIM-120) ובטילי סיידוויינדר (AIM-9), מעל הנגב.", "wide"),
 }
 
 SECTIONS = [
