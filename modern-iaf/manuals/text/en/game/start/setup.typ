@@ -81,15 +81,16 @@ The wizard has four pages. #stp("next") goes to the next page and #stp("back") t
   [#stp("survey")], [The same, with the Survey of Israel's aerial photo at 2 m a pixel over Israel. About 3.57 GB of terrain on the disk, and a build of about 1 hour 42 minutes.],
 )
 
-The second choice needs the Survey of Israel 2015 sheet files (79 ZIP files from data.gov.il, 17 GB) in the folder that the page names. The wizard does not download them. Without them the page says so and keeps #stp("s2").
+Under the second choice, pick the photo's area: #stp("survey_all") (79 sheet files from data.gov.il, 17 GB) or #stp("survey_bases") (the 10 sheets around the air bases, 2.4 GB). Setup downloads the Survey of Israel 2015 sheet files that are not on the disk yet and keeps them. When some are there already, the page counts them and names their folder. The download is faster with data.gov.il's pass from Firefox: before #stp("install"), select #stp("survey_copy"), paste the link into Firefox's address bar and cancel the download. Without the pass, setup opens the sheets in the web browser a few at a time; let them finish.
 
 === The steps <setup-steps>
 
-#idx("Setup steps")The #stp("page_install") page lists eight steps. Six are required: the game cannot start or fly a mission without them. Two are optional and are on by default.
+#idx("Setup steps")The #stp("page_install") page lists eight steps. Six are required: the game cannot start or fly a mission without them. Two are optional and are on by default. With the Survey of Israel photo, a ninth required step comes first.
 
 #grid-table(
   (1.1fr, 1.5fr, 1.5fr),
   ([Step], [What it builds], [What it downloads, its size and time]),
+  [#stp("step_mapi2015-fetch")], [The Survey of Israel's sheet files, with the Survey of Israel photo only. Required. It runs before the other steps.], [The sheets that are not on the disk yet, up to 17 GB. Under its name the row shows the download, or #stp("dl_none") when the sheets are on the disk.],
   [#stp("step_sim-terrain")], [The ground: its heights and its imagery. Required.], [The Copernicus GLO-30 heights (627 MB) and the Sentinel-2 imagery (11.4 GB), once. About 17 minutes the first time, the download included; about 1 hour 42 minutes with the Survey of Israel photo. Under its name the row says #stp("dl_none") when every file is on the disk already.],
   [#stp("step_sim-db")], [The aircraft, the ground units and the weapons. Required.], [Nothing. Seconds.],
   [#stp("step_sim-fm")], [The jets' flight models. Required.], [Nothing. Seconds.],

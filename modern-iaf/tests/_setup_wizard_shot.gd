@@ -47,7 +47,7 @@ func run() -> void:
 func _install_states(w: Control, dir: String, lang: String) -> void:
 	var id := "sim-scenery"
 	var steps := []
-	for st in IafSetup.sim_plan(w.survey):
+	for st in IafSetup.sim_plan(w.survey_id()):
 		var skip: bool = st.id == id
 		steps.append(
 			{
@@ -65,7 +65,7 @@ func _install_states(w: Control, dir: String, lang: String) -> void:
 	check(get_root().get_texture().get_image().save_png(path) == OK, "saved " + path)
 	w.finished = false
 	w.last_steps = []
-	w._fill_rows(IafSetup.sim_plan(w.survey))
+	w._fill_rows(IafSetup.sim_plan(w.survey_id()))
 	w._note("")
 	w.optional[id] = w.optional.get(id, {"download": 1.2e9, "sources": 1.9e9, "shared": false}).merged(
 		{"built": true, "disk": 1.2e9, "shared": false, "sources": 1.9e9}, true

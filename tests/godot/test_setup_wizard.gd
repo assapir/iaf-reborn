@@ -24,6 +24,14 @@ func run() -> void:
 		return
 	check(get_root().title == "Jane's IAF (reborn) — Setup", "the window title")
 	check(w.PAGES[w.page] == "Welcome", "Welcome first")
+	# The Survey choice (shared/util/setup_wizard.gd _survey_controls): two scopes and the sheet link; the scope picks
+	# the imagery id.
+	check(w.mapi_scope.item_count == 2 and w.find_child("CopySheetLink", true, false) != null, "the Survey's controls")
+	w.mapi_scope.select(1)
+	w.mapi_check.button_pressed = not w.mapi_check.disabled
+	check(w.mapi_check.disabled or w.inputs().imagery == ["mapi2015-bases"], "around the airbases: mapi2015-bases")
+	w.mapi_check.button_pressed = false
+	w.mapi_scope.select(0)
 	w._on_next()
 	check(
 		w.PAGES[w.page] == "Requirements" and not w.next_button.disabled, "then Requirements, nothing required missing"

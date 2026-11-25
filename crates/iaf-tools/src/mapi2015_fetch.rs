@@ -16,28 +16,37 @@ use crate::progress::{Progress, check, duration};
 
 /// Every sheet: its Hebrew name, then its download link.
 const SHEETS: &str = include_str!("../../../tools/imagery/mapi2015_sheets.tsv");
-/// The sheets around the airbases (Ramat David, Tel Nof, Ramon; ~2 GB).
-const BASES: [&str; 9] = ["shf", "nzr", "nzl", "gdr", "rng", "rsh", "mzr", "hrd", "hlz"];
+/// The sheets around the 1998 game's airbases (Ramat David, Tel Nof, Ramon; ~2 GB).
+pub const BASES: &[&str] = &["shf", "nzr", "nzl", "gdr", "rng", "rsh", "mzr", "hrd", "hlz"];
+/// The sheets within 3 km of Modern IAF's airbases' reference points (modern-iaf/data/airbases: Ramat David, Tel Nof,
+/// Hatzerim, Nevatim, Ramon; ~2.4 GB).
+pub const SIM_BASES: &[&str] = &["nzr", "gdr", "rsh", "bsv", "zlm", "tmt", "hmr", "mzr", "sdb", "svt"];
 /// The browser curl presents itself as.
 const UA: &str = "Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0";
 /// Links opened in the browser at once.
 const BATCH: usize = 4;
 
-/// The sheets still missing from `dest` (only those around the airbases with `bases`): (name, file, link).
-fn todo(dest: &Path, bases: bool) -> Vec<(&'static str, &'static str, &'static str)> {
+/// The sheets still missing from `dest` (only those named in `only`, by file stem, unless it is empty): (name, file,
+/// link).
+fn todo(dest: &Path, only: &[&str]) -> Vec<(&'static str, &'static str, &'static str)> {
     SHEETS
         .lines()
         .filter_map(|l| l.split_once('\t'))
         .map(|(name, url)| (name, url.rsplit('/').next().unwrap_or(url), url))
-        .filter(|(_, f, _)| !bases || BASES.iter().any(|b| f.strip_suffix(".zip") == Some(b)))
+        .filter(|(_, f, _)| only.is_empty() || only.iter().any(|b| f.strip_suffix(".zip") == Some(b)))
         .filter(|(_, f, _)| std::fs::metadata(dest.join(f)).map_or(true, |m| m.len() == 0))
         .collect()
 }
 
-/// Downloads the missing sheets into `dest` (module doc).
-pub fn fetch(dest: &Path, bases: bool, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+/// How many of the sheets in `only` (all when empty) are still missing from `dest`.
+pub fn missing(dest: &Path, only: &[&str]) -> usize {
+    todo(dest, only).len()
+}
+
+/// Downloads the missing sheets in `only` (all when empty) into `dest` (module doc).
+pub fn fetch(dest: &Path, only: &[&str], pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     std::fs::create_dir_all(dest)?;
-    let todo = todo(dest, bases);
+    let todo = todo(dest, only);
     if todo.is_empty() {
         pr.log(&format!("all sheets present in {}", dest.display()));
         return Ok(());
@@ -284,10 +293,13 @@ mod tests {
     fn sheet_list() {
         let dir = std::env::temp_dir().join(format!("iaf-mapi-fetch-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        assert_eq!(todo(&dir, false).len(), 79);
-        assert_eq!(todo(&dir, true).len(), BASES.len());
+        assert_eq!(todo(&dir, &[]).len(), 79);
+        assert_eq!(todo(&dir, BASES).len(), BASES.len());
+        // Every named sheet is in the list.
+        assert_eq!(missing(&dir, SIM_BASES), SIM_BASES.len());
         std::fs::write(dir.join("shf.zip"), b"x").unwrap();
-        assert_eq!(todo(&dir, true).len(), BASES.len() - 1);
+        assert_eq!(todo(&dir, BASES).len(), BASES.len() - 1);
+        assert_eq!(missing(&dir, SIM_BASES), SIM_BASES.len());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

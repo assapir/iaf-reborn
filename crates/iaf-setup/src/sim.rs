@@ -14,9 +14,12 @@ use crate::{Events, Outcome, Redo, State, Step, stamp};
 /// What the player chooses for the sim.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SimInputs {
-    /// The Survey of Israel 2 m photo over Israel, from the sheet ZIPs already in `assets/source/imagery/mapi2015`
-    /// (else Sentinel-2 everywhere).
+    /// The Survey of Israel 2 m photo over Israel, from the sheet ZIPs in `assets/source/imagery/mapi2015` (else
+    /// Sentinel-2 everywhere).
     pub survey: bool,
+    /// The sheets the run downloads first (step `mapi2015-fetch`, only the missing ones): `Some(&[])` all of Israel,
+    /// `Some(SIM_BASES)` around the airbases; `None` only the sheets already on disk.
+    pub survey_fetch: Option<&'static [&'static str]>,
     /// The optional steps, each included (the default) or left out: neither downloaded nor built.
     pub scenery: bool,
     pub textures: bool,
@@ -24,11 +27,27 @@ pub struct SimInputs {
 
 impl Default for SimInputs {
     fn default() -> Self {
-        SimInputs { survey: false, scenery: true, textures: true }
+        SimInputs { survey: false, survey_fetch: None, scenery: true, textures: true }
     }
 }
 
 impl SimInputs {
+    /// These inputs with the wizard's imagery choice by its id (the original game's `setup.json` ids): "mapi2015" the
+    /// Survey over all of Israel, "mapi2015-bases" around the airbases, anything else Sentinel-2 alone.
+    pub fn with_survey(self, id: &str) -> Self {
+        let fetch = match id {
+            "mapi2015" => Some(&[][..]),
+            "mapi2015-bases" => Some(iaf_tools::mapi2015_fetch::SIM_BASES),
+            _ => None,
+        };
+        SimInputs { survey: fetch.is_some(), survey_fetch: fetch, ..self }
+    }
+
+    /// The Survey sheets the choice still lacks on disk (0 without a Survey download).
+    pub fn survey_missing(&self, assets: &Path) -> usize {
+        self.survey_fetch.map_or(0, |only| iaf_tools::mapi2015_fetch::missing(&survey_dir(assets), only))
+    }
+
     /// These inputs with the optional steps `ids` left out (the wizard's unticked rows; unknown ids ignored).
     pub fn without(self, ids: &[&str]) -> Self {
         SimInputs { scenery: !ids.contains(&"sim-scenery"), textures: !ids.contains(&"sim-textures"), ..self }
@@ -229,6 +248,10 @@ pub fn survey_sheets(assets: &Path) -> usize {
 pub fn sim_plan(inputs: &SimInputs) -> Vec<Step> {
     let mut v = Vec::new();
     let mut add = |id, title, after: &[&'static str]| v.push(Step { id, title, required: true, after: after.to_vec() });
+    // The Survey's missing sheets, before every other step (`sim_run`).
+    if inputs.survey_fetch.is_some() {
+        add(SURVEY_FETCH, "imagery: Survey of Israel 2015 2 m sheets (data.gov.il)", &[]);
+    }
     add(
         "sim-terrain",
         if inputs.survey {
@@ -271,7 +294,12 @@ fn move_old_converted(ctx: &SimCtx) {
     }
 }
 
-/// Runs the sim's `steps` (from [`sim_plan`]) as [`crate::run`] does the original's.
+/// The step that downloads the Survey's missing sheets (the original game's step of the same id).
+pub const SURVEY_FETCH: &str = "mapi2015-fetch";
+
+/// Runs the sim's `steps` (from [`sim_plan`]) as [`crate::run`] does the original's. The Survey's sheets download
+/// before every other step: the terrain's stamp lists the sheets on disk, and an `after` line on the terrain would
+/// change the stamp of every theatre already built from sheets on disk (a rebuild of over an hour).
 pub fn sim_run(
     steps: &[Step],
     ctx: &SimCtx,
@@ -282,7 +310,11 @@ pub fn sim_run(
     move_old_converted(ctx);
     sim_adopt(steps, ctx);
     let exec = |s: &Step, pr: &dyn Progress| exec(s, ctx, redo(s.id), pr, cancel);
-    crate::run_graph(steps, redo, events, cancel, &|s| stamp::sim_of(s, ctx), &exec)
+    let stamp = |s: &Step| stamp::sim_of(s, ctx);
+    let (first, rest): (Vec<Step>, Vec<Step>) = steps.iter().cloned().partition(|s| s.id == SURVEY_FETCH);
+    let mut states = crate::run_graph(&first, redo, events, cancel, &stamp, &exec);
+    states.extend(crate::run_graph(&rest, redo, events, cancel, &stamp, &exec));
+    states
 }
 
 /// Stamps the steps whose outputs were built without a stamp and are current (`crate::adopt_with`), so the wizard
@@ -340,7 +372,18 @@ fn newest(p: &Path) -> Option<std::time::SystemTime> {
 pub fn sim_preview(steps: &[Step], ctx: &SimCtx) -> Vec<(&'static str, bool)> {
     move_old_converted(ctx);
     sim_adopt(steps, ctx);
-    crate::preview_with(steps, &|s| stamp::sim_of(s, ctx))
+    // The Survey's download keeps no stamp: up to date with the scope's sheets on disk; while some are missing the
+    // terrain runs too (its stamp lists the sheets it was built from).
+    let missing = ctx.inputs.survey_missing(&ctx.assets) > 0;
+    let mut v = crate::preview_with(steps, &|s| stamp::sim_of(s, ctx));
+    for (id, up) in &mut v {
+        match *id {
+            SURVEY_FETCH => *up = !missing,
+            "sim-terrain" => *up = *up && !missing,
+            _ => {}
+        }
+    }
+    v
 }
 
 /// Each step's expected seconds for a run of `steps` (the wizard's "all steps" time left): 0 when up to date and not
@@ -379,6 +422,13 @@ fn exec(step: &Step, ctx: &SimCtx, redo: bool, pr: &dyn Progress, cancel: &Atomi
         "sim-fm" => sim_fm0::fm(assets, pr)?,
         "sim-scenery" => return scenery(&data, assets, pr, cancel),
         "sim-textures" => return crate::steps::textures_into(assets, pr, cancel),
+        SURVEY_FETCH => {
+            if ctx.inputs.survey_missing(assets) == 0 {
+                return Ok(Outcome::UpToDate);
+            }
+            let only = ctx.inputs.survey_fetch.unwrap_or_default();
+            iaf_tools::mapi2015_fetch::fetch(&survey_dir(assets), only, pr, cancel)?
+        }
         id => anyhow::bail!("unknown step {id}"),
     }
     Ok(Outcome::Done)
@@ -444,6 +494,36 @@ mod tests {
         assert!(!p.iter().find(|s| s.id == "sim-scenery").unwrap().required);
         assert!(!p.iter().find(|s| s.id == "sim-textures").unwrap().required);
         assert!(sim_plan(&SimInputs { survey: true, ..Default::default() })[0].title.contains("Survey"));
+    }
+
+    /// The Survey choice downloads first, only the sheets of its scope still missing: with them on disk the step is
+    /// up to date without the network; the terrain keeps no `after` line for it (its stamp stays as built).
+    #[test]
+    fn the_survey_choice_fetches_only_missing_sheets() {
+        use iaf_tools::mapi2015_fetch::SIM_BASES;
+        assert!(sim_plan(&SimInputs::default()).iter().all(|s| s.id != SURVEY_FETCH));
+        let bases = SimInputs::default().with_survey("mapi2015-bases");
+        assert!(bases.survey && !SimInputs::default().with_survey("").survey);
+        let p = sim_plan(&bases);
+        assert!(p[0].id == SURVEY_FETCH && p[0].required);
+        assert!(p.iter().all(|s| !s.after.contains(&SURVEY_FETCH)));
+        let dir = std::env::temp_dir().join(format!("iaf-sim-survey-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(bases.survey_missing(&dir), SIM_BASES.len());
+        std::fs::create_dir_all(survey_dir(&dir)).unwrap();
+        for s in SIM_BASES {
+            std::fs::write(survey_dir(&dir).join(format!("{s}.zip")), "z").unwrap();
+        }
+        assert_eq!(bases.survey_missing(&dir), 0);
+        assert_eq!(SimInputs::default().with_survey("mapi2015").survey_missing(&dir), 79 - SIM_BASES.len());
+        let ctx = SimCtx { assets: dir.clone(), repo: dir.clone(), inputs: bases };
+        let pr = iaf_tools::progress::Stdout;
+        assert!(matches!(exec(&p[0], &ctx, false, &pr, &AtomicBool::new(false)), Ok(Outcome::UpToDate)));
+        let up = |c: &SimCtx| sim_preview(&p, c).into_iter().find(|x| x.0 == SURVEY_FETCH).unwrap().1;
+        assert!(up(&ctx), "the scope's sheets on disk: the download is up to date");
+        let all = SimCtx { inputs: SimInputs::default().with_survey("mapi2015"), ..ctx };
+        assert!(!up(&all), "sheets missing: it will run");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// A scenery built with sources missing is not stamped (skipped, its reason naming them); a full one is.

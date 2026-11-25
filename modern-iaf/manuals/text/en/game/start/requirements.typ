@@ -32,8 +32,8 @@ On Windows, Rust also needs the C++ workload of Microsoft's Visual Studio Build 
 #grid-table(
   (auto, 1fr, 1fr),
   ([], [#stp("s2")], [With the Survey of Israel photo]),
-  [Download, once], [Terrain heights: 627 MB. Satellite imagery: 11.4 GB.], [The same. The Survey of Israel's 79 sheets (17 GB) must be on the disk already (@setup-imagery).],
-  [Disk use in all], [About 12.5 GB], [About 15.6 GB, and the sheets' 17 GB],
+  [Download, once], [Terrain heights: 627 MB. Satellite imagery: 11.4 GB.], [The same, and the Survey of Israel's sheets not on the disk yet: 17 GB for all of Israel, 2.4 GB around the air bases (@setup-imagery).],
+  [Disk use in all], [About 12.5 GB], [About 15.6 GB, and the sheets: up to 17 GB],
   [Time of the first setup], [About 17 minutes, of which the download is about 14 minutes at 14 MB a second], [About 1 hour 42 minutes],
 )
 

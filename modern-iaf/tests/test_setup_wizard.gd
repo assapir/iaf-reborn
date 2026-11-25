@@ -1,7 +1,8 @@
 # Modern IAF's setup wizard (modern-iaf/setup/wizard.gd, modern-iaf/docs/setup.md) on an empty scratch assets folder:
 #   IAF_ASSETS_DIR=<empty dir> IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_setup_wizard.gd --log-file <temp>
-# The four pages in order, in English and in Hebrew (mirrored); the Survey choice off without sheets; the
+# The four pages in order, in English and in Hebrew (mirrored); the Survey choice off without sheets, free with its
+# two scopes, its download step first with the missing sheets' size, none with them on disk (fake sheets); the
 # Attributions dialog from Welcome (opens, mirrored, the exact Copernicus lines, closes with Esc and with Close); the
 # Install page's rows from the sim's plan and their preview; no other game named on any page; abandoned preview
 # checks are fetched; a finished run survives a language change, and Back from Install forgets it; the time left's two
@@ -114,10 +115,11 @@ func run() -> void:
 	check((w.theme.default_font as FontVariation).base_font.get_font_name() == "Heebo", "the Heebo font is loaded")
 	w.show_page(1)
 	check(
-		w.sheets == 0 and w.survey_check.disabled and not w.survey,
-		"no Survey sheets: the Survey choice is off, with what it needs"
+		w.sheets == 0 and not w.survey_check.disabled and not w.survey,
+		"no Survey sheets: the Survey choice is free and off"
 	)
 	check(w.s2_check.button_pressed, "Sentinel-2 everywhere is chosen")
+	await _survey(w, assets)
 	w._on_back()
 	check(w.page == 0, "Back goes to Welcome")
 	w.show_page(2)
@@ -153,7 +155,7 @@ func run() -> void:
 	# A finished run (as IafSetup.poll ends one), then the language changes: Install and Done still show it.
 	w.finished = true
 	w.failed = ""
-	w.last_steps = IafSetup.sim_plan(false).map(
+	w.last_steps = IafSetup.sim_plan("").map(
 		func(st): return {"id": st.id, "title": st.title, "state": "done", "fraction": 1.0}
 	)
 	w._show_result()
@@ -165,7 +167,7 @@ func run() -> void:
 	check(w.done_label.text == "Modern IAF is set up.", "Done says so")
 	# A skipped optional step: its reason and Retry under it, the note counts it; a ticked Run again brings Install.
 	var why := "GDAL is needed (gdalwarp, ogr2ogr)"
-	w.last_steps = IafSetup.sim_plan(false).map(
+	w.last_steps = IafSetup.sim_plan("").map(
 		func(st):
 			var sk: bool = st.id == "sim-scenery"
 			return {
@@ -235,6 +237,52 @@ func run() -> void:
 		current_scene != null and current_scene.scene_file_path == get_root().get_node("Settings").front_end_scene(),
 		"Start opens the front end"
 	)
+
+
+## The Survey choice (the remake's: shared/util/setup_wizard.gd _survey_controls): two scopes, the pass guidance and
+## the sheet link; chosen, its download step comes first on Install with the missing sheets' size, and with the scope's
+## sheets on disk (fake, removed after) nothing to download. Back on Sentinel-2 the step goes. Nothing runs.
+func _survey(w: Control, assets: String) -> void:
+	var scope: OptionButton = w.survey_scope
+	check(
+		scope.item_count == 2 and scope.get_item_text(1) == w.s("survey_bases") and scope.selected == 0,
+		"the Survey's two scopes, all of Israel first"
+	)
+	check(w.find_child("CopySheetLink", true, false) != null, "the Survey's sheet link")
+	w.survey_check.button_pressed = true
+	scope.select(1)
+	scope.item_selected.emit(1)
+	check(w.survey and w.survey_id() == "mapi2015-bases", "the Survey around the airbases is chosen")
+	var free: float = w.free_gb(assets)
+	check(
+		w.space_ok == (free < 0 or free >= w.need_gb()) and w.space_note.visible != w.space_ok,
+		"the Imagery page checks the free space for the choice (%.1f GB free, %.1f needed)" % [free, w.need_gb()]
+	)
+	w.space_ok = false
+	w._update()
+	check(w.next_button.disabled, "Next waits while the choice does not fit")
+	w._on_choice()
+	w.show_page(2)
+	check(w.rows.keys()[0] == "mapi2015-fetch", "the Survey's download step comes first")
+	var sizes: Label = w.rows["mapi2015-fetch"].sizes
+	check(sizes.visible and sizes.text == w.s("dl") % w._gb(10 * w.SURVEY_ALL_GB / 79), "its download: %s" % sizes.text)
+	var dir := assets.path_join("source/imagery/mapi2015")
+	DirAccess.make_dir_recursive_absolute(dir)
+	for n in ["nzr", "gdr", "rsh", "bsv", "zlm", "tmt", "hmr", "mzr", "sdb", "svt"]:
+		FileAccess.open(dir.path_join(n + ".zip"), FileAccess.WRITE).store_string("z")
+	check(IafSetup.survey_missing(assets, "mapi2015") == 69, "all of Israel: only the missing sheets")
+	w._show_sizes("mapi2015-fetch")
+	check(sizes.text == w.s("dl_none"), "the scope's sheets on disk: nothing to download")
+	for n in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(n))
+	var t := Time.get_ticks_msec()
+	while not w.jobs.is_empty() and Time.get_ticks_msec() - t < 30000:
+		await process_frame
+	w.show_page(1)
+	w.s2_check.button_pressed = true
+	scope.select(0)
+	scope.item_selected.emit(0)
+	check(not w.survey and w.survey_id() == "", "back on Sentinel-2 everywhere")
 
 
 ## The Include ticks: a required row has none (an empty slot keeps the names in line), optional ones are on by default

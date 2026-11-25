@@ -51,10 +51,23 @@ large screen by its UI scale (the containers stretch; nothing has a fixed page s
 1. **Welcome**: the language; what setup downloads and builds; the download, the disk use and the time (§4); the
    requirements; the **Attributions** button ("קרדיטים ורישיונות").
 2. **Imagery**: Sentinel-2 everywhere, or Sentinel-2 plus the Survey of Israel 2 m photo over Israel, each with its
-   disk use and time. The Survey choice needs the 79 sheet ZIPs (data.gov.il, 17 GB) in
-   `assets/source/imagery/mapi2015/`; without them the page says so and keeps Sentinel-2.
-3. **Install**: one row per step with its progress bar and state. Before a run the rows say which steps are up to
-   date (a background check); during a run the page shows two estimates (see "Time left" below). Back becomes Cancel: the running steps
+   disk use and time. The Survey choice is the original game's (its Extras page,
+   [docs/setup.md](../../docs/setup.md) "The wizard"; both wizards build it with `_survey_controls` in
+   `shared/util/setup_wizard.gd`): the scope, all of Israel (79 sheets, about 17 GB of downloads) or around the
+   airbases (the 10 sheets within 3 km of the sim's five bases,
+   `iaf_tools::mapi2015_fetch::SIM_BASES`, about 2.4 GB); under it how to give setup Firefox's data.gov.il pass
+   before Install, and "Copy a sheet's link" ([docs/imagery.md](../../docs/imagery.md) §8). The sheets are kept in
+   the data folder's `source/imagery/mapi2015/`; the page names that folder and the count when some are there
+   already. It starts on the Survey when sheets are there: around the airbases when fewer than all 79 are, else all
+   of Israel; without sheets on Sentinel-2. When the choice does not fit the free space (with the Survey's sheets
+   still to download), the page says so in Welcome's free-space line and Next waits.
+3. **Install**: one row per step with its progress bar and state. With the Survey chosen, the first row is
+   `mapi2015-fetch`, the Survey's sheets: its row gives the download still to do for the scope (the missing sheets
+   by their mean size), or "Nothing to download". It runs before every other step and downloads only the missing
+   sheets, as the original game's step of the same id does; with them all there it is up to date at once. A failure
+   naming a data.gov.il link (the pass expired) shows "Copy the data.gov.il link above" under its reason.
+   Before a run the rows say which steps are up to date (a background check; the Survey's download row is up to
+   date with the scope's sheets on disk, and the terrain row says it runs while some are missing); during a run the page shows two estimates (see "Time left" below). Back becomes Cancel: the running steps
    stop at their next item. "Show the log" opens the log; the whole run is also in `assets/logs/modern-iaf-setup-<date>-<time>.log`.
    An optional step's row starts with its **Include** tick. A required step (`required` in `iaf_setup::sim_plan`:
    the terrain, the units and weapons, the flight data, the sounds and voices, the airbases and the missions; the sim
@@ -250,18 +263,19 @@ Sentinel-2 column 8 November 2026 (§7).
 
 | | Sentinel-2 everywhere | plus the Survey of Israel |
 |---|---|---|
-| download, once | GLO-30: 627 MB, kept in `assets/source/dem/`; the Sentinel-2 tiles: 11.4 GB, kept in `assets/source/imagery/sentinel2/`, with the edge tiles' 20 m extracts (about 0.34 GB, estimated) ([terrain.md](terrain.md) §1.1) | the same; the Survey's sheets must be there already (17 GB) |
+| download, once | GLO-30: 627 MB, kept in `assets/source/dem/`; the Sentinel-2 tiles: 11.4 GB, kept in `assets/source/imagery/sentinel2/`, with the edge tiles' 20 m extracts (about 0.34 GB, estimated) ([terrain.md](terrain.md) §1.1) | the same, and the Survey's sheets not yet there, kept in `assets/source/imagery/mapi2015/`: all of Israel 17.3 GB, around the airbases 2.4 GB (data.gov.il's sizes) |
 | theatre on disk | 469 MB (levels 3–11) | 3.57 GB |
 | the other steps | about 20 MB, and the OpenStreetMap extracts the airbases' inland water is cut from: 450 MB, kept in `assets/source/scenery/` and `assets/source/roads/` (the scenery reads them too) | the same |
-| disk use in all | about 12.5 GB | about 15.6 GB |
+| disk use in all | about 12.5 GB | about 15.6 GB, and the sheets (up to 17.3 GB) |
 | time | the first run about 17 min: the tiles' download about 14 min (11.4 GB at 13.8 MB/s), Sentinel-2 at 32 m and 8 m about 2 min, the coarser levels about 1 min, the DEM's 2 min beside them; a later run a few minutes (inferred from §7 and [terrain.md](terrain.md) §7 until measured) | 1 h 42 min |
 
 The other five steps take seconds together. The first page shows these figures.
 
 ## 5. Checks
 
-- `cargo test -p iaf-setup`: the plan's order, the stamps (a second run is all up to date, the Survey choice runs the
-  terrain, the airbases and the missions again, a changed airbase outline the terrain), a terrain redo drops its
+- `cargo test -p iaf-setup`: the plan's order, the Survey's download step first and only for the Survey choice,
+  counting only the scope's missing sheets and up to date with them on disk (the preview too), the stamps (a second
+  run is all up to date, the Survey choice runs the terrain, the airbases and the missions again, a changed airbase outline the terrain), a terrain redo drops its
   marks, inputs relative to the repo; every sim step's source row holds every module its
   code reaches.
 - `cargo test -p iaf-setup --test no_refetch`: with every source in `assets/source` (the edge tiles' 20 m extracts
@@ -269,7 +283,9 @@ The other five steps take seconds together. The first page shows these figures.
 - `modern-iaf/tests/test_setup_wizard.gd` (headless, `IAF_ASSETS_DIR` at an empty folder): the four pages in order in
   both languages, the mirrored layout, the approved Hebrew words, the Attributions dialog (opens from Welcome,
   mirrored, the Copernicus lines word for word, every attribution, closes with Esc and with Close),
-  no other game named, the Survey choice off without sheets, the Install rows and their preview, abandoned preview
+  no other game named, the Survey choice off without sheets, free with its two scopes and the sheet link, its
+  download row first with the missing sheets' size and "Nothing to download" with the scope's sheets on disk (fake
+  sheets, nothing downloaded), the Install rows and their preview, abandoned preview
   checks fetched, a finished run kept through a language change and forgotten by Back; Done's menu tick on by
   default, the launchers and the icon written into a scratch `IAF_LAUNCHER_ROOT` (the `.desktop` file's lines on Linux),
   removed when unticked, the choice kept, added again when ticked. `tools/test.sh` gives it a scratch folder.
@@ -342,4 +358,3 @@ not found: the shared HUD and 2D cockpit looked for the original game's converte
 
 - Switching from the Survey choice back to Sentinel-2 everywhere leaves the Survey's 2 m tiles in the theatre (the
   terrain step writes the tiles it makes and does not delete others).
-- The Survey sheets are those `iaf-imagery fetch-mapi2015` downloads; the wizard uses them when they are there.

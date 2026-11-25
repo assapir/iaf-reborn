@@ -263,7 +263,8 @@ impl IafSetup {
     /// Starts a background job (gdext objects can only be called on the main thread, so the slow checks run here);
     /// `result(job)` gives its answer. `job` is a kind, optionally with `#<anything>` after it:
     /// - "preview" [assets, repo, inputs JSON]: {step id: true when a run would find it up to date} (reads the inputs);
-    /// - "sim_preview" [assets, repo, survey "1" | "0", left-out step ids…]: the same for Modern IAF's steps;
+    /// - "sim_preview" [assets, repo, survey ("mapi2015", "mapi2015-bases" or "": `SimInputs::with_survey`), left-out
+    ///   step ids…]: the same for Modern IAF's steps;
     /// - "scan" [folder]: {"english" | "hebrew" | "patch" | "brief" | "menu": path} found in it (`iaf_setup::scan`);
     /// - "stale" [assets, layer ids…]: the imagery units older rules made, -1 when it cannot tell (e.g. offline).
     /// - "setup_stale" [assets, repo, "sim" | "reborn"]: [{id, title, download}] the steps a run would do again
@@ -299,7 +300,7 @@ impl IafSetup {
                     }
                     ("sim_preview", [assets, repo, survey, out @ ..]) => {
                         let out: Vec<&str> = out.iter().map(String::as_str).collect();
-                        let inputs = SimInputs { survey: survey == "1", ..Default::default() }.without(&out);
+                        let inputs = SimInputs::default().with_survey(survey).without(&out);
                         let ctx = SimCtx { assets: assets.into(), repo: repo.into(), inputs };
                         iaf_setup::sim_preview(&iaf_setup::sim_plan(&inputs), &ctx)
                             .into_iter()
@@ -420,10 +421,11 @@ impl IafSetup {
         GString::new()
     }
 
-    /// Modern IAF's plan (`iaf_setup::sim_plan`) with every optional step: [{id, title, required}].
+    /// Modern IAF's plan (`iaf_setup::sim_plan`) with every optional step, for the imagery choice `survey`
+    /// (`SimInputs::with_survey`): [{id, title, required}].
     #[func]
-    fn sim_plan(survey: bool) -> VarArray {
-        iaf_setup::sim_plan(&SimInputs { survey, ..Default::default() })
+    fn sim_plan(survey: GString) -> VarArray {
+        iaf_setup::sim_plan(&SimInputs::default().with_survey(&survey.to_string()))
             .iter()
             .map(|s| vdict! { "id" => s.id, "title" => s.title, "required" => s.required }.to_variant())
             .collect()
@@ -485,10 +487,17 @@ impl IafSetup {
         iaf_tools::sim_terrain::s2_cached_bytes(&cache) as i64
     }
 
-    /// The Survey of Israel sheet ZIPs already under `assets` (Modern IAF's Survey choice needs them).
+    /// The Survey of Israel sheet ZIPs already under `assets`.
     #[func]
     fn survey_sheets(assets: GString) -> i64 {
         iaf_setup::survey_sheets(&PathBuf::from(assets.to_string())) as i64
+    }
+
+    /// The Survey sheets the imagery choice `survey` still has to download (`SimInputs::survey_missing`).
+    #[func]
+    fn survey_missing(assets: GString, survey: GString) -> i64 {
+        let inputs = SimInputs::default().with_survey(&survey.to_string());
+        inputs.survey_missing(&PathBuf::from(assets.to_string())) as i64
     }
 
     /// Starts Modern IAF's setup (`iaf_setup::sim_run`) on its own thread, as `start` does the original's, without the
@@ -498,7 +507,7 @@ impl IafSetup {
         &mut self,
         assets: GString,
         repo: GString,
-        survey: bool,
+        survey: GString,
         redo: PackedStringArray,
         excluded: PackedStringArray,
         log_file: GString,
@@ -511,8 +520,9 @@ impl IafSetup {
         if let Err(e) = iaf_setup::save_sim_excluded(&PathBuf::from(assets.to_string()), &out) {
             return err(e);
         }
-        let inputs =
-            SimInputs { survey, ..Default::default() }.without(&out.iter().map(String::as_str).collect::<Vec<_>>());
+        let inputs = SimInputs::default()
+            .with_survey(&survey.to_string())
+            .without(&out.iter().map(String::as_str).collect::<Vec<_>>());
         let steps = iaf_setup::sim_plan(&inputs);
         let ctx = SimCtx { assets: PathBuf::from(assets.to_string()), repo: PathBuf::from(repo.to_string()), inputs };
         let header = format!("Modern IAF setup: survey {survey}\nredo: {redo:?}\nleft out: {out:?}");

@@ -53,12 +53,12 @@ fn main() -> Result<()> {
     if let [cmd, dest, rest @ ..] = &args[..]
         && cmd == "fetch-mapi2015"
     {
-        let bases = match rest {
-            [] => false,
-            [b] if b == "--bases" => true,
+        let only = match rest {
+            [] => &[][..],
+            [b] if b == "--bases" => iaf_tools::mapi2015_fetch::BASES,
             _ => bail!("usage: iaf-imagery fetch-mapi2015 <sheets-dir> [--bases]"),
         };
-        return iaf_tools::mapi2015_fetch::fetch(Path::new(dest), bases, &Stdout, &AtomicBool::new(false));
+        return iaf_tools::mapi2015_fetch::fetch(Path::new(dest), only, &Stdout, &AtomicBool::new(false));
     }
     if let [cmd, install, theatre, out] = &args[..]
         && cmd == "footprints"

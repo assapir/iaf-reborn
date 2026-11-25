@@ -20,11 +20,6 @@ const BASE_GB := INSTALL_GB + CONVERTED_GB + TEXTURES_GB
 ## looks with their pre-compressed tiles (4.37 GB a look; its reads are not kept).
 const SURVEY_GB := [17.3, 14.5]
 const SURVEY_BASES_GB := [2.0, 1.7]
-## One Survey sheet's link (tools/imagery/mapi2015_sheets.tsv): opened once in Firefox, it earns data.gov.il's pass.
-const SURVEY_SHEET := (
-	"https://data.gov.il/dataset/73aae9b9-65ba-4fcf-a51b-feebc3da9f8d"
-	+ "/resource/52287708-9fa5-4f5a-9e4e-cc414270c257/download/hzr.zip"
-)
 const SENTINEL_GB := 11.3
 ## Scenery made, by kind (GB; the downloads come from IafSetup.scenery_download_bytes): both measured (cells 0.58 +
 ## work files 0.49); one kind computed from the cell format (a tree is 16 bytes: 28.6 M trees 0.46 GB, buildings
@@ -79,6 +74,15 @@ const FRAME_TEXT := {
 	"credits": "Attributions",
 	"data_folder": "Data folder: %s",
 	"change": "Change…",
+	"survey_all": "all of Israel",
+	"survey_bases": "around the airbases only",
+	"survey_how":
+	(
+		"Faster: before Install, paste a sheet's link into Firefox and cancel the download. Otherwise setup "
+		+ "opens the sheets in your browser; let them finish."
+	),
+	"survey_copy": "Copy a sheet's link",
+	"survey_copied": "Copied: paste it into Firefox's address bar",
 }
 
 ## Tests: only these steps (and what they wait for) run.
@@ -280,15 +284,11 @@ func set_row(row: Dictionary, path: String) -> void:
 	_update()
 
 
-## Makes `b` copy `url` instead of opening it, then say `done`.
-func _copy_on_press(b: LinkButton, url: String, done: String) -> void:
-	for c in b.pressed.get_connections():
-		b.pressed.disconnect(c.callable)
-	b.pressed.connect(
-		func():
-			DisplayServer.clipboard_set(url)
-			b.text = done
-	)
+## A dim wrapping note, 600 px wide (the Survey's pass guidance).
+func _hint(parent: Control, t: String) -> Label:
+	var l := _text(parent, t, true)
+	l.custom_minimum_size.x = 600
+	return l
 
 
 ## A link that opens in the browser.
@@ -778,25 +778,7 @@ func _page_extras() -> Control:
 		"All of Israel: 79 sheets, 17 GB download, 14 GB on disk. Around the airbases: 9 sheets, 2 GB.",
 		"" if gdal and tools.get("curl", false) else "Needs GDAL and curl (see Requirements)."
 	)
-	mapi_scope = OptionButton.new()
-	mapi_scope.add_item("all of Israel")
-	mapi_scope.add_item("around the airbases only")
-	mapi_scope.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	mapi_scope.disabled = mapi_check.disabled
-	mapi_check.get_parent().add_child(mapi_scope)
-	var how := _text(
-		mapi_check.get_parent(),
-		(
-			"Faster: before Install, paste a sheet's link into Firefox and cancel the download. Otherwise setup "
-			+ "opens the sheets in your browser; let them finish."
-		),
-		true
-	)
-	how.custom_minimum_size.x = 600
-	var copy := _link("Copy a sheet's link", SURVEY_SHEET)
-	copy.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_copy_on_press(copy, SURVEY_SHEET, "Copied: paste it into Firefox's address bar")
-	mapi_check.get_parent().add_child(copy)
+	mapi_scope = _survey_controls(mapi_check.get_parent(), mapi_check.disabled)
 	# Scenery (docs/scenery.md): only over the Survey 2 m photo, so only with it ticked or on disk (_update).
 	var mb := func(k: String) -> String: return "%.0f MB" % (IafSetup.scenery_download_bytes(k) / 1e6)
 	scenery_check = _extra(
@@ -1103,7 +1085,7 @@ func inputs() -> Dictionary:
 		}
 	var imagery := []
 	if mapi_check.button_pressed and not mapi_check.disabled:
-		imagery.append("mapi2015-bases" if mapi_scope.selected == 1 else "mapi2015")
+		imagery.append(SURVEY_SCOPES[mapi_scope.selected])
 	if sentinel_check.button_pressed and not sentinel_check.disabled:
 		imagery.append("sentinel2")
 	return {
@@ -1137,7 +1119,7 @@ func _prefill() -> void:
 			set_row(menu_row, str(he.menu))
 	var imagery: Array = i.get("imagery", [])
 	mapi_check.button_pressed = "mapi2015" in imagery or "mapi2015-bases" in imagery
-	mapi_scope.selected = 1 if "mapi2015-bases" in imagery else 0
+	mapi_scope.selected = 1 if SURVEY_SCOPES[1] in imagery else 0
 	sentinel_check.button_pressed = "sentinel2" in imagery
 	refresh_check.button_pressed = i.get("refresh", false)
 	guides_check.button_pressed = i.get("guides", false)
@@ -1264,11 +1246,11 @@ func _finished(p: Dictionary) -> void:
 		)
 	)
 	done_label.text = "Jane's IAF is set up." if failed == "" else "Setup did not finish: " + failed
-	var url := RegEx.create_from_string("https://data\\.gov\\.il/\\S+").search(failed)
-	if url:
+	var url := gov_link(failed)
+	if url != "":
 		fail_link.text = "Copy the data.gov.il link above"
 		fail_link.visible = true
-		_copy_on_press(fail_link, url.get_string(), "Copied: paste it into Firefox's address bar")
+		_copy_on_press(fail_link, url, s("survey_copied"))
 
 
 ## Starts the game in a new process and closes the wizard.

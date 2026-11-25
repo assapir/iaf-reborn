@@ -1,12 +1,23 @@
 # What both setup wizards share (iaf-reborn/setup/wizard.gd, modern-iaf/setup/wizard.gd; docs/setup.md,
 # modern-iaf/docs/setup.md): the page machine (Back / Next / Cancel, every page scrolling in the body), the run
 # through IafSetup (start, poll, cancel, the log, the background jobs, the up-to-date preview, Redo), a step's time
-# left, the Attributions dialog, the free disk space, the durations the setup logs write and the window's size.
+# left, the Attributions dialog, the free disk space, the durations the setup logs write and the window's size, and
+# the Survey of Israel choice's own controls (_survey_controls).
 # Each game's wizard extends it with its pages, its look and its texts: `s(key)` gives the texts used here (next,
-# back, cancel, cancelling, not_started, installing, log_file, show_log, hide_log, state_checking, credits), and it
-# overrides _on_page, _update (calling super), _run, _polled, _finished and _finish. A release bundle's first page also
-# shows the data folder (_data_folder_row; texts data_folder, change).
+# back, cancel, cancelling, not_started, installing, log_file, show_log, hide_log, state_checking, credits; the
+# Survey's survey_all, survey_bases, survey_how, survey_copy, survey_copied), and it overrides _on_page, _update
+# (calling super), _run, _polled, _finished and _finish, and _link and _hint for its look. A release bundle's first
+# page also shows the data folder (_data_folder_row; texts data_folder, change).
 extends Control
+
+## One Survey sheet's link (tools/imagery/mapi2015_sheets.tsv): opened once in Firefox, it earns data.gov.il's pass.
+const SURVEY_SHEET := (
+	"https://data.gov.il/dataset/73aae9b9-65ba-4fcf-a51b-feebc3da9f8d"
+	+ "/resource/52287708-9fa5-4f5a-9e4e-cc414270c257/download/hzr.zip"
+)
+## The Survey of Israel's scopes by their imagery ids (iaf_setup's setup.json; Modern IAF's SimInputs::with_survey),
+## in the scope pick's order: all of Israel, around the airbases. Step mapi2015-fetch downloads only missing sheets.
+const SURVEY_SCOPES := ["mapi2015", "mapi2015-bases"]
 
 var setup := IafSetup.new()
 var assets := ""
@@ -126,6 +137,61 @@ func _vbox(sep := 12) -> VBoxContainer:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", sep)
 	return v
+
+
+## A link that opens in the browser (the game styles it).
+func _link(text: String, url: String) -> LinkButton:
+	var b := LinkButton.new()
+	b.text = text
+	b.tooltip_text = url
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.pressed.connect(func(): OS.shell_open(url))
+	return b
+
+
+## A wrapping note line in `parent` (the game styles it).
+func _hint(parent: Control, t: String) -> Label:
+	var l := Label.new()
+	l.text = t
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	parent.add_child(l)
+	return l
+
+
+## Link `b` copies `url` to the clipboard (instead of opening it) and then says `done`.
+func _copy_on_press(b: LinkButton, url: String, done: String) -> void:
+	for c in b.pressed.get_connections():
+		b.pressed.disconnect(c.callable)
+	b.pressed.connect(
+		func():
+			DisplayServer.clipboard_set(url)
+			b.text = done
+	)
+
+
+## The Survey of Israel choice's own controls, under its tick in `box` (docs/setup.md): the scope (SURVEY_SCOPES), the
+## data.gov.il pass guidance and "Copy a sheet's link". Returns the scope pick.
+func _survey_controls(box: Control, disabled: bool) -> OptionButton:
+	var scope := OptionButton.new()
+	scope.name = "SurveyScope"
+	scope.add_item(s("survey_all"))
+	scope.add_item(s("survey_bases"))
+	scope.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	scope.disabled = disabled
+	box.add_child(scope)
+	_hint(box, s("survey_how"))
+	var copy := _link(s("survey_copy"), SURVEY_SHEET)
+	copy.name = "CopySheetLink"
+	copy.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_copy_on_press(copy, SURVEY_SHEET, s("survey_copied"))
+	box.add_child(copy)
+	return scope
+
+
+## The data.gov.il link a step's failure names (the Survey's pass expired), "" when it names none.
+static func gov_link(text: String) -> String:
+	var m := RegEx.create_from_string("https://data\\.gov\\.il/\\S+").search(text)
+	return m.get_string() if m else ""
 
 
 ## The pages into `body`, each made by one of `makers` in order. A page taller than the window scrolls, so the
