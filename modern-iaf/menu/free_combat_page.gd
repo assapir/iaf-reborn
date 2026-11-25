@@ -2,16 +2,21 @@
 # then flies; no mission, the jet's Scramble start at its home base (data/missions/<base>_free.json) carries it. The
 # fight's area is drawn at Fly (Fly.free_area: a base within reach of the jet's), the enemy in flight at the Pilot
 # screen's enemy skill (IafFreeCombat.roll), and the AWACS gives the task and where by radio (flight/free_combat.gd).
-# One panel of rows, each a label and its segments, and the Time row: the flight's start time, Israel time, as 24-hour
-# military time HHMM, stepped by an hour (the arrows beside its hours) and five minutes (beside its minutes), or Random
-# (drawn at Fly from the Scramble's seed, IafFreeCombat.start_time; the kneeboard's DATA page shows it). A line under
-# the panel names the enemy skill. A pick is kept at once
-# (Settings.free_combat). A load the one load rule blocks turns Fly off and says why in one line. The footer: Back,
+# One panel of rows, each a label and its segments; the Time row: the flight's start time, Israel time, as 24-hour
+# military time HHMM, stepped by an hour (the arrows beside its hours) and five minutes (beside its minutes); the Date
+# row: its day and month this year, stepped by a day and a month; each with Random (drawn at Fly from the Scramble's
+# seed, IafFreeCombat.start_time / start_day; the kneeboard's DATA page shows them). A line under the panel names the
+# enemy skill. The flight and the start are kept at once (Settings.free_combat); the time and date only for the
+# screen's visit (when). A load the one load rule blocks turns Fly off and says why in one line. The footer: Back,
 # Arming (the Loadout screen, on that start), Fly.
 extends RefCounted
 
 const Look := preload("res://menu/look.gd")
-const DEFAULT := {"flight": 2, "start": "air", "time": 480, "time_random": false}
+const DEFAULT := {"flight": 2, "start": "air"}
+## The start time and date for this visit to the screen, never stored (the user, 25 Nov 2026: "No need to remember
+## last choice"): reset() at each opening to 0800 and today, Random off. time: minutes after local midnight; date:
+## the day of this year.
+static var when := {}
 const STARTS := ["air", "runway", "ground"]
 
 
@@ -22,10 +27,27 @@ static func picks(fe: Control) -> Dictionary:
 		fc.start = DEFAULT.start
 	if not int(fc.flight) in [1, 2, 4]:
 		fc.flight = DEFAULT.flight
-	fc.time = IafFreeCombat.time_valid(int(fc.time))
-	fc.time_random = bool(fc.time_random)
+	if when.is_empty():
+		reset()
+	fc.merge(when, true)
 	fc.home = _section(str(fe.jet().get("base", "")))
 	return fc
+
+
+## The start time and date as the screen opens: 0800 today, Random off.
+static func reset() -> void:
+	var d := Time.get_date_dict_from_system()
+	when = {
+		"time": 480,
+		"time_random": false,
+		"date": IafFreeCombat.day_of_year(d.year, d.month, d.day),
+		"date_random": false
+	}
+
+
+## This year (the date's: no year to pick).
+static func year() -> int:
+	return int(Time.get_date_dict_from_system().year)
 
 
 ## The iaf.ibx section of base key `key` (strings base_<key>: ramon -> Ramon, tel_nof -> TelNof, ramat_david -> David).
@@ -54,7 +76,8 @@ static func build(fe: Control) -> void:
 	var own := _panel(fe, cols, "fc_flight_h")
 	rows.append(_row(fe, own, "flight", [["fc_flight_1", 1], ["fc_flight_2", 2], ["fc_flight_4", 4]], fc))
 	rows.append(_row(fe, own, "start", STARTS.map(func(k): return ["fc_start_" + k, k]), fc))
-	rows.append(_time_row(fe, own, fc))
+	rows.append(_time_row(fe, own))
+	rows.append(_date_row(fe, own))
 	var skill: Label = fe._label(
 		own.get_parent(), fe.s("fc_skill") % fe.s("skill_%d" % int(Settings.enemy_skill())), "Small"
 	)
@@ -86,60 +109,93 @@ static func build(fe: Control) -> void:
 	fe._focus = rows[0].filter(func(b): return b.button_pressed).front()
 
 
-## The Time row: its label, then (left to right in both languages, as the digits read) the hour's down / up, the time
-## HHMM, the minutes' down / up, and Random; its buttons. A step or the Random toggle is stored at once; Random dims
-## the set time and its arrows (kept for when Random is off again).
-static func _time_row(fe: Control, g: GridContainer, fc: Dictionary) -> Array:
-	var l: Label = fe._label(g, fe.s("fc_time"), "Row")
+## The Time row (the flight's start time, Israel time, HHMM: left to right in both languages, as the digits read: the
+## hour's down / up, the time, the minutes' down / up) and the Date row (the day's down / up, the day and its month,
+## the month's down / up; in Hebrew right to left), each with Random; their buttons.
+static func _time_row(fe: Control, g: GridContainer) -> Array:
+	var steps := [
+		["hour_down", func(v): return IafFreeCombat.time_step(v, -1, 0)],
+		["hour_up", func(v): return IafFreeCombat.time_step(v, 1, 0)],
+		[],
+		["min_down", func(v): return IafFreeCombat.time_step(v, 0, -1)],
+		["min_up", func(v): return IafFreeCombat.time_step(v, 0, 1)],
+	]
+	return _step_row(fe, g, "time", steps, func(v): return IafFreeCombat.clock(v), true)
+
+
+static func _date_row(fe: Control, g: GridContainer) -> Array:
+	var y := year()
+	var steps := [
+		["day_down", func(v): return IafFreeCombat.date_step(y, v, -1, 0)],
+		["day_up", func(v): return IafFreeCombat.date_step(y, v, 1, 0)],
+		[],
+		["month_down", func(v): return IafFreeCombat.date_step(y, v, 0, -1)],
+		["month_up", func(v): return IafFreeCombat.date_step(y, v, 0, 1)],
+	]
+	return _step_row(fe, g, "date", steps, func(v): return date_text(fe, y, v), false)
+
+
+## The day `doy` of `year` as the screen shows it: "25 November", "25 בנובמבר".
+static func date_text(fe: Control, y: int, doy: int) -> String:
+	var md: Vector2i = IafFreeCombat.month_day(y, doy)
+	return fe.s("fc_date_fmt") % [md.y, fe.s("month_%d" % md.x)]
+
+
+## A row of `key`'s value (when[key]) with its step buttons `steps` ([name, step(value) -> value], [] the value's
+## place), shown by `text`, and Random (when[key + "_random"]) beside them; `ltr` keeps the steps left to right in
+## Hebrew. A step or Random is kept for the screen's visit (when); Random dims the value and its arrows.
+static func _step_row(fe: Control, g: GridContainer, key: String, steps: Array, text: Callable, ltr: bool) -> Array:
+	var l: Label = fe._label(g, fe.s("fc_" + key), "Row")
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var row: HBoxContainer = fe._hbox(g, 8)
-	row.name = "Row_time"
+	row.name = "Row_" + key
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var box: HBoxContainer = fe._hbox(row, 6)
-	box.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	if ltr:
+		box.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	var shown: Label = Label.new()
-	shown.name = "Clock"
+	shown.name = "Value_" + key
 	shown.theme_type_variation = "Row"
 	shown.add_theme_font_size_override("font_size", 30)
-	shown.custom_minimum_size.x = 96
+	shown.custom_minimum_size.x = 96 if ltr else 200
 	shown.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var steps := []
-	for d in [["hour_down", -1, 0], ["hour_up", 1, 0], ["", 0, 0], ["min_down", 0, -1], ["min_up", 0, 1]]:
-		if d[0] == "":
+	var buttons := []
+	for d in steps:
+		if d.is_empty():
 			box.add_child(shown)
 			continue
 		var b := Button.new()
-		b.name = "time_" + d[0]
+		b.name = "%s_%s" % [key, d[0]]
 		b.text = "▲" if d[0].ends_with("up") else "▼"
 		b.tooltip_text = fe.s("fc_" + d[0])
 		b.theme_type_variation = "Segment"
 		b.custom_minimum_size = Vector2(52, 44)
 		box.add_child(b)
-		var hours: int = d[1]
-		var mins: int = d[2]
-		b.pressed.connect(func(): _store(fe, "time", IafFreeCombat.time_step(int(picks(fe).time), hours, mins)))
-		steps.append(b)
-	var rnd: Button = fe._segment(row, fe.s("fc_time_random"), null, fc.time_random)
-	rnd.name = "time_random"
+		var step: Callable = d[1]
+		b.pressed.connect(func(): when[key] = step.call(int(when[key])))
+		buttons.append(b)
+	var rnd: Button = fe._segment(row, fe.s("fc_random"), null, bool(when[key + "_random"]))
+	rnd.name = key + "_random"
 	rnd.custom_minimum_size.x = 220
-	rnd.toggled.connect(func(on: bool): _store(fe, "time_random", on))
+	rnd.toggled.connect(func(on: bool): when[key + "_random"] = on)
 	var show := func():
-		var now := picks(fe)
-		shown.text = IafFreeCombat.clock(int(now.time))
-		shown.modulate.a = 0.4 if now.time_random else 1.0
-		for b in steps:
-			b.disabled = now.time_random
-			b.focus_mode = Control.FOCUS_NONE if now.time_random else Control.FOCUS_ALL
+		var on := bool(when[key + "_random"])
+		shown.text = text.call(int(when[key]))
+		shown.modulate.a = 0.4 if on else 1.0
+		for b in buttons:
+			b.disabled = on
+			b.focus_mode = Control.FOCUS_NONE if on else Control.FOCUS_ALL
 	show.call()
-	for b in steps + [rnd]:
+	for b in buttons + [rnd]:
 		b.pressed.connect(show)
-	return steps + [rnd]
+	return buttons + [rnd]
 
 
 ## Stores pick `key` = `value` in Settings.free_combat at once.
 static func _store(fe: Control, key: String, value) -> void:
 	var now := picks(fe)
-	now.erase("home")
+	for k in ["home"] + when.keys():
+		now.erase(k)
 	now[key] = value
 	Settings.free_combat = now
 	Settings.save()

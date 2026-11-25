@@ -1,7 +1,7 @@
-# Dev helper (not run by tools/test.sh): Scramble's start time (modern-iaf/docs/front-end.md §2.1): the Sufa pair's air
-# start from Ramon round Hatzerim at SHOT_TIME (HHMM, 24-hour; today's date) through flight/fly.gd prepare_free, as
-# the game flies it: the cockpit (SHOT_DIR/<SHOT_NAME>_cockpit.png) and the pair from beside the wingman
-# (<SHOT_NAME>_external.png). A real render:
+# Dev helper (not run by tools/test.sh): Scramble's start time and date (modern-iaf/docs/front-end.md §2.1): the
+# Sufa pair's air start from Ramon round Hatzerim at SHOT_TIME (HHMM, 24-hour) on SHOT_DATE (MMDD this year; today's
+# date if unset) through flight/fly.gd prepare_free, as the game flies it: the cockpit
+# (SHOT_DIR/<SHOT_NAME>_cockpit.png) and the pair from beside the wingman (<SHOT_NAME>_external.png). A real render:
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> SHOT_TIME=1650 \
 #     SHOT_NAME=dusk -- --log-file <temp> --resolution 1600x900 --path modern-iaf \
 #     -s ../modern-iaf/tests/_scramble_time_shot.gd
@@ -25,6 +25,10 @@ func run() -> void:
 	var hhmm := int(OS.get_environment("SHOT_TIME"))
 	var fc := {"flight": 2, "area": "Hatzerim", "home": "Ramon", "start": "air", "seed": 1}
 	fc.start_min = hhmm / 100 * 60 + hhmm % 100
+	var mmdd := OS.get_environment("SHOT_DATE")
+	if mmdd != "":
+		fc.year = int(Time.get_date_dict_from_system().year)
+		fc.start_day = IafFreeCombat.day_of_year(fc.year, int(mmdd) / 100, int(mmdd) % 100)
 	var id := sim_mission("ramon_free")
 	load("res://flight/fly.gd").prepare_free(id, fc)
 	s.free_combat = fc

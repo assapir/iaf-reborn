@@ -24,7 +24,7 @@ A Start-up #term("lesson") starts with the notebook raised at its #scr("nb_start
   [#scr("nb_landing")], [The landing in five lines: the call, the gear, the final approach, the touchdown, the engine off on the parking spot.],
   [#scr("nb_weapons")], [Arming, air-to-ground and air-to-air as short steps, each with its switch, the switch's place and its key.],
   [#scr("nb_emergency")], [A red tab: an engine fire on the ground and the ejection; in the Sufa and the Barak also the #term("hot start").],
-  [#scr("nb_data")], [The mission, the base and its code, the flight's start time (in a Scramble, the one you set or the one drawn), the wind, the jet, the runway and the route's first point.],
+  [#scr("nb_data")], [The mission, the base and its code, the flight's start time (in a Scramble, the one you set or the one drawn) and in a Scramble its date, the wind, the jet, the runway and the route's first point.],
 )
 
 The pages name each switch and its place in the cockpit. Only the #scr("nb_weapons") tab names keys. Every key is on the #scr("keys_screen") screen (@keys-joystick).

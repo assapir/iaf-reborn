@@ -3,13 +3,15 @@
 # - the screen in English and Hebrew: Scramble on the Missions screen opens it; its rows (flight, start: in the air,
 #   on the runway, cold), no area or enemy skill row, the line naming the Pilot screen's enemy skill, the defaults (a
 #   pair, in the air) and Fly on; a pick is kept in Settings.free_combat; the Time row (0800 first, stepped by an hour
-#   and five minutes round the clock, Random dims it; IafFreeCombat.start_time draws a random one from the seed);
+#   and five minutes round the clock, Random dims it; IafFreeCombat.start_time draws a random one from the seed) and
+#   the Date row (today first, stepped by a day and a month), neither stored: 0800 today again on the next opening;
 #   Esc goes back to the Missions screen;
 # - the fight's area (Fly.free_area): a base other than Ramon, within reach (not Ramat David), the same for a seed;
 # - the air start: Ramon's Scramble start cut to a pair and put in the air south of Hatzerim (IafFreeCombat.air_start),
 #   both jets flying at the start's height heading north; the enemy drawn from the seed (IafFreeCombat.roll) placed
 #   as rolled; the AWACS's task call (AWX_TASK) for the task rolled once the jet is in the air, before the flight's
-#   own calls (WNG_CALL); the start time 2200 (misc 0x460) at night on today's date, the kneeboard's DATA time;
+#   own calls (WNG_CALL); the start time 2200 (misc 0x460) at night on 21 December, the kneeboard's DATA time and
+#   date; 0630 dark in December, light in June;
 # - the runway start: the pair lined up on Ramon's runway with both engines running;
 # - the ground start: the same start cold at Ramon's parking, on the ground (the start the A81 picture showed in the
 #   air was right; the picture's script had moved the jet up).
@@ -21,7 +23,10 @@ extends "res://../tests/godot/base.gd"
 const SEED := 7
 ## fly.gd, loaded in run(): a preload compiles it before the Settings autoload exists (-s).
 var fly_gd: GDScript
-const FC := {"flight": 2, "area": "Hatzerim", "home": "Ramon", "seed": SEED, "start_min": 22 * 60}
+## 2200 on 21 December 2026 (day 355).
+const FC := {
+	"flight": 2, "area": "Hatzerim", "home": "Ramon", "seed": SEED, "start_min": 22 * 60, "year": 2026, "start_day": 355
+}
 ## Each task's words in the call (voices.json's TASK_* particles).
 const TASK_TEXT := {
 	"cap": "intercept the bandits",
@@ -84,15 +89,16 @@ func _screen(lang: String) -> void:
 	check(not _b("Fly").disabled and _notice() == "", "%s: Fly on (%s)" % [lang, _notice()])
 	var sub: String = fe.s("base_ramon")
 	check(_has_text(fe, sub), "%s: the screen names the home base (%s)" % [lang, sub])
-	# The Time row: 0800 first; an hour up, five minutes down; round the clock; Random dims the arrows.
-	var clock := fe.find_child("Clock", true, false) as Label
+	# The Time row: 0800 first; an hour up, five minutes down; round the clock; Random dims the arrows. Not stored.
+	var page: GDScript = load("res://menu/free_combat_page.gd")
+	var clock := fe.find_child("Value_time", true, false) as Label
 	check(fe.find_child("Row_time", true, false) != null and clock != null, "%s: the Time row" % lang)
 	check(_has_text(fe, fe.s("fc_time")), "%s: the Time label" % lang)
 	if clock != null:
 		check(clock.text == "0800", "%s: the time first 0800 (%s)" % [lang, clock.text])
 		_b("time_hour_up").pressed.emit()
 		_b("time_min_down").pressed.emit()
-		check(clock.text == "0855" and int(s.free_combat.time) == 535, "%s: stepped to 0855 (%s)" % [lang, clock.text])
+		check(clock.text == "0855" and int(page.when.time) == 535, "%s: stepped to 0855 (%s)" % [lang, clock.text])
 		for i in 15:
 			_b("time_hour_down").pressed.emit()
 		check(clock.text == "1755", "%s: round the clock to 1755 (%s)" % [lang, clock.text])
@@ -100,8 +106,25 @@ func _screen(lang: String) -> void:
 		check(rnd != null and not rnd.button_pressed, "%s: Random off first" % lang)
 		rnd.button_pressed = true
 		rnd.pressed.emit()
-		check(bool(s.free_combat.time_random) and _b("time_hour_up").disabled, "%s: Random kept, arrows off" % lang)
+		check(bool(page.when.time_random) and _b("time_hour_up").disabled, "%s: Random on, arrows off" % lang)
 		check(clock.text == "1755", "%s: the set time kept under Random" % lang)
+	# The Date row: today first; a day and a month on; Random dims the arrows.
+	var today := Time.get_date_dict_from_system()
+	var doy: int = IafFreeCombat.day_of_year(today.year, today.month, today.day)
+	var date := fe.find_child("Value_date", true, false) as Label
+	check(fe.find_child("Row_date", true, false) != null and date != null, "%s: the Date row" % lang)
+	check(_has_text(fe, fe.s("fc_date")), "%s: the Date label" % lang)
+	if date != null:
+		var want: String = fe.s("fc_date_fmt") % [today.day, fe.s("month_%d" % today.month)]
+		check(date.text == want, "%s: the date first today (%s, %s)" % [lang, date.text, want])
+		_b("date_day_up").pressed.emit()
+		_b("date_month_up").pressed.emit()
+		var on: int = IafFreeCombat.date_step(today.year, IafFreeCombat.date_step(today.year, doy, 1, 0), 0, 1)
+		check(int(page.when.date) == on, "%s: a day and a month on (%d)" % [lang, page.when.date])
+		var rnd := _b("date_random")
+		rnd.button_pressed = true
+		rnd.pressed.emit()
+		check(bool(page.when.date_random) and _b("date_day_up").disabled, "%s: date Random, arrows off" % lang)
 	var a: int = IafFreeCombat.start_time(SEED, true, 0)
 	check(a == IafFreeCombat.start_time(SEED, true, 600) and a % 5 == 0, "%s: Random draws from the seed" % lang)
 	check(IafFreeCombat.start_time(SEED, false, 1055) == 1055, "%s: a set time flies as set" % lang)
@@ -110,10 +133,20 @@ func _screen(lang: String) -> void:
 	await frames(1)
 	var fc: Dictionary = s.free_combat
 	check(int(fc.flight) == 4 and fc.start == "runway", "%s: kept %s" % [lang, fc])
-	check(int(fc.time) == 1075 and bool(fc.time_random), "%s: the time kept with the picks %s" % [lang, fc])
+	check(not fc.has("time") and not fc.has("date"), "%s: the time and date not stored %s" % [lang, fc])
 	key(fe, KEY_ESCAPE)
 	await frames(2)
 	check(fe.page == "missions", "%s: Esc back to the Missions screen" % lang)
+	# Opened again: 0800 today, Random off (the user, 25 Nov 2026: "No need to remember last choice").
+	_b("Section_fly_now").pressed.emit()
+	await frames(2)
+	check(
+		page.when == {"time": 480, "time_random": false, "date": doy, "date_random": false},
+		"%s: reopened at 0800 today (%s)" % [lang, page.when]
+	)
+	check(not _b("time_random").button_pressed and not _b("date_random").button_pressed, "%s: Random off" % lang)
+	key(fe, KEY_ESCAPE)
+	await frames(2)
 
 
 ## A label of `root` whose text holds `t`.
@@ -170,21 +203,30 @@ func _air() -> void:
 	check(d > 55000.0 and d < 80000.0, "air: 60 km out from the fight (%.0f m)" % d)
 	var wing: Array = tv.ai._ai_members.filter(func(m): return not m[1].player).map(func(m): return m[1])
 	check(wing.size() == 1 and not tv.ai.on_ground(wing[0]), "air: the wingman in the air too")
-	# The start time: 2200 on today's date, night (the sun's, the cockpit's), the kneeboard's DATA time.
+	# The start time: 2200 on 21 December 2026, night (the sun's, the cockpit's), the kneeboard's DATA time and date.
 	var tod := load("res://shared/terrain/time_of_day.gd")
-	var today := Time.get_date_dict_from_system()
 	check(
 		float(tv.runtime.misc.get("0x460", 0.0)) == 79200.0, "air: starts at 2200 (%s)" % tv.runtime.misc.get("0x460")
 	)
-	check(
-		tod.day == IafFreeCombat.day_of_year(today.year, today.month, today.day),
-		"air: the sun on today's date (%d)" % tod.day
-	)
+	check(tod.day == 355 and tod.year == 2026 and tod.utc_offset == 2.0, "air: the sun on 21 December (%d)" % tod.day)
 	check(bool(tod.sun(tv.time_of_day()).night) and tv.cockpit.night, "air: night at 2200")
 	var kb = tv.addon.get("kneeboard")
 	check(kb != null, "air: the kneeboard")
 	if kb != null:
 		check(kb._start_time("08:00") == "22:00", "air: the kneeboard's time 22:00 (%s)" % kb._start_time("08:00"))
+		var dated := false
+		for sec in kb._sections():
+			dated = dated or ("21 December 2026" in str(sec))
+		check(dated, "air: the kneeboard's date 21 December 2026")
+	# The date moves the sun: 0630 is before sunrise on 21 December, after it on 21 June (summer time).
+	var was: int = tod.day
+	var dawn: float = tod.real_sun_at(6.5 * 3600.0).y
+	tod.day = 172
+	tod.utc_offset = 3.0
+	var june: float = tod.real_sun_at(6.5 * 3600.0).y
+	tod.day = was
+	tod.utc_offset = 2.0
+	check(dawn < 0.0 and june > 5.0, "air: 0630 dark in December (%.1f°), up in June (%.1f°)" % [dawn, june])
 	# The enemy as rolled.
 	var p: Dictionary = node.placed
 	var roll: Dictionary = IafFreeCombat.roll(SEED, int(settings().enemy_skill()))

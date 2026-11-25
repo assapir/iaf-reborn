@@ -757,9 +757,13 @@ game keeps its colour table (docs/rendering.md §4). `Settings.real_sun()` switc
 `shared/terrain/time_of_day.gd`.
 
 - **The sun**: NOAA's general solar position equations[^noaa] at 31.5° N, 34.9° E on Israel Standard Time (UTC+2), on
-  the March equinox (day 79). A mission has an hour (its `time`) and no date, so every mission flies that day (a
-  Scramble flies on today's date with Israel's clock of the day, summer time included: front-end.md §2.1): the sun rises
-  about 05:45, stands 58° up in the south at about 11:48 and sets about 17:48.
+  the March equinox (day 79). A mission has an hour (its `time`) and no date, so every mission flies that day: the sun
+  rises about 05:45, stands 58° up in the south at about 11:48 and sets about 17:48. A Scramble flies on its own date
+  (this year's, set or drawn: front-end.md §2.1) with Israel's clock of that day, summer time included: on 21 December
+  the sun rises about 06:40 and sets about 16:35 (UTC+2), on 21 June about 05:40 and 19:45 (UTC+3), so 0630 is dark in
+  December and day in June. The date moves only the sun (its path, the day's length, so when night falls); the moon
+  stands at one place (140°, 38° up) with one light every night, and the air (ISA, 15 °C at sea level), the haze, the
+  clouds and the rain (Preferences) are the same in every season.
 - **Day** (the sun above the horizon): the Atmospheric sky, as before. The sun's light follows its height: white
   above 30°, warmer below (255, 228, 195 at 15°; 255, 185, 135 at 5°; 255, 135, 75 on the horizon; inferred from
   sunset photographs). Shadows above 5°.

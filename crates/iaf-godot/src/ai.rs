@@ -950,6 +950,25 @@ impl IafFreeCombat {
         free_combat::utc_offset(year, month, day)
     }
 
+    /// The month (x, 1 to 12) and its day (y) of day `doy` of `year`.
+    #[func]
+    fn month_day(year: i64, doy: i64) -> Vector2i {
+        let (m, d) = free_combat::month_day(year, doy);
+        Vector2i::new(m as i32, d as i32)
+    }
+
+    /// The Scramble's date `doy` of `year` stepped by `days` days, then `months` months, round the year.
+    #[func]
+    fn date_step(year: i64, doy: i64, days: i64, months: i64) -> i64 {
+        free_combat::date_step(year, doy, days, months)
+    }
+
+    /// The flight's day of `year`: the set `doy`, or drawn from `seed` with `random`.
+    #[func]
+    fn start_day(seed: i64, random: bool, year: i64, doy: i64) -> i64 {
+        free_combat::start_day(seed as u64, random, year, doy)
+    }
+
     /// The day of the year of `year`-`month`-`day` (1 for 1 January).
     #[func]
     fn day_of_year(year: i64, month: i64, day: i64) -> i64 {

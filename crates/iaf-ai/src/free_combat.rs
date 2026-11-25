@@ -315,11 +315,49 @@ pub fn start_time(seed: u64, random: bool, min: i64) -> i64 {
     (mix(seed ^ mix(0x7173)) % (DAY_MIN / MINUTE_STEP) as u64) as i64 * MINUTE_STEP
 }
 
-/// The day of the year (1 for 1 January) of `year`-`month`-`day` (Gregorian), for the sun on today's date.
+const BEFORE: [i64; 12] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+
+fn leap(year: i64) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+/// The day of the year (1 for 1 January) of `year`-`month`-`day` (Gregorian), for the sun on the flight's date.
 pub fn day_of_year(year: i64, month: i64, day: i64) -> i64 {
-    const BEFORE: [i64; 12] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-    BEFORE[(month.clamp(1, 12) - 1) as usize] + day + i64::from(leap && month > 2)
+    BEFORE[(month.clamp(1, 12) - 1) as usize] + day + i64::from(leap(year) && month > 2)
+}
+
+/// The days of `year`: 365, 366 in a leap year.
+pub fn year_days(year: i64) -> i64 {
+    365 + i64::from(leap(year))
+}
+
+/// The month (1 to 12) and its day of day `doy` of `year` (wrapped into the year).
+pub fn month_day(year: i64, doy: i64) -> (i64, i64) {
+    let doy = (doy - 1).rem_euclid(year_days(year)) + 1;
+    let m = (1..=12).rev().find(|&m| day_of_year(year, m, 1) <= doy).unwrap_or(1);
+    (m, doy - day_of_year(year, m, 1) + 1)
+}
+
+/// The Scramble's date `doy` of `year` stepped by `days` days round the year, then by `months` months round the year
+/// (the day kept, cut to the month's last: 31 January a month on is 28 or 29 February).
+pub fn date_step(year: i64, doy: i64, days: i64, months: i64) -> i64 {
+    let doy = (doy - 1 + days).rem_euclid(year_days(year)) + 1;
+    if months == 0 {
+        return doy;
+    }
+    let (m, d) = month_day(year, doy);
+    let m = (m - 1 + months).rem_euclid(12) + 1;
+    let last = if m == 12 { 31 } else { day_of_year(year, m + 1, 1) - day_of_year(year, m, 1) };
+    day_of_year(year, m, d.min(last))
+}
+
+/// The flight's day of `year`: the set `doy`, or with `random` one drawn from the Scramble's `seed` alike over the
+/// year's days (its own draw, apart from the start time's).
+pub fn start_day(seed: u64, random: bool, year: i64, doy: i64) -> i64 {
+    if !random {
+        return (doy - 1).rem_euclid(year_days(year)) + 1;
+    }
+    (mix(seed ^ mix(0x6461)) % year_days(year) as u64) as i64 + 1
 }
 
 /// Israel's clock on `year`-`month`-`day`, hours ahead of UTC: 3 on summer time (Israel Daylight Time, from the
@@ -517,6 +555,28 @@ mod tests {
             [o(2025, 3, 27), o(2025, 3, 28), o(2025, 10, 25), o(2025, 10, 26), o(2026, 11, 25)],
             [2.0, 3.0, 3.0, 2.0, 2.0]
         );
+    }
+
+    #[test]
+    fn the_date() {
+        assert_eq!([year_days(2026), year_days(2028), year_days(2100)], [365, 366, 365]);
+        assert_eq!([month_day(2026, 1), month_day(2026, 329), month_day(2026, 365)], [(1, 1), (11, 25), (12, 31)]);
+        assert_eq!([month_day(2028, 60), month_day(2028, 61), month_day(2026, 0)], [(2, 29), (3, 1), (12, 31)]);
+        assert_eq!(date_step(2026, 365, 1, 0), 1, "a day past 31 December: 1 January");
+        assert_eq!(date_step(2026, 1, -1, 0), 365);
+        assert_eq!(month_day(2026, date_step(2026, 31, 0, 1)), (2, 28), "31 January a month on: 28 February");
+        assert_eq!(month_day(2028, date_step(2028, 31, 0, 1)), (2, 29));
+        assert_eq!(month_day(2026, date_step(2026, 329, 0, 2)), (1, 25), "25 November two months on: 25 January");
+        assert_eq!(month_day(2026, date_step(2026, 10, 0, -1)), (12, 10));
+        assert_eq!(start_day(9, false, 2026, 329), 329, "a set date flies as set");
+        let mut got = std::collections::HashSet::new();
+        for seed in 0..3000 {
+            let d = start_day(seed, true, 2026, 1);
+            assert_eq!(start_day(seed, true, 2026, 1), d, "a seed draws the same day");
+            assert!((1..=365).contains(&d), "{d}");
+            got.insert(month_day(2026, d).0);
+        }
+        assert_eq!(got.len(), 12, "every month is drawn");
     }
 
     #[test]

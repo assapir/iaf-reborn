@@ -3,7 +3,7 @@
 #   items ticked, the current one marked, a fault in red; a start-up lesson's tower call above it), TAXI / T-O (the
 #   base's take-off mission's steps), RADIO (the base's frequencies, the calls and the tower's answers), LANDING,
 #   WEAPONS (with each step's key), EMERGENCY (data/notebook.json) and DATA (the mission's figures, its start time
-#   the flight's: a Scramble's set or drawn time);
+#   the flight's: a Scramble's set or drawn time, and a Scramble's date);
 # - stowed: a board on the pilot's right thigh in the 3D cockpit (the notebook drawn into a texture when it changes);
 #   raised by the Checklist notebook key (H, keys.json record 118): a panel at the screen's lower right (in Hebrew
 #   too: the thigh's side), never its centre; a start-up mission starts with it raised;
@@ -18,6 +18,7 @@ const RadioScript := preload("res://shared/audio/radio.gd")
 
 const Notebook := preload("notebook.gd")
 const Look := preload("../menu/look.gd")
+const TimeOfDay := preload("res://shared/terrain/time_of_day.gd")
 ## The sim's key records of the Checklist notebook (modern-iaf/data/keys.json, command 203): raise / stow, the previous
 ## and the next page.
 const KEY := 118
@@ -375,6 +376,9 @@ func _sections() -> Array:
 	rows.append([s("nb_mission"), _esc(String(m.get("title", {}).get(l, "")))])
 	rows.append([s("nb_base"), "%s (%s)" % [_base_name(), _ltr(String(rwy.get("icao", "")))]])
 	rows.append([s("nb_time"), _ltr(_start_time(String(m.get("time", ""))))])
+	if TimeOfDay.year > 0:  # a Scramble's date (set or drawn): "25 November 2026"
+		var md: Vector2i = IafFreeCombat.month_day(TimeOfDay.year, TimeOfDay.day)
+		rows.append([s("nb_date"), s("fc_date_fmt") % [md.y, s("month_%d" % md.x)] + " %d" % TimeOfDay.year])
 	var wind := int(m.get("wind_kt", 0))
 	rows.append([s("nb_wind"), s("nb_calm") if wind == 0 else _ltr(Look.wind(m) + " kt")])
 	rows.append([s("nb_jet"), _ltr(_jet())])

@@ -11,13 +11,14 @@ const NIGHT_LIGHT := Color(20 / 255.0, 20 / 255.0, 60 / 255.0)
 
 ## Modern IAF's place and day: the middle of the country (31.5° N, 34.9° E) on Israel Standard Time (UTC+2), at the
 ## March equinox (day 79: the sun rises about 05:45 and sets about 17:50; a mission has an hour, no date; a Scramble
-## flies on today's date: `day`).
+## flies on its own date: `day`).
 const LAT := 31.5
 const LON := 34.9
 const UTC_OFFSET := 2.0
 const DAY := 79
-## The sun's day of the year and Israel's clock (hours ahead of UTC) now: DAY and UTC_OFFSET, today's on a Scramble
-## start (modern-iaf/flight/fly.gd prepare_free: summer time included).
+## The sun's day of the year and Israel's clock (hours ahead of UTC) now: DAY and UTC_OFFSET, the Scramble's date's
+## on its start (modern-iaf/flight/fly.gd prepare_free: summer time included), with its year (0: no date).
+static var year := 0
 static var day := DAY
 static var utc_offset := UTC_OFFSET
 ## Modern IAF: night (the gradient sky in OWN_ROWS' twilight colours, the moon, the stars, the lights, the cockpit's

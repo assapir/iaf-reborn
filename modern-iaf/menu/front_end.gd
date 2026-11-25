@@ -953,6 +953,8 @@ func _page_missions() -> void:
 ## Opens section `id`'s list.
 func open_section(id: String) -> void:
 	section = id
+	if id == "fly_now":
+		FreeCombatPage.reset()  # 0800 today on each opening
 	show_page("free" if id == "fly_now" else "section")
 
 
@@ -1147,8 +1149,11 @@ func fly_free() -> void:
 	fc.seed = randi()
 	fc.area = Fly.free_area(fc.home, fc.seed)
 	fc.start_min = IafFreeCombat.start_time(fc.seed, fc.time_random, fc.time)
+	fc.year = FreeCombatPage.year()
+	fc.start_day = IafFreeCombat.start_day(fc.seed, fc.date_random, fc.year, fc.date)
 	Settings.free_combat = fc.duplicate()
-	Settings.free_combat.erase("home")
+	for k in ["home", "time", "time_random", "date", "date_random", "year", "start_day"]:
+		Settings.free_combat.erase(k)  # the time and date are not kept
 	Settings.save()
 	if Fly.prepare_free(int(missions[0].menu_id), fc):
 		TerrainPreload.fly(get_tree())
