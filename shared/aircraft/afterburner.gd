@@ -43,6 +43,7 @@ const HAZE_SHADER := """
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 uniform sampler2D screen : hint_screen_texture, filter_linear_mipmap;
+uniform sampler2D depth : hint_depth_texture, filter_nearest;
 uniform sampler2D noise : repeat_enable, filter_linear_mipmap;
 uniform float strength = 0.0;
 varying float along;
@@ -51,6 +52,11 @@ void vertex() {
 	// The cylinder's local Y (-0.5 at the nozzle, +0.5 at the far end): `along` runs 0 -> 1 from the nozzle.
 	along = VERTEX.y + 0.5;
 	axis = normalize((MODELVIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+}
+// The opaque scene's distance (m) along the view at screen point `uv`.
+float view_depth(vec2 uv, mat4 inv_projection) {
+	vec4 v = inv_projection * vec4(uv * 2.0 - 1.0, textureLod(depth, uv, 0.0).r, 1.0);
+	return -v.z / v.w;
 }
 void fragment() {
 	// Strongest across the middle of the cone as seen, fading along it.
@@ -61,7 +67,14 @@ void fragment() {
 	vec2 n = vec2(texture(noise, vec2(UV.x * 2.0, along * 1.5 - TIME * 2.2)).r,
 		texture(noise, vec2(UV.x * 2.0 + 0.5, along * 1.5 - TIME * 1.7)).g) - 0.5;
 	float k = strength * smoothstep(0.0, 0.08, along) * (1.0 - along) * facing * facing;
-	ALBEDO = textureLod(screen, SCREEN_UV + n * 0.006 * k, 0.0).rgb;
+	// The bent ray never reaches past the jet's own body: a sample farther away than the pixel's own (the town or the
+	// sky beside the body) would show through the body, so there the pixel's own colour is kept. Seen from far behind
+	// the jet is a few times the bend's width, and the whole body looked see-through.
+	vec2 bent = SCREEN_UV + n * 0.006 * k;
+	if (view_depth(bent, INV_PROJECTION_MATRIX) > view_depth(SCREEN_UV, INV_PROJECTION_MATRIX) + 0.5) {
+		bent = SCREEN_UV;
+	}
+	ALBEDO = textureLod(screen, bent, 0.0).rgb;
 	// The screen copy holds the opaque scene only: blend it in no further than the shimmer needs.
 	ALPHA = clamp(k * 0.8, 0.0, 0.8);
 }

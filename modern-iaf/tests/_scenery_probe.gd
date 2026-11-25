@@ -56,7 +56,9 @@ func run() -> void:
 				)
 				parts["trees far" if far else "trees near"].append(n)
 		elif n is MeshInstance3D:
-			parts["buildings far" if n.get_instance_shader_parameter("far_model") else "buildings near"].append(n)
+			var bm := n.material_override as ShaderMaterial
+			var far: bool = bm != null and bm.get_shader_parameter("far_model")
+			parts["buildings far" if far else "buildings near"].append(n)
 	for p in parts:
 		print("PART %s: %d nodes" % [p, parts[p].size()])
 	var on: bool = load("res://shared/terrain/ground_roads.gd").on()

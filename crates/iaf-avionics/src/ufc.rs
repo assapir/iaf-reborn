@@ -738,7 +738,8 @@ impl Ufc {
             Page::Hmcs => [
                 s("     HMCS DISPLAY"),
                 s("  HUD BLNK      ON"),
-                s("  CKPT BLNK    OFF"),
+                // The helmet display blanks while the head looks into the cockpit (cockpit3d.gd _sight_in_cockpit).
+                s("  CKPT BLNK     ON"),
                 s("  DECLUTTER   LVL1"),
                 String::new(),
             ],

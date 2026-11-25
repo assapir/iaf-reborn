@@ -995,8 +995,13 @@ its scale. The original HUD keeps the original layout.
     inside the 20° field.
   - The heading sits above the cross: the cockpit view's centre is low on the screen, so the JHMCS's bottom position
     would fall off it.
-  - Not drawn: a horizon, shoot cue, RWR (radar warning receiver) symbols, declutter. Blanking is implied: the helmet
-    set shows only while looking aside.
+  - Not drawn: a horizon, shoot cue, RWR (radar warning receiver) symbols, declutter.
+  - Blanking: HUD blanking by the rule above (the helmet set shows only while no part of the combiner glass is on the
+    screen), and cockpit blanking (the DED's HMCS page reads CKPT BLNK ON): in a 3D cockpit with a combiner glass the
+    set blanks while the helmet's line of sight (the camera's axis) meets the cockpit's own opaque surfaces within
+    1.2 m of the eye: the canopy rail, the consoles, the panel, the pilot's body (`cockpit3d.gd` `_sight_in_cockpit`;
+    `cockpit.gd` `helmet_dark`, as the HMCS switched off). Until 2026-11-25 its symbols drew over the canopy rail
+    when looking down to the side. The F-35I's helmet display has no glass and draws everywhere.
 
 ### Modern IAF's HUD light
 

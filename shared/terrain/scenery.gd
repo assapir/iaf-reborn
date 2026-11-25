@@ -1043,10 +1043,17 @@ func _start_cell(k: Vector2i) -> void:
 	root.position = Vector3(o.x - wo.x, o.z, -(o.y - wo.y))
 	add_child(root)
 	c.node = root
-	var mat := _building_material(IafScenery.damage_index(k.x, k.y))
-	mat.set_shader_parameter("parapet_m", _parapet_m)
-	_materials.append(mat)
-	c.mat = mat
+	# A material per model (near, far): the shader's far_model is a material's uniform, not an instance uniform (Godot
+	# holds those for at most 4,096 instances: a dense town's chunks ran out of them, "Too many instances using shader
+	# instance variables").
+	var damage: PackedByteArray = IafScenery.damage_index(k.x, k.y)
+	c.mats = []
+	for far in [false, true]:
+		var mat := _building_material(damage)
+		mat.set_shader_parameter("parapet_m", _parapet_m)
+		mat.set_shader_parameter("far_model", far)
+		_materials.append(mat)
+		c.mats.append(mat)
 
 
 ## One piece of a made cell: a chunk of its near or far buildings, or its trees; the cell is drawn when none is left.
@@ -1069,12 +1076,11 @@ func _upload(k: Vector2i) -> int:
 		)
 		var mi := MeshInstance3D.new()
 		mi.mesh = mesh
-		mi.material_override = c.mat
+		mi.material_override = c.mats[0 if near else 1]
 		# The ranges only cull whole tiles; the shader swaps and raises each building by its own distance. Godot
 		# measures a range to the mesh's centre, and no building's centre is farther from it than half the box's
 		# diagonal: the mesh is drawn while any of its buildings may be.
 		var reach := mesh.get_aabb().size.length() / 2.0
-		mi.set_instance_shader_parameter("far_model", not near)
 		mi.visibility_range_begin = 0.0 if near else NEAR - reach
 		mi.visibility_range_end = (NEAR if near else RANGE) + reach
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -1128,10 +1134,11 @@ func _upload(k: Vector2i) -> int:
 func _refresh_damage() -> void:
 	for k in _live:
 		var c: Dictionary = _cells[k]
-		if c.has("mat"):
+		if c.has("mats"):
 			var d: PackedByteArray = IafScenery.damage_index(k.x, k.y)
-			if d != c.mat.get_meta("damage"):
-				_set_damage(c.mat, d)
+			if d != c.mats[0].get_meta("damage"):
+				for m in c.mats:
+					_set_damage(m, d)
 
 
 ## Each live cell's buildings lit per pixel while a shown LIT_GROUP light reaches into it, else per vertex.
@@ -1150,7 +1157,7 @@ func _light_cells() -> void:
 	_lit_cells = 0
 	for k in _live:
 		var c: Dictionary = _cells.get(k, {})
-		if not c.has("mat"):
+		if not c.has("mats"):
 			continue
 		var want := false
 		for l in lights:
@@ -1159,7 +1166,8 @@ func _light_cells() -> void:
 				break
 		if want != c.get("pixel", false):
 			c.pixel = want
-			c.mat.shader = building_shader(want)
+			for m in c.mats:
+				m.shader = building_shader(want)
 		_lit_cells += int(want)
 
 
@@ -1167,8 +1175,8 @@ func _drop(k: Vector2i) -> void:
 	var c: Dictionary = _cells[k]
 	if c.has("node"):
 		c.node.queue_free()
-	if c.has("mat"):
-		_materials.erase(c.mat)
+	for m in c.get("mats", []):
+		_materials.erase(m)
 	if c.has("origin"):
 		IafScenery.drop_cell(k.x, k.y)
 	_cells[k] = {"state": "wait"}

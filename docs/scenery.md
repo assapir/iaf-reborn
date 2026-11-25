@@ -305,13 +305,16 @@ Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
   The front end's preload (briefing, TSD, arming) already has the near cells made.
 - **Per cell:**
   - the buildings in 250 m tiles (and at most 60 000 vertices per mesh), a near mesh (walls with windows, roofs) and a
-    far one (bare prisms). Godot tests a visibility range against a mesh's centre, so a cell-wide mesh would swap
-    models and appear in whole strips; each vertex instead carries its building's centre at its base (CUSTOM0), and
+    far one (bare prisms). Godot tests a visibility range against a mesh's centre, so a cell-wide mesh would swap models
+    and appear in whole strips; each vertex instead carries its building's centre at its base (CUSTOM0), and
     `scenery.gdshader` swaps each building at 2.5 km by its own distance and raises it from the ground over the last
-    400 m before 4.5 km. Each mesh's range reaches half its box's diagonal past its model's (no building's centre is
-    farther from the box's centre), so a mesh is drawn while any of its buildings may be. The 250 m tiles (500 m
-    until 2026-11-11) leave out more of the buildings off screen or beyond their model's range: 0.2–0.3 ms of GPU time
-    over Tel Aviv and Beersheba, the same picture (modern-iaf/docs/scenery.md §6);
+    400 m before 4.5 km. A cell has two materials, one per model (the shader's `far_model` a material's uniform): an
+    instance uniform per mesh ran out of Godot's instance slots over Tel Aviv (1,039 "Too many instances using shader
+    instance variables" errors in a Sufa's run at 300 m, until 2026-11-25). Each mesh's range reaches half its box's
+    diagonal past its model's (no building's centre is farther from the box's centre), so a mesh is drawn while any of
+    its buildings may be. The 250 m tiles (500 m until 2026-11-11) leave out more of the buildings off screen or beyond
+    their model's range: 0.2–0.3 ms of GPU time over Tel Aviv and Beersheba, the same picture
+    (modern-iaf/docs/scenery.md §6);
   - our own trees to 2 km, in 500 m tiles, one MultiMesh per tile, kind and model (§3.2). Godot tests a visibility
     range against an object's centre, so a whole cell's trees would appear at once; the tree shaders instead pick the
     model by each tree's own distance.

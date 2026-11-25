@@ -146,7 +146,7 @@ func _stream(sc: GDScript, meta: Dictionary, c: Vector2i, mode: String) -> void:
 	check(far.is_empty(), "nothing loaded beyond %d m (%s)" % [reach, far])
 	var node: Node3D = t.scenery._cells[c].node
 	check(node.get_child_count() >= 2, "near + far meshes and trees (%d nodes)" % node.get_child_count())
-	var mat: ShaderMaterial = t.scenery._cells[c].mat
+	var mat: ShaderMaterial = t.scenery._cells[c].mats[0]
 	var shader: Shader = load(sc.DETAILED_SHADER if mode == "detailed" else sc.SHADER)
 	check(mat.shader == shader, "%s: its building shader" % mode)
 	# Building colours (docs/scenery.md §3.4): Photo by default.
@@ -157,7 +157,7 @@ func _stream(sc: GDScript, meta: Dictionary, c: Vector2i, mode: String) -> void:
 	var meshes := node.get_children().filter(func(n): return n is MeshInstance3D)
 	var drawn := meshes.filter(func(n): return n.material_override != null)
 	var copies := meshes.filter(func(n): return n.material_override == null)
-	var near_n := drawn.filter(func(n): return not n.get_instance_shader_parameter("far_model")).size()
+	var near_n := drawn.filter(func(n): return not n.material_override.get_shader_parameter("far_model")).size()
 	check(
 		drawn.all(func(n): return n.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF),
 		"%s: the drawn meshes cast no shadow themselves" % mode

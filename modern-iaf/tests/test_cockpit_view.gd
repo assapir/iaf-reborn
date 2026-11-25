@@ -43,6 +43,7 @@ func run() -> void:
 			await _wheel(c)
 		for up in [20.0, -20.0]:
 			await _padlock(tv, jet, up)
+		await _blanking(tv, jet)
 
 
 ## Padlock in the 3D cockpit (docs/views.md §4.3): a point 70° left and `up`° up, 800 m out, ends on the helmet's
@@ -66,6 +67,23 @@ func _padlock(tv: Node, jet: String, up: float) -> void:
 		check(off < 1.0, "%s %+.0f°: the padlocked target on the helmet's %s (%.1f° off)" % [jet, up, v[0], off])
 	tv.views.set_cockpit(tv.views.COCKPIT)
 	t.queue_free()
+
+
+## The helmet display's cockpit blanking (cockpit3d.gd _sight_in_cockpit, docs/real-hud.md "DASH helmet"): an F-16's
+## blanks looking down aside at the canopy rail and shows looking out aside; the F-35I's (no combiner glass) never
+## blanks.
+func _blanking(tv: Node, jet: String) -> void:
+	var c: Control = tv.cockpit
+	var f16 := jet.begins_with("f16")
+	tv.views.snap = Vector2(-1.2, -0.5)
+	await frames(10)
+	check(c.dash(), "%s: looking down at the rail, the helmet's line of sight" % jet)
+	check(c.helmet_blanked == f16, "%s: at the rail the helmet display %s" % [jet, "blanks" if f16 else "shows"])
+	tv.views.snap = Vector2(-1.1, -0.15)
+	await frames(10)
+	check(c.dash() and not c.helmet_blanked, "%s: looking out aside the helmet display shows" % jet)
+	tv.views.snap = null
+	await frames(5)
 
 
 ## The AoA indexer's three lamps and the AR / NWS lamp whole from the eye (the user, 2026-11-16: "you only see half of

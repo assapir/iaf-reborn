@@ -3,6 +3,16 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Givatayim fly-by's faults (2026-11-25, the user: "no loose corners";
+  [../../docs/real-hud.md](../../docs/real-hud.md) "DASH helmet", [../../docs/rendering.md](../../docs/rendering.md) §6,
+  [../../docs/scenery.md](../../docs/scenery.md)):** the Sufa's and the Barak's helmet display blanks while the head
+  looks into the cockpit (CKPT BLNK ON on the DED): its cross and numbers no longer draw over the canopy rail and the
+  consoles; looking out to the side it shows as before; the Adir's helmet display is unchanged. The town's buildings
+  take a material per model instead of an instance uniform: over Tel Aviv at 300 m the log had 1,039 (Sufa) and 1,145
+  (Barak) "Too many instances using shader instance variables" errors, now none, the same picture; on the laptop's Iris
+  Xe (Everything on, 1080p) the frame over Tel Aviv took 37.5 / 36.0 ms at 150 / 300 m before and 36.0 / 35.6 ms after.
+  The engine's heat haze never bends the town or the sky over the jet's own body. Pictures:
+  `modern-iaf/tests/_flyby_shot.gd`.
 - **Only radio over the flight; no reason lines; no pane on Updates (2026-11-25, the user's third notes on A86, A98,
   A101; [front-end.md](front-end.md) §8, §14):** every in-flight line that is not a radio call (switch states,
   refusals, damage, cheats, the training's "To complete" and wrong-runway lines and its fail banner) is gone from the screen and kept in

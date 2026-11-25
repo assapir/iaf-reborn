@@ -155,8 +155,8 @@ func hud_failed() -> bool:
 func _draw() -> void:
 	if cockpit == null or cockpit.layout.is_empty() or hud_failed():
 		return
-	if not cockpit.helmet_power and cockpit.dash():
-		return  # the HMCS switched off: the helmet display dark
+	if cockpit.helmet_dark() and cockpit.dash():
+		return  # the HMCS switched off, or blanked looking into the cockpit: the helmet display dark
 	_layout()
 	var s: float = cockpit.ui_scale()
 	var st: Dictionary = cockpit.state
@@ -769,7 +769,7 @@ func real_hud() -> Dictionary:
 		"time": st.get("time", 0.0),
 		"off_boresight": helmet and cockpit.dash(),
 		# The helmet display dark (IafRealHud): the HMCS off, Modern IAF's night-vision goggles down.
-		"helmet_off": not cockpit.helmet_power,
+		"helmet_off": cockpit.helmet_dark(),
 		"goggles_down": cockpit.goggles != null and cockpit.goggles.down(),
 		"head_view": (centre - _c) / _s,
 		"head_rel":

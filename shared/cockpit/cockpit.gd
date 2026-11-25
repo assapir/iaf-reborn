@@ -968,6 +968,16 @@ var hud_clip = null
 var hud_on_glass := false
 ## Ours, the 3D F-16's HMCS SYM INT knob (cockpit3d_controls.gd): off, the helmet display (dash) shows nothing.
 var helmet_power := true
+## Ours, the 3D cockpit with a combiner glass (cockpit3d.gd _sight_in_cockpit): the helmet looks into the cockpit (the
+## rail, the consoles), and its display blanks there, as the JHMCS's cockpit blanking (docs/real-hud.md "DASH helmet").
+var helmet_blanked := false
+
+
+## The helmet display dark: switched off, or blanked looking into the cockpit.
+func helmet_dark() -> bool:
+	return not helmet_power or helmet_blanked
+
+
 ## Ours, Modern IAF's F-16s: the night-vision goggles (IafGoggles, terrain_view.gd _goggles_key; modern-iaf/docs/
 ## cockpit.md §5.5), null until their key is first pressed; while down the helmet display shows no symbols.
 var goggles: RefCounted

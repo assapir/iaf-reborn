@@ -1952,7 +1952,10 @@ lasting 6 s (`gpu_fx.gd contrail`, called for the player in `terrain_view.gd` an
 2.2 r, 8 r long behind it, in the model's own frame, so it starts at the nozzle and moves with the jet. The shader
 shifts the screen copy by scrolling noise, strongest across the middle of the cone and fading along it. Strength:
 the engine level / 100, × 1.6 in afterburner; hidden below level 31. It draws before the flame, so the flame glows on
-top. The screen copy holds the opaque scene, so the haze blends in only as far as the shimmer needs.
+top. The screen copy holds the opaque scene, so the haze blends in only as far as the shimmer needs. A shifted sample
+farther away than the pixel's own (by the depth texture, more than 0.5 m) is not taken: the pixel keeps its own colour,
+so the town or the sky beside the body never shows through the jet. Until 2026-11-25 it did: seen from far behind,
+where the jet is a few times the shift's width, the whole body looked see-through.
 
 **Condensation** (new content, `vapour_fx.gd`, fed by `gpu_fx.gd contrail` with each jet's flight state): water vapour
 condenses where the air around a jet cools below its dew point[^wtv][^vcone]. Three effects, on every jet within 3 km

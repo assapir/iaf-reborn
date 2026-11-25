@@ -24,7 +24,7 @@ uniform bool has_walls = false;
 uniform vec4 wall_size = vec4(2.0, 2.0, 1.1, 2.0);
 // The model by each building's own distance (CUSTOM0.xyz: its centre at its base, mesh frame): the near mesh to
 // `near_m`, the far mesh beyond, rising from the ground over the last `grow_m` before `far_m` (scenery.gd sets these).
-instance uniform bool far_model = false;
+uniform bool far_model = false;
 uniform float near_m = 2500.0;
 uniform float far_m = 4500.0;
 uniform float grow_m = 400.0;

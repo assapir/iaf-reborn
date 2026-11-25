@@ -237,6 +237,13 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 				_attach(mfd, screen, n)
 	cockpit.hud_clip = PackedVector2Array()
 	cockpit.hud_on_glass = _glass != null
+	_sight_room.clear()
+	if _glass != null:  # the helmet display's cockpit blanking (_sight_in_cockpit): made here, not at its first look
+		var top: Node3D = get_parent() if get_parent() is Node3D else self
+		for mi: MeshInstance3D in top.find_children("*", "MeshInstance3D", true, false):
+			var tris := _opaque_tris(mi)
+			if tris != null:
+				_sight_room.append([mi, tris, mi.get_aabb()])
 	_setup_instruments(n)
 	_setup_light(n)
 	var table := path.get_basename() + "_controls.json"
@@ -945,6 +952,7 @@ func release() -> void:
 	if cockpit != null:
 		cockpit.hud_clip = null
 		cockpit.hud_on_glass = false
+		cockpit.helmet_blanked = false
 		cockpit.zoom = minf(cockpit.zoom, cockpit.ZOOM_MAX)  # the zoom past true size is the 3D cockpit's only
 		cockpit.hud.modulate.a = 1.0  # the BRT wheel's (_lighting)
 
@@ -973,6 +981,7 @@ func _process(delta: float) -> void:
 	if cockpit.view_mode == 0:
 		cockpit.position = cockpit.view_shift  # this frame's (cockpit.gd may have run before the camera moved)
 	cockpit.hud_clip = _glass_outline()
+	cockpit.helmet_blanked = cockpit.dash() and _sight_in_cockpit()
 	_lighting()
 
 
@@ -1097,6 +1106,48 @@ func _nose_shift() -> Vector2:
 	if camera.is_position_behind(nose):
 		return Vector2.ZERO
 	return camera.unproject_position(nose) - cockpit.boresight()
+
+
+## The helmet display's cockpit blanking (docs/real-hud.md "DASH helmet"): true while the helmet's line of sight (the
+## camera's axis) meets the cockpit's own opaque surfaces within BLANK_M of the eye (the canopy rail, the consoles, the
+## panel, the pilot's body), so the symbols never draw over the cockpit. Only with a combiner glass: the F-35I's
+## helmet display draws everywhere.
+func _sight_in_cockpit() -> bool:
+	if _glass == null:
+		return false
+	var eye := camera.global_position
+	var to := eye - camera.global_basis.z * BLANK_M
+	for e in _sight_room:
+		var mi: MeshInstance3D = e[0]
+		if not is_instance_valid(mi) or not mi.is_visible_in_tree():
+			continue
+		var inv := mi.global_transform.affine_inverse()
+		var a := inv * eye
+		var b := inv * to
+		# The box first: most meshes are nowhere near the line of sight.
+		if not (e[2] as AABB).intersects_segment(a, b):
+			continue
+		if not e[1].intersect_segment(a, b).is_empty():
+			return true
+	return false
+
+
+## The helmet's line of sight meets the cockpit this close (m): the rail and the consoles, not the wing or the nose.
+const BLANK_M := 1.2
+var _sight_room := []  # [MeshInstance3D, TriangleMesh, AABB] of the opaque cockpit surfaces (_sight_in_cockpit, setup)
+
+
+## `mi`'s opaque surfaces as one TriangleMesh (null for none): no glass, no screen (a material_override).
+func _opaque_tris(mi: MeshInstance3D) -> TriangleMesh:
+	if mi.mesh == null or mi.material_override != null:
+		return null
+	var am := ArrayMesh.new()
+	for i in mi.mesh.get_surface_count():
+		var mat := mi.get_active_material(i) as BaseMaterial3D
+		if mi.mesh.surface_get_primitive_type(i) != Mesh.PRIMITIVE_TRIANGLES or (mat != null and _translucent(mat)):
+			continue
+		am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, mi.mesh.surface_get_arrays(i))
+	return am.generate_triangle_mesh() if am.get_surface_count() > 0 else null
 
 
 ## The combiner glass's outline on the screen (px in the cockpit node); empty when out of sight.
