@@ -1,11 +1,12 @@
 # Dev helper (not run by tools/test.sh): Modern IAF's time of day (modern-iaf/docs/terrain.md §17), real renders of
 # SHOT_MISSION (default the free flight) at SHOT_HOUR (h), posed by terrain_view's user args (`-- --at X Y ALT HDG
-# PITCH`): the cockpit and the chase view (SHOT_ORBIT "yaw,pitch,dist", default 150,8,40), saved to
+# PITCH`): the cockpit, with its HUD, and the chase view (SHOT_ORBIT "yaw,pitch,dist", default 150,8,40), saved to
 # SHOT_OUT/<SHOT_NAME>_{cockpit,external}.jpg, and the mean frame time of each view over 4 s (vsync off, "BENCH").
 # SHOT_EXPOSURE=k brightens the picture k times (a long exposure). SHOT_DATE=YYYY-MM-DD flies on that date (the
 # moon's phase and place, the sun's day; default today's moon on the equinox's sun, as a mission).
 # SHOT_SET=key=value,... sets settings first (all settings on:
-# antialiasing=taa,upscaling=quality,clouds=volumetric).
+# antialiasing=taa,upscaling=quality,clouds=volumetric); the free flight's jet: f16_variant=barak, or
+# f35i_slot=0,jet_id=0 for the Adir.
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> SHOT_NAME=h22 \
 #     SHOT_HOUR=22 -- --log-file <t> --resolution 1600x900 --path modern-iaf -s ../modern-iaf/tests/_night_sky_shot.gd \
 #     -- --at 670000 3440000 1500 0 0
@@ -21,7 +22,7 @@ func run() -> void:
 	for kv in OS.get_environment("SHOT_SET").split(",", false):
 		var p := kv.split("=")
 		var cur = settings().get(p[0])
-		settings().set(p[0], (p[1] == "true") if cur is bool else p[1])
+		settings().set(p[0], (p[1] == "true") if cur is bool else type_convert(p[1], typeof(cur)))
 	var mission := OS.get_environment("SHOT_MISSION")
 	var tv: Node = await start_mission(int(mission) if mission != "" else -1)
 	var date := _env("SHOT_DATE", "").split("-")
@@ -36,8 +37,9 @@ func run() -> void:
 		tv._sim_time = hour * 3600.0 - 39600.0  # a free flight's clock (_effects_shot.gd)
 	tv._tod_t = -INF
 	tv.cockpit.night = TimeOfDay.cockpit_night(tv.time_of_day())
+	# The overlays off (messages, labels); the cockpit's layer stays: the HUD is drawn there.
 	for c in tv.get_children():
-		if c is CanvasLayer:
+		if c is CanvasLayer and c.name != "CockpitLayer":
 			c.visible = false
 	# SHOT_EXPOSURE=k: a photographer's longer exposure, the picture k times brighter (the game draws k = 1).
 	var env: Environment = (tv.get_node("WorldEnvironment") as WorldEnvironment).environment
