@@ -6,6 +6,7 @@ use crate::awacs::{self, Contact, Ident};
 use crate::flight::flat;
 use iaf_avionics::fctrl;
 use iaf_flight::Vec3;
+use iaf_flight::airframe::Rcs;
 
 const G: f64 = 9.80665;
 /// The speed of sound at 41,000 ft (m/s; the standard atmosphere's 295.1 above the tropopause).
@@ -59,8 +60,13 @@ pub fn station(area: Vec3, home: Vec3, start: Vec3) -> Orbit {
     Orbit { centre: Vec3::new(c.x, c.y, ALT_M), along: left }
 }
 
-/// A call the Eitam makes: the template and its particles (voices.json).
-pub type Call = (&'static str, Vec<String>);
+/// A call the Eitam makes: the template, its particles (voices.json) and the group it names (for the flight's
+/// "contact", `Flight::awacs`).
+pub type Call = (&'static str, Vec<String>, awacs::Named);
+
+/// Its radar cross-section: a business jet's, larger than a fighter's from every side (m²; inferred, no public
+/// figure).
+pub const RCS: Rcs = Rcs { front_m2: 10.0, side_m2: 40.0, rear_m2: 15.0, bays_open_m2: 0.0, store_m2: 0.0 };
 
 /// The Eitam's state.
 #[derive(Clone, Debug)]
@@ -138,14 +144,16 @@ impl Eitam {
                 if now - self.help_at >= HELP_REPEAT_S {
                     self.help_at = now;
                     let b = fctrl::tens(fctrl::bearing(player, at));
+                    let m = awacs::miles(flat(player, at));
                     calls.push((
                         "AWX_HELP",
                         vec![
                             format!("{callsign}_r"),
                             format!("BEARING{b:03}"),
-                            format!("MILES{:02}", awacs::miles(flat(player, at))),
+                            format!("MILES{m:02}"),
                             format!("AWX_ALT{:02}", awacs::thousands(top)),
                         ],
+                        awacs::Named { bearing: b, miles: m, hostile: true },
                     ));
                 }
             }
@@ -248,7 +256,8 @@ mod tests {
         let pair = [mig("a", at, toward(at)), mig("b", at + Vec3::new(900.0, 0.0, 300.0), toward(at))];
         let calls = e.step(2.0, 0.1, &pair, "Alpha", player);
         assert_eq!(calls.len(), 1);
-        let (t, args) = &calls[0];
+        let (t, args, named) = &calls[0];
+        assert!(named.hostile && named.miles == awacs::miles(flat(player, at)));
         assert_eq!(*t, "AWX_HELP");
         assert_eq!(args[0], "Alpha_r");
         assert_eq!(args[3], "AWX_ALT25");

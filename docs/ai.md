@@ -2479,8 +2479,8 @@ gdext `IafAwacs` (`crates/iaf-godot/src/awacs.rs`). `shared/audio/radio.gd` asks
   its height every contact inside its range is in sight; lower, a low contact far out is under it.
 - **The virtual AWACS** where the flight has none (the training missions, the range): the 1998 game's sphere round
   the player, 96.3 km (`fctrl.rs`).
-- **Neither** once the Eitam is shot down: the service ends. The radio menu's AWACS page (§24.5, the next merge) shows every request off
-  with "The Eitam is lost: no AWACS" ("העיטם אבד: אין בקר מוטס"), the contact calls stop and the data link loses the
+- **Neither** once the Eitam is shot down: the service ends. The radio menu's AWACS page (§24.5) shows every request off
+  with "The Eitam is lost: no AWACS" ("העיטם אבד: אין AWACS"), the contact calls stop and the data link loses the
   AWACS's tracks (§24.4).
 - Both see an aircraft only above the terrain + 175 m, the floor of the 1998 contact calls and of the data link
   (`fctrl::CONTACT_AGL`), so the picture, the calls and the HSD agree.
@@ -2489,7 +2489,7 @@ gdext `IafAwacs` (`crates/iaf-godot/src/awacs.rs`). `shared/audio/radio.gd` asks
 
 ### 24.2 The requests and the answers
 
-The radio menu's third line (AWACS) opens the controller's page (§24.5, the next merge). Each request is the pilot's call, the radio's
+The radio menu's third line (AWACS) opens the controller's page (§24.5). Each request is the pilot's call, the radio's
 gap, then the controller's answer in the AWACS voice with its subtitle. The words are NATO brevity[^brevity]; the
 controller answers in the BRAA form, the bearing, range, altitude and aspect from the requester ("Provides target
 BRAA relative to the specified FRIENDLY aircraft"[^brevity]), since the sim has no bullseye.
@@ -2529,7 +2529,7 @@ writing on the subject uses):
 | bogey dope | המגע הקרוב | ours around מגע |
 | declare | זיהוי | sourced as the word: "היכולת לזהות ולסווג מטרות"[^jdn-eitam] |
 | vector 040 | הכוונה אפס ארבע אפס | the word sourced: "בוצע היירוט הראשון בהכוונת בקר"[^hamichlol-control]; the call's form ours |
-| target; home plate; tanker | מטרה; בסיס הבית; מטוס התדלוק | מטרה sourced (§8.8); the others ours (the IAF's 707 tanker is "ראם", second-hand, a name not a word) |
+| target; home plate; tanker | מטרה; בסיס האם; מטוס התדלוק | מטרה sourced (§8.8); the others ours (the IAF's 707 tanker is "ראם", second-hand, a name not a word) |
 | threat; Eitam retrograding; commit | איום; עיטם בנסיגה; יירוט | יירוט sourced ("במטרה ליירט אותם מוקדם ככל האפשר"[^jdn-eitam]); the others ours |
 | 20 thousand | גובה עשרים אלף | ours (רגל left out, as the English "feet") |
 
@@ -2566,32 +2566,67 @@ fighter's (open, modern-iaf/docs/ai-plan.md X2).
   (engage, weapons free); the AI jets holding the group report "contact" (§24.2).
 - **A target.** It is a friendly aircraft in the world: the enemy fighters, the network and the sites see and attack
   it as any of ours; shot down, the controller's service ends (§24.1).
-- **Where it flies**: on Scramble (§23), placed with the flight. Other flights (the training missions) have none:
-  the virtual AWACS serves them.
+- **Where it flies**: on Scramble (§23), placed with the flight (`free_combat.gd place`, `shared/ai/eitam.gd`).
+  Other flights (the training missions) have none: the virtual AWACS serves them.
+- **In the game** (`shared/ai/eitam.gd`): a mission entity `eitam` of the player's side, class 3 (a fixed-wing
+  mover), strength 300 (our damage scale's fighter: one missile brings it down; inferred), its half span 14.25 m for
+  the gun's hit test, its radar cross-section 10 m² from the front, 40 m² from the side, 15 m² from behind (a
+  business jet's, larger than a fighter's: inferred, no public figure; `eitam::RCS`). The enemy's radars, sites and
+  fighters take it as any of ours (`air_defence.gd jets`, which now reads an entity's own `rcs` first: the Eitam's and the drones', so our
+  side's AI picture now sees a drone with its 0.01 m² rather than none). Its call for
+  help is said by the radio, and the group it names goes to the flight AI as a contact call does. Its entity
+  destroyed, `IafAwacs.eitam_down` ends the service.
+- **Model** (`Gltf.UNITS` "EITAM", `shared/extra/models/eitam/eitam.glb`): our own low-poly model
+  (`tools/eitam/eitam.py`, Blender, 1,178 triangles), true length and span (29.39 m, 28.50 m[^w-g550]); the rest read
+  off public photographs of the CAEW (inferred): the swept wing with winglets, the T-tail, the two engines on the rear
+  fuselage, the longer nose radome, the tail radome and the long side fairings of the L-band arrays. Light grey, no
+  markings; drawn without its gear (it never lands in the sim).
 
 ### 24.4 The data link and the contact calls
 
-The plan (the merge that flies the Eitam). The data link's AWACS tracks (`datalink.rs`, the HSD and the FCR) and the contact calls (`fctrl.rs` scan) take the
+The data link's AWACS tracks (`datalink.rs`, the HSD and the FCR) and the contact calls (`fctrl.rs` scan) take the
 controller's sensor: the Eitam's radar where it flies (the contact calls still call contacts within 35 NM of the
-player, the 1998 rule), nothing once it is lost; the virtual sphere where the flight has none, as before.
+player, the 1998 rule), nothing once it is lost; the virtual sphere where the flight has none, as before
+(`radio.gd _awacs` and `ews.gd link_update` ask `IafAwacs.sees`; `datalink::Unit::seen` carries its word).
 
 ### 24.5 The radio menu's AWACS page
 
-The plan (the next merge). The first page's third line, AWACS (Hebrew בקר מוטס), opens the page: 1 Picture, 2 Bogey dope, 3 Declare, 4 Vector
-to target, 5 Vector home, 6 Vector to tanker (Hebrew: תמונה אווירית, המגע הקרוב, זיהוי, הכוונה למטרה, הכוונה לבסיס,
-הכוונה למטוס התדלוק). A request that cannot be made now is shown off with its reason in one line (`IafAwacs.refusal`):
-the Eitam lost, no lock, no tanker, no home base.
+The first page's third line, AWACS (the same in Hebrew, the game manual's term), opens the page
+(`sim_flight.gd` `AWACS_ITEMS`): 1 Picture, 2 Bogey dope, 3 Declare, 4 Vector to target, 5 Vector home, 6 Vector to
+tanker (Hebrew: תמונה אווירית, המגע הקרוב, זיהוי, הכוונה למטרה, הכוונה לבסיס, הכוונה למטוס התדלוק). A request that
+cannot be made now is shown off with its reason in one line (`radio.gd awacs_refusal`, `IafAwacs.refusal`): "The
+Eitam is lost: no AWACS", "Lock a target to ask for its identity", "No tanker in the air", "No home base in this
+flight" (Hebrew: "העיטם אבד: אין AWACS", "יש לנעול מטרה כדי לבקש את זיהויה", "אין מטוס תדלוק באוויר", "אין בסיס אם
+בטיסה זו"). A pick is the pilot's call, printed in both languages and said by the pilot's voice ("Eitam, Kidon 1,
+picture": `PILOT_CALL` with `EITAM_P` and `REQ_AWX_*`; Kidon 1's whole call one English clip), the radio's gap, then
+the answer (`radio.gd awacs_request`), recorded as a `radio` event `awacs:<request>`. Scramble's task target comes from
+`free_combat.gd task_target` (`radio.gd awacs_task`); the home base is the mission's base (its lineup point).
+
+**The voices** (`voices.json`; [../modern-iaf/docs/sound.md](../modern-iaf/docs/sound.md) §3): the answers in the AWACS
+voice, a man or a woman by the flight's cast (Kokoro `am_fenrir` or `af_bella`; Hebrew `jonathan` or `yael`), each word a particle: `AWX_GROUP_W`, `AWX_CLEAN`,
+`AWX_GROUPS1`–`9`, `AWX_ALT01`–`10` and fives to `AWX_ALT50`, the aspects, the identities, `AWX_VECTOR010`–`360`,
+`MILES100`–`150` by tens with `MILES200` and `MILES250`, `AWX_HOME_PLATE`, `AWX_TANKER`, `AWX_THREAT`,
+`AWX_RETROGRADE`, `AWX_COMMIT`; the templates `AWX_PICTURE`, `AWX_GROUP`, `AWX_BRAA`, `AWX_CLEAN`, `AWX_DECLARE`,
+`AWX_VECTOR`, `AWX_HELP`. The pilot's `EITAM_P` and the six `REQ_AWX_*` in the pilot's voice (Hebrew `ariel` or
+`shira`).
 
 ### 24.6 Tests and status
 
 `cargo test -p iaf-ai --lib -- awacs eitam` (the words: miles, thousands, aspect; the picture and the bogey dope from
 the virtual sphere and from the Eitam; the Eitam's reach and horizon; declare with and without a lock, the vectors,
 the refusals, a lost Eitam; the station off the flight's way with the fight in reach for an hour; the threat, the
-call for help, the retreat at Mach 0.85, the call again after a minute, the return; a downed Eitam silent).
+call for help, the retreat at Mach 0.85, the call again after a minute, the return; a downed Eitam silent);
+`modern-iaf/tests/test_awacs.gd` (Ramon's Scramble start in the air with a known MiG-29A 20 km ahead: the AWACS page en
++ he, Declare and the tanker off with their reasons; picture, bogey dope, the vectors to the target and home said
+after the pilot's call; the wingman's "contact"; the Eitam at 41,000 ft and Mach 0.80 off the flight's way with the
+fight in its radar, an entity of our side; a known MiG 40 km from it: one call for help and the retreat at Mach 0.85;
+the MiGs on the data link; shot down: every request off with "The Eitam is lost", no answer, no AWACS track, no
+contact call); `cargo test -p iaf-avionics --lib -- datalink` (the controller's word over the link's own query).
 
-Status (25 November 2026): the rules (§24.1–24.3) and `IafAwacs` are built. Next: the menu page, the voices and the
-answers in the game (§24.2, §24.5); then the Eitam flying in Scramble with its model, as the enemy's target, the data
-link and the contact calls on its radar (§24.3, §24.4).
+Status (25 November 2026): built whole: the controller and its page with the voices, the Eitam in Scramble with its
+model, as the enemy's target, the data link and the contact calls on its radar. Open: the G550's 6-DoF (no public
+data); a vector to the tanker waits for air refuelling's tanker (its line off till one flies); an AI-led flight's
+commit on the call for help (no friendly AI-led flight flies: an AI lead never fights, §8.8).
 
 ## UNCERTAIN
 Open questions in this document:

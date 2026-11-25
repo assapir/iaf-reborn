@@ -27,7 +27,14 @@
       "speed": 1.1,
       "url": "https://huggingface.co/hexgrad/Kokoro-82M",
       "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
-      "use": "the AWACS controller (radio chain): the contact calls ACFT_FCTRL_LONG / _SHORT and Scramble's task call AWX_TASK (docs/radio.md §4)"
+      "use": "the AWACS controller (radio chain): the contact calls ACFT_FCTRL_LONG / _SHORT and Scramble's task call AWX_TASK (docs/radio.md §4)",
+      "other": {
+        "model": "af_bella",
+        "speed": 1.1,
+        "gender": "f",
+        "use": "the AWACS's English voice in a flight whose cast gives the AWACS a woman (he.casts' awacs: yael); af_bella, VOICES.md's A- (sound.md §3)"
+      },
+      "gender": "m"
     },
     "wingman": {
       "model": "am_eric",
@@ -5520,6 +5527,784 @@
       "say": "wind three six zero degrees",
       "mode": "particle",
       "say_he": "רוח שלוש שש אפס מעלות"
+    },
+    {
+      "file": "awx_group.ogg",
+      "voice": "awacs",
+      "say": "group",
+      "mode": "particle",
+      "say_he": "מבנה",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_clean.ogg",
+      "voice": "awacs",
+      "say": "clean",
+      "mode": "particle",
+      "say_he": "אין מגעים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_groups_1.ogg",
+      "voice": "awacs",
+      "say": "single group",
+      "mode": "particle",
+      "say_he": "מבנה יחיד",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_groups_2.ogg",
+      "voice": "awacs",
+      "say": "two groups",
+      "mode": "particle",
+      "say_he": "שני מבנים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_groups_3.ogg",
+      "voice": "awacs",
+      "say": "three groups",
+      "mode": "particle",
+      "say_he": "שלושה מבנים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_groups_4.ogg",
+      "voice": "awacs",
+      "say": "four groups",
+      "mode": "particle",
+      "say_he": "ארבעה מבנים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_groups_5.ogg",
+      "voice": "awacs",
+      "say": "five groups",
+      "mode": "particle",
+      "say_he": "חמישה מבנים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_groups_6.ogg",
+      "voice": "awacs",
+      "say": "six groups",
+      "mode": "particle",
+      "say_he": "שישה מבנים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_groups_7.ogg",
+      "voice": "awacs",
+      "say": "seven groups",
+      "mode": "particle",
+      "say_he": "שבעה מבנים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_groups_8.ogg",
+      "voice": "awacs",
+      "say": "eight groups",
+      "mode": "particle",
+      "say_he": "שמונה מבנים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_groups_9.ogg",
+      "voice": "awacs",
+      "say": "nine groups",
+      "mode": "particle",
+      "say_he": "תשעה מבנים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_01.ogg",
+      "voice": "awacs",
+      "say": "one thousand",
+      "mode": "particle",
+      "say_he": "גובה אלף",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_02.ogg",
+      "voice": "awacs",
+      "say": "two thousand",
+      "mode": "particle",
+      "say_he": "גובה אלפיים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_03.ogg",
+      "voice": "awacs",
+      "say": "three thousand",
+      "mode": "particle",
+      "say_he": "גובה שלושת אלפים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_04.ogg",
+      "voice": "awacs",
+      "say": "four thousand",
+      "mode": "particle",
+      "say_he": "גובה ארבעת אלפים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_05.ogg",
+      "voice": "awacs",
+      "say": "five thousand",
+      "mode": "particle",
+      "say_he": "גובה חמשת אלפים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_06.ogg",
+      "voice": "awacs",
+      "say": "six thousand",
+      "mode": "particle",
+      "say_he": "גובה ששת אלפים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_07.ogg",
+      "voice": "awacs",
+      "say": "seven thousand",
+      "mode": "particle",
+      "say_he": "גובה שבעת אלפים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_08.ogg",
+      "voice": "awacs",
+      "say": "eight thousand",
+      "mode": "particle",
+      "say_he": "גובה שמונת אלפים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_09.ogg",
+      "voice": "awacs",
+      "say": "nine thousand",
+      "mode": "particle",
+      "say_he": "גובה תשעת אלפים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_10.ogg",
+      "voice": "awacs",
+      "say": "ten thousand",
+      "mode": "particle",
+      "say_he": "גובה עשרת אלפים",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_15.ogg",
+      "voice": "awacs",
+      "say": "fifteen thousand",
+      "mode": "particle",
+      "say_he": "גובה חמישה עשר אלף",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_20.ogg",
+      "voice": "awacs",
+      "say": "twenty thousand",
+      "mode": "particle",
+      "say_he": "גובה עשרים אלף",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_25.ogg",
+      "voice": "awacs",
+      "say": "twenty-five thousand",
+      "mode": "particle",
+      "say_he": "גובה עשרים וחמישה אלף",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_30.ogg",
+      "voice": "awacs",
+      "say": "thirty thousand",
+      "mode": "particle",
+      "say_he": "גובה שלושים אלף",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_35.ogg",
+      "voice": "awacs",
+      "say": "thirty-five thousand",
+      "mode": "particle",
+      "say_he": "גובה שלושים וחמישה אלף",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_40.ogg",
+      "voice": "awacs",
+      "say": "forty thousand",
+      "mode": "particle",
+      "say_he": "גובה ארבעים אלף",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_45.ogg",
+      "voice": "awacs",
+      "say": "forty-five thousand",
+      "mode": "particle",
+      "say_he": "גובה ארבעים וחמישה אלף",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_alt_50.ogg",
+      "voice": "awacs",
+      "say": "fifty thousand",
+      "mode": "particle",
+      "say_he": "גובה חמישים אלף",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_hot.ogg",
+      "voice": "awacs",
+      "say": "hot",
+      "mode": "particle",
+      "say_he": "מתקרב",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_flank.ogg",
+      "voice": "awacs",
+      "say": "flank",
+      "mode": "particle",
+      "say_he": "באלכסון",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_beam.ogg",
+      "voice": "awacs",
+      "say": "beam",
+      "mode": "particle",
+      "say_he": "בניצב",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_drag.ogg",
+      "voice": "awacs",
+      "say": "drag",
+      "mode": "particle",
+      "say_he": "מתרחק",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_hostile.ogg",
+      "voice": "awacs",
+      "say": "hostile",
+      "mode": "particle",
+      "say_he": "עוין",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_bogey.ogg",
+      "voice": "awacs",
+      "say": "bogey",
+      "mode": "particle",
+      "say_he": "לא מזוהה",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_friendly.ogg",
+      "voice": "awacs",
+      "say": "friendly",
+      "mode": "particle",
+      "say_he": "ידידותי",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_home_plate.ogg",
+      "voice": "awacs",
+      "say": "home plate",
+      "mode": "particle",
+      "say_he": "בסיס האם",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_tanker.ogg",
+      "voice": "awacs",
+      "say": "tanker",
+      "mode": "particle",
+      "say_he": "מטוס התדלוק",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_threat.ogg",
+      "voice": "awacs",
+      "say": "threat",
+      "mode": "particle",
+      "say_he": "איום",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_retrograde.ogg",
+      "voice": "awacs",
+      "say": "Eitam retrograding",
+      "mode": "particle",
+      "say_he": "עיטם בנסיגה",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_commit.ogg",
+      "voice": "awacs",
+      "say": "commit",
+      "mode": "particle",
+      "say_he": "יירוט",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_010.ogg",
+      "voice": "awacs",
+      "say": "vector zero one zero",
+      "mode": "particle",
+      "say_he": "הכוונה אפס אחת אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_020.ogg",
+      "voice": "awacs",
+      "say": "vector zero two zero",
+      "mode": "particle",
+      "say_he": "הכוונה אפס שתיים אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_030.ogg",
+      "voice": "awacs",
+      "say": "vector zero three zero",
+      "mode": "particle",
+      "say_he": "הכוונה אפס שלוש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_040.ogg",
+      "voice": "awacs",
+      "say": "vector zero four zero",
+      "mode": "particle",
+      "say_he": "הכוונה אפס ארבע אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_050.ogg",
+      "voice": "awacs",
+      "say": "vector zero five zero",
+      "mode": "particle",
+      "say_he": "הכוונה אפס חמש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_060.ogg",
+      "voice": "awacs",
+      "say": "vector zero six zero",
+      "mode": "particle",
+      "say_he": "הכוונה אפס שש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_070.ogg",
+      "voice": "awacs",
+      "say": "vector zero seven zero",
+      "mode": "particle",
+      "say_he": "הכוונה אפס שבע אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_080.ogg",
+      "voice": "awacs",
+      "say": "vector zero eight zero",
+      "mode": "particle",
+      "say_he": "הכוונה אפס שמונה אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_090.ogg",
+      "voice": "awacs",
+      "say": "vector zero nine zero",
+      "mode": "particle",
+      "say_he": "הכוונה אפס תשע אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_100.ogg",
+      "voice": "awacs",
+      "say": "vector one zero zero",
+      "mode": "particle",
+      "say_he": "הכוונה אחת אפס אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_110.ogg",
+      "voice": "awacs",
+      "say": "vector one one zero",
+      "mode": "particle",
+      "say_he": "הכוונה אחת אחת אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_120.ogg",
+      "voice": "awacs",
+      "say": "vector one two zero",
+      "mode": "particle",
+      "say_he": "הכוונה אחת שתיים אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_130.ogg",
+      "voice": "awacs",
+      "say": "vector one three zero",
+      "mode": "particle",
+      "say_he": "הכוונה אחת שלוש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_140.ogg",
+      "voice": "awacs",
+      "say": "vector one four zero",
+      "mode": "particle",
+      "say_he": "הכוונה אחת ארבע אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_150.ogg",
+      "voice": "awacs",
+      "say": "vector one five zero",
+      "mode": "particle",
+      "say_he": "הכוונה אחת חמש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_160.ogg",
+      "voice": "awacs",
+      "say": "vector one six zero",
+      "mode": "particle",
+      "say_he": "הכוונה אחת שש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_170.ogg",
+      "voice": "awacs",
+      "say": "vector one seven zero",
+      "mode": "particle",
+      "say_he": "הכוונה אחת שבע אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_180.ogg",
+      "voice": "awacs",
+      "say": "vector one eight zero",
+      "mode": "particle",
+      "say_he": "הכוונה אחת שמונה אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_190.ogg",
+      "voice": "awacs",
+      "say": "vector one nine zero",
+      "mode": "particle",
+      "say_he": "הכוונה אחת תשע אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_200.ogg",
+      "voice": "awacs",
+      "say": "vector two zero zero",
+      "mode": "particle",
+      "say_he": "הכוונה שתיים אפס אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_210.ogg",
+      "voice": "awacs",
+      "say": "vector two one zero",
+      "mode": "particle",
+      "say_he": "הכוונה שתיים אחת אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_220.ogg",
+      "voice": "awacs",
+      "say": "vector two two zero",
+      "mode": "particle",
+      "say_he": "הכוונה שתיים שתיים אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_230.ogg",
+      "voice": "awacs",
+      "say": "vector two three zero",
+      "mode": "particle",
+      "say_he": "הכוונה שתיים שלוש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_240.ogg",
+      "voice": "awacs",
+      "say": "vector two four zero",
+      "mode": "particle",
+      "say_he": "הכוונה שתיים ארבע אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_250.ogg",
+      "voice": "awacs",
+      "say": "vector two five zero",
+      "mode": "particle",
+      "say_he": "הכוונה שתיים חמש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_260.ogg",
+      "voice": "awacs",
+      "say": "vector two six zero",
+      "mode": "particle",
+      "say_he": "הכוונה שתיים שש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_270.ogg",
+      "voice": "awacs",
+      "say": "vector two seven zero",
+      "mode": "particle",
+      "say_he": "הכוונה שתיים שבע אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_280.ogg",
+      "voice": "awacs",
+      "say": "vector two eight zero",
+      "mode": "particle",
+      "say_he": "הכוונה שתיים שמונה אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_290.ogg",
+      "voice": "awacs",
+      "say": "vector two nine zero",
+      "mode": "particle",
+      "say_he": "הכוונה שתיים תשע אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_300.ogg",
+      "voice": "awacs",
+      "say": "vector three zero zero",
+      "mode": "particle",
+      "say_he": "הכוונה שלוש אפס אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_310.ogg",
+      "voice": "awacs",
+      "say": "vector three one zero",
+      "mode": "particle",
+      "say_he": "הכוונה שלוש אחת אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_320.ogg",
+      "voice": "awacs",
+      "say": "vector three two zero",
+      "mode": "particle",
+      "say_he": "הכוונה שלוש שתיים אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_330.ogg",
+      "voice": "awacs",
+      "say": "vector three three zero",
+      "mode": "particle",
+      "say_he": "הכוונה שלוש שלוש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_340.ogg",
+      "voice": "awacs",
+      "say": "vector three four zero",
+      "mode": "particle",
+      "say_he": "הכוונה שלוש ארבע אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_350.ogg",
+      "voice": "awacs",
+      "say": "vector three five zero",
+      "mode": "particle",
+      "say_he": "הכוונה שלוש חמש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_vector_360.ogg",
+      "voice": "awacs",
+      "say": "vector three six zero",
+      "mode": "particle",
+      "say_he": "הכוונה שלוש שש אפס",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_miles_100.ogg",
+      "voice": "awacs",
+      "say": "100 miles",
+      "mode": "particle",
+      "say_he": "מאה מייל",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_miles_110.ogg",
+      "voice": "awacs",
+      "say": "110 miles",
+      "mode": "particle",
+      "say_he": "מאה ועשרה מייל",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_miles_120.ogg",
+      "voice": "awacs",
+      "say": "120 miles",
+      "mode": "particle",
+      "say_he": "מאה ועשרים מייל",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_miles_130.ogg",
+      "voice": "awacs",
+      "say": "130 miles",
+      "mode": "particle",
+      "say_he": "מאה ושלושים מייל",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_miles_140.ogg",
+      "voice": "awacs",
+      "say": "140 miles",
+      "mode": "particle",
+      "say_he": "מאה וארבעים מייל",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_miles_150.ogg",
+      "voice": "awacs",
+      "say": "150 miles",
+      "mode": "particle",
+      "say_he": "מאה וחמישים מייל",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_miles_200.ogg",
+      "voice": "awacs",
+      "say": "200 miles",
+      "mode": "particle",
+      "say_he": "מאתיים מייל",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_miles_250.ogg",
+      "voice": "awacs",
+      "say": "250 miles",
+      "mode": "particle",
+      "say_he": "מאתיים וחמישים מייל",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "plt_eitam.ogg",
+      "voice": "pilot",
+      "say": "Eitam.",
+      "mode": "helmet",
+      "say_he": "עיטם.",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "plt_req_awx_picture.ogg",
+      "voice": "pilot",
+      "say": "Picture.",
+      "mode": "helmet",
+      "say_he": "תמונה אווירית.",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "plt_eitam_kidon1_picture.ogg",
+      "voice": "pilot",
+      "say": "Eitam, [Kidon](/kidˈOn/) one, picture.",
+      "mode": "helmet",
+      "note": "the player's call to the AWACS, whole (docs/ai.md §24)"
+    },
+    {
+      "file": "plt_req_awx_bogey_dope.ogg",
+      "voice": "pilot",
+      "say": "Bogey dope.",
+      "mode": "helmet",
+      "say_he": "המגע הקרוב.",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "plt_eitam_kidon1_bogey_dope.ogg",
+      "voice": "pilot",
+      "say": "Eitam, [Kidon](/kidˈOn/) one, bogey dope.",
+      "mode": "helmet",
+      "note": "the player's call to the AWACS, whole (docs/ai.md §24)"
+    },
+    {
+      "file": "plt_req_awx_declare.ogg",
+      "voice": "pilot",
+      "say": "Declare.",
+      "mode": "helmet",
+      "say_he": "זיהוי.",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "plt_eitam_kidon1_declare.ogg",
+      "voice": "pilot",
+      "say": "Eitam, [Kidon](/kidˈOn/) one, declare.",
+      "mode": "helmet",
+      "note": "the player's call to the AWACS, whole (docs/ai.md §24)"
+    },
+    {
+      "file": "plt_req_awx_vector_target.ogg",
+      "voice": "pilot",
+      "say": "Request vector to target.",
+      "mode": "helmet",
+      "say_he": "בקשת הכוונה למטרה.",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "plt_eitam_kidon1_vector_target.ogg",
+      "voice": "pilot",
+      "say": "Eitam, [Kidon](/kidˈOn/) one, request vector to target.",
+      "mode": "helmet",
+      "note": "the player's call to the AWACS, whole (docs/ai.md §24)"
+    },
+    {
+      "file": "plt_req_awx_vector_home.ogg",
+      "voice": "pilot",
+      "say": "Request vector home.",
+      "mode": "helmet",
+      "say_he": "בקשת הכוונה לבסיס.",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "plt_eitam_kidon1_vector_home.ogg",
+      "voice": "pilot",
+      "say": "Eitam, [Kidon](/kidˈOn/) one, request vector home.",
+      "mode": "helmet",
+      "note": "the player's call to the AWACS, whole (docs/ai.md §24)"
+    },
+    {
+      "file": "plt_req_awx_vector_tanker.ogg",
+      "voice": "pilot",
+      "say": "Request vector to tanker.",
+      "mode": "helmet",
+      "say_he": "בקשת הכוונה למטוס התדלוק.",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "plt_eitam_kidon1_vector_tanker.ogg",
+      "voice": "pilot",
+      "say": "Eitam, [Kidon](/kidˈOn/) one, request vector to tanker.",
+      "mode": "helmet",
+      "note": "the player's call to the AWACS, whole (docs/ai.md §24)"
     }
   ],
   "particles": {
@@ -9516,6 +10301,496 @@
       "file": "twr_wdir360.ogg",
       "text": "wind 360 degrees,",
       "text_he": "רוח 360 מעלות,"
+    },
+    "AWX_GROUP_W": {
+      "file": "awx_group.ogg",
+      "text": "group",
+      "text_he": "מבנה"
+    },
+    "AWX_CLEAN": {
+      "file": "awx_clean.ogg",
+      "text": "clean",
+      "text_he": "אין מגעים"
+    },
+    "AWX_GROUPS1": {
+      "file": "awx_groups_1.ogg",
+      "text": "single group",
+      "text_he": "מבנה יחיד"
+    },
+    "AWX_GROUPS2": {
+      "file": "awx_groups_2.ogg",
+      "text": "two groups",
+      "text_he": "שני מבנים"
+    },
+    "AWX_GROUPS3": {
+      "file": "awx_groups_3.ogg",
+      "text": "three groups",
+      "text_he": "שלושה מבנים"
+    },
+    "AWX_GROUPS4": {
+      "file": "awx_groups_4.ogg",
+      "text": "four groups",
+      "text_he": "ארבעה מבנים"
+    },
+    "AWX_GROUPS5": {
+      "file": "awx_groups_5.ogg",
+      "text": "five groups",
+      "text_he": "חמישה מבנים"
+    },
+    "AWX_GROUPS6": {
+      "file": "awx_groups_6.ogg",
+      "text": "six groups",
+      "text_he": "שישה מבנים"
+    },
+    "AWX_GROUPS7": {
+      "file": "awx_groups_7.ogg",
+      "text": "seven groups",
+      "text_he": "שבעה מבנים"
+    },
+    "AWX_GROUPS8": {
+      "file": "awx_groups_8.ogg",
+      "text": "eight groups",
+      "text_he": "שמונה מבנים"
+    },
+    "AWX_GROUPS9": {
+      "file": "awx_groups_9.ogg",
+      "text": "nine groups",
+      "text_he": "תשעה מבנים"
+    },
+    "AWX_ALT01": {
+      "file": "awx_alt_01.ogg",
+      "text": "1 thousand",
+      "text_he": "גובה אלף"
+    },
+    "AWX_ALT02": {
+      "file": "awx_alt_02.ogg",
+      "text": "2 thousand",
+      "text_he": "גובה 2 אלף"
+    },
+    "AWX_ALT03": {
+      "file": "awx_alt_03.ogg",
+      "text": "3 thousand",
+      "text_he": "גובה 3 אלף"
+    },
+    "AWX_ALT04": {
+      "file": "awx_alt_04.ogg",
+      "text": "4 thousand",
+      "text_he": "גובה 4 אלף"
+    },
+    "AWX_ALT05": {
+      "file": "awx_alt_05.ogg",
+      "text": "5 thousand",
+      "text_he": "גובה 5 אלף"
+    },
+    "AWX_ALT06": {
+      "file": "awx_alt_06.ogg",
+      "text": "6 thousand",
+      "text_he": "גובה 6 אלף"
+    },
+    "AWX_ALT07": {
+      "file": "awx_alt_07.ogg",
+      "text": "7 thousand",
+      "text_he": "גובה 7 אלף"
+    },
+    "AWX_ALT08": {
+      "file": "awx_alt_08.ogg",
+      "text": "8 thousand",
+      "text_he": "גובה 8 אלף"
+    },
+    "AWX_ALT09": {
+      "file": "awx_alt_09.ogg",
+      "text": "9 thousand",
+      "text_he": "גובה 9 אלף"
+    },
+    "AWX_ALT10": {
+      "file": "awx_alt_10.ogg",
+      "text": "10 thousand",
+      "text_he": "גובה 10 אלף"
+    },
+    "AWX_ALT15": {
+      "file": "awx_alt_15.ogg",
+      "text": "15 thousand",
+      "text_he": "גובה 15 אלף"
+    },
+    "AWX_ALT20": {
+      "file": "awx_alt_20.ogg",
+      "text": "20 thousand",
+      "text_he": "גובה 20 אלף"
+    },
+    "AWX_ALT25": {
+      "file": "awx_alt_25.ogg",
+      "text": "25 thousand",
+      "text_he": "גובה 25 אלף"
+    },
+    "AWX_ALT30": {
+      "file": "awx_alt_30.ogg",
+      "text": "30 thousand",
+      "text_he": "גובה 30 אלף"
+    },
+    "AWX_ALT35": {
+      "file": "awx_alt_35.ogg",
+      "text": "35 thousand",
+      "text_he": "גובה 35 אלף"
+    },
+    "AWX_ALT40": {
+      "file": "awx_alt_40.ogg",
+      "text": "40 thousand",
+      "text_he": "גובה 40 אלף"
+    },
+    "AWX_ALT45": {
+      "file": "awx_alt_45.ogg",
+      "text": "45 thousand",
+      "text_he": "גובה 45 אלף"
+    },
+    "AWX_ALT50": {
+      "file": "awx_alt_50.ogg",
+      "text": "50 thousand",
+      "text_he": "גובה 50 אלף"
+    },
+    "AWX_HOT": {
+      "file": "awx_hot.ogg",
+      "text": "hot",
+      "text_he": "מתקרב"
+    },
+    "AWX_FLANK": {
+      "file": "awx_flank.ogg",
+      "text": "flank",
+      "text_he": "באלכסון"
+    },
+    "AWX_BEAM": {
+      "file": "awx_beam.ogg",
+      "text": "beam",
+      "text_he": "בניצב"
+    },
+    "AWX_DRAG": {
+      "file": "awx_drag.ogg",
+      "text": "drag",
+      "text_he": "מתרחק"
+    },
+    "AWX_HOSTILE": {
+      "file": "awx_hostile.ogg",
+      "text": "hostile",
+      "text_he": "עוין"
+    },
+    "AWX_BOGEY": {
+      "file": "awx_bogey.ogg",
+      "text": "bogey",
+      "text_he": "לא מזוהה"
+    },
+    "AWX_FRIENDLY": {
+      "file": "awx_friendly.ogg",
+      "text": "friendly",
+      "text_he": "ידידותי"
+    },
+    "AWX_HOME_PLATE": {
+      "file": "awx_home_plate.ogg",
+      "text": "home plate",
+      "text_he": "בסיס האם"
+    },
+    "AWX_TANKER": {
+      "file": "awx_tanker.ogg",
+      "text": "tanker",
+      "text_he": "מטוס התדלוק"
+    },
+    "AWX_THREAT": {
+      "file": "awx_threat.ogg",
+      "text": "threat",
+      "text_he": "איום"
+    },
+    "AWX_RETROGRADE": {
+      "file": "awx_retrograde.ogg",
+      "text": "Eitam retrograding",
+      "text_he": "עיטם בנסיגה"
+    },
+    "AWX_COMMIT": {
+      "file": "awx_commit.ogg",
+      "text": "commit",
+      "text_he": "יירוט"
+    },
+    "AWX_VECTOR010": {
+      "file": "awx_vector_010.ogg",
+      "text": "vector 010",
+      "text_he": "הכוונה 010"
+    },
+    "AWX_VECTOR020": {
+      "file": "awx_vector_020.ogg",
+      "text": "vector 020",
+      "text_he": "הכוונה 020"
+    },
+    "AWX_VECTOR030": {
+      "file": "awx_vector_030.ogg",
+      "text": "vector 030",
+      "text_he": "הכוונה 030"
+    },
+    "AWX_VECTOR040": {
+      "file": "awx_vector_040.ogg",
+      "text": "vector 040",
+      "text_he": "הכוונה 040"
+    },
+    "AWX_VECTOR050": {
+      "file": "awx_vector_050.ogg",
+      "text": "vector 050",
+      "text_he": "הכוונה 050"
+    },
+    "AWX_VECTOR060": {
+      "file": "awx_vector_060.ogg",
+      "text": "vector 060",
+      "text_he": "הכוונה 060"
+    },
+    "AWX_VECTOR070": {
+      "file": "awx_vector_070.ogg",
+      "text": "vector 070",
+      "text_he": "הכוונה 070"
+    },
+    "AWX_VECTOR080": {
+      "file": "awx_vector_080.ogg",
+      "text": "vector 080",
+      "text_he": "הכוונה 080"
+    },
+    "AWX_VECTOR090": {
+      "file": "awx_vector_090.ogg",
+      "text": "vector 090",
+      "text_he": "הכוונה 090"
+    },
+    "AWX_VECTOR100": {
+      "file": "awx_vector_100.ogg",
+      "text": "vector 100",
+      "text_he": "הכוונה 100"
+    },
+    "AWX_VECTOR110": {
+      "file": "awx_vector_110.ogg",
+      "text": "vector 110",
+      "text_he": "הכוונה 110"
+    },
+    "AWX_VECTOR120": {
+      "file": "awx_vector_120.ogg",
+      "text": "vector 120",
+      "text_he": "הכוונה 120"
+    },
+    "AWX_VECTOR130": {
+      "file": "awx_vector_130.ogg",
+      "text": "vector 130",
+      "text_he": "הכוונה 130"
+    },
+    "AWX_VECTOR140": {
+      "file": "awx_vector_140.ogg",
+      "text": "vector 140",
+      "text_he": "הכוונה 140"
+    },
+    "AWX_VECTOR150": {
+      "file": "awx_vector_150.ogg",
+      "text": "vector 150",
+      "text_he": "הכוונה 150"
+    },
+    "AWX_VECTOR160": {
+      "file": "awx_vector_160.ogg",
+      "text": "vector 160",
+      "text_he": "הכוונה 160"
+    },
+    "AWX_VECTOR170": {
+      "file": "awx_vector_170.ogg",
+      "text": "vector 170",
+      "text_he": "הכוונה 170"
+    },
+    "AWX_VECTOR180": {
+      "file": "awx_vector_180.ogg",
+      "text": "vector 180",
+      "text_he": "הכוונה 180"
+    },
+    "AWX_VECTOR190": {
+      "file": "awx_vector_190.ogg",
+      "text": "vector 190",
+      "text_he": "הכוונה 190"
+    },
+    "AWX_VECTOR200": {
+      "file": "awx_vector_200.ogg",
+      "text": "vector 200",
+      "text_he": "הכוונה 200"
+    },
+    "AWX_VECTOR210": {
+      "file": "awx_vector_210.ogg",
+      "text": "vector 210",
+      "text_he": "הכוונה 210"
+    },
+    "AWX_VECTOR220": {
+      "file": "awx_vector_220.ogg",
+      "text": "vector 220",
+      "text_he": "הכוונה 220"
+    },
+    "AWX_VECTOR230": {
+      "file": "awx_vector_230.ogg",
+      "text": "vector 230",
+      "text_he": "הכוונה 230"
+    },
+    "AWX_VECTOR240": {
+      "file": "awx_vector_240.ogg",
+      "text": "vector 240",
+      "text_he": "הכוונה 240"
+    },
+    "AWX_VECTOR250": {
+      "file": "awx_vector_250.ogg",
+      "text": "vector 250",
+      "text_he": "הכוונה 250"
+    },
+    "AWX_VECTOR260": {
+      "file": "awx_vector_260.ogg",
+      "text": "vector 260",
+      "text_he": "הכוונה 260"
+    },
+    "AWX_VECTOR270": {
+      "file": "awx_vector_270.ogg",
+      "text": "vector 270",
+      "text_he": "הכוונה 270"
+    },
+    "AWX_VECTOR280": {
+      "file": "awx_vector_280.ogg",
+      "text": "vector 280",
+      "text_he": "הכוונה 280"
+    },
+    "AWX_VECTOR290": {
+      "file": "awx_vector_290.ogg",
+      "text": "vector 290",
+      "text_he": "הכוונה 290"
+    },
+    "AWX_VECTOR300": {
+      "file": "awx_vector_300.ogg",
+      "text": "vector 300",
+      "text_he": "הכוונה 300"
+    },
+    "AWX_VECTOR310": {
+      "file": "awx_vector_310.ogg",
+      "text": "vector 310",
+      "text_he": "הכוונה 310"
+    },
+    "AWX_VECTOR320": {
+      "file": "awx_vector_320.ogg",
+      "text": "vector 320",
+      "text_he": "הכוונה 320"
+    },
+    "AWX_VECTOR330": {
+      "file": "awx_vector_330.ogg",
+      "text": "vector 330",
+      "text_he": "הכוונה 330"
+    },
+    "AWX_VECTOR340": {
+      "file": "awx_vector_340.ogg",
+      "text": "vector 340",
+      "text_he": "הכוונה 340"
+    },
+    "AWX_VECTOR350": {
+      "file": "awx_vector_350.ogg",
+      "text": "vector 350",
+      "text_he": "הכוונה 350"
+    },
+    "AWX_VECTOR360": {
+      "file": "awx_vector_360.ogg",
+      "text": "vector 360",
+      "text_he": "הכוונה 360"
+    },
+    "MILES100": {
+      "file": "awx_miles_100.ogg",
+      "text": "100 miles",
+      "text_he": "100 מייל"
+    },
+    "MILES110": {
+      "file": "awx_miles_110.ogg",
+      "text": "110 miles",
+      "text_he": "110 מייל"
+    },
+    "MILES120": {
+      "file": "awx_miles_120.ogg",
+      "text": "120 miles",
+      "text_he": "120 מייל"
+    },
+    "MILES130": {
+      "file": "awx_miles_130.ogg",
+      "text": "130 miles",
+      "text_he": "130 מייל"
+    },
+    "MILES140": {
+      "file": "awx_miles_140.ogg",
+      "text": "140 miles",
+      "text_he": "140 מייל"
+    },
+    "MILES150": {
+      "file": "awx_miles_150.ogg",
+      "text": "150 miles",
+      "text_he": "150 מייל"
+    },
+    "MILES200": {
+      "file": "awx_miles_200.ogg",
+      "text": "200 miles",
+      "text_he": "200 מייל"
+    },
+    "MILES250": {
+      "file": "awx_miles_250.ogg",
+      "text": "250 miles",
+      "text_he": "250 מייל"
+    },
+    "EITAM_P": {
+      "file": "plt_eitam.ogg",
+      "text": "Eitam",
+      "text_he": "עיטם"
+    },
+    "REQ_AWX_PICTURE": {
+      "file": "plt_req_awx_picture.ogg",
+      "text": "picture",
+      "text_he": "תמונה אווירית"
+    },
+    "EITAM_P+,+ALPHA_P+,+REQ_AWX_PICTURE": {
+      "file": "plt_eitam_kidon1_picture.ogg",
+      "text": "Eitam, Kidon 1, picture",
+      "text_he": "עיטם, כידון 1, תמונה אווירית"
+    },
+    "REQ_AWX_BOGEY_DOPE": {
+      "file": "plt_req_awx_bogey_dope.ogg",
+      "text": "bogey dope",
+      "text_he": "המגע הקרוב"
+    },
+    "EITAM_P+,+ALPHA_P+,+REQ_AWX_BOGEY_DOPE": {
+      "file": "plt_eitam_kidon1_bogey_dope.ogg",
+      "text": "Eitam, Kidon 1, bogey dope",
+      "text_he": "עיטם, כידון 1, המגע הקרוב"
+    },
+    "REQ_AWX_DECLARE": {
+      "file": "plt_req_awx_declare.ogg",
+      "text": "declare",
+      "text_he": "זיהוי"
+    },
+    "EITAM_P+,+ALPHA_P+,+REQ_AWX_DECLARE": {
+      "file": "plt_eitam_kidon1_declare.ogg",
+      "text": "Eitam, Kidon 1, declare",
+      "text_he": "עיטם, כידון 1, זיהוי"
+    },
+    "REQ_AWX_VECTOR_TARGET": {
+      "file": "plt_req_awx_vector_target.ogg",
+      "text": "request vector to target",
+      "text_he": "בקשת הכוונה למטרה"
+    },
+    "EITAM_P+,+ALPHA_P+,+REQ_AWX_VECTOR_TARGET": {
+      "file": "plt_eitam_kidon1_vector_target.ogg",
+      "text": "Eitam, Kidon 1, request vector to target",
+      "text_he": "עיטם, כידון 1, בקשת הכוונה למטרה"
+    },
+    "REQ_AWX_VECTOR_HOME": {
+      "file": "plt_req_awx_vector_home.ogg",
+      "text": "request vector home",
+      "text_he": "בקשת הכוונה לבסיס"
+    },
+    "EITAM_P+,+ALPHA_P+,+REQ_AWX_VECTOR_HOME": {
+      "file": "plt_eitam_kidon1_vector_home.ogg",
+      "text": "Eitam, Kidon 1, request vector home",
+      "text_he": "עיטם, כידון 1, בקשת הכוונה לבסיס"
+    },
+    "REQ_AWX_VECTOR_TANKER": {
+      "file": "plt_req_awx_vector_tanker.ogg",
+      "text": "request vector to tanker",
+      "text_he": "בקשת הכוונה למטוס התדלוק"
+    },
+    "EITAM_P+,+ALPHA_P+,+REQ_AWX_VECTOR_TANKER": {
+      "file": "plt_eitam_kidon1_vector_tanker.ogg",
+      "text": "Eitam, Kidon 1, request vector to tanker",
+      "text_he": "עיטם, כידון 1, בקשת הכוונה למטוס התדלוק"
     }
   },
   "templates": {
@@ -9556,7 +10831,14 @@
     "RB_ACFT_CLEAR_TO_START": "RB_START , %S1",
     "RB_ACFT_HOLD_POS": "RB_HOLDING , %S1",
     "RB_ACFT_GO_AROUND_RUNWAY": "RB_GOING_AROUND , %S1",
-    "RB_ACFT_TAXI_TO_PARK": "RB_TAXI_PARK , %S1"
+    "RB_ACFT_TAXI_TO_PARK": "RB_TAXI_PARK , %S1",
+    "AWX_PICTURE": "%S1 , %S2",
+    "AWX_GROUP": "AWX_GROUP_W %S1 , %S2 , %S3 , %S4 , %S5",
+    "AWX_BRAA": "%S1 , AWX_GROUP_W %S2 , %S3 , %S4 , %S5 , %S6",
+    "AWX_CLEAN": "%S1 , AWX_CLEAN",
+    "AWX_DECLARE": "%S1 , %S2",
+    "AWX_VECTOR": "%S1 , %S2 , %S3 , %S4",
+    "AWX_HELP": "%S1 , AWX_THREAT , AWX_GROUP_W %S2 , %S3 , %S4 , AWX_RETROGRADE , AWX_COMMIT"
   },
   "he": {
     "engine": "BlueTTS BlueV3 (github.com/maxmelichov/BlueTTS, git 91b1789): code and weights MIT, the RenikudPlus G2P Apache-2.0, the voices CC BY 4.0 (LibriTTS-R speakers), the vocoder OpenRAIL-M (modern-iaf/docs/research/hebrew-voices.md §4)",

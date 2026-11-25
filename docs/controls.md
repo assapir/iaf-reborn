@@ -159,7 +159,8 @@ Terms used on this page:
   altitude, in turn.
   Without an IafAi flight records 98, 99 and 101 reach the wingman's brain as in the 1998 game. Engage my target with
   no aircraft locked attacks the player's ground target. The AI jets' reactions to locks, launches, attackers and
-  AWACS calls need no input.
+  AWACS calls need no input. The AWACS's requests (picture, bogey dope, declare, the vectors) are the radio menu's
+  third page, no key of their own (docs/ai.md §24.5).
 * Joystick buttons, axes and the hat: §5.
 * **Rebinds**: `Settings.key_bindings` = {record: [key, button]} for the records that differ from the default.
   They are saved in the `[keys]` section of `user://settings.cfg` as `r<index> = [key, button]`. A config without

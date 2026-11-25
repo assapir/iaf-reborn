@@ -122,7 +122,7 @@ The lines and the voices are in the game's language (@language).
 #idx("Wingmen")#idx("Radio menu")In a four-ship lesson you fly as Kidon 1-1 and lead Kidon 1-2, 1-3 and 1-4. Kidon 1-2 flies on you; Kidon 1-4 flies on Kidon 1-3, who leads the second pair. You command them from the same menu; four commands also have a key of their own (below the table).
 
 + Press #key("Call the tower").
-  #then[The list shows 1 Tower, 2 Wingmen and 3 #term("AWACS"). The tower's calls are under 1. AWACS has no call to make: it reports by itself, so its line is dimmed.]
+  #then[The list shows 1 Tower, 2 Wingmen and 3 #term("AWACS"). The tower's calls are under 1, the AWACS's requests under 3 (@awacs-requests).]
 + Press 2.
   #then[The list shows "Kidon 1" (the flight), "Kidon 1, element 3–4", "Kidon 1-2", "Kidon 1-3" and "Kidon 1-4".]
 + Press the number of whom you call.

@@ -122,6 +122,10 @@ var _events: Array = []  # [time, Callable], one-shot
 ## The FlightController (DAT_00699348): the AWACS contact table, the kill / landed / airborne filters.
 var fc: RefCounted = ClassDB.instantiate("IafFlightController")
 var _awacs_next := INF
+## Ours (Modern IAF's AWACS controller, docs/ai.md §24): the requests of the radio menu's AWACS page and the Eitam
+## (IafAwacs); `awacs_task` the flight's task target (world; Scramble's free_combat.gd sets it), null none.
+var awacs: RefCounted = ClassDB.instantiate("IafAwacs") if ClassDB.class_exists("IafAwacs") else null
+var awacs_task := Callable()
 
 
 func _ready() -> void:
@@ -961,6 +965,8 @@ func _kill_unit(ent: Dictionary) -> Dictionary:
 func _awacs() -> void:
 	if host == null or host.get("runtime") == null or not fc.awacs_due():
 		return
+	if awacs != null and not awacs.in_service():
+		return  # Modern IAF: the Eitam is lost (docs/ai.md §24.4)
 	var me := _player_ent()
 	if me.is_empty() or int(me.state) in [4, 5] or int(me.control) == 0:
 		return
@@ -982,6 +988,9 @@ func _awacs() -> void:
 			continue
 		var w: Vector3 = ai.world_of(ent) if ai != null else ent.world
 		var eg = host.mission_ground(w)
+		# Modern IAF: with an Eitam, only what its radar sees (docs/ai.md §24.4).
+		if eitam_flies() and not awacs.sees(p, {"pos": w, "ground": float(eg) if eg != null else 0.0}):
+			continue
 		units.append(
 			{
 				"key": ent.key,
@@ -1001,6 +1010,92 @@ func _awacs() -> void:
 		say(c[0], Array(c[1]))
 		if fa != null:
 			fa.awacs(host.runtime.now, c[2].bearing, c[2].miles, int(c[2].code) != 0)
+
+
+# --- Modern IAF's AWACS controller (docs/ai.md §24) --------------------------------------------------------------
+
+
+## The aircraft offered to the controller (IafAwacs): every alive, controlled aircraft in the air but the player's,
+## hostile when an enemy the side knows (the contact calls' `known`), else a bogey; ours friendly.
+func awacs_contacts() -> Array:
+	var out := []
+	var ai = host.get("ai") if host != null else null
+	var rt = host.get("runtime") if host != null else null
+	if rt == null:
+		return out
+	for ent in rt.entities.values():
+		if ent.player or not int(ent.get("klass", 0)) in AIRCRAFT or int(ent.state) in [4, 5] or int(ent.control) == 0:
+			continue
+		var w: Vector3 = ai.world_of(ent) if ai != null else ent.world
+		var g = host.mission_ground(w)
+		var ident := "friendly"
+		if host.enemy_of_player(ent):
+			ident = "hostile" if ent.get("known", false) else "bogey"
+		(
+			out
+			. append(
+				{
+					"key": ent.key,
+					"pos": w,
+					"ground": float(g) if g != null else 0.0,
+					"heading": float(ent.get("heading", 0.0)),
+					"ident": ident,
+					"tanker": bool(ent.get("tanker", false)),
+				}
+			)
+		)
+	return out
+
+
+## The request's data: the player's callsign and place, the radar's locked track, the flight's task target and its
+## home base (the mission's base, its lineup point).
+func awacs_ask() -> Dictionary:
+	var a := {"callsign": formation_name(_player_ent()), "player": _pos()}
+	var locked := _radar_target()
+	if not locked.is_empty():
+		a.locked = String(locked.key)
+	if awacs_task.is_valid():
+		var t = awacs_task.call()
+		if t != null:
+			a.task = t
+	for b in bases:
+		if b.name == runway_base:
+			a.home = b.lineup
+	return a
+
+
+## The flight has an Eitam (alive or lost): the controller's picture is its radar's (docs/ai.md §24.1).
+func eitam_flies() -> bool:
+	return awacs != null and not awacs.eitam().is_empty()
+
+
+## Why request `id` cannot be made now (IafAwacs.refusal: lost, no_lock, no_tanker, no_home), "" when it can.
+func awacs_refusal(id: String) -> String:
+	if awacs == null:
+		return "lost"
+	return String(awacs.refusal(id, awacs_ask(), awacs_contacts()))
+
+
+## The player's request `id` to the AWACS (the radio menu's AWACS page): the pilot's call ("Eitam, Kidon 1, picture"),
+## the radio's gap, then the controller's answer said line by line in the AWACS voice; each group it names goes to
+## the flight AI as a contact call does (an AI jet holding it reports "contact"). The answer's lines (radio.gd say's
+## records), [] when the request is refused.
+func awacs_request(id: String, pilot_line := "") -> Array:
+	if awacs_refusal(id) != "":
+		return []
+	var cs := formation_name(_player_ent())
+	say("PILOT_CALL", ["EITAM_P", cs + "_P", "REQ_AWX_" + id.to_upper()], [], false, pilot_line)
+	play_wav("radio_gap.ogg")
+	var a: Dictionary = awacs.answer(id, awacs_ask(), awacs_contacts())
+	var out := []
+	for l in a.get("lines", []):
+		out.append(say(l[0], Array(l[1])))
+	var ai = host.get("ai")
+	var fa = ai.get("flight_ai") if ai != null else null
+	if fa != null:
+		for n in a.get("named", []):
+			fa.awacs(now, n.bearing, n.miles, n.hostile)
+	return out
 
 
 ## Ours (Modern IAF, modern-iaf/docs/research/radio-terms.md): the flight AI's numbers and call words (voices.json's

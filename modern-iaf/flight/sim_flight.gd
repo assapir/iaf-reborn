@@ -31,18 +31,33 @@ const ITEMS := [
 	["landing", "Contact tower (landing)", "קריאה למגדל (נחיתה)"],
 ]
 ## The first page's lines: id, English, Hebrew (the user, 19 Nov: "1: tower ... 2: wingman's commands ... 3 will be
-## AWACS"). AWACS has no request call to make (its contact calls come by themselves, radio.gd), so its line is shown
-## off with the reason (fl_radio_awacs_off).
+## AWACS"). AWACS opens the controller's requests (docs/ai.md §24.5).
 const TOP := [
 	["m:tower", "Tower", "מגדל"],
 	["m:wingmen", "Wingmen", "המבנה"],
 	["m:awacs", "AWACS", "AWACS"],
 ]
+## The AWACS page's requests: id (radio.gd awacs_request), English, Hebrew; the pilot's words after the address
+## ("Eitam, Kidon 1, picture"), English and Hebrew (docs/ai.md §24.2).
+const AWACS_ITEMS := [
+	["picture", "Picture", "תמונה אווירית", "picture", "תמונה אווירית"],
+	["bogey_dope", "Bogey dope", "המגע הקרוב", "bogey dope", "המגע הקרוב"],
+	["declare", "Declare", "זיהוי", "declare", "זיהוי"],
+	["vector_target", "Vector to target", "הכוונה למטרה", "request vector to target", "בקשת הכוונה למטרה"],
+	["vector_home", "Vector home", "הכוונה לבסיס", "request vector home", "בקשת הכוונה לבסיס"],
+	[
+		"vector_tanker",
+		"Vector to tanker",
+		"הכוונה למטוס התדלוק",
+		"request vector to tanker",
+		"בקשת הכוונה למטוס התדלוק"
+	],
+]
 ## A page of more lines than the number keys reach shows its first eight and this ninth line, which shows the rest
 ## (every line has a number key; 0 goes back to the first eight).
 const MORE := ["m:more", "More ›", "עוד ‹"]
 ## The page a `0` goes back to.
-const PARENT := {"tower": "", "wingmen": "", "to": "wingmen", "formation": "to", "spacing": "formation"}
+const PARENT := {"tower": "", "wingmen": "", "awacs": "", "to": "wingmen", "formation": "to", "spacing": "formation"}
 ## The flight's pages (ours, modern-iaf/docs/ai-plan.md F5; the user, 19 Nov: "radion menu instead of hotkeys"): after
 ## the tower's calls, one line per addressee of the four-ship (IafAi's `to`: 0 the flight, 5 the element, 2..4 one
 ## wingman), its English and Hebrew label and the address the pilot says (voices.json). The callsigns are kidon style
@@ -119,7 +134,8 @@ const FINAL := ["wrong_runway", "excursion", "over_time"]
 var host: Node
 var open := false
 var _menu_at := 0  # the radio menu's opening or last key (ms): MENU_S later it closes
-## The menu's page: "" the first (Tower, Wingmen, AWACS), "tower" the tower's calls, "wingmen" the flight's
+## The menu's page: "" the first (Tower, Wingmen, AWACS), "tower" the tower's calls, "awacs" the AWACS's requests,
+## "wingmen" the flight's
 ## addressees, "to" an addressee's commands (`_to`), "formation" the flight's shapes, "spacing" close up / spread out.
 var page := ""
 var _to := 0
@@ -334,6 +350,8 @@ func _title() -> String:
 		return _bi(ui.s("fl_radio") % _tower_name())
 	if page == "wingmen":
 		return _bi(ui.s("fl_radio_to") % TOP[1][2 if he else 1])
+	if page == "awacs":
+		return _bi(ui.s("fl_radio_to") % TOP[2][2 if he else 1])
 	var a: Array = ADDRESSEES.filter(func(x): return x[0] == _to)[0]
 	var who: String = a[2 if he else 1]
 	if page == "to":
@@ -363,6 +381,7 @@ func _lines() -> Array:
 		for it in (
 			TOP
 			+ ITEMS
+			+ AWACS_ITEMS
 			+ ADDRESSEES.map(func(a): return ["to:%d" % a[0], a[1] + " ›", a[2] + " ‹"])
 			+ COMMANDS
 			+ SHAPES
@@ -378,12 +397,15 @@ func _lines() -> Array:
 	return lines
 
 
-## The lines shown off (index in `shown` -> the reason), clickable no more.
+## The lines shown off (index in `shown` -> the reason), clickable no more: the AWACS's requests that cannot be made
+## now (radio.gd awacs_refusal: the Eitam lost, no radar lock, no tanker, no home base).
 func _off() -> Dictionary:
 	var off := {}
-	var i: int = shown.find("m:awacs")
-	if i >= 0:
-		off[i] = _bi(ui.s("fl_radio_awacs_off"))
+	if page == "awacs":
+		for i in shown.size():
+			var why: String = host.radio.awacs_refusal(String(shown[i]))
+			if why != "":
+				off[i] = _bi(ui.s("fl_awx_" + why))
 	return off
 
 
@@ -396,6 +418,8 @@ func _entries() -> Array:
 		return SHAPES.map(func(x): return x[0]) + [SPACING_PAGE[0]]
 	if page == "spacing":
 		return SPACING.map(func(x): return x[0])
+	if page == "awacs":
+		return AWACS_ITEMS.map(func(x): return x[0])
 	if page == "to":
 		var kind := "f" if _to == 0 else ("e" if _to == 5 else "w")
 		return COMMANDS.filter(func(c): return kind in c[4]).map(func(c): return c[0])
@@ -476,8 +500,6 @@ func choose(n: int) -> void:
 		else:
 			page = PARENT[page]
 		_show()
-	elif id == "m:awacs":
-		pass  # off: the line says why
 	elif id == MORE[0]:
 		_rest = true
 		_show()
@@ -497,6 +519,10 @@ func choose(n: int) -> void:
 	elif page == "tower":
 		set_open(false)
 		pick(id)
+	elif page == "awacs":
+		if host.radio.awacs_refusal(id) == "":  # off: the line says why
+			set_open(false)
+			awacs_pick(id)
 	elif page == "":
 		set_open(false)
 	else:
@@ -587,6 +613,20 @@ func flight_command(to: int, id: String) -> void:
 		_:
 			ok = ai.flight_ai.command(now, to, id)
 	host._log_event(host._log_st, {"event": "radio", "call": "%s:%d" % [id, to], "answer": "ok" if ok else "none"})
+
+
+## One AWACS request `id` (docs/ai.md §24.2): the pilot's call printed in both languages and said ("Eitam, Kidon 1,
+## picture"), then the controller's answer (radio.gd awacs_request); a `radio` event recorded. The answer's lines.
+func awacs_pick(id: String) -> Array:
+	var r: Node = host.radio
+	var it: Array = AWACS_ITEMS.filter(func(x): return x[0] == id)[0]
+	var said_cs: String = r.kidon(r.formation_name(r._player_ent()))
+	var lines := ["Eitam, %s, %s" % [said_cs, it[3]], "עיטם, %s, %s" % [said_cs.replace("Kidon", "כידון"), it[4]]]
+	r.bilingual(lines[0], lines[1])
+	var out: Array = r.awacs_request(id, lines[1 if _he() else 0])
+	var answer := " ".join(out.map(func(p): return String(p.text)))
+	host._log_event(host._log_st, {"event": "radio", "call": "awacs:" + id, "answer": answer})
+	return out
 
 
 ## The runway end the tower names for the mission's runway ("25R"; its other end when the tower turned the base into

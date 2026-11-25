@@ -358,8 +358,8 @@ licence:
 |---|---|---|
 | Betty | `af_heart`, 1.3, +3 semitones | the VMS calls |
 | tower | `am_michael`, 1.1 | the tower's phrases, the friendly-fire call, the map edge |
-| pilot | `am_puck`, 1.1 | the player's radio-menu calls (helmet chain, §5.2), "Roger", eject, the friendly-fire calls of the target and the wingman |
-| AWACS | `am_fenrir`, 1.1 | the contact calls `ACFT_FCTRL_LONG` / `_SHORT` ([ews.md](ews.md) §7); Scramble's task call `AWX_TASK` ([../../docs/ai.md](../../docs/ai.md) §23) |
+| pilot | `am_puck`, 1.1 | the player's radio-menu calls (helmet chain, §5.2; the requests to the AWACS, "Eitam, Kidon 1, picture"), "Roger", eject, the friendly-fire calls of the target and the wingman |
+| AWACS | `am_fenrir`, 1.1 | the contact calls `ACFT_FCTRL_LONG` / `_SHORT` ([ews.md](ews.md) §7); Scramble's task call `AWX_TASK` ([../../docs/ai.md](../../docs/ai.md) §23); the controller's answers to the radio menu's requests and the Eitam's call for help (`AWX_*`, [../../docs/ai.md](../../docs/ai.md) §24) |
 | wingman | `am_eric`, 1.1 | the four-ship's wingmen Kidon 1-2 to 1-4: their answers and calls (`WNG_*`, `radio.gd flight_call`; the words in [research/radio-terms.md](research/radio-terms.md)); the player's commands to them (`CMD_*`) are the pilot's |
 
 **Choice** (9 November 2026; the user on 3 November: "less British", American or neutral voices). Kokoro's
@@ -367,6 +367,15 @@ American voices graded best by its own VOICES.md[^kokoro]: `af_heart` (A) and `a
 `am_michael`, `am_puck` and `am_fenrir` (C+, the best men's grade) among the men. For Betty eleven female voices said
 "Pull up! Pull up!"; `af_heart` and `af_sarah` had the highest pitch (232 and 226 Hz), `af_heart` the higher grade.
 The tower and the pilot are two different men so a call and its answer are told apart; the AWACS a third; the wingmen a fourth (`am_eric`, 19 November 2026: the remaining best-graded American man not yet used, D in VOICES.md; one voice for Kidon 1-2 to 1-4, inferred).
+
+**The AWACS is a man or a woman** in English too (25 November 2026; the user's rule of 20 November: "The
+tower/AWACS/wingman might be a male or female", asked again for the AWACS: "both male and female as we did before").
+Its other voice is `af_bella` at 1.1 (A− in VOICES.md, the best-graded woman after Betty's `af_heart`, already on disk:
+no download): `voices.json` `voices.awacs.other`. `iaf-sim voices` says every AWACS clip in it as well, into
+`en/af_bella/<file>`; `iaf-sim own` deploys them under `en/` and names them in `voices_he.json` (`en`, with each
+Hebrew voice's gender, `genders`). A flight hears the AWACS of its cast (§3.1): where the cast's Hebrew AWACS is a woman
+(`yael`), the English AWACS is `af_bella`, else `am_fenrir` (`sound_table.gd english`), so one flight has one AWACS
+voice in either language, half of the casts a woman's.
 
 **Betty** follows the F-16 VMS, as [real-betty.md](../../docs/real-betty.md) §5 proposes for all three jets (the
 Sufa and the Barak are F-16s; the F-35I's set is open, so it takes the same):
@@ -541,8 +550,8 @@ Hebrew-only joined particles (`he_only`, "MORNING+,+TAXI_RWY") hold a tower call
 callsign particles (Kidon 5–8's, כידון חמש to כידון שמונה, for the tower, the player and the AWACS since 25 November
 2026). Another
 pilot's call that the English pilot voice says (the wingman's ejection, the friendly-fire calls) takes a wingman's voice
-in Hebrew (`role_he`), since `pilot` is the player's own there. 968 clips (tower 147 lines × 2 voices, AWACS 112 × 2,
-the player's calls and readbacks 102 × 2, the wingmen 41 × 6), as Ogg Vorbis,
+in Hebrew (`role_he`), since `pilot` is the player's own there. 1152 clips (tower 147 lines × 2 voices, AWACS 197 × 2,
+the player's calls, readbacks and requests to the AWACS 109 × 2, the wingmen 41 × 6), as Ogg Vorbis,
 committed: the setup only copies them.
 
 **In the game**: `iaf-sim own` copies them to `converted/own/resource/soundfiles/he/` with `voices_he.json` (the casts

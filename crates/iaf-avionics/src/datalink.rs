@@ -25,6 +25,9 @@ pub struct Unit {
     pub friend: bool,
     /// Its place in the player's flight (2, 3, 4), None outside it.
     pub member: Option<u8>,
+    /// The AWACS sees it: Modern IAF's controller's word (the Eitam's radar, nothing once it is lost; docs/ai.md
+    /// §24.4), None for the AWACS's own query below.
+    pub seen: Option<bool>,
 }
 
 /// A track's symbol.
@@ -65,7 +68,7 @@ impl Link {
     }
 
     /// Every frame from the own position: every [`PERIOD`] the flight's members wherever they are, and the AWACS's
-    /// tracks within its reach and above the terrain + 175 m.
+    /// tracks: those it sees (`seen`), else within its reach and above the terrain + 175 m.
     pub fn update(&mut self, now: f64, own: Vec3, units: &[Unit]) {
         if !self.power || now < self.next {
             return;
@@ -74,7 +77,10 @@ impl Link {
         self.tracks = units
             .iter()
             .filter(|u| {
-                u.member.is_some() || ((u.pos - own).length_squared() < REACH_SQ && u.pos.z - u.ground > CONTACT_AGL)
+                u.member.is_some()
+                    || u.seen.unwrap_or_else(|| {
+                        (u.pos - own).length_squared() < REACH_SQ && u.pos.z - u.ground > CONTACT_AGL
+                    })
             })
             .map(|u| Track {
                 key: u.key.clone(),
@@ -125,5 +131,13 @@ mod tests {
         assert!(l.tracks().len() == 1 && l.tracks()[0].pos.x == 40000.0);
         l.set_power(false);
         assert!(l.tracks().is_empty());
+        // The controller's word wins over the query: a far track the Eitam sees, a near one it does not.
+        l.set_power(true);
+        let mut far = u("far", 120000.0, 5000.0, false, None);
+        far.seen = Some(true);
+        let mut near = u("bandit", 50000.0, 5000.0, false, None);
+        near.seen = Some(false);
+        l.update(10.0, Vec3::ZERO, &[far, near]);
+        assert!(l.tracks().len() == 1 && l.tracks()[0].key == "far");
     }
 }

@@ -13,6 +13,7 @@ extends Node
 const AirDefence := preload("res://shared/ai/air_defence.gd")
 const Convoys := preload("res://shared/ai/convoys.gd")
 const Drones := preload("res://shared/ai/drones.gd")
+const Eitam := preload("res://shared/ai/eitam.gd")
 const GroundRoads := preload("res://shared/terrain/ground_roads.gd")
 const Fly := preload("fly.gd")
 const MIG := "mig29a"
@@ -57,10 +58,14 @@ func place(fc: Dictionary, setup: Dictionary) -> Dictionary:
 		push_warning("scramble: nothing placed (%s -> %s)" % [home, area])
 		return placed
 	placed.task = String(setup.get("task", ""))
+	if host.get("radio") != null:
+		host.radio.awacs_task = task_target  # the AWACS's vector to the target (docs/ai.md §24.2)
 	if fc.get("start", "air") == "air" and host.get("radio") != null:
 		host.radio.hold_calls(true)
 	if fc.get("start", "air") == "runway":
 		host.ai.flight_pairs(true)
+	# The Eitam on its station behind the flight's way to the fight (docs/ai.md §24.3).
+	Eitam.of(host).place(Fly._lineup(ibx, area), Fly._lineup(ibx, home), host.player_world())
 	var ad: Node = AirDefence.of(host)
 	var plan: Array = IafFreeCombat.plan(setup, Fly._lineup(ibx, home), Fly._lineup(ibx, area))
 	for s in plan:
@@ -117,12 +122,7 @@ func _task() -> Array:
 	if not IafFreeCombat.task_due(now - _airborne_at, now - _said_at):
 		return []
 	var me: Vector3 = host.player_world()
-	var best = null
-	for e in placed.targets:
-		if e is Dictionary and not int(e.get("state", 0)) in [4, 5]:
-			var w: Vector3 = host.ai.world_of(e)
-			if best == null or me.distance_to(w) < me.distance_to(best):
-				best = w
+	var best = task_target()
 	var call: Array = []
 	if best != null:
 		call = IafFreeCombat.task_call(placed.task, host.radio.formation_name(rt.player_entity()), me, best)
@@ -131,6 +131,18 @@ func _task() -> Array:
 		host.radio.say(call[0], Array(call[1]))
 	host.radio.hold_calls(false)  # the flight's calls after the task (none due: at once)
 	return call
+
+
+## The task's target alive nearest the player's jet (world), null when none is left.
+func task_target() -> Variant:
+	var me: Vector3 = host.player_world()
+	var best = null
+	for e in placed.get("targets", []):
+		if e is Dictionary and not int(e.get("state", 0)) in [4, 5]:
+			var w: Vector3 = host.ai.world_of(e)
+			if best == null or me.distance_to(w) < me.distance_to(best):
+				best = w
+	return best
 
 
 ## The road point nearest `p` (the road layer, when setup made it), else `p`.

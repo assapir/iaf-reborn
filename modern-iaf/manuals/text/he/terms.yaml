@@ -88,6 +88,7 @@
 - {en: air base, he: בסיס, from: game}
 - {en: squadron, he: טייסת, from: game}
 - {en: flight (a formation), he: מבנה, from: game}
+- {en: group (the AWACS's: aircraft within 3 NM of each other), he: מבנה, from: game}
 - {en: wingman, he: מספר 2, from: game}
 - {en: pause, he: השהיה, from: game}
 - {en: not modelled, he: לא ממודל, from: game, not: [לא ממומש]}

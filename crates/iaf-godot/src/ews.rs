@@ -312,7 +312,8 @@ impl IafEws {
         self.link.power
     }
 
-    /// `units` [{key, pos, ground, heading (deg), speed, friend, member (0 none)}].
+    /// `units` [{key, pos, ground, heading (deg), speed, friend, member (0 none), seen (the AWACS's word; absent: its
+    /// own query)}].
     #[func]
     fn link_update(&mut self, now: f64, own: Vector3, units: VarArray) {
         let units: Vec<Unit> = dicts(&units)
@@ -324,6 +325,7 @@ impl IafEws {
                 speed: num(&d, "speed").unwrap_or_default(),
                 friend: get(&d, "friend").unwrap_or(false),
                 member: Some(num(&d, "member").unwrap_or_default() as u8).filter(|&n| n > 0),
+                seen: get(&d, "seen"),
             })
             .collect();
         self.link.update(now, vec3(own), &units);

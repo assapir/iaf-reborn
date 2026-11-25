@@ -3,13 +3,16 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
-- **The AWACS controller's rules and the Eitam's (2026-11-25, the user: "Full AWACS"; ai-plan C1, C2, K10;
-  [../../docs/ai.md](../../docs/ai.md) §24):** in Rust, not yet in the game: the answers to picture, bogey dope,
-  declare and the vectors to the target, home and the tanker in NATO brevity (BRAA from the player), from the Eitam's
-  radar where it flies (450 km, the radar horizon) or the virtual AWACS; the Eitam's standoff racetrack behind the
-  flight's way at 41,000 ft and Mach 0.80, its retreat at Mach 0.85 from a threat with a call for help; a lost Eitam
-  ends the service. Next: the radio menu's AWACS page with the voices, then the Eitam flying in Scramble.
-  `cargo test -p iaf-ai --lib -- awacs eitam`.
+- **The full AWACS (2026-11-25, the user: "Full AWACS"; "The eitam should be in the sky in makes sense place - where
+  it not directly in the middle of the flight. It's ai should know to run away if needed or call for help"; ai-plan
+  C1, C2, K10; [../../docs/ai.md](../../docs/ai.md) §24):** the radio menu's third page asks the AWACS for a picture,
+  bogey dope, declare and the vectors to the target, home and the tanker; it answers in NATO brevity (BRAA from the
+  player), voiced in English and Hebrew, and a request it cannot take is dimmed with its reason. In Scramble the Eitam
+  (our own G550 CAEW model) flies a standoff racetrack behind the flight's way at 41,000 ft; a hostile group near it
+  sends it away at Mach 0.85 with a call for help ("threat ... Eitam retrograding, commit"). Its radar feeds the
+  picture, the contact calls and the data link; the enemy can shoot it down, which ends the service. Open: the G550's
+  6-DoF (no public data); the tanker's vector waits for a tanker. `test_awacs.gd`, `cargo test -p iaf-ai --lib --
+  awacs eitam`.
 - **Every seat's radio calls whole, Kidon 5–8 voiced (2026-11-25, the game gaps' row 15; [sound.md](sound.md) §3,
   §5.2):** the player's call to a tower ("Hatzerim tower, Kidon 3, request taxi") is one clip as Kidon 1 to 8 (160
   English clips; before, Kidon 2–4 played the address, the callsign and the request apart); the tower's "negative,

@@ -147,7 +147,7 @@ func stream(r: Dictionary) -> AudioStream:
 
 func stream_file(name: String) -> AudioStream:
 	var key := name.to_lower()
-	var he := hebrew(key)
+	var he := hebrew(key) if Settings.language == "he" else english(key)
 	if he != "":
 		key = he
 	if _streams.has(key):
@@ -183,6 +183,28 @@ func hebrew(key: String) -> String:
 	if voice is Array:
 		voice = voice[clampi(speaker - 2, 0, voice.size() - 1)]
 	var path := _he_dir.path_join(String(voice)).path_join(file)
+	return path if FileAccess.file_exists(path) else ""
+
+
+## Ours: in English, the path of clip `key` in its role's English voice of the other gender (voices_he.json `en`, the
+## AWACS's woman, modern-iaf/docs/sound.md §3) when this mission's cast gives that role a voice of that gender (the
+## same cast as the Hebrew voices: the flight hears one AWACS, a man or a woman, in either language); "" otherwise.
+func english(key: String) -> String:
+	if Settings.language == "he" or _he.is_empty():
+		return ""
+	var file := key.get_basename() + ".ogg"
+	var role: String = _he.roles.get(file, "")
+	var other: Dictionary = _he.get("en", {}).get(role, {})
+	if other.is_empty():
+		return ""
+	var casts: Array = _he.casts
+	var voice = casts[posmod(Settings.mission_id, casts.size())].get(role, "")
+	if voice is Array:
+		return ""  # ponytail: a role of several speakers (the wingmen) has no other voice; add one when it gets one
+	var model := String(other.get(String(_he.get("genders", {}).get(voice, "")), ""))
+	if model == "":
+		return ""
+	var path := _he_dir.get_base_dir().path_join("en").path_join(model).path_join(file)
 	return path if FileAccess.file_exists(path) else ""
 
 

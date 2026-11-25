@@ -235,6 +235,7 @@ func link_update(o: Dictionary) -> void:
 	var mine: Dictionary = ai._formation_of(me) if ai != null and not me.is_empty() else {}
 	var units := []
 	var n := 1
+	var radio = w.host.get("radio")
 	for u in w._units():
 		if not int(u.ent.get("klass", -1)) in AIRCRAFT:
 			continue
@@ -244,15 +245,17 @@ func link_update(o: Dictionary) -> void:
 			member = n
 		var g = w.host.mission_ground(u.pos)
 		var v: Vector3 = u.vel
-		units.append(
-			{
-				"key": u.key,
-				"pos": u.pos,
-				"ground": float(g) if g != null else 0.0,
-				"heading": rad_to_deg(atan2(v.x, v.y)),
-				"speed": Vector2(v.x, v.y).length(),
-				"friend": not u.hostile,
-				"member": member
-			}
-		)
+		var unit := {
+			"key": u.key,
+			"pos": u.pos,
+			"ground": float(g) if g != null else 0.0,
+			"heading": rad_to_deg(atan2(v.x, v.y)),
+			"speed": Vector2(v.x, v.y).length(),
+			"friend": not u.hostile,
+			"member": member
+		}
+		# Modern IAF: with an Eitam, the AWACS's tracks are what its radar sees, none once it is lost (docs/ai.md §24.4).
+		if radio != null and radio.eitam_flies():
+			unit.seen = radio.awacs.sees(o.pos, unit)
+		units.append(unit)
 	_e.link_update(w.now, o.pos, units)

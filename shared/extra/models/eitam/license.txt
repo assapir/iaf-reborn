@@ -1,0 +1,7 @@
+Model Information:
+* title:	Eitam (Gulfstream G550 CAEW), low poly
+* source:	Modern IAF, tools/eitam/eitam.py (docs/ai.md section 24.3)
+* author:	Modern IAF (our own model)
+
+Model License:
+* the repository's licence (LICENSE)

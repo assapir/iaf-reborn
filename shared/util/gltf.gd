@@ -351,6 +351,7 @@ const UNITS := {
 	"ZSU-23-4": "res://shared/extra/models/zsu23_4/zsu23_4.glb",
 	"SHAHED-136": "res://shared/extra/models/shahed136/shahed136.glb",
 	"T-72": "res://shared/extra/models/t72/t72.glb",
+	"EITAM": "res://shared/extra/models/eitam/eitam.glb",
 }
 const STORES := {
 	"aim9_m.gltf": "aim9",

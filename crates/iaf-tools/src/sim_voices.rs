@@ -525,22 +525,38 @@ pub fn voices(
         // A clip without `say` is Hebrew only (voices --he).
         .filter(|c| c["say"].is_string() && c["file"].as_str().is_some_and(|f| picked(only, f)))
         .collect();
-    let mut lines = vec![];
+    // Each clip in its role's voice into `<file>`, and again in the role's English voice of the other gender (the
+    // AWACS's) into `en/<model>/<file>`.
+    let (mut jobs, mut lines) = (vec![], vec![]);
     for c in &clips {
-        let (voice, speed) = role(&v, c["voice"].as_str().context("voices.json: a clip without \"voice\"")?)?;
+        let name = c["voice"].as_str().context("voices.json: a clip without \"voice\"")?;
+        let (voice, speed) = role(&v, name)?;
         let text = c["say"].as_str().context("voices.json: a clip without \"say\"")?;
+        let file = c["file"].as_str().context("voices.json: a clip without \"file\"")?;
+        jobs.push((c, PathBuf::from(file)));
         lines.push(Line { text: text.into(), voice: voice.into(), speed, ipa: Value::Null });
+        if let Some(o) = crate::sim::en_other(&v, name) {
+            let model = o["model"].as_str().context("voices.json: an \"other\" voice without \"model\"")?;
+            jobs.push((c, Path::new("en").join(model).join(file)));
+            lines.push(Line {
+                text: text.into(),
+                voice: model.into(),
+                speed: o["speed"].as_f64().unwrap_or(1.0),
+                ipa: Value::Null,
+            });
+        }
     }
     check(cancel)?;
     let said = kokoro(repo, &lines, &tmp.0)?;
-    for (i, (c, (x, split))) in clips.iter().zip(&said).enumerate() {
+    for (i, ((c, out), (x, split))) in jobs.iter().zip(&said).enumerate() {
         check(cancel)?;
-        let file = c["file"].as_str().context("voices.json: a clip without \"file\"")?;
         let y = make(x, *split, c, Mode::of(c["mode"].as_str().unwrap_or(""))?, &mut noise, &tmp.0)?;
-        write_ogg(&y, &sounds.join(file), &tmp.0)?;
-        pr.fraction((i + 1) as f32 / clips.len() as f32);
+        let path = sounds.join(out);
+        std::fs::create_dir_all(path.parent().context("a clip's folder")?)?;
+        write_ogg(&y, &path, &tmp.0)?;
+        pr.fraction((i + 1) as f32 / jobs.len() as f32);
     }
-    log!(pr, "voices: {} clips -> {}", clips.len(), sounds.display());
+    log!(pr, "voices: {} clips -> {}", jobs.len(), sounds.display());
     deploy(data, assets, pr, cancel)
 }
 
@@ -595,8 +611,8 @@ fn picked(only: Option<&str>, file: &str) -> bool {
     only.is_none_or(|o| o.split(',').any(|p| !p.is_empty() && file.contains(p)))
 }
 
-/// The clips voices.json names that are not made yet: `<file>` of a line with `say`, `he/<voice>/<file>` of a line
-/// with `say_he` in each voice of its role.
+/// The clips voices.json names that are not made yet: `<file>` of a line with `say`, the Hebrew and the English
+/// other-gender clips (`compile_voices_he`'s files).
 fn unmade(sounds: &Path, v: &Value) -> Result<Vec<String>> {
     let he = crate::sim::compile_voices_he(v)?;
     let mut out = vec![];
@@ -605,10 +621,8 @@ fn unmade(sounds: &Path, v: &Value) -> Result<Vec<String>> {
         if c["say"].is_string() {
             out.push(file.to_string());
         }
-        if c["say_he"].is_string() {
-            out.extend(he.voices_of(crate::sim::role_he(c)).map(|voice| format!("he/{voice}/{file}")));
-        }
     }
+    out.extend(he.files);
     out.retain(|f| !sounds.join(f).exists());
     Ok(out)
 }
@@ -731,12 +745,16 @@ mod tests {
                 {"file": "y.ogg", "voice": "pilot", "say": "y"}
             ]
         });
-        assert_eq!(unmade(&dir.0, &v).unwrap(), ["x.ogg", "he/a/x.ogg", "y.ogg"]);
+        assert_eq!(unmade(&dir.0, &v).unwrap(), ["x.ogg", "y.ogg", "he/a/x.ogg"]);
         std::fs::create_dir_all(dir.0.join("he/a")).unwrap();
         std::fs::write(dir.0.join("he/a/x.ogg"), b"").unwrap();
         assert_eq!(unmade(&dir.0, &v).unwrap(), ["x.ogg", "y.ogg"], "the Hebrew run first");
         std::fs::write(dir.0.join("x.ogg"), b"").unwrap();
         std::fs::write(dir.0.join("y.ogg"), b"").unwrap();
         assert!(unmade(&dir.0, &v).unwrap().is_empty());
+        // A role's English voice of the other gender: its clips under en/<model>/ are owed too.
+        let mut w = v.clone();
+        w["voices"] = json!({"pilot": {"model": "m", "other": {"model": "f1", "speed": 1.0, "gender": "f"}}});
+        assert_eq!(unmade(&dir.0, &w).unwrap(), ["en/f1/y.ogg"]);
     }
 }

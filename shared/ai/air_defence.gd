@@ -414,9 +414,10 @@ func _fire_gun(s: Dictionary, now: float) -> void:
 		cb.fire_at(u, host.runtime.entities.get(g.key, {}), now, false, g.err)
 
 
-## The jets hostile to `side`, alive: the player and the AI aircraft, each with what a radar sees of it (its
-## definition's rcs, the bays, the external stores; its jammer's burn-through share while it jams, docs/ai.md §15.6;
-## its afterburner lit, for an infrared seeker, §15.8): {id, pos, vel, nose, rcs, bays, stores, jam, ab, ent}.
+## The jets hostile to `side`, alive: the player and the AI aircraft, each with what a radar sees of it (its own
+## `rcs` (the Eitam's, the drones'), else its definition's, the bays, the external stores; its jammer's burn-through
+## share while it jams, docs/ai.md §15.6; its afterburner lit, for an infrared seeker, §15.8): {id, pos, vel, nose, rcs,
+## bays, stores, jam, ab, ent}.
 func jets(side: int) -> Array:
 	var rt: Node = host.runtime
 	var w: Node = host.weapons
@@ -440,7 +441,7 @@ func jets(side: int) -> Array:
 					"pos": rt._world_of(e),
 					"vel": vel,
 					"nose": vel.normalized() if vel.length() > 1.0 else Vector3(0, 1, 0),
-					"rcs": Settings.airframe(w.jet_type if e.player else int(e.type_code)).get("rcs"),
+					"rcs": e.get("rcs", Settings.airframe(w.jet_type if e.player else int(e.type_code)).get("rcs")),
 					"bays": e.player and w.bay_open(),
 					"stores": stores.external() if stores != null else 0,
 					"jam": w.jam_share() if e.player else float(e.get("jam", 0.0)),

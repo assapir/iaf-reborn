@@ -109,13 +109,33 @@ impl IafAwacs {
         self.sensor() != Sensor::Lost
     }
 
-    /// The Eitam's `dt` s at `now` with the `contacts`; its calls to `callsign` at `player` (world) as
-    /// [[template, PackedStringArray args]] (the call for help).
+    /// The Eitam's `dt` s at `now` with the `contacts`; its calls to `callsign` at `player` (world) as [{template,
+    /// args (PackedStringArray), bearing, miles, hostile}] (the call for help and the group it names).
     #[func]
     fn step(&mut self, now: f64, dt: f64, contacts_: VarArray, callsign: GString, player: Vector3) -> VarArray {
         let Some(e) = &mut self.eitam else { return VarArray::new() };
         let cs = contacts(&contacts_);
-        e.step(now, dt, &cs, &callsign.to_string(), vec3(player)).iter().map(|(t, a)| line(t, a)).collect()
+        e.step(now, dt, &cs, &callsign.to_string(), vec3(player))
+            .iter()
+            .map(|(t, a, n)| {
+                let args: PackedStringArray = a.iter().map(GString::from).collect();
+                vdict! {
+                    "template" => *t, "args" => &args, "bearing" => n.bearing as i64, "miles" => n.miles as i64,
+                    "hostile" => n.hostile,
+                }
+                .to_variant()
+            })
+            .collect()
+    }
+
+    /// The Eitam's radar cross-section, as an airframe's `rcs` (the radars read it from the entity).
+    #[func]
+    fn eitam_rcs() -> VarDictionary {
+        let r = eitam::RCS;
+        vdict! {
+            "front_m2" => r.front_m2, "side_m2" => r.side_m2, "rear_m2" => r.rear_m2, "bays_open_m2" => r.bays_open_m2,
+            "store_m2" => r.store_m2,
+        }
     }
 
     /// The controller's sensor sees `contact` (the player at `player`, world).

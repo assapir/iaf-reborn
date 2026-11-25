@@ -1289,12 +1289,20 @@ pub fn compile_radio(voices: &Value) -> Result<Radio> {
 }
 
 /// The Hebrew voices of `voices.json` `he` (modern-iaf/docs/sound.md §3.1): each role's voices across the casts, the
-/// clips they need, and `voices_he.json`, which `sound_table.gd` reads (`casts`, and `roles`: each Hebrew clip's role).
+/// clips they need, and `voices_he.json`, which `sound_table.gd` reads (`casts`, `roles`: each Hebrew clip's role,
+/// `genders`: each Hebrew voice's, and `en`: a role's English voice of the other gender, {role: {gender: model}}).
 pub struct VoicesHe {
     pub roles: BTreeMap<String, BTreeSet<String>>,
-    /// `he/<voice>/<file>`: every clip with a `say_he` in every voice its role takes.
+    /// `he/<voice>/<file>`: every clip with a `say_he` in every voice its role takes; `en/<model>/<file>`: every clip
+    /// with a `say` whose role has an English voice of the other gender (`voices.<role>.other`, [`en_other`]).
     pub files: Vec<String>,
     pub json: String,
+}
+
+/// A role's English voice of the other gender (`voices.<role>.other`: {model, speed, gender}), else none: the
+/// AWACS's (the user, 20 November 2026: "The tower/AWACS/wingman might be a male or female").
+pub fn en_other<'a>(voices: &'a Value, role: &str) -> Option<&'a Value> {
+    voices["voices"][role]["other"].as_object().map(|_| &voices["voices"][role]["other"])
 }
 
 impl VoicesHe {
@@ -1341,12 +1349,25 @@ pub fn compile_voices_he(voices: &Value) -> Result<VoicesHe> {
         files.extend(vs.iter().map(|v| format!("he/{v}/{file}")));
         by_file.insert(file.to_string(), role.into());
     }
+    let mut en = Map::new();
+    for c in voices["clips"].as_array().into_iter().flatten() {
+        let (Some(file), Some(_), Some(role)) = (c["file"].as_str(), c["say"].as_str(), c["voice"].as_str()) else {
+            continue;
+        };
+        if let Some(o) = en_other(voices, role) {
+            let (model, gender) = (o["model"].as_str().unwrap_or(""), o["gender"].as_str().unwrap_or(""));
+            ensure!(!model.is_empty() && !gender.is_empty(), "voices: {role}.other needs a model and a gender");
+            files.push(format!("en/{model}/{file}"));
+            en.insert(role.into(), json!({gender: model}));
+        }
+    }
+    let genders: Map<String, Value> = known.iter().map(|(n, g)| (n.clone(), g["gender"].clone())).collect();
     for (i, cast) in casts.iter().enumerate() {
         for role in by_file.values().filter_map(Value::as_str) {
             ensure!(cast.get(role).is_some(), "voices: cast {i} gives the role \"{role}\" no voice");
         }
     }
-    let json = serde_json::to_string(&json!({"casts": casts, "roles": by_file}))?;
+    let json = serde_json::to_string(&json!({"casts": casts, "roles": by_file, "genders": genders, "en": en}))?;
     Ok(VoicesHe { roles, files, json })
 }
 
@@ -1399,16 +1420,18 @@ pub fn own_sounds(data: &Path, assets: &Path, cancel: &AtomicBool) -> Result<(us
         ogg_seconds(&bytes).with_context(|| src.display().to_string())?;
         std::fs::write(out.join(f), bytes).with_context(|| out.join(f).display().to_string())?;
     }
-    // The Hebrew clips (he/<voice>/<file>), the folder made anew.
-    if out.join("he").exists() {
-        std::fs::remove_dir_all(out.join("he"))?;
+    // The Hebrew clips (he/<voice>/<file>) and the English other-gender ones (en/<model>/<file>), the folders made anew.
+    for d in ["he", "en"] {
+        if out.join(d).exists() {
+            std::fs::remove_dir_all(out.join(d))?;
+        }
     }
     for f in &he.files {
         check(cancel)?;
         let (src, dst) = (sounds.join(f), out.join(f));
         let bytes = std::fs::read(&src).with_context(|| src.display().to_string())?;
         ogg_seconds(&bytes).with_context(|| src.display().to_string())?;
-        std::fs::create_dir_all(dst.parent().context("he/")?)?;
+        std::fs::create_dir_all(dst.parent().context("he/ or en/")?)?;
         std::fs::write(&dst, bytes).with_context(|| dst.display().to_string())?;
     }
     let trx_files = [
@@ -1423,7 +1446,7 @@ pub fn own_sounds(data: &Path, assets: &Path, cancel: &AtomicBool) -> Result<(us
     }
     for e in std::fs::read_dir(&out)? {
         let name = e?.file_name().to_string_lossy().into_owned();
-        if !files.contains(&name) && name != "he" && !trx_files.iter().any(|t| t.0 == name) {
+        if !files.contains(&name) && name != "he" && name != "en" && !trx_files.iter().any(|t| t.0 == name) {
             std::fs::remove_file(out.join(&name)).with_context(|| out.join(&name).display().to_string())?;
         }
     }
@@ -2097,6 +2120,14 @@ mod tests {
         };
         let he = compile_voices_he(&v(json!([{"tower": "a", "wingman": ["b"]}]))).unwrap();
         assert_eq!(he.files, ["he/a/x.ogg", "he/b/z.ogg"], "z in its Hebrew role's voice");
+        // The tower's English voice of the other gender: each English tower clip again in it, named in the json.
+        let mut w = v(json!([{"tower": "a", "wingman": ["b"]}]));
+        w["clips"][1]["say"] = json!("y");
+        w["voices"] = json!({"tower": {"model": "m1", "other": {"model": "f1", "speed": 1.1, "gender": "f"}}});
+        let he = compile_voices_he(&w).unwrap();
+        assert_eq!(he.files, ["he/a/x.ogg", "he/b/z.ogg", "en/f1/y.ogg"]);
+        let j: Value = serde_json::from_str(&he.json).unwrap();
+        assert_eq!((&j["en"]["tower"]["f"], &j["genders"]["b"]), (&json!("f1"), &json!("f")));
         assert!(compile_voices_he(&v(json!([{"tower": "a", "wingman": ["i"]}]))).is_err(), "the instructor's voice");
         assert!(compile_voices_he(&v(json!([{"tower": "a", "wingman": ["a"]}]))).is_err(), "men only");
         assert!(compile_voices_he(&v(json!([{"wingman": ["a", "b"]}]))).is_err(), "no voice for the tower");
