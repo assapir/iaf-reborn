@@ -188,6 +188,8 @@ CREDITS = (
     "Attributions screen.",
     "בנוי על נתונים פתוחים ועל דגמים, צלילים וגופנים ברישיון פתוח; הקרדיט המלא נמצא במסך הקרדיט של הסימולטור.",
 )
+AUTHOR = ('Made by <a href="https://github.com/assapir">Assaf Sapir</a>',
+          'נוצר על ידי <a href="https://github.com/assapir">אסף ספיר</a>')
 
 
 # The combat section's radio exchange: (role, template, particles, speaker_en, speaker_he, line_en, line_he), made into

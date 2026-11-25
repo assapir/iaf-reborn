@@ -10,7 +10,7 @@ import struct
 import subprocess
 import sys
 
-from content import HERO, SECTIONS, CREDITS, TITLE, MANUALS, PUBLISH_MANUALS, RADIO, DOWNLOADS
+from content import HERO, SECTIONS, CREDITS, AUTHOR, TITLE, MANUALS, PUBLISH_MANUALS, RADIO, DOWNLOADS
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO = os.path.dirname(HERE)
@@ -191,7 +191,7 @@ section ul{padding-inline-start:22px;margin:6px 0 10px}
 .lb.zoom img{max-width:none;max-height:none;cursor:zoom-out}
 figcaption{color:var(--dim);font-size:14.5px;margin-top:6px}
 footer{border-top:1px solid var(--line);color:var(--dim);font-size:13.5px;padding:22px 0 0;margin-top:40px}
-footer p{max-width:none}
+footer p{max-width:none}footer a{color:var(--accent)}
 .links{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
 .links.dl{grid-template-columns:repeat(2,1fr)}.dl .doc p{margin:6px 0}.dl .doc a{color:var(--accent);font-size:17px}
 .radio{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 18px 10px;margin:18px 0}
@@ -237,7 +237,7 @@ def page():
     secs = list(SECTIONS) + [DOWNLOADS] + ([MANUALS] if PUBLISH_MANUALS else [])
     nav = "".join(f'<a href="#{s["id"]}">{both(s["nav_en"], s["nav_he"])}</a>' for s in secs)
     body = "\n".join(section(s) for s in secs)
-    foot = f'<footer>{both(CREDITS[0], CREDITS[1], "p")}</footer>'
+    foot = f'<footer>{both(AUTHOR[0], AUTHOR[1], "p")}{both(CREDITS[0], CREDITS[1], "p")}</footer>'
     return f"""<!DOCTYPE html>
 <html lang="en" data-lang="en" dir="ltr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
