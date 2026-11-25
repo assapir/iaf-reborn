@@ -2308,7 +2308,7 @@ mod tests {
         }
         let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
         let recs = keys["records"].as_array().unwrap();
-        assert_eq!(recs.len(), 259);
+        assert_eq!(recs.len(), 261);
         for r in recs {
             let labelled = r["label"].as_str().is_some_and(|l| !l.is_empty());
             assert!(labelled || r["shown"] == false, "{r}");

@@ -79,7 +79,7 @@ func run() -> void:
 	tv.addon.set_open(true)
 	for id2 in ["m:wingmen", "to:2", "refuel"]:
 		tv.addon.choose(tv.addon.shown.find(id2) + 1)
-	Engine.time_scale = 4.0
+	Engine.time_scale = 1.5  # at 4x this laptop's long frames threw Kidon 1-2 off pre-contact (25 Nov 2026)
 	var t0: float = tv._sim_time
 	while not tk.said.any(func(c): return c[0] == "contact") and tv._sim_time - t0 < 900.0:
 		await process_frame
