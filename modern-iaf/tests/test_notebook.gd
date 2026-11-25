@@ -72,7 +72,7 @@ func run() -> void:
 	check("120.900" in nb.page_text() and "275.800" in nb.page_text(), "RADIO: Ramon's frequencies")
 	_wheel(nb, MOUSE_BUTTON_WHEEL_DOWN)
 	check(nb.current_id() == "landing", "the wheel turns past RADIO's last page into LANDING")
-	_key(tv, KEY_PAGEUP)
+	tv._unhandled_input(record_key(tv.keys, 222))  # Page Up, on the laptop map Alt + Space
 	check(nb.current_id() == "radio", "PgUp turns back")
 	_tap(nb, nb.arrow_rects()[1].get_center())
 	check(nb.current_id() == "landing", "the page's › turns on")

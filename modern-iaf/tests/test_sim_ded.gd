@@ -29,12 +29,10 @@ func _key(k: Key, mods := "") -> void:
 		tv._unhandled_input(e)
 
 
-## The DCS RTN key: Alt + Home, on the laptop map (macOS's default) Ctrl + ,.
+## The DCS RTN key (record 169: Alt + Home, on the laptop map Ctrl + ,).
 func _rtn() -> void:
-	if settings().laptop_keys:
-		_key(KEY_COMMA, "ctrl")
-	else:
-		_key(KEY_HOME, "alt")
+	for down in [true, false]:
+		tv._unhandled_input(record_key(tv.keys, 169, down))
 
 
 ## ICP keys by their numbers (IafUfc.press), through command 250.

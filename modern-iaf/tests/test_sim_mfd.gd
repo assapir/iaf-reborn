@@ -35,6 +35,12 @@ func _tap(k: Key, shift := false, ctrl := false) -> void:
 	_press(k, shift, ctrl, false)
 
 
+## Key-table record i's key pressed and released (base.gd record_key: the laptop map's on macOS).
+func _rec(i: int) -> void:
+	for down in [true, false]:
+		tv._unhandled_input(record_key(tv.keys, i, down))
+
+
 ## The game's button id of real OSB `r` (the inverse of IafF16Mfd.real_osb).
 static func gid(r: int) -> int:
 	if r <= 5:
@@ -190,13 +196,13 @@ func _frame() -> void:
 	_tap(KEY_BRACKETRIGHT, false, true)
 	_tap(KEY_BRACKETRIGHT, false, true)
 	await frames(2)
-	_tap(KEY_PAGEUP, false, true)
+	_rec(147)  # DMS up
 	await frames(1)
 	check(c.soi == -1, "DMS up: the SOI on the HUD")
-	_tap(KEY_PAGEDOWN, false, true)
+	_rec(148)  # DMS down
 	await frames(1)
 	check(c.soi == 0, "DMS down: the left MFD (%d)" % c.soi)
-	_tap(KEY_PAGEDOWN, false, true)
+	_rec(148)  # DMS down
 	await frames(1)
 	check(c.soi == 1 and c.soi_format() == "HSD", "DMS down again: the right MFD's HSD (%s)" % c.soi_format())
 	_tap(KEY_BRACKETLEFT, false, true)

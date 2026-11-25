@@ -32,6 +32,12 @@ func _key(k: Key, mods := "", down := true) -> void:
 		_key(k, mods, false)
 
 
+## Key-table record i's key pressed and released (base.gd record_key: the laptop map's on macOS).
+func _rec(i: int) -> void:
+	for down in [true, false]:
+		tv._unhandled_input(record_key(tv.keys, i, down))
+
+
 func _until(cond: Callable, limit: float) -> bool:
 	var t0: float = tv._sim_time
 	while not cond.call():
@@ -85,11 +91,11 @@ func formats() -> void:
 	var by_tap := []
 	for f in list:
 		var i := int(p.st.focus)
-		_key(KEY_HOME)
+		_rec(241)  # MENU
 		var steps := posmod(list.find(f) - int(p.st.menu_cur), list.size())
 		for k in steps:
 			_key(KEY_F10, "C")
-		_key(KEY_END)
+		_rec(244)  # select
 		await frames(2)
 		if p.main[i] != f or p.menu_open[i]:
 			by_key.append(f)
@@ -133,14 +139,14 @@ func layout() -> void:
 	check(int(p.st.focus) == 2, "DMS left twice: back on 2 (SRCH)")
 	check(tv.cockpit.soi_format() == "FCR", "the cursor on SRCH: the TMS keys act on the radar")
 	# Widen (Ctrl + End): SRCH over the right half, the four windows kept; enlarge (Shift + Home): over them.
-	_key(KEY_END, "C")
+	_rec(246)  # widen
 	await frames(1)
 	check(bool(p.st.wide[1]) and not p.shown(3) and p.windows().size() == 4, "Ctrl + End widens SRCH over its half")
-	_key(KEY_HOME, "S")
+	_rec(247)  # enlarge
 	await frames(1)
 	check(p.windows().is_empty() and Array(p.st.tab_rows[2]).size() == 5, "Shift + Home enlarges it: its tabs")
-	_key(KEY_HOME, "S")
-	_key(KEY_END, "C")
+	_rec(247)  # enlarge
+	_rec(246)  # widen
 	check(not bool(p.st.wide[1]) and p.windows().size() == 4, "and both back")
 	# The header's widen arrows by a tap.
 	var pr: Rect2 = p.portals()[3]
@@ -152,7 +158,7 @@ func layout() -> void:
 	check(not bool(p.st.wide[1]), "and a second tap splits it again")
 	# SWAP: Shift + End trades the function bar's halves (the portals stay), then its arrows trade them back.
 	var was: Array = p.main
-	_key(KEY_END, "S")
+	_rec(248)  # SWAP
 	check(bool(p.st.bar_swapped) and p.main == was, "Shift + End swaps the bar's halves (%s)" % [p.main])
 	await frames(1)
 	var g: Rect2 = p.glass()
@@ -170,7 +176,7 @@ func layout() -> void:
 	check(p.main[0] == "TSD-2", "a tap on the large portal's first tab shows TSD-2 (%s)" % p.main[0])
 	p.lay.set_focus(3)
 	p._refresh()
-	_key(KEY_HOME, "C")
+	_rec(245)  # the next window
 	check(p.main[3] == "EFI", "Ctrl + Home: the next window into the portal (%s)" % p.main[3])
 	# The presets (Alt + ,): 2 to 5 and back to 1, each its split.
 	var want := [[4, 8], [2, 0], [3, 4], [4, 6], [3, 4]]
@@ -218,11 +224,11 @@ func stores() -> void:
 		"a SPICE 1000 in each bay, stations 4 / 8 (%s)" % [names]
 	)
 	# DOORS (Ctrl + Delete): open and held, then shut.
-	_key(KEY_DELETE, "C")
+	_rec(250)  # DOORS
 	check(await _until(func(): return float(tv.cockpit.weapons.bay) >= 1.0, 3.0), "Ctrl + Delete opens the bay doors")
 	await frames(30)
 	check(float(tv.cockpit.weapons.bay) >= 1.0, "DOORS holds them open")
-	_key(KEY_DELETE, "C")
+	_rec(250)  # DOORS
 	check(await _until(func(): return float(tv.cockpit.weapons.bay) <= 0.0, 3.0), "and shuts them")
 	# The SPICE 1000 selected: the WPN-S shows each bomb's row; released from its bay with the doors open.
 	_key(KEY_BRACKETLEFT)

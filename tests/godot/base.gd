@@ -54,6 +54,21 @@ func check(ok: bool, what: String) -> void:
 		failures += 1
 
 
+## Key-table record i's key as the player presses (down) or releases it, from the table the flight loaded (`keys`,
+## terrain_view.gd): on macOS Modern IAF's laptop map (modern-iaf/docs/front-end.md §9.1), where some keys differ.
+func record_key(keys: RefCounted, i: int, down := true) -> InputEventKey:
+	var k: int = keys.default_key(i)
+	var m := k >> 16
+	var e := InputEventKey.new()
+	e.keycode = keys.godot_key(k & 0xffff)
+	e.physical_keycode = e.keycode
+	e.ctrl_pressed = m == keys.CTRL
+	e.shift_pressed = m == keys.SHIFT
+	e.alt_pressed = m == keys.ALT
+	e.pressed = down
+	return e
+
+
 func frames(n: int) -> void:
 	for i in n:
 		await process_frame
