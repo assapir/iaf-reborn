@@ -23,7 +23,8 @@ game (`IafSetup`), so no separate setup program ships.
 - **macOS**: a disk image with the app (Godot's universal program, our library for Apple silicon only), a link to
   Applications and "Read me first.txt". The app has an ad-hoc signature only (Apple silicon runs no code without one)
   and is not notarised, so macOS stops its first start. Right-click the app, choose Open, then Open again; or run once
-  `xattr -dr com.apple.quarantine "/Applications/Modern IAF.app"`. Intel Macs are not built for.
+  `xattr -dr com.apple.quarantine "/Applications/Modern IAF.app"`. It needs macOS 13 or later (the baked shaders,
+  "Baked shaders" below). Intel Macs are not built for.
 
 Both games' bundles also hold setup's outside programs in `tools/` (below), so a player installs nothing for Modern
 IAF. Jane's IAF reborn: nothing for the game and the CD. The optional imagery of the Survey of Israel needs python3 and
@@ -147,15 +148,20 @@ bundle's first start does not compile them: Godot's own shaders and the project'
 for Modern IAF). The pipelines (a shader with its draw state) are the driver's and still compile on the player's
 machine.
 
-The flight's material list that the front end warms up ([rendering.md](rendering.md) §1.6 "The first start") is
-not baked: it lies in `shared/extra` (outside the `.pck`, copied beside the game), and a bundle warms it up at run
-time, as the checkout does. Measured on the Mac (2026-11-25, Godot 4.7.2): a bake with the list gave a bundle that
-stopped at the flight's start (Metal: "'sampler' attribute parameter is out of bounds" for the scene shader, the
-game's crash page). A later bake without the list did the same until the editor's own shader cache
-(`editor_data/shader_cache` beside a self-contained Godot, else Godot's user folder) was cleared; after that it flew.
-So the cause is open, and a bake by hand starts from a cleared editor shader cache (CI's runners always do). A baked
-macOS bundle prints three `ERROR` lines at launch ("Not enough bytes for uniform in shader container"): Godot then
-compiles that one shader itself, and the game runs on.
+The bake includes the flight's material list that the front end warms up ([rendering.md](rendering.md) §1.6 "The
+first start", `shared/util/flight_materials.tres`), so the built-in materials' shaders the flight draws are baked
+too (1646 bake steps for Modern IAF).
+
+The macOS presets set the minimum macOS to 13 (`application/min_macos_version_arm64`). The baker picks its Metal profile
+from that version, and only from macOS 13 does it compile with argument buffers, as Godot does at run time on Apple
+silicon. With Godot's default 11.00 it baked the shaders with one Metal slot per texture and sampler; a material's
+sampler then got slot 17 (Metal allows 0–15), its shader failed ("'sampler' attribute parameter is out of bounds"), and
+the bundle stopped at the flight's start (found 2026-11-25 in Godot 4.7.2's
+`shader_baker_export_plugin_platform_metal.cpp` and `metal_device_profile.cpp`). The earlier bake without the list
+worked only because Godot's own shaders use few samplers (inferred). So the macOS bundles need macOS 13 or later.
+
+A baked macOS bundle prints three `ERROR` lines at launch ("Not enough bytes for uniform in shader container"): Godot
+then compiles that one shader itself, and the game runs on.
 
 The baker needs a rendering device, so `bundle.sh` exports without `--headless` (stopped after 30 minutes): on Linux
 under `xvfb-run` (the workflow installs Mesa's software Vulkan, `mesa-vulkan-drivers`, and Xvfb), on macOS with the

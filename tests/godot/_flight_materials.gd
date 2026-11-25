@@ -1,5 +1,5 @@
 # Dev helper (not run by tools/test.sh; needs a real renderer): records the materials a flight draws into
-# shared/extra/flight_materials.tres, the list the front end warms up (docs/rendering.md §1.6
+# shared/util/flight_materials.tres, the list the front end warms up (docs/rendering.md §1.6
 # "The first start"). Flies mission FM_MISSION (default: Modern IAF 2012, Jane's IAF reborn 311) to its tenth frame,
 # collects every distinct shader of the scene (meshes, multimeshes, particles, the sky, the canvas items) as a material
 # without its textures, and merges them into the file (FM_RESET=1 starts it anew). Run it for each project after a

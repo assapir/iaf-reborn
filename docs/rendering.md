@@ -722,15 +722,15 @@ On a first start (and after a Godot or driver update) every material the flight 
 screen. Two things move that work out of the way (2026-11-25, gaps row 18):
 
 - **The front end warms the flight's materials** (`shared/util/shader_warmup.gd`). The list is
-  `shared/extra/flight_materials.tres`: every distinct material a flight drew, without its textures (a texture never
+  `shared/util/flight_materials.tres`: every distinct material a flight drew, without its textures (a texture never
   changes the shader). The front ends' per-frame driver (`TerrainPreload.follow`) loads it on a loader thread from
   the first menu on, then puts one 1 mm quad per material 100 km below the ground (shader materials, built-in
   materials, particle process materials). No camera sees them; Godot compiles their shaders and pipelines when they
   enter the world and keeps them in its caches, where the flight's own materials find them. The quads go when the
   flight's loading is done. Nothing runs headless.
-- **The bundles bake the shaders** at export ([release.md](release.md) "Baked shaders"): Godot's own and the
-  `.gdshader` files. The list's materials are warmed up at run time there too (release.md says why they are not
-  baked).
+- **The bundles bake the shaders** at export ([release.md](release.md) "Baked shaders"): Godot's own, the
+  `.gdshader` files and the list's materials. The warm-up still runs there: it compiles the pipelines, which are
+  the driver's.
 
 The list is recorded by `tests/godot/_flight_materials.gd` from real flights (Modern IAF's mission 2012 and Jane's
 IAF reborn's 311, each with the defaults and with the graphics extras on: 56 materials, 64 KB). A material the list
