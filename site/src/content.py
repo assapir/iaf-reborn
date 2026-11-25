@@ -126,6 +126,8 @@ SECTIONS = [
         "figs": [
             ("mig29", "A MiG-29 over the Negev.", "מיג-29 מעל הנגב."),
             ("eitam", "The Eitam on its station.", "עיטם בעמדת הסיור שלו."),
+            ("adir_refuel", "An Adir on the boom of the KC-46A Gideon, the air force's new tanker.",
+             "אדיר בתדלוק אווירי ממטוס התדלוק החדש של חיל האוויר, גדעון (KC-46A)."),
         ],
     },
     {
