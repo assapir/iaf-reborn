@@ -139,10 +139,11 @@ pub fn sim_optional(assets: &Path) -> Vec<Optional> {
 }
 
 /// What the terrain step would fetch over the network for these choices (`sim_terrain::would_fetch`): empty when it
-/// reads only local files (the wizard's "Nothing to download" on the step's row).
-pub fn sim_terrain_fetch(assets: &Path, survey: bool) -> Result<Vec<String>> {
+/// reads only local files (the wizard's "Nothing to download" on the step's row). It reads the airbases' layouts
+/// under `repo`; it only looks at files, never downloads.
+pub fn sim_terrain_fetch(assets: &Path, repo: &Path, survey: bool) -> Result<Vec<String>> {
     let inputs = SimInputs { survey, ..SimInputs::default() };
-    sim_terrain::would_fetch(&SimCtx { assets: assets.to_path_buf(), repo: PathBuf::new(), inputs }.terrain())
+    sim_terrain::would_fetch(&SimCtx { assets: assets.to_path_buf(), repo: repo.to_path_buf(), inputs }.terrain())
 }
 
 /// Removes optional step `id`'s data (its outputs and stamp) and, with `downloads`, its own downloads in
@@ -575,6 +576,20 @@ mod tests {
             "the Survey redoes the terrain and the scenery (its roofs' colours), not the bases nor the missions"
         );
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The wizard's "Nothing to download" check on an empty root: it reads the airbases under the repo given, not
+    /// under the working folder (Godot runs in the project's folder, the tests in the crate's), lists what the
+    /// terrain would fetch, and writes nothing.
+    #[test]
+    fn terrain_fetch_reads_the_repo_given_and_writes_nothing() {
+        let dir = std::env::temp_dir().join(format!("iaf-sim-fetch-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let v = sim_terrain_fetch(&dir, &repo, false).expect("the check runs outside the repo root");
+        assert!(v.iter().any(|n| n == "sentinel-2"), "an empty root reads Sentinel-2: {v:?}");
+        assert!(v.len() > 1, "and the DEM tiles: {v:?}");
+        assert!(!dir.exists(), "the check writes nothing");
     }
 
     /// Outputs built without a stamp (a command line run before every run stamped, an agent's build): the current

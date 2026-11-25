@@ -461,8 +461,9 @@ impl IafSetup {
     /// What the sim's terrain step would fetch (`iaf_setup::sim_terrain_fetch`): the sources by name, empty when it
     /// reads only local files; ["?"] when it cannot tell.
     #[func]
-    fn sim_terrain_fetch(assets: GString, survey: bool) -> PackedStringArray {
-        match iaf_setup::sim_terrain_fetch(&PathBuf::from(assets.to_string()), survey) {
+    fn sim_terrain_fetch(assets: GString, repo: GString, survey: bool) -> PackedStringArray {
+        let (assets, repo) = (PathBuf::from(assets.to_string()), PathBuf::from(repo.to_string()));
+        match iaf_setup::sim_terrain_fetch(&assets, &repo, survey) {
             Ok(v) => v.iter().map(|n| GString::from(n.as_str())).collect(),
             Err(_) => PackedStringArray::from(&[GString::from("?")]),
         }

@@ -253,6 +253,8 @@ func _include(w: Control, assets: String) -> void:
 		check(r.sizes.visible == opt, "%s: sizes only on an optional row" % id)
 		var x: float = r.sizes.get_parent().global_position.x
 		check(is_equal_approx(x, name_x), "%s: the name in line with the ticked rows (%.1f, %.1f)" % [id, x, name_x])
+	var fetch: PackedStringArray = IafSetup.sim_terrain_fetch(assets, w.repo, false)
+	check(not fetch.has("?") and fetch.has("sentinel-2"), "an empty root: the terrain lists its downloads (%s)" % fetch)
 	IafSetup.sim_save_excluded(assets, PackedStringArray(["sim-missions", "sim-terrain", "sim-textures"]))
 	check(Array(IafSetup.sim_excluded(assets)) == ["sim-textures"], "a required step cannot be left out: it runs")
 	IafSetup.sim_save_excluded(assets, PackedStringArray())

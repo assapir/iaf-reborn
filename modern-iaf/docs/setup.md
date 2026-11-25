@@ -66,6 +66,8 @@ large screen by its UI scale (the containers stretch; nothing has a fixed page s
    with "Left out in setup"). Under the terrain step's name, "Nothing to download" when its run reads only the
    caches (`sim_terrain::would_fetch` empty: every source by its name in `assets/source`, every Sentinel-2 node
    built, so a code change rebuilds the theatre with no download; the test `a_built_theatre_fetches_nothing`).
+   The check only looks at files: it reads the airbases' layouts in the checkout the wizard runs from, whatever the
+   working folder (`terrain_fetch_reads_the_repo_given_and_writes_nothing`).
    Under an optional step's name are its sizes: what it downloads ("Nothing to download"
    when `assets/source` already holds its files) and what it takes on disk (measured when built, else about a full
    build's size). The choice is remembered at once in `assets/converted/modern-iaf/setup.json` (`{"excluded":

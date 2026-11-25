@@ -616,7 +616,7 @@ func _show_sizes(id: String) -> void:
 	var o: Dictionary = optional.get(id, {})
 	if id == "sim-terrain":
 		# A built theatre rebuilt for a code change reads only the caches: said on its row (the user, 2026-11-13).
-		r.sizes.visible = IafSetup.sim_terrain_fetch(assets, survey).is_empty()
+		r.sizes.visible = IafSetup.sim_terrain_fetch(assets, repo, survey).is_empty()
 		r.sizes.text = s("dl_none")
 		return
 	r.sizes.visible = not o.is_empty()

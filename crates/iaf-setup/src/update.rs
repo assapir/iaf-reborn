@@ -397,7 +397,7 @@ pub fn setup_stale(assets: &Path, repo: &Path, sim: bool) -> Vec<Stale> {
         let stamped = crate::stamped_with(&steps, &|s| crate::stamp::sim_of(s, &ctx));
         let optional = crate::sim_optional(assets);
         let bytes = |id: &str| match id {
-            "sim-terrain" => match crate::sim_terrain_fetch(assets, inputs.survey) {
+            "sim-terrain" => match crate::sim_terrain_fetch(assets, repo, inputs.survey) {
                 Ok(v) if v.is_empty() => 0,
                 _ => -1,
             },
