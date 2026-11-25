@@ -15,8 +15,8 @@ HERO = {
             "הבנויה בקנה מידה מלא מנתונים פתוחים: מתאמנים, ואז יוצאים להזנקה מול אויב חי. בעברית ובאנגלית.",
         ),
     ],
-    "asof_en": "Real renders from the sim, November 2026. Click a picture for its full size.",
-    "asof_he": "צילומי מסך אמיתיים מהסימולטור, נובמבר 2026. לחיצה על תמונה פותחת אותה בגודל מלא.",
+    "asof_en": "Real renders from the sim, November\u00a02026.",
+    "asof_he": "צילומי מסך אמיתיים מהסימולטור, נובמבר\u00a02026.",
     "fig": ("sufa_armed", "The F-16I Sufa armed with Mk 84 bombs and AIM-120 and AIM-9 missiles, over the Negev.",
             "סופה חמושה בפצצות Mk 84 ובטילי AIM-120 ו־AIM-9, מעל הנגב.", "wide"),
 }

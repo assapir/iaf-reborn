@@ -154,7 +154,8 @@ nav a{color:var(--dim);text-decoration:none}nav a:hover{color:var(--text)}
 main{max-width:1240px;margin:auto;padding:0 24px 60px}
 .hero{padding:44px 0 12px}
 .hero h1{font-size:54px;line-height:1.1;margin:0 0 6px}.hero h1 img{display:block;width:auto;height:auto;max-height:176px;max-width:100%;margin:0 auto 8px}
-.hero .sub{font-size:22px;color:var(--dim);margin:0 0 18px}
+.hero .sub{font-size:22px;color:var(--dim);margin:0 0 18px;text-align:center}
+h1,h2,h3,.hero .sub,.asof{text-wrap:balance}p,li,figcaption{text-wrap:pretty}
 .hero p{max-width:860px;font-size:18px}
 .asof{color:var(--dim);font-size:14px}
 .facts{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:26px 0 8px}
