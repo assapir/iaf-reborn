@@ -246,6 +246,33 @@ DOWNLOADS = {
             "הראשונה ומוריד את נתוני המפה הפתוחים, כ־12 GB. התוכנות אינן חתומות: "
             "ב־macOS לוחצים על היישום בכפתור הימני ובוחרים Open; ב־Windows בוחרים More info ואז Run anyway.",
         ),
+        (
+            "<b>System requirements</b>. Minimum: 30 to 40 frames a second at "
+            "1920 × 1080. Recommended: 60 frames a second with room for the graphics extras. Disk: 14 GB free.",
+            "<b>דרישות מערכת</b>. מינימום: 30 עד 40 פריימים לשנייה ב־1920 × 1080. מומלץ: 60 פריימים לשנייה עם מקום לתוספות הגרפיקה. "
+            "דיסק: 14 GB פנויים.",
+        ),
+    ],
+    "list": [
+        (
+            "Windows: minimum Windows 10 64-bit, a 4-core processor, 8 GB of memory, graphics with Vulkan or Direct3D 12 "
+            "and 2 GB (Intel Iris Xe); recommended Windows 11, a Core i5-6600K or faster, 16 GB, a GeForce GTX 1070 or "
+            "faster.",
+            "Windows: מינימום Windows 10 ב־64 ביט, מעבד 4 ליבות, זיכרון 8 GB, כרטיס מסך עם Vulkan או Direct3D 12 "
+            "ו־2 GB (Intel Iris Xe); מומלץ Windows 11, מעבד Core i5-6600K ומעלה, זיכרון 16 GB, כרטיס מסך GeForce GTX "
+            "1070 ומעלה.",
+        ),
+        (
+            "Linux: a 64-bit distribution from 2020 or later with the GPU's Vulkan driver; the same processor, memory "
+            "and graphics as on Windows.",
+            "Linux: הפצה ב־64 ביט משנת 2020 ואילך עם מנהל ההתקן של Vulkan לכרטיס המסך; מעבד, זיכרון וכרטיס מסך כמו "
+            "ב־Windows.",
+        ),
+        (
+            "macOS: minimum macOS 13 on an Apple M1 with 8 GB of memory; recommended macOS 14 or later, an M-series Pro "
+            "or Max, 16 GB.",
+            "macOS: מינימום macOS 13 על Apple M1 עם זיכרון 8 GB; מומלץ macOS 14 ומעלה, M Pro או M Max, זיכרון 16 GB.",
+        ),
     ],
     "games": [
         ("Modern IAF", "הזרוע הארוכה", "modern-iaf", ("205 MB", "246 MB", "203 MB")),

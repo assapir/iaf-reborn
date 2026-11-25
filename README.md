@@ -9,6 +9,8 @@ game: its setup wizard builds the data with the GDAL and curl it carries. The pr
 `xattr -dr com.apple.quarantine "/Applications/Modern IAF.app"`); on Windows choose More info, then Run anyway.
 On start, the game offers each newer nightly and the setup steps a new version changed (a dialog with Update / Later;
 the setting "Updates on start" chooses Ask, Always download or Never).
+It needs a 4-core processor, 8 GB of memory and graphics with Vulkan, Direct3D 12 or Metal (Intel Iris Xe or
+better; recommended: a GeForce GTX 1070): [System requirements](docs/release.md#system-requirements), per system.
 Details: [docs/release.md](docs/release.md). The commands below run the games from this checkout.
 
 ## Jane's IAF reborn: the 1998 game

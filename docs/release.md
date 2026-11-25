@@ -26,6 +26,41 @@ game (`IafSetup`), so no separate setup program ships.
   `xattr -dr com.apple.quarantine "/Applications/Modern IAF.app"`. It needs macOS 13 or later (the baked shaders,
   "Baked shaders" below). Intel Macs are not built for.
 
+### System requirements
+
+Both games draw with Godot 4.7's Forward+ renderer: through Vulkan on Linux, Vulkan or Direct3D 12 on Windows, and
+Metal on macOS. The minimum is Godot's own minimum for that renderer[^godot-req] together with the frame cost of the
+heaviest scenes on the development laptop (Intel Core i7-1185G7 with Iris Xe graphics, [rendering.md](rendering.md));
+the recommended column is a desktop PC (Intel Core i5-6600K, NVIDIA GeForce GTX 1070) on which the Windows bundles
+start and Modern IAF's setup downloads and builds its terrain.
+
+| system | minimum | recommended |
+|---|---|---|
+| Windows | Windows 10 or 11, 64-bit; a 4-core x86-64 processor with SSE4.2; 8 GB of memory; graphics with Vulkan 1.0 or Direct3D 12 and 2 GB of video memory, such as Intel Iris Xe | Windows 11; a 4-core desktop processor such as the Core i5-6600K, or faster; 16 GB of memory; a GeForce GTX 1070 (8 GB) or faster |
+| Linux | a 64-bit distribution from 2020 or later; the processor, memory and graphics of the Windows minimum, with the GPU's Vulkan driver (Mesa for Intel and AMD, NVIDIA's own driver) | the Windows recommendation, with the GPU's Vulkan driver |
+| macOS | macOS 13 or later on Apple silicon (M1 or later); 8 GB of memory | macOS 14 or later; an M-series Pro or Max; 16 GB of memory (inferred from the developer's M4 Pro) |
+
+Disk space, every system:
+
+| game | the game | its data (setup) | with every extra |
+|---|---|---|---|
+| Modern IAF | 0.3 GB | 13 GB, 12 GB of it downloaded once | 33 GB (the Survey of Israel's sheets and photo) |
+| Jane's IAF reborn | 0.3 GB | 5 GB, from your CD image | 55 GB (the Survey of Israel, Sentinel-2, the scenery and the pilot guides; the sizes in `iaf-reborn/setup/wizard.gd`) |
+
+What each column gives at 1920 × 1080:
+
+- **Minimum** (Iris Xe, measured): Modern IAF with its default settings draws a frame on Ramon's runway in 22–27 ms
+  of GPU time (Long shadows on, [rendering.md](rendering.md) §3.1), and its 3D cockpit adds 4–5 ms (§3.2): about 30
+  to 40 frames a second. The big fight (seven AI jets, a missile site network) takes 15.2 ms of processor time a
+  frame ([ai.md](ai.md) §22). Jane's IAF reborn: GPU 10–17 ms a frame, about 60 to 95 frames a second
+  ([rendering.md](rendering.md) §3.2). Each graphics extra (Volumetric clouds, Scenery) adds the cost given in
+  [rendering.md](rendering.md).
+- **Recommended** (GTX 1070): 60 frames a second with room for the graphics extras (inferred: the card has about
+  three times the Iris Xe's throughput and 8 GB of its own video memory; the PC's own frame times are open).
+- **Apple silicon**: the developer's M4 Pro runs both games with every graphics option on (its frame times are
+  open: Godot reports no GPU time on Metal). An M1 runs them about as the Iris Xe does (inferred: a GPU of similar
+  throughput).
+
 Both games' bundles also hold setup's outside programs in `tools/` (below), so a player installs nothing for Modern
 IAF. Jane's IAF reborn: nothing for the game and the CD. The optional imagery of the Survey of Israel needs
   Firefox, as from the checkout. The pilot guides need nothing: the bundle's own executable renders their pictures
@@ -322,3 +357,5 @@ sources stay under `assets/source` by name.
   started with `IAF_UPDATE_URL=https://github.com/assapir/iaf-reborn/releases/download/nightly-test` and a scratch
   per-user folder (Linux: `XDG_DATA_HOME`), then the test release deleted (`gh release delete nightly-test
   --cleanup-tag`).
+
+[^godot-req]: Godot Engine documentation, "System requirements", the desktop exports: <https://docs.godotengine.org/en/latest/about/system_requirements.html>
