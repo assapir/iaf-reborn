@@ -3,7 +3,8 @@
 # photographs of the CAEW (Wikimedia Commons: 537 at Le Bourget 2008, 569 at Aero India 2009, 537 in flight 2015;
 # inferred): the G550's swept wing with winglets, its T-tail with the satcom bullet on top, the two engines high on
 # the rear fuselage; the CAEW's long drooped nose radome, the bulbous tail radome under the fin, the flat side cheeks
-# of the L-band arrays from behind the cockpit to over the wing (no cabin windows) and the belly blister. Its paint as
+# of the L-band arrays from behind the cockpit to over the wing (no cabin windows) and the belly blister; the flight
+# deck's six windows (two windshield panes, two side windows a side) in dark glass with thin frames. Its paint as
 # in those photographs: white, the radomes a shade greyer, the blue cheatline from the cheek's lower aft corner up to
 # the fin; the IAF roundel on the fin, the nacelles and the wings, the serial 537 on the fin, ISRAEL AIR FORCE on the
 # cheeks (tools/eitam/markings.png, ours, drawn with ImageMagick). Nose along -Z (glTF), the origin at the middle of
@@ -27,6 +28,8 @@ PAINT = {
     "radome": ((0.88, 0.89, 0.90), 0.55),
     "blue": ((0.11, 0.27, 0.63), 0.45),
     "dark": ((0.07, 0.08, 0.09), 0.3),
+    "glass": ((0.02, 0.025, 0.03), 0.3),
+    "frame": ((0.62, 0.64, 0.66), 0.4),
     "metal": ((0.40, 0.41, 0.42), 0.35),
     "decal": ((1.0, 1.0, 1.0), 0.45),
 }
@@ -95,6 +98,30 @@ class Part:
         up = [self.bm.verts.new(p) for p in upper]
         for i in range(len(lo) - 1):
             self.bm.faces.new([lo[i], lo[i + 1], up[i + 1], up[i]]).material_index = k
+
+    def pane(self, s, quad, n=3, rim=0.045):
+        """A window on side `s`: its corners (y, height) (lower aft, lower fore, upper fore, upper aft; a height of
+        CENTRE is the crown's at that y) as a grid on the skin, the frame under the glass inset by `rim` m."""
+        ya = [(y, ang_at(y, z)) for y, z in quad]
+        c = [skin(s, y, a) for y, a in ya]
+        span = (math.dist(c[0], c[1]) + math.dist(c[3], c[2])) / 2
+        tall = (math.dist(c[0], c[3]) + math.dist(c[1], c[2])) / 2
+        for mat, out, eu, ev in (("frame", 0.008, 0.0, 0.0), ("glass", 0.014, rim / span, rim / tall)):
+            k = self._mat(mat)
+            grid = []
+            for j in range(n + 1):
+                v = ev + (1 - 2 * ev) * j / n
+                row = []
+                for i in range(n + 1):
+                    u = eu + (1 - 2 * eu) * i / n
+                    y = (1 - v) * ((1 - u) * ya[0][0] + u * ya[1][0]) + v * ((1 - u) * ya[3][0] + u * ya[2][0])
+                    a = (1 - v) * ((1 - u) * ya[0][1] + u * ya[1][1]) + v * ((1 - u) * ya[3][1] + u * ya[2][1])
+                    row.append(self.bm.verts.new(skin(s, y, a, out)))
+                grid.append(row)
+            for j in range(n):
+                for i in range(n):
+                    f = self.bm.faces.new([grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]])
+                    f.material_index = k
 
     def decal(self, x, y, z, w, h, box, side):
         """A marking `w` x `h` m centred at (x, y, z) on a side wall (`side` +1 right, -1 left), read nose to tail on
@@ -172,52 +199,91 @@ HALF = LENGTH / 2
 # The fuselage from the nose radome's tip back to the tail radome's: (y, half width, half height, centre z), read off
 # the side photographs (the drooped nose radome to the cockpit, the tail cone rising to the radome's bulb).
 STATIONS = [
-    (HALF, 0.0, 0.0, -0.36),
-    (HALF - 0.3, 0.40, 0.36, -0.32),
-    (HALF - 1.0, 0.76, 0.72, -0.24),
-    (HALF - 2.0, 1.02, 0.98, -0.14),
-    (HALF - 2.9, 1.15, 1.12, -0.07),
-    (HALF - 4.5, 1.30, 1.32, 0.0),
-    (-7.0, 1.30, 1.32, 0.0),
-    (-10.0, 1.12, 1.14, 0.12),
-    (-12.4, 0.92, 0.94, 0.16),
-    (-13.6, 0.86, 0.86, 0.14),
-    (-14.3, 0.62, 0.62, 0.12),
-    (-HALF, 0.0, 0.0, 0.10),
+    (HALF, 0.0, 0.0, -0.90, 2.0),
+    (HALF - 0.07, 0.24, 0.17, -0.87, 2.0),
+    (HALF - 0.25, 0.42, 0.29, -0.81, 2.5),
+    (HALF - 0.7, 0.80, 0.49, -0.73, 3.0),
+    (HALF - 1.3, 1.02, 0.69, -0.615, 4.0),
+    (HALF - 2.6, 1.18, 0.90, -0.42, 6.0),
+    (HALF - 3.5, 1.27, 1.20, -0.12, 4.0),
+    (HALF - 4.5, 1.30, 1.32, 0.0, 2.0),
+    (-7.0, 1.30, 1.32, 0.0, 2.0),
+    (-10.0, 1.12, 1.14, 0.12, 2.0),
+    (-12.4, 0.92, 0.94, 0.16, 2.0),
+    (-13.6, 0.86, 0.86, 0.14, 2.0),
+    (-14.3, 0.62, 0.62, 0.12, 2.0),
+    (-HALF, 0.0, 0.0, 0.10, 2.0),
 ]
 
 
+def section(y):
+    """The fuselage's (half width, half height, centre z, upper exponent) at y, between its stations."""
+    for a, b in zip(STATIONS, STATIONS[1:]):
+        if b[0] <= y <= a[0]:
+            t = (a[0] - y) / (a[0] - b[0])
+            return tuple(p + t * (q - p) for p, q in zip(a[1:], b[1:]))
+    return 0.0, 0.0, 0.0, 2.0
+
+
 def at(y):
-    """The fuselage's (half width, half height, centre z) at y, between its stations."""
-    for (y0, a0, b0, c0), (y1, a1, b1, c1) in zip(STATIONS, STATIONS[1:]):
-        if y1 <= y <= y0:
-            t = (y0 - y) / (y0 - y1)
-            return a0 + t * (a1 - a0), b0 + t * (b1 - b0), c0 + t * (c1 - c0)
-    return 0.0, 0.0, 0.0
+    """The fuselage's (half width, half height, centre z) at y."""
+    return section(y)[:3]
+
+
+def sides(ang, k):
+    """(cos, sin) of `ang` with the upper half squared off by the exponent `k` (2: an ellipse): the flight deck's
+    flat windshield and its shoulders."""
+    c, s = math.cos(ang), math.sin(ang)
+    if s <= 0 or k == 2.0:
+        return c, s
+    return math.copysign(abs(c) ** (2 / k), c), s ** (2 / k)
 
 
 def skin(s, y, ang, out=0.0):
     """The point at angle `ang` (rad, from the side's middle up) on side `s` at y, `out` m off the skin."""
-    rx, rz, cz = at(y)
-    return (s * (rx + out) * math.cos(ang), y, cz + (rz + out) * math.sin(ang))
+    rx, rz, cz, k = section(y)
+    c, si = sides(ang, k)
+    return (s * (rx + out) * c, y, cz + (rz + out) * si)
+
+
+def ang_at(y, z):
+    """The angle on the skin (skin()) at y of the height z; CENTRE is the crown."""
+    rx, rz, cz, k = section(y)
+    if z is CENTRE:
+        return math.acos((0.03 / rx) ** (k / 2))  # 3 cm off the centre line: the centre post
+    h = max(-1.0, min(1.0, (z - cz) / rz))
+    return math.asin(h if h <= 0 else h ** (k / 2))
+
+
+CENTRE = None
+# The flight deck's windows a side as (y, height) corners: lower aft, lower fore, upper fore, upper aft. The side
+# window with its raked front edge, the small forward side window between it and the windshield, the windshield pane
+# from its side post to the centre post.
+WINDOWS = [
+    [(HALF - 4.17, 0.53), (HALF - 3.39, 0.53), (HALF - 3.74, 0.97), (HALF - 4.17, 0.97)],
+    [(HALF - 3.31, 0.53), (HALF - 2.64, 0.47), (HALF - 3.47, 0.95), (HALF - 3.70, 0.95)],
+    [(HALF - 2.58, 0.47), (HALF - 2.62, CENTRE), (HALF - 3.31, CENTRE), (HALF - 3.41, 0.95)],
+]
 
 
 def build():
     body = Part()
-    rings = [ellipse(y, rx, rz, cz=cz) if rx > 0 else [(0, y, cz)] * N for y, rx, rz, cz in STATIONS]
-    body.loft(rings[:4], "radome", cap=False)  # the nose radome
-    body.loft(rings[3:9], "white", cap=False)
-    body.loft(rings[8:], "radome", cap=False)  # the tail radome
-    # The cockpit's windows: a dark band each side over the nose, its front edge the windshield's slope.
+    rings = [[skin(1, y, 2 * math.pi * i / N) for i in range(N)] if rx > 0 else [(0, y, cz)] * N
+             for y, rx, rz, cz, _ in STATIONS]
+    body.loft(rings[:6], "radome", cap=False)  # the nose radome
+    body.loft(rings[5:11], "white", cap=False)
+    body.loft(rings[10:], "radome", cap=False)  # the tail radome
+    # The flight deck's six windows (two windshield panes, two side windows a side), dark glass in a thin grey frame,
+    # the white posts between them; corners (y, height) read off the Le Bourget photograph from the same camera, the
+    # windshield's on the centre line (CENTRE).
     for s in (-1, 1):
-        lo = [skin(s, HALF - 2.55 - 0.3 * i, math.radians(16), 0.06) for i in range(6)]
-        up = [skin(s, HALF - 3.05 - 0.2 * i, math.radians(36), 0.06) for i in range(6)]
-        body.strip(lo, up, "dark")
+        for quad in WINDOWS:
+            body.pane(s, quad)
     # The side cheeks (the L-band arrays): flat slabs on the upper side from behind the cockpit to over the wing,
     # their front rounded in plan, (y, the share of their full bulge).
     for s in (-1, 1):
         rings = []
-        for y, k in [(HALF - 7.2, 0.0), (HALF - 7.6, 0.55), (HALF - 8.3, 0.9), (HALF - 8.9, 1.0), (-1.9, 1.0),
+        for y, k in [(HALF - 6.1, 0.0), (HALF - 6.5, 0.55), (HALF - 7.2, 0.9), (HALF - 7.8, 1.0), (-1.9, 1.0),
                      (-2.5, 0.6), (-2.8, 0.0)]:
             rx, rz, cz = at(y)
             wall, hh = rx + 0.3 * k, 0.8 * (0.55 + 0.45 * k)
@@ -274,7 +340,7 @@ def build():
         body.decal(s * 0.19, -13.2, 4.2, 0.95, 0.95, ROUNDEL, s)
         body.decal(s * 0.22, -13.2, 3.25, 0.75, 0.33, SERIAL, s)
         # ISRAEL AIR FORCE on the cheek.
-        body.decal(s * (at(1.0)[0] + 0.32), 1.6, 0.4, 3.6, 0.39, TITLE, s)
+        body.decal(s * (at(2.6)[0] + 0.32), 2.6, 0.4, 3.6, 0.39, TITLE, s)
     body.loft([ellipse(y, r, r * 0.9, cz=fin_top + 0.25, n=12) for y, r in
                [(-12.3, 0.0), (-12.7, 0.3), (-13.6, 0.42), (-14.3, 0.36), (-14.9, 0.0)]], "white", cap=False)
     return body.obj("eitam")

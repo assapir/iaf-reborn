@@ -44,9 +44,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The Eitam's look and flight (2026-11-25, the user: "The eitam looks strange, only white. look online for pics, look
   for a better model"; [../../docs/ai.md](../../docs/ai.md) §24.3, [flight-model.md](flight-model.md) §9.22):** its
   model matched to photographs of the IAF's CAEW (the drooped nose radome, the tail radome, the side cheeks, the
-  satcom bullet; white with the blue cheatline, the roundels, 537 and ISRAEL AIR FORCE); it flies on its own 6-DoF
-  (the G550's wing, weights, BR710s and limits; its ceiling fit to 51,000 ft) under the autopilot's steer loop, banking
-  25° in its turns. No free G550 CAEW model was found (Sketchfab, FlightGear, CGTrader: only plain Gulfstreams).
+  satcom bullet, the flight deck's six dark windows in thin frames; white with the blue cheatline, the roundels,
+  537 and ISRAEL AIR FORCE); it flies on its own 6-DoF (the G550's wing, weights, BR710s and limits; its ceiling fit
+  to 51,000 ft) under the autopilot's steer loop, banking 25° in its turns. No free G550 CAEW model was found
+  (Sketchfab, FlightGear, CGTrader: only plain Gulfstreams).
 - **Air refuelling (2026-11-25, the user: "Air refuelling", "it should be in coms, if available (not for every
   mission) and ask and get approval to start"; [research/air-refuelling.md](research/air-refuelling.md) §8,
   [../../docs/ai.md](../../docs/ai.md) §25):** a KC-46A Gideon or a 707 Re'em (our own models, `tools/tanker/`) on a

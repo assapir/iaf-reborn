@@ -2605,7 +2605,7 @@ speed changes are the G550's; before, it was a point mass turned and sped up at 
   help is said by the radio, and the group it names goes to the flight AI as a contact call does. Its entity
   destroyed, `IafAwacs.eitam_down` ends the service.
 - **Model** (`Gltf.UNITS` "EITAM", `shared/extra/models/eitam/eitam.glb`): our own low-poly model
-  (`tools/eitam/eitam.py`, Blender, 2,092 triangles), true length and span (29.39 m, 28.50 m[^w-g550]); the rest matched
+  (`tools/eitam/eitam.py`, Blender, 2,384 triangles), true length and span (29.39 m, 28.50 m[^w-g550]); the rest matched
   side by side to public photographs of the IAF's CAEW from the same angles (inferred; 25 November 2026, the user:
   "The eitam looks strange, only white. look online for pics, look for a better model"): 537 at Le Bourget
   2008[^c-537], 569 at Aero India 2009[^c-569] and 537 in flight in 2015[^c-537-2015]. The CAEW's long drooped nose
@@ -2614,6 +2614,13 @@ speed changes are the G550's; before, it was a point mass turned and sped up at 
   the two engines high on the rear fuselage. The photographs show it white, not grey: white with the radomes a shade
   greyer, the blue cheatline from the cheek's lower aft corner up to the fin, the IAF roundel on the fin, the nacelles
   and the wings, the serial 537 on the fin and ISRAEL AIR FORCE on the cheeks (`tools/eitam/markings.png`, ours).
+  The flight deck (the user, 25 November 2026: "just the cockpit window is a but strange"): the G550's six windows,
+  two windshield panes and two side windows a side, dark glass in a thin grey frame with the white posts between
+  them, their corners read off the Le Bourget photograph overlaid from the same camera; the nose's upper sections
+  squared off there (a flat windshield on rounded shoulders) and its crown falling steeply to the radome's low tip, as
+  the photograph's profile shows. No cabin windows: the cheeks cover them on the CAEW. The cheeks start 2 m behind
+  the flight deck and ISRAEL AIR FORCE sits forward on them (the user, the same day: "in the real jet the things added
+  to the fuselage go further forward"), matched to the Le Bourget photograph through a camera fitted to it.
   Drawn without its gear (it never lands in the sim). No free G550 CAEW model was found (Sketchfab, FlightGear,
   CGTrader, 25 November 2026): only plain Gulfstreams, which would need the same radomes.
 
