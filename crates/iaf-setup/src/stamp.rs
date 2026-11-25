@@ -250,7 +250,7 @@ impl Stamp {
 }
 
 /// Step `id`'s code fingerprint: an FNV-1a hash of [`code_lines`]. One fixed-length line, so a stamp keeps its
-/// size (tools/guide_shots.sh's stamps hold the converted files' sizes).
+/// size (the guide shots' stamps, guides.rs, hold the converted files' sizes).
 fn code(id: &str, sources: &[(&str, u64)]) -> u64 {
     code_lines(id, sources).bytes().fold(0xcbf29ce484222325, |h, b| (h ^ b as u64).wrapping_mul(0x100000001b3))
 }

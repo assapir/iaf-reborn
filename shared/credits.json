@@ -53,6 +53,10 @@
 		{"style": "role", "text": "Modern TSD Map", "he": "מפת TSD מודרנית"},
 		{"style": "small", "text": "Map data © OpenStreetMap contributors (openstreetmap.org/copyright), ODbL 1.0", "he": "נתוני המפה © תורמי OpenStreetMap (openstreetmap.org/copyright), ODbL 1.0"},
 		{"style": "gap"},
+		{"style": "role", "text": "Pilot Guide Fonts", "he": "הגופנים של מדריכי הטייס"},
+		{"style": "small", "text": "Liberation Sans and Liberation Mono: Digitized data copyright (c) 2010 Google Corporation, Copyright (c) 2012 Red Hat, Inc., SIL Open Font License 1.1", "he": "Liberation Sans ו-Liberation Mono: Digitized data copyright (c) 2010 Google Corporation, Copyright (c) 2012 Red Hat, Inc., רישיון SIL Open Font License 1.1"},
+		{"style": "small", "text": "DejaVu Sans (its arrows and maths symbols): Copyright (c) 2003 by Bitstream, Inc., Copyright (c) 2006 by Tavmjong Bah; DejaVu changes are in public domain; Bitstream Vera Fonts licence", "he": "DejaVu Sans (החצים וסימני המתמטיקה שלו): Copyright (c) 2003 by Bitstream, Inc., Copyright (c) 2006 by Tavmjong Bah; השינויים של DejaVu בנחלת הכלל; רישיון Bitstream Vera Fonts"},
+		{"style": "gap"},
 		{"style": "imagery", "text": "Terrain Imagery", "he": "צילומי השטח"},
 		{"style": "blank"}
 	],
@@ -69,6 +73,7 @@
 		"Setup icon: the IAF roundel, [url=https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg]\"Roundel of Israel.svg\"[/url] by Zscout370 (Wikimedia Commons, [url=https://creativecommons.org/licenses/by-sa/4.0/]CC BY-SA 4.0[/url])",
 		"Ground textures and Model detail: materials from [url=https://ambientcg.com]ambientCG[/url] ([url=https://creativecommons.org/publicdomain/zero/1.0/]CC0 1.0[/url]), downloaded by setup",
 		"Modern TSD map (Extras: Briefing map Modern): © [url=https://www.openstreetmap.org/copyright]OpenStreetMap[/url] contributors (ODbL 1.0)",
+		"Pilot guide PDFs' fonts: [url=https://github.com/liberationfonts/liberation-fonts]Liberation Sans and Liberation Mono[/url], Digitized data copyright (c) 2010 Google Corporation, Copyright (c) 2012 Red Hat, Inc. ([url=https://openfontlicense.org]SIL Open Font License 1.1[/url]); the arrows and maths symbols of [url=https://dejavu-fonts.github.io]DejaVu Sans[/url], Copyright (c) 2003 by Bitstream, Inc., Copyright (c) 2006 by Tavmjong Bah, DejaVu changes are in public domain ([url=https://dejavu-fonts.github.io/License.html]Bitstream Vera Fonts licence[/url])",
 		"Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]",
 		"Scenery and roads: © [url=https://www.openstreetmap.org/copyright]OpenStreetMap[/url] contributors (ODbL 1.0), Geofabrik extracts (Israel and Palestine, Lebanon, Syria, Jordan, Egypt, Cyprus); [url=https://github.com/microsoft/GlobalMLBuildingFootprints]Microsoft Global ML Building Footprints[/url] (CDLA-Permissive-2.0); GHS-BUILT-H R2023A, European Commission JRC; [url=https://langnico.github.io/globalcanopyheight/]Global Canopy Height 2020[/url], Lang et al., ETH Zürich ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url]); wall materials, leaves and bark from ambientCG (CC0 1.0); downloaded by setup",
 		"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by [url=https://esa-worldcover.org]ESA WorldCover[/url] consortium ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url])",

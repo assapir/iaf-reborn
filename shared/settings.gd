@@ -620,7 +620,13 @@ func _set_override(section: String, key: String, value: Variant) -> void:
 ## file kept, and restarts once (Godot read the file before the window opened). True: restarting.
 func _drop_hidpi_override() -> bool:
 	var args := OS.get_cmdline_args()
-	if DisplayServer.get_name() == "headless" or "-s" in args or "--script" in args or bundled():
+	if (
+		DisplayServer.get_name() == "headless"
+		or "-s" in args
+		or "--script" in args
+		or "--guide-shots" in OS.get_cmdline_user_args()
+		or bundled()
+	):
 		return false
 	if not drop_hidpi_line(ProjectSettings.globalize_path("res://override.cfg")):
 		return false

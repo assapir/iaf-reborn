@@ -572,7 +572,7 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
     cleanly; 20 more on main on 2026-11-02 (`PB_WAIT=1 PB_FLY=3`): 20 exited cleanly. Without it the race hit about
     1 run in 37, so 30 clean runs make a natural hang unlikely but do not prove it gone; the shim test does.
 
-  `tools/guide_shots.sh` still stops a process 30 s after its RESULT and keeps its pictures.
+  The guide shots (`crates/iaf-setup/src/guides.rs`) still stop a process 30 s after its RESULT and keep its pictures.
 - **The menus.** The preload's terrain runs 2 decode tasks (the flight's 4). A Fly while the flight scene or its
   first frame's art is still loading waits over menu frames (`ready_to_fly`), not in one frame.
 

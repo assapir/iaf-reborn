@@ -12,7 +12,7 @@
 # Sound in the hidden Mac app (seen 2026-11-18): a player's position stayed frozen, so the radio's phrase queue held
 # every call and what waits on it (a subtitle, a lesson's pass panel) never came. A test that waits on speech passes
 # --audio-driver Dummy, which plays in real time.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 GUIDE_SHOTS=hud_nav -- --log-file /tmp/g.log --path iaf-reborn -s ../tests/godot/_guide_shots.gd
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 GUIDE_SHOTS=hud_nav -- --log-file /tmp/g.log --path iaf-reborn -- --guide-shots
 set -euo pipefail
 envs=()
 while (($#)) && [[ $1 != -- ]]; do envs+=("$1"); shift; done

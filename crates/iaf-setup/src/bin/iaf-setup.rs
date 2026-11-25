@@ -3,6 +3,9 @@
 //!   iaf-setup [--assets DIR] [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] [--imagery sentinel2,mapi2015,mapi2015-bases]
 //!             [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--refresh-imagery] [--redo-all] ["<Jane's IAF.iso>" [Brief.zip] [Menu.zip]]
 //!   iaf-setup check <file>      what a CD image, patch or pack is
+//!   iaf-setup guides [--assets DIR] [--only name,name] [--force] [--game EXE] [jet …]   the pilot guides' pictures
+//!                               and PDFs (a display needed; the checkout's Godot from the PATH, or a release
+//!                               bundle's executable EXE, which runs its own .pck)
 //!
 //! `--assets` defaults to the repo's `assets/`. Without the ISO the last run's inputs (`assets/setup.json`) are used, with
 //! the options given added. Steps whose stamp holds are "up to date"; `--redo-all` runs every step anyway.
@@ -14,7 +17,7 @@ use anyhow::{Context, Result, bail};
 use iaf_setup::{Ctx, Hebrew, Imagery, Inputs, Print, State};
 use iaf_tools::progress::Progress;
 
-const USAGE: &str = "usage: iaf-setup [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015,mapi2015-bases] [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--refresh-imagery] [--redo-all] [<Jane's IAF.iso> [Brief.zip] [Menu.zip]]\n       iaf-setup check <file>";
+const USAGE: &str = "usage: iaf-setup [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015,mapi2015-bases] [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--refresh-imagery] [--redo-all] [<Jane's IAF.iso> [Brief.zip] [Menu.zip]]\n       iaf-setup check <file>\n       iaf-setup guides [--assets DIR] [--only name,name] [--force] [--game EXE] [jet …]";
 
 fn main() -> Result<()> {
     let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize()?;
@@ -28,6 +31,9 @@ fn main() -> Result<()> {
         println!("pack: {:?}", iaf_setup::check_pack(p).map_err(|e| format!("{e:#}")));
         println!("tools: {:?}", iaf_setup::tools());
         return Ok(());
+    }
+    if args.first().is_some_and(|a| a == "guides") {
+        return guides(&repo, args.into_iter().skip(1));
     }
     let (mut assets, mut patch, mut hebrew_iso, mut imagery, mut guides, mut redo_all) =
         (repo.join("assets"), None, None, Vec::new(), false, false);
@@ -98,7 +104,11 @@ fn main() -> Result<()> {
         }
     };
     iaf_setup::save_inputs(&assets, &inputs)?;
-    let render = |pr: &dyn Progress, cancel: &AtomicBool| iaf_setup::script_guides(&repo, pr, cancel);
+    let game = iaf_setup::Game::checkout(&repo);
+    let guide_assets = assets.clone();
+    let render = |pr: &dyn Progress, cancel: &AtomicBool| {
+        iaf_setup::make_guides(&repo, &guide_assets, &game, &Default::default(), pr, cancel)
+    };
     let ctx = Ctx {
         assets,
         repo: repo.clone(),
@@ -118,4 +128,25 @@ fn main() -> Result<()> {
         bail!("setup did not finish");
     }
     Ok(())
+}
+
+/// `iaf-setup guides`: the pilot guides' pictures (only those not up to date, unless --force) and PDFs.
+fn guides(repo: &Path, args: impl Iterator<Item = String>) -> Result<()> {
+    let mut assets = repo.join("assets");
+    let mut o = iaf_setup::GuideOptions::default();
+    let mut game = iaf_setup::Game::checkout(repo);
+    let mut it = args;
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--assets" => assets = PathBuf::from(it.next().context(USAGE)?),
+            "--only" => o.only = it.next().context(USAGE)?.split(',').map(String::from).collect(),
+            "--force" => o.force = true,
+            "--game" => game = iaf_setup::Game { exe: it.next().context(USAGE)?.into(), args: vec![] },
+            "-h" | "--help" => bail!(USAGE),
+            _ => o.jets.push(a),
+        }
+    }
+    // Absolute: the game is started in another folder (the hidden macOS app).
+    let assets = std::path::absolute(&assets)?;
+    iaf_setup::make_guides(repo, &assets, &game, &o, &iaf_tools::progress::Stdout, &AtomicBool::new(false))
 }

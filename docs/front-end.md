@@ -2118,8 +2118,9 @@ of the frame.
   * Pictures (`![caption](shots/<jet>/<name>.png)`) come from `assets/converted/guides/`. A missing picture leaves
     its caption.
   * When `assets/converted/guides/<dir>.pdf` exists, an **Open PDF** link at the top opens it in the system viewer.
-* **Making the pictures and the PDF.** Setup's last step makes them with `tools/guide_shots.sh` (the pictures, from
-  each `docs/guides/<jet>.shots.json`) and `tools/guide_pdf.py` (an A4 PDF per guide); it needs a display. Both hold
+* **Making the pictures and the PDF.** Setup's last step makes them: the game renders the pictures of each
+  `docs/guides/<jet>.shots.json` (`iaf-reborn/setup/guide_shots.gd`), then Rust draws an A4 PDF per guide
+  (`crates/iaf-tools/src/guide_pdf.rs`); it needs a display and nothing else, in a release bundle too. Both hold
   the original art, so they stay under `assets/`. The pipeline, the shots' format and the options:
   [guides/README.md](guides/README.md#pictures-and-pdfs).
 

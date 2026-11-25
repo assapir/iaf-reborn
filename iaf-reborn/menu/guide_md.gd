@@ -3,7 +3,7 @@
 # numbered lists, pipe tables, `---` rules, [text](link) as its text, footnotes [^name] as [name], and images on a
 # line of their own: `![caption](shots/<jet>/<name>.png)` resolved under `base` (assets/converted/guides); a missing
 # image leaves its caption only; a numbered list right under a picture is its legend (the callouts drawn on it).
-# tools/guide_pdf.py reads the same subset.
+# The PDF maker (crates/iaf-tools/src/guide_pdf.rs) reads the same subset.
 extends RefCounted
 
 const CAPTION := Color8(170, 170, 180)

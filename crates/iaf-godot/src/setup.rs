@@ -126,11 +126,11 @@ impl IafSetup {
         }
     }
 
-    /// {gdal, curl, python3, firefox, display}: the outside programs present.
+    /// {gdal, curl, firefox, display}: the outside programs present.
     #[func]
     fn tools() -> VarDictionary {
         let t = iaf_setup::tools();
-        vdict! { "gdal" => t.gdal, "curl" => t.curl, "python3" => t.python3, "firefox" => t.firefox, "display" => t.display }
+        vdict! { "gdal" => t.gdal, "curl" => t.curl, "firefox" => t.firefox, "display" => t.display }
     }
 
     /// The CD launcher's UNINSTALL: removes what the setup wrote under `assets` (`iaf_setup::OUTPUTS`), with
@@ -393,8 +393,13 @@ impl IafSetup {
         let header = format!("setup: {inputs_json}\nredo: {redo:?}, only: {only:?}");
         let prefix = format!("{}/", assets.display());
         self.launch(steps.clone(), &header, log_file, prefix, move |sink, cancel| {
-            let guides = |pr: &dyn Progress, c: &AtomicBool| iaf_setup::script_guides(&repo, pr, c);
-            let ctx = Ctx { assets, repo: repo.clone(), inputs: i, guides: Some(&guides) };
+            // The pictures by this game's own executable (a bundle's, or the checkout's Godot), the PDFs in Rust.
+            let game = iaf_setup::Game::this_one(&repo);
+            let guides = |pr: &dyn Progress, c: &AtomicBool| {
+                let game = game.as_ref().map_err(|e| anyhow::anyhow!("{e:#}"))?;
+                iaf_setup::make_guides(&repo, &assets, game, &Default::default(), pr, c)
+            };
+            let ctx = Ctx { assets: assets.clone(), repo: repo.clone(), inputs: i, guides: Some(&guides) };
             iaf_setup::run(&steps, &ctx, &|id| redo.iter().any(|r| r == "*" || r == id), sink, cancel)
         });
         GString::new()

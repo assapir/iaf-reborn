@@ -58,8 +58,7 @@ The GDAL installer puts it on no PATH and sets no data folders; without `PROJ_LI
 and the setup steps it starts, its folder on PATH, `GDAL_DATA` and `PROJ_LIB`, unless these are set already. GDAL
 installed elsewhere: set the three yourself.
 
-Not on Windows yet (it runs a bash script): the pilot guides (`tools/guide_shots.sh`); setup's guides step fails
-with a message saying so.
+The pilot guides are made as on the other systems (the game renders the pictures, Rust draws the PDFs).
 
 ## Tests
 

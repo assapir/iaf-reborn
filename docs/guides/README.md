@@ -59,7 +59,7 @@ The file names follow the Reference screen's record folders (`f4`, `f42000`, `cf
 
 ## Markdown
 
-The guides use the Markdown subset of `iaf-reborn/menu/guide_md.gd`, which `tools/guide_pdf.py` reads too: `#` / `##` /
+The guides use the Markdown subset of `iaf-reborn/menu/guide_md.gd`, which the PDF maker (`crates/iaf-tools/src/guide_pdf.rs`) reads too: `#` / `##` /
 `###` headings, paragraphs, bold / italic / code, one-level lists, pipe tables, `---`, footnotes (`[^name]` in the
 text, `[^name]: source` at the end, shown as `[name]`) and pictures on a line of
 their own, `![caption](shots/<jet>/<name>.png)`. A numbered list right under a picture is its legend: one item per
@@ -67,12 +67,16 @@ numbered callout, in order.
 
 ## Pictures and PDFs
 
-Setup's last step makes both (it needs a display). They show the original game's art, so they stay under
-`assets/converted/guides/` and are never committed.
+Setup's last step makes both (it needs a display, nothing else: a release bundle makes them with its own executable
+on Linux, Windows and macOS). They show the original game's art, so they stay under `assets/converted/guides/` and
+are never committed. From the checkout, by hand: `target/release/iaf-setup guides [jet …] [--only name,…] [--force]
+[--assets DIR]` (the pictures with the `godot` on the PATH, then the PDFs).
 
-1. `tools/guide_shots.sh [jet …] [--only name,…] [--force]` renders each entry of `<jet>.shots.json` (its schema in
-   the header of `tests/godot/_guide_shots.gd`) into `shots/<jet>/<name>.png`, in a 3840×2160 frame whatever the
-   screen's size.
+1. The pictures: the game started with `-- --guide-shots` runs `iaf-reborn/setup/guide_shots.gd` in place of its
+   menu (`menu/startup.gd`; Godot's export templates run no `-s` script; the header holds the entries' schema) for each
+   entry of `<jet>.shots.json` (`crates/iaf-setup/src/guides.rs` starts the processes) into `shots/<jet>/<name>.png`,
+   in a 3840×2160 frame whatever the screen's size. On macOS the game runs as a hidden app (`open -g -j`); on Linux
+   under `xvfb-run` when it is installed.
    - An entry sets the settings, the mission (`mc` builds a Mission Creator mission, 666: the MiGs fly only there),
      the start (mission, airborne, dive, final approach, the briefing TSD with its GPS targets panel, or the Arming screen), a placed
      target, actions (a radar lock, a store, the MFDs' pages, a camera on the target, a radar-designated point, the GPS bombs' PRE
@@ -85,15 +89,19 @@ Setup's last step makes both (it needs a display). They show the original game's
      `text:` regex ends on the box the HUD draws that text in, `hud.gd` `prim_text_box`) or to a point of the crop.
      A reading that moves by a few feet between renders takes a pattern, such as `text:^[89]\d\d$`, and the guide
      says "about". A symbol not found fails the shot.
-   - Each Godot process takes up to `GUIDE_BATCH` shots (default 4), each from the default settings and a fresh
-     mission; `GUIDE_JOBS` processes run at once (default half the cores, at most one per 2 GB of free memory). The
+   - Each Godot process takes up to 4 shots, each from the default settings and a fresh mission; `GUIDE_JOBS` processes run at once (default half the cores, at most one per 2 GB of free memory). The
      F-16's 13 shots take about 2.5 minutes on an 8-core laptop.
-   - A picture whose stamp (`<name>.stamp`: its entry, the shot tools, Godot's version, the frame size, the data's
-     paths and sizes, without the scenery, roads and detailed models that no shot draws) still matches is kept; `--force` or `GUIDE_FORCE=1` renders every one. A FAIL line, a crash
-     or a process stuck past `GUIDE_TIMEOUT` s per shot (default 600) makes the exit status 1.
-   - The Godot logs go to `assets/logs/guide-shots-<date>-<time>-<pid>/`, kept only when something failed. Each
-     failure line ends with its process's log file, and the run ends with the list of the failed processes' logs.
-2. `python3 -I tools/guide_pdf.py [jet …] [--force]` prints each guide as an A4 PDF: a title page with the Reference
-   screen's picture of the jet (a guide outside the records: its own `external` shot, if it has one), contents, the pictures with their legends kept on the same page. It warns when a
-   legend's length differs from the picture's callouts. Headless Firefox prints it (Chrome / Chromium when Firefox
-   is missing). A PDF newer than its Markdown, shots list, pictures and the script is kept unless `--force`.
+   - A picture whose stamp (`<name>.stamp`: its entry, the shot script, Godot's version, the frame size, the data's
+     paths and sizes, without the scenery, roads and detailed models that no shot draws) still matches is kept;
+     `--force` renders every one. Other game code is not in the stamp, so a game update keeps the pictures (in a
+     release bundle the shot script is inside the game too); `--force` from a checkout renders them again. A FAIL
+     line, a crash or a process stuck past `GUIDE_TIMEOUT` s per shot (default 600) fails the step.
+   - The Godot logs go to `assets/logs/guide-shots-<seconds>-<pid>/`, kept only when something failed. Each
+     failure line ends with its process's log file, and the step's error lists the failed processes' logs.
+2. The PDFs: each guide as an A4 PDF, drawn in Rust with no browser: a title page with the Reference screen's
+   picture of the jet (a guide outside the records: its own `external` shot, if it has one), contents with links,
+   the pictures with their legends kept on the same page. The look is the earlier HTML print's (its CSS's sizes and
+   colours); the fonts are built into the program: Liberation Sans and Liberation Mono (Helvetica's and Courier's
+   widths, so the lines break where Helvetica's would) and DejaVu Sans's arrows and maths symbols for the few
+   characters Liberation lacks ([credits.md](../credits.md)). It warns when a legend's length differs from the
+   picture's callouts. A PDF newer than its Markdown, shots list and pictures is kept unless `--force`.

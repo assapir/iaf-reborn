@@ -15,19 +15,21 @@ use iaf_tools::progress::Progress;
 
 mod bodies;
 mod checks;
+mod guides;
 mod saved;
 mod sim;
 mod stamp;
 mod steps;
 pub mod update;
 
-pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, python, scan, tools};
+pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, scan, tools};
+pub use guides::{Game, Options as GuideOptions, make as make_guides};
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
 pub use sim::{
     Optional, SimCtx, SimInputs, save_sim_excluded, sim_adopt, sim_excluded, sim_expected, sim_optional, sim_plan,
     sim_preview, sim_remove, sim_run, sim_survey, sim_terrain_fetch, survey_sheets,
 };
-pub use steps::{COCKPITS, KEPT, OUTPUTS, disk_bytes, imagery_stale, script_guides, uninstall};
+pub use steps::{COCKPITS, KEPT, OUTPUTS, disk_bytes, imagery_stale, uninstall};
 
 /// The Hebrew content: the Hebrew retail CD (everything translated), or the preflight.us packs.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -279,7 +281,7 @@ impl Progress for StepProgress<'_> {
     }
 }
 
-/// Renders the pilot guides (the wizard: in-process; the CLI: tools/guide_shots.sh + tools/guide_pdf.py).
+/// Makes the pilot guides (`make_guides` with the game to render with: the wizard's own, the CLI's checkout Godot).
 pub type GuidesFn<'a> = dyn Fn(&dyn Progress, &AtomicBool) -> Result<()> + Sync + 'a;
 
 /// Everything a run needs besides the plan.

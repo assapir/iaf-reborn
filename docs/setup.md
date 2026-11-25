@@ -27,7 +27,7 @@ Setup turns your own copy of Jane's IAF into everything the game reads under `as
 | The Hebrew CD image | no | every translated briefing and menu file, the Hebrew startup splash and Graphics page |
 | `Brief.zip`, `Menu.zip` | no, only without the Hebrew CD | the Hebrew briefings and menus (docs/packs.md) |
 | Imagery sources | no | modern terrain imagery (docs/imagery.md) |
-| Pilot guides | no | the guides' pictures and PDFs (python3 and Firefox, or Chrome / Chromium; the renders open game windows briefly; a Firefox print that fails is tried again, then printed with Chrome / Chromium when there is one) |
+| Pilot guides | no | the guides' pictures and PDFs (nothing to install, also in a release bundle; the renders open game windows briefly) |
 
 The English CD is always the base: the Hebrew CD's `iafjets.exe` is the copy-protected build, and the English v1.1
 patch does not apply to it (packs.md). The Hebrew CD adds the translations.
@@ -207,8 +207,11 @@ game then quits; `./setup` installs again. The launcher's INSTALL button opens t
   launchers under that folder. Both take Modern IAF's launchers too (`modern-iaf` / `-Game modern-iaf`, from its
   wizard's Done page, modern-iaf/docs/setup.md "Applications menu") and take a game's away (`--remove` /
   `-Remove`).
-- The guides: `tools/guide_shots.sh` and `tools/guide_pdf.py` (both front ends; not on Windows yet: the step fails
-  with a message).
+- The guides: nothing outside the game. The pictures are real renders by the game's own executable
+  (`iaf-reborn/setup/guide_shots.gd` through `crates/iaf-setup/src/guides.rs`: a release bundle's executable, the
+  checkout's Godot from the wizard or the PATH from the CLI), so the step needs a display; the PDFs are drawn in Rust
+  (`crates/iaf-tools/src/guide_pdf.rs`, its fonts built in). It works the same in the checkout and in every release
+  bundle, on Linux, Windows and macOS ([guides/README.md](guides/README.md#pictures-and-pdfs)).
 
 Their output goes to the step's log.
 
@@ -231,11 +234,10 @@ menus' colours. Pages:
    repository link and the licence. An **Attributions…** button opens the third-party credits in a window (the
    models, the imagery and the ambientCG textures, as in the credits roll).
 2. **Requirements**: a table of the parts, why each is needed, and whether it is required: the graphics driver and
-   the disk space for the game (required); the disk space for imagery, GDAL, curl, python3 (the pilot guides) and
-   Firefox (the Survey's download token, the pilot guides) (optional).
+   the disk space for the game (required); the disk space for imagery, GDAL, curl and Firefox (the Survey's download
+   token) (optional).
    A missing part shows its install command. "Check again", next to Next, looks once more. A release bundle that
-   ships GDAL and curl leaves their rows out and counts them as there (`Settings.ships_tools`); a bundle also leaves
-   out python3, which only builds the pilot guides, a checkout-only step.
+   ships GDAL and curl leaves their rows out and counts them as there (`Settings.ships_tools`).
 3. **Your CD**: the English CD image, picked with Browse and checked at once. Given the Hebrew CD here, the wizard
    says so and keeps it for the next page. "Find in a folder…" looks in a folder and its subfolders (3 levels) for
    the CD images, the v1.1 patch and the Hebrew packs (`iaf_setup::scan`, in the background), and fills the empty

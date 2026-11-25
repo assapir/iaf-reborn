@@ -598,7 +598,7 @@ memory at worst (≈ 2 GB as the RGBA8 the runtime loader decodes KTX2 to, above
 
 **Visual check** (the test proves the fit; this check judges the looks). A comparison sheet per batch:
 1. **Shots:** the same shot twice (Models Original / Detailed) from the pilot guides' shot runner
-   (`tests/godot/_guide_shots.gd`: an airborne start with a `loadout` on the pylons, the external view, `settings`
+   (`iaf-reborn/setup/guide_shots.gd`: an airborne start with a `loadout` on the pylons, the external view, `settings`
    per shot), in the game's own lighting rather than a model viewer's. A third column holds a **real photo** at a
    similar angle (US DoD photos are public domain; DCS screenshots only as a private reference, never committed).
 2. **Angles per store:** close up on the pylon (front quarter, side, below), a launch / drop in flight, a chase at

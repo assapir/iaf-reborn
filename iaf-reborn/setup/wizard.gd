@@ -469,26 +469,14 @@ func _fill_requirements() -> void:
 		],
 		[
 			false,
-			tools.get("python3", false),
-			"python3",
-			"builds the pilot guide PDFs",
-			"found",
-			by_os(
-				"with your distribution's package manager",
-				"brew install python",
-				"winget install Python.Python.3.14 (the guides: not on Windows yet)"
-			)
-		],
-		[
-			false,
 			tools.get("firefox", false),
 			"Firefox",
-			"holds the Survey's download token" + ("" if Settings.bundled() else "; prints the pilot guide PDFs"),
+			"holds the Survey's download token",
 			"found",
 			by_os(
 				"with your distribution's package manager",
 				"brew install --cask firefox",
-				"winget install Mozilla.Firefox (the guides: not on Windows yet)"
+				"winget install Mozilla.Firefox"
 			)
 		],
 	]
@@ -509,10 +497,8 @@ func _fill_requirements() -> void:
 		return l
 	for h in ["", "Component", "Why it is needed", "Needed", "Status"]:
 		cell.call(h, ORANGE, 0)
-	# A bundle ships GDAL and curl (no rows); its python3 would only build the guides, which a release does not.
-	var hidden: Array = (
-		(["GDAL", "curl"] if Settings.ships_tools() else []) + (["python3"] if Settings.bundled() else [])
-	)
+	# A bundle ships GDAL and curl (no rows).
+	var hidden: Array = ["GDAL", "curl"] if Settings.ships_tools() else []
 	items = items.filter(func(it): return it[2] not in hidden)
 	req_ok = true
 	for it in items:
@@ -830,20 +816,7 @@ func _page_extras() -> Control:
 	refresh_check = _extra(v, "Bring the imagery up to date", "After copying imagery from another computer.", need_gdal)
 	refresh_note = refresh_check.get_parent().get_child(1)
 	refresh_check.get_parent().visible = _layers().size() > 0
-	guides_check = _extra(
-		v,
-		"Pilot guides (pictures and PDFs)",
-		"Takes a while; game windows open briefly.",
-		(
-			"Made from the source checkout (tools/guide_shots.sh): not in a release."
-			if Settings.bundled()
-			else (
-				""
-				if tools.get("python3", false) and tools.get("firefox", false)
-				else "Needs python3 and Firefox (see Requirements)."
-			)
-		)
-	)
+	guides_check = _extra(v, "Pilot guides (pictures and PDFs)", "Takes a while; game windows open briefly.", "")
 	for c in [mapi_check, scenery_check, sentinel_check, refresh_check, guides_check]:
 		c.toggled.connect(func(_on): _update())
 	for o in [mapi_scope, scenery_kinds]:

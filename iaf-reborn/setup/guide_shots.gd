@@ -1,12 +1,14 @@
-# Dev helper (not run by tools/test.sh): real-render pictures for a pilot guide (docs/guides, docs/front-end.md
-# §14 "Pilot guide"): entry GUIDE_SHOT of GUIDE_JSON (docs/guides/<jet>.shots.json), or each of the list GUIDE_SHOTS
-# (name,name,…) in turn, saved as GUIDE_OUT/<name>.png. Each shot starts from the default settings and a fresh flight
+# The pilot guides' pictures (docs/guides, docs/front-end.md §14 "Pilot guide"), run by setup's Pilot guides step
+# (crates/iaf-setup/src/guides.rs: a few shots per process, with the game's own executable, so a release bundle makes
+# them too; the game started with `-- --guide-shots` runs this script in place of the menu, menu/startup.gd): entry
+# GUIDE_SHOT of GUIDE_JSON (docs/guides/<jet>.shots.json), or each of the list GUIDE_SHOTS (name,name,…) in turn,
+# saved as GUIDE_OUT/<name>.png. Each shot starts from the default settings and a fresh flight
 # scene (its mission reloaded). The frame is GUIDE_SIZE (WxH, default 3840×2160, so the crops stay sharp) whatever
-# the window's size. tools/guide_shots.sh runs a few shots per process:
+# the window's size. By hand (or `iaf-setup guides <jet> --only <name>`):
 #   GUIDE_JSON=$PWD/docs/guides/f16.shots.json GUIDE_SHOTS=hud_nav,hud_original GUIDE_OUT=/tmp/shots \
 #     IAF_DEFAULT_SETTINGS=1 \
-#       tools/godot_window.sh -- --log-file /tmp/g.log --path iaf-reborn --resolution 3840x2160 -s \
-#         ../tests/godot/_guide_shots.gd
+#       tools/godot_window.sh -- --log-file /tmp/g.log --path iaf-reborn --resolution 3840x2160 -- --guide-shots
+#   (-s res://setup/guide_shots.gd works too, with the editor's Godot only)
 # An entry: name, caption, mission, jet (Jet list id, -1 the mission's), mc (mission 666's Mission Creator record:
 # {field: number | [per formation]}, e.g. {"count": [1, 0, 1], "type": [7, 0, 11], "weapons": 1}), settings ({Settings
 # property: value}, "better" the Physics switches), start ("mission": the mission's own start; "airborne": frozen 3000 m
@@ -45,10 +47,11 @@
 # input ("fpm", "gun_cross", "boresight", "horizon", "ils": where the ILS lines cross, "target", "steerpoint", "seeker",
 # "pipper", "lcos", "steering", "delay_at": the delayed CCIP's target, "gps_at": a GPS bomb's aim), moved by "d": [x, y]
 # HUD pixels; or "px": [x, y], a fraction of the crop (the MFD pages, the original HUD).
-# The guide lists the legend as a numbered list right under the picture (tools/guide_pdf.py checks the counts match). An
+# The guide lists the legend as a numbered list right under the picture (the PDF maker,
+# crates/iaf-tools/src/guide_pdf.rs, checks the counts match). An
 # anchor that resolves to nothing or outside the crop fails the shot (GUIDE_DEBUG=1 outlines each anchor in red). Each
 # shot prints a GUIDE_INFO line with the HUD's texts and the radar lock / DLZ (for the guide's examples).
-extends "res://../tests/godot/base.gd"
+extends "res://shared/util/scene_script.gd"
 
 const EoSensor := preload("res://shared/weapons/eo_sensor.gd")
 
@@ -214,7 +217,7 @@ func _capture(name: String, e: Dictionary, rect: Rect2i) -> void:
 	var out := OS.get_environment("GUIDE_OUT")
 	DirAccess.make_dir_recursive_absolute(out)
 	img.save_png(out.path_join("%s.png" % name))
-	# The PDF's copy (tools/guide_pdf.py): JPEG for the scenes; the MFDs stay PNG (crisp pixel art).
+	# The PDF's copy (crates/iaf-tools/src/guide_pdf.rs): JPEG for the scenes; the MFDs stay PNG (crisp pixel art).
 	if not String(e.get("crop", "")).begins_with("mfd"):
 		img.save_jpg(out.path_join("%s.jpg" % name), 0.9)
 	check(true, "shot %s %dx%d" % [name, img.get_width(), img.get_height()])

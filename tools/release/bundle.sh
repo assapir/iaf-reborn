@@ -89,6 +89,9 @@ for f in "${files[@]}"; do
 	cp -RL "$f" "$root/$f"
 done
 cp LICENSE docs/credits.md "$root/"
+# The licences of the fonts built into the game library (the pilot guide PDFs, docs/credits.md).
+mkdir -p "$root/licenses"
+cp crates/iaf-tools/fonts/LICENSE-*.txt "$root/licenses/"
 # Setup's outside programs (GDAL, curl), made by tools/release/tools_env.sh: the nightly passes them in $IAF_TOOLS.
 if [[ -n ${IAF_TOOLS:-} ]]; then
 	cp -R "$IAF_TOOLS" "$root/tools"

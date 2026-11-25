@@ -63,7 +63,7 @@ var _real_hud = null
 var _real := {}
 var _real_frame := -1
 ## The input of this frame's Real HUD (its named points: fpm, gun_cross, target.at, weapons.pipper …; the guide shots'
-## annotations, tests/godot/_guide_shots.gd).
+## annotations, iaf-reborn/setup/guide_shots.gd).
 var _real_in := {}
 
 

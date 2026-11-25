@@ -450,25 +450,6 @@ pub fn imagery_stale(assets: &Path, id: &str) -> Result<usize> {
     Ok(imagery_run::run(&r, &Quiet, &AtomicBool::new(false))?.to_convert)
 }
 
-/// The scripted pilot guides: tools/guide_shots.sh (real renders, a display needed) then tools/guide_pdf.py, output
-/// into the log.
-#[cfg(windows)]
-pub fn script_guides(_repo: &Path, _pr: &dyn Progress, _cancel: &AtomicBool) -> Result<()> {
-    bail!("the pilot guides' pictures are made by a bash script (tools/guide_shots.sh): not on Windows yet")
-}
-
-/// The scripted pilot guides: tools/guide_shots.sh (real renders, a display needed) then tools/guide_pdf.py, output
-/// into the log.
-#[cfg(not(windows))]
-pub fn script_guides(repo: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
-    let mut shots = Command::new(repo.join("tools/guide_shots.sh"));
-    shots.current_dir(repo);
-    child(shots, pr, cancel)?;
-    let mut pdf = Command::new("python3");
-    pdf.args(["-I", "tools/guide_pdf.py"]).current_dir(repo);
-    child(pdf, pr, cancel)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

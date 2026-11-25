@@ -4,8 +4,8 @@
 # one view: Description (its <dir>_0.rtf in the briefing's rich edit), 3DView (model_view.gd) or Pictures
 # (<dir>_0.bmp centred on black). Ours: a Pilot guide view (docs/guides/<dir>.md, guide_md.gd; the F-16's is f16i.md
 # with the Sufa switch on) for a record that has a guide, with a button under Pictures and an "Open PDF" link when
-# the guide's PDF was made (tools/guide_pdf.py). Buttons are the front end's (front_end.gd routes them here);
-# geometry in the 640×480 space.
+# the guide's PDF was made (crates/iaf-tools/src/guide_pdf.rs). Buttons are the front end's (front_end.gd routes them
+# here); geometry in the 640×480 space.
 extends Control
 
 const FrameWindow := preload("res://menu/frame_window.gd")

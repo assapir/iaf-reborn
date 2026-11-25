@@ -27,14 +27,14 @@ game (`IafSetup`), so no separate setup program ships.
   "Baked shaders" below). Intel Macs are not built for.
 
 Both games' bundles also hold setup's outside programs in `tools/` (below), so a player installs nothing for Modern
-IAF. Jane's IAF reborn: nothing for the game and the CD. The optional imagery of the Survey of Israel needs python3 and
-  Firefox, as from the checkout. The pilot guides are built from the checkout only (`tools/guide_shots.sh`): the
-  wizard shows their row disabled.
+IAF. Jane's IAF reborn: nothing for the game and the CD. The optional imagery of the Survey of Israel needs
+  Firefox, as from the checkout. The pilot guides need nothing: the bundle's own executable renders their pictures
+  and its Rust draws the PDFs ([setup.md](setup.md#outside-programs)).
 
 ### The setup tools
 
 Setup runs GDAL's command-line programs (`gdalwarp`, `gdal_translate`, `gdalbuildvrt`, `gdalinfo`, `ogr2ogr` with its
-OSM driver) and curl ([setup.md](setup.md) "Outside programs"). A bundle carries them: `tools/release/tools_env.sh`
+OSM driver) and curl ([setup.md](setup.md#outside-programs)). A bundle carries them: `tools/release/tools_env.sh`
 installs conda-forge's builds (`libgdal-core` 3.13.3, the checkout's GDAL, with `curl` and `ca-certificates`) through
 micromamba (its release pinned and its checksum checked) into one layout on every system: `bin/` (on Windows with
 the DLLs, the MSVC runtime too), `lib/`, `share/gdal`, `share/proj`, `ssl/cacert.pem`, `licenses/<package>/`, each
@@ -48,8 +48,9 @@ built by hand without `$IAF_TOOLS` has none, and setup needs GDAL and curl insta
 At start, a bundled game whose tools folder holds bin puts that first on the PATH and sets `GDAL_DATA`, `PROJ_DATA` /
 `PROJ_LIB` and `CURL_CA_BUNDLE` / `SSL_CERT_FILE` to its CA file (`Settings._use_bundled_tools`, in `Settings._init`,
 before any setup thread). The programs setup starts inherit them. Both wizards then neither check nor list GDAL and
-curl (`Settings.ships_tools`). Jane's IAF reborn's wizard also leaves out python3, which only builds the pilot guides
-(checkout only).
+curl (`Settings.ships_tools`).
+Both bundles also carry `licenses/` with the licences of the fonts built into the game library (the pilot guide PDFs,
+[credits.md](credits.md#the-pilot-guides-fonts)).
 On Windows a program started by name is looked up in `System32` before the PATH, so setup runs Windows'
 own curl there (it takes the same CA file); GDAL's programs come from the bundle. On macOS the game also clears
 the download's quarantine flag on its tools folder (`xattr -dr com.apple.quarantine`), so Gatekeeper does not stop

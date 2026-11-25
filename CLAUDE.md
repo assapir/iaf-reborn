@@ -32,7 +32,7 @@ tools/ghidra/fn.sh 5643a0 | --grep PATTERN                    # decompiled origi
 tools/worktree.sh <name>                                      # parallel worktree sharing assets/ via symlink
 tools/doclint.py                                              # lint the docs (links, paths, § refs, tables)
 tools/mission_sweep.sh OUT [ids…]                             # headless run of every playable mission, one log each
-tools/guide_shots.sh [jet] && python3 -I tools/guide_pdf.py   # pilot guides' pictures (hidden window) and PDFs
+target/release/iaf-setup guides [jet] [--only n] [--force]     # pilot guides' pictures (hidden window) and PDFs
 python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded flight (blackbox) as a timeline + summary
 python3 -I tools/manuals.py [f16i|f16d|f35i|game]             # Modern IAF's manuals as PDFs, with Typst (modern-iaf/docs/manuals.md §3)
 ```
@@ -43,7 +43,7 @@ python3 -I tools/manuals.py [f16i|f16d|f35i|game]             # Modern IAF's man
 - Run every scripted Godot test or capture with `IAF_DEFAULT_SETTINGS=1`. This keeps the user's `settings.cfg`
   untouched (never read, never written).
 - Pass `--log-file <a temp path>` to the same runs. This keeps the user's own game logs from being rotated away.
-  `tools/test.sh`, `guide_shots.sh` and `mission_sweep.sh` already do both; the project keeps 30 logs as a safety net.
+  `tools/test.sh`, `iaf-setup guides` and `mission_sweep.sh` already do both; the project keeps 30 logs as a safety net.
 - A Godot test passes only if it prints `RESULT PASS` and prints zero `SCRIPT ERROR` lines.
 - Godot tests need the converted assets, so they run locally only (no hosted CI).
 - On a fresh clone Godot's import folder (`.godot` in `iaf-reborn/`, `modern-iaf/`) is missing. Run `godot --headless --path iaf-reborn --import` (and
@@ -205,7 +205,8 @@ python3 -I tools/manuals.py [f16i|f16d|f35i|game]             # Modern IAF's man
   autoload `Settings = res://sim_settings.gd` (`install_dir()` a path that does not exist, `own_dir()` =
   `assets/converted/own`, the 1998-only switches fixed), `data/` (authored data, compiled by `iaf-sim`), `tests/`,
   `docs/`.
-- `tests/godot/` — headless tests extending `tests/godot/base.gd` (`check()`, `frames()`, `start_mission(id)`);
+- `tests/godot/` — headless tests extending `tests/godot/base.gd` (`check()`, `frames()`, `start_mission(id)`; its
+  body is `shared/util/scene_script.gd`, which the pilot guides' shots `iaf-reborn/setup/guide_shots.gd` extend too);
   Modern IAF's in `modern-iaf/tests/` extend the same base and run with `--path modern-iaf`.
 
 Rule of placement: game logic belongs in the Rust crates. Godot renders and wires.

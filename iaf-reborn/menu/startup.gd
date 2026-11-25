@@ -3,7 +3,8 @@
 #      INSTALL opens the setup wizard, UNINSTALL asks and removes the setup's data;
 #   2. the main menu (menu/front_end.tscn; the exe's state 2 draws Bmp\Back0.bmp and opens it).
 # The exe plays janes.avi and intro.avi before the menu; ours goes straight on (README "Intro videos").
-# Our command-line runs (--mission, --screenshot, --hover) go straight to the menu. Without assets/converted: the
+# Our command-line runs (--mission, --screenshot, --hover) go straight to the menu; --guide-shots runs the pilot
+# guides' shots (setup/guide_shots.gd) in place of all of it. Without assets/converted: the
 # setup wizard (setup/wizard.tscn), also with --setup (a release bundle's way to run setup again).
 extends Control
 
@@ -13,6 +14,15 @@ const DEV_ARGS := ["--mission", "--screenshot", "--hover"]
 
 
 func _ready() -> void:
+	# Setup's Pilot guides step (crates/iaf-setup/src/guides.rs) starts the game with `-- --guide-shots`: a release
+	# build runs no -s script (Godot's export templates leave the command line's path overrides out), so the shots'
+	# script takes the scene tree over here, before the update check and the menu.
+	if "--guide-shots" in OS.get_cmdline_user_args():
+		var tree := get_tree()
+		queue_free()
+		tree.set_script(load("res://setup/guide_shots.gd"))
+		tree.call("_initialize")
+		return
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	if Array(OS.get_cmdline_user_args()).any(func(a): return a in DEV_ARGS):
 		_menu.call_deferred()

@@ -145,6 +145,23 @@ The road layer (docs/scenery.md §6) and the rest of the theatre's scenery (§1.
 `attribution` too: OpenStreetMap with the extracts used. ODbL and CC BY ask for the credit. The files and their
 checksums are `SCENERY`, `SCENERY_THEATRE` and `ROADS` in `crates/iaf-tools/src/thirdparty.rs`.
 
+## The pilot guides' fonts
+
+The pilot guide PDFs (`crates/iaf-tools/src/guide_pdf.rs`, [guides/README.md](guides/README.md#pictures-and-pdfs)) are set
+in fonts built into the program, in `crates/iaf-tools/fonts/` with their licences:
+
+- Liberation Sans (regular, bold, italic, bold italic) and Liberation Mono 2.1.5, "Digitized data copyright (c) 2010
+  Google Corporation. Copyright (c) 2012 Red Hat, Inc.", under the SIL Open Font License 1.1
+  (`LICENSE-Liberation.txt`), from Arch Linux's `ttf-liberation` package[^liberation].
+- The arrows, maths operators and geometric shapes of DejaVu Sans 2.37 (U+2190–22FF, U+25A0–25FF, cut out with
+  fontTools' `pyftsubset`; the font keeps its name), "Copyright (c) 2003 by Bitstream, Inc. All Rights Reserved.
+  Copyright (c) 2006 by Tavmjong Bah. All Rights Reserved. DejaVu changes are in public domain", under the Bitstream
+  Vera Fonts licence and the Arev Fonts licence (`LICENSE-DejaVu.txt`), from Arch Linux's `ttf-dejavu`
+  package[^dejavu]. Liberation lacks ⊗ and ⊖ (the F-15 guide's pitch ladder marks).
+
+Both games' release bundles carry the two licence files in `licenses/` (`tools/release/bundle.sh`); the original game's
+wizard Attributions and credits roll name them (`shared/credits.json`).
+
 ## Modern IAF data
 
 The sim's data compiler (`iaf-sim`, modern-iaf/docs/data-formats.md) uses open data kept in the repo: OpenStreetMap
@@ -285,3 +302,5 @@ are Heebo (§ Modern IAF's font) set as paths; the roundel is a ring and a six-p
 [^heebo]: Google Fonts, Heebo (`ofl/heebo/Heebo[wght].ttf` and `OFL.txt`): https://github.com/google/fonts/tree/main/ofl/heebo
 [^cop-dem]: "Licence for the use of the Copernicus WorldDEM-30", Article 6: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf
 [^bsc5]: The Bright Star Catalogue, 5th revised edition, ASCII file `ybsc5.gz` (the CDS catalogue V/50 layout), Harvard-Smithsonian Center for Astrophysics: http://tdc-www.harvard.edu/catalogs/bsc5.html
+[^liberation]: Liberation Fonts: https://github.com/liberationfonts/liberation-fonts
+[^dejavu]: DejaVu Fonts, "License": https://dejavu-fonts.github.io/License.html
