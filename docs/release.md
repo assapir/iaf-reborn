@@ -134,7 +134,9 @@ The Nightly workflow runs every day at 02:41 UTC:
    with the six bundles. The notes list the commits since the last nightly and the two unsigned-program notes.
 
 Run workflow (by hand) builds the bundles from any branch as artifacts; its "publish" box also replaces the
-pre-release, on `main` only.
+pre-release, on `main` only. Its "tag" field (default `nightly`) names the release to replace: another tag, a test
+channel such as `nightly-test`, is published from any branch and leaves the public `nightly` as it is (the update's
+end-to-end test, §7.3: `gh workflow run nightly.yml --ref <branch> -f publish=true -f tag=nightly-test`).
 
 The exports are each project's `export_presets.cfg` (Linux, Windows, macOS): every resource and `*.json`, without
 `tests/` and `tools/`. Jane's IAF reborn's boot splash is the CD's art in the checkout; in a bundle it shows none
@@ -284,3 +286,7 @@ Nothing on the disk is downloaded again: the steps' sources stay under `assets/s
 - `modern-iaf/tests/test_update.gd` (headless, offline): an older nightly against a local release folder finds the
   newer one, downloads, checks and unpacks it beside a scratch game folder, and the swap puts it in place; a wrong
   SHA-256 is refused; with no newer one, setup's check on a scratch data folder shows its steps.
+- End to end, by hand: two runs of the workflow into the `nightly-test` channel (§4), the older build's bundle
+  started with `IAF_UPDATE_URL=https://github.com/assapir/iaf-reborn/releases/download/nightly-test` and a scratch
+  per-user folder (Linux: `XDG_DATA_HOME`), then the test release deleted (`gh release delete nightly-test
+  --cleanup-tag`).

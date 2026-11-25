@@ -1,7 +1,8 @@
 # The nightly (docs/release.md): once a day, when main changed since the last nightly, both games' bundles for each
 # OS (tools/release/bundle.sh), each started headless (tools/release/smoke.sh), published as ONE rolling pre-release:
 # tag `nightly`, replaced each time, its notes the commits since the last one. By hand (Run workflow): the bundles as
-# the run's artifacts only, from any branch; "publish" also replaces the pre-release (main only).
+# the run's artifacts only, from any branch; "publish" also replaces the pre-release (main only). "tag" names another
+# release, a test channel such as nightly-test, which any branch may publish (the update's end-to-end test).
 name: Nightly
 
 on:
@@ -10,9 +11,13 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Replace the nightly pre-release (main only)
+        description: Replace the nightly pre-release (main only; any branch for a test tag)
         type: boolean
         default: false
+      tag:
+        description: The release's tag (a test channel, e.g. nightly-test, is published from any branch)
+        type: string
+        default: nightly
 
 concurrency:
   group: nightly
@@ -98,7 +103,9 @@ jobs:
 
   publish:
     needs: [changed, bundle]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || inputs.publish)
+    if: >-
+      (github.event_name == 'schedule' && github.ref == 'refs/heads/main') ||
+      (inputs.publish && (github.ref == 'refs/heads/main' || (inputs.tag || 'nightly') != 'nightly'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -119,6 +126,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           LAST: ${{ needs.changed.outputs.last }}
+          TAG: ${{ inputs.tag || 'nightly' }}
         run: |
           notes=$(mktemp)
           {
@@ -133,6 +141,6 @@ jobs:
               git log -20 --format='- %s (%h)'
             fi
           } >"$notes"
-          gh release delete nightly --cleanup-tag --yes || true
-          gh release create nightly bundles/* --prerelease --target "$GITHUB_SHA" \
-            --title "Nightly $(date -u +%Y-%m-%d)" --notes-file "$notes"
+          gh release delete "$TAG" --cleanup-tag --yes || true
+          gh release create "$TAG" bundles/* --prerelease --target "$GITHUB_SHA" \
+            --title "Nightly $(date -u +%Y-%m-%d)$([[ $TAG == nightly ]] || echo " ($TAG)")" --notes-file "$notes"
