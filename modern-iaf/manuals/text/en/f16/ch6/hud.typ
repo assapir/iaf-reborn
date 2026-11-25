@@ -41,7 +41,7 @@ A large *X* flashes when the radar altitude and the dive call for an immediate p
 
 === The helmet display
 
-The helmet sight puts an aiming cross on the visor. Look at a target to point a short-range missile's seeker at it; a diamond shows where the seeker tracks. #row("HMCS_SYM_INT_KNOB") dims it to off. The helmet display blanks while you look through the HUD, where the HUD shows, and while you look down into the cockpit: its symbols never cover the canopy rail or the consoles (the DED's HMCS page: CKPT BLNK ON). That the real helmet's symbols look the same is inferred: no figure of them is public.
+The helmet sight puts an aiming cross on the visor. Look at a target to point a short-range missile's seeker at it; a diamond shows where the seeker tracks. #row("HMCS_SYM_INT_KNOB") dims it to off. The helmet display blanks while you look through the HUD, where the HUD shows, and while you look down into the cockpit: its symbols never cover the canopy rail or the consoles. That the real helmet's symbols look the same is inferred: no figure of them is public.
 
 #display("helmet", [The helmet looking 54° left at a locked target, a short-range missile selected: the aiming cross, the radar's box and the seeker's diamond on the target, the circle whose gap shows where the head looks from the nose, the head's heading above, the g and speed at the left, the altitude and steerpoint at the right.], width: 90%)
 
