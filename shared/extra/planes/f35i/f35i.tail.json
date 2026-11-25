@@ -2,13 +2,13 @@
   "number": "937",
   "others": ["930", "932", "933", "935", "939", "941", "943", "944", "945", "946", "963", "966", "967", "901", "902", "905", "907", "908", "911", "913", "916", "917", "918", "919", "921", "925", "926", "927", "928", "951", "955", "956", "957", "978", "979", "983", "904", "909", "947", "949", "958", "959", "960", "968", "969", "977", "989", "992"],
   "marks": [
-    { "foot": [0.37, -6.55], "height": 0.19, "pitch": 0.13, "x": [0.3, 0.8], "colour": [0.16, 0.17, 0.18] },
-    { "foot": [-2.167, 2.225, 5.0], "normal": [-0.94, -0.34], "height": 0.18, "pitch": 0.12, "colour": [0.16, 0.17, 0.18], "digits": 2 }
+    { "foot": [0.37, -6.55], "height": 0.19, "pitch": 0.13, "x": [0.3, 0.8], "colour": [0.54, 0.57, 0.61] },
+    { "foot": [-2.167, 2.225, 5.0], "normal": [-0.94, -0.34], "height": 0.18, "pitch": 0.12, "colour": [0.54, 0.57, 0.61], "digits": 2 }
   ],
   "notes": {
     "": "The Adir's tail numbers (shared/aircraft/tail_number.gd, docs/aircraft-models.md §1.6): f35i.gltf holds none (tools/f35i/rig.py).",
     "number": "937 of 116 Squadron, whose badge the model wears (docs/f35i.md §1, the model row; f-16.net: AS-24, USAF 18-5435, 116 Squadron); the sim's unit record shows the same (modern-iaf/data/db/units/f35i.json `tail`)",
     "others": "the other F-35Is in f-16.net's airframe database (docs/f35i.md §7, checked 19 Nov 2026), each squadron's in number order, all three at Nevatim: 116 Squadron's (the player's), then 140's (951 by its Commons photo; 921 also in IsraDecal's notes), then 117's, then the delivered jets whose squadron is open there. Not listed: the test centre's 924 at Tel Nof",
-    "marks": "where rig.py drew the number until 2026-11-19, low-visibility dark grey: the whole number on each side of the nose (decals), its last two digits on each fin's outer face (quads: the fins are one surface seen from both sides; their outward normal measured on f35i.gltf, the fin canted 20 degrees) (docs/f35i.md §5, the photos)"
+    "marks": "where rig.py drew the number until 2026-11-19, in the low-visibility markings' pale grey (rig.py MARK_GREY; dark grey until 2026-11-25, docs/f35i.md §5.2): the whole number on each side of the nose (decals), its last two digits on each fin's outer face (quads: the fins are one surface seen from both sides; their outward normal measured on f35i.gltf, the fin canted 20 degrees) (docs/f35i.md §5, the photos)"
   }
 }

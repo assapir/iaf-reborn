@@ -1136,8 +1136,11 @@
 				"baseColorTexture":{
 					"index":12
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.75
+				"metallicFactor":0.0,
+				"roughnessFactor":0.6
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{
@@ -1148,8 +1151,11 @@
 				"baseColorTexture":{
 					"index":13
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.75
+				"metallicFactor":0.0,
+				"roughnessFactor":0.6
+			},
+			"extras":{
+				"specular":0.25
 			}
 		},
 		{

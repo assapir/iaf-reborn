@@ -23,6 +23,8 @@ RIG_GREY = (0.37, 0.39, 0.41)  # rig.py's SKIN_GREY: the grey its baked shading 
 ROUGH = 0.6  # a matte coating: broad, soft highlights
 SPECULAR = 0.25  # its reflectance, half a paint's: no white sky glare along the spine at a low angle (photos)
 SEAM_W = 0.004  # m, half width of a panel line (drawn at least 1.2 texels wide)
+HINGE_W = 0.01  # m, half width of a control surface's hinge line: its open gap and shadow read at 40 m (photos)
+HINGE_DARK = 1.4  # its cover against a seam's 1: darker
 TAPE_W = 0.045  # m, half width of the lighter edging (RAM tape / sealant) along a door's edge
 TOOTH = 0.11  # m, the pitch of a door's saw-tooth
 TOOTH_AMP = 0.03  # m, their depth
@@ -30,12 +32,14 @@ TOOTH_AMP = 0.03  # m, their depth
 # electroluminescent panels, a pale grey-green barely seen by day (photos), lit only at night.
 LIGHT_STRIPS = {"Glowing_green": [0.004, 0.02, 0.004], "Grey": [0.0, 0.0, 0.0]}
 STRIP_COLOUR = (0.28, 0.34, 0.22, 1.0)  # linear
+MARKINGS = ("iaf_roundel", "sqn116")  # rig.py's low-visibility markings: paint on the coating, its specular level
 ENC = 0.02  # the position bake's scale (m -> 0..1 round 0.5)
 
 # The panel lines and edging real F-35Is show (docs/f35i.md §5.1), in metres in the model's frame (x right, y forward,
 # z up), for the jet's right side and mirrored to the left. A view picks the texels it draws on by their normal: "top"
 # and "bottom" are (x, y) seen from above, "side" is (y, z). Kinds: "line" a panel line (an open polyline); "door" a
-# panel line with saw-tooth edges and a lighter band astride it (RAM tape / sealant); "patch" a lighter filled shape.
+# panel line with saw-tooth edges and a lighter band astride it (RAM tape / sealant); "patch" a lighter filled shape;
+# "hinge" a control surface's hinge line, wider and darker than a seam.
 # Positions are read off the photos against the model's top, side and bottom views.
 def _rect(x0, y0, x1, y1):
     return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
@@ -47,14 +51,14 @@ def _diamond(x, y, a, b):
 
 FEATURES = [
     # Upper wing: the leading-edge flap's hinge line and the flaperon's (the flight photos).
-    ("top", "line", [(2.23, 0.63), (5.42, -1.70)]),
-    ("top", "line", [(2.2, -2.73), (4.38, -2.73), (4.38, -3.06)]),
+    ("top", "hinge", [(2.23, 0.63), (5.42, -1.70)]),
+    ("top", "hinge", [(2.2, -2.73), (4.38, -2.73), (4.38, -3.06)]),
     # The spine: the air-refuelling door behind the canopy and the auxiliary inlet doors (2016 flight photo).
     ("top", "door", _rect(-0.2, 2.15, 0.2, 2.7)),
     ("top", "door", _rect(0.3, 1.0, 0.72, 1.65)),
     # Lower wing: the same hinge lines, and the lighter lens-shaped access patches (116 Sqn pair from below).
-    ("bottom", "line", [(2.23, 0.63), (5.42, -1.70)]),
-    ("bottom", "line", [(2.2, -2.73), (4.38, -2.73), (4.38, -3.06)]),
+    ("bottom", "hinge", [(2.23, 0.63), (5.42, -1.70)]),
+    ("bottom", "hinge", [(2.2, -2.73), (4.38, -2.73), (4.38, -3.06)]),
     ("bottom", "patch", _diamond(2.9, -0.35, 0.2, 0.09)),
     ("bottom", "patch", _diamond(3.35, -1.0, 0.22, 0.1)),
     ("bottom", "patch", _diamond(3.95, -1.5, 0.2, 0.09)),
@@ -178,15 +182,15 @@ def features(p, n, aa):
         if not len(idx[0]):
             continue
         q = uv[idx]
-        d, along, inside = _poly(q, pts, kind != "line")
+        d, along, inside = _poly(q, pts, kind not in ("line", "hinge"))
         a = aa[idx]
         if kind == "patch":
             light[idx] = np.maximum(light[idx], np.clip((d * np.where(inside, 1, -1) + a) / (2 * a), 0, 1))
             continue
         if kind == "door":
             d = np.abs(d * np.where(inside, 1, -1) + TOOTH_AMP * (tri(along / TOOTH) - 0.5))
-        wi = w[idx]
-        line[idx] = np.maximum(line[idx], np.clip((wi + a - d) / (2 * a), 0, 1))
+        wi, k = (np.maximum(HINGE_W, w[idx]), HINGE_DARK) if kind == "hinge" else (w[idx], 1.0)
+        line[idx] = np.maximum(line[idx], k * np.clip((wi + a - d) / (2 * a), 0, 1))
         if kind == "door":
             light[idx] = np.maximum(light[idx], 0.6 * np.clip((TAPE_W + a - d) / (2 * a), 0, 1))
     return line, light
@@ -386,6 +390,8 @@ def main():
             if m["name"] in LIGHT_STRIPS:  # the fins' formation strips: pale and unlit by day
                 m["emissiveFactor"] = LIGHT_STRIPS[m["name"]]
                 m["pbrMetallicRoughness"]["baseColorFactor"] = list(STRIP_COLOUR)
+            if m["name"] in MARKINGS:
+                m.setdefault("extras", {})["specular"] = SPECULAR
             if not m["name"].startswith("skin_") or m["name"] == "skin_plain":
                 continue
             for kind, key in (("_n", "normalTexture"), ("_mr", "metallicRoughnessTexture")):

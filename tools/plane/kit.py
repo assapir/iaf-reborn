@@ -382,22 +382,26 @@ def image(name, rgba):
     return img
 
 
-def low_vis(path, dark=0.15, span=0.45):
-    """An emblem (RGBA file) in low-visibility greys: luminance mapped to dark .. dark + span, alpha kept."""
+def low_vis(path, dark=0.15, span=0.45, clear_below=None):
+    """An emblem (RGBA file) in low-visibility greys: luminance mapped to dark .. dark + span, alpha kept; with
+    `clear_below`, the parts darker than that luminance turn clear (a dark ground left off, the skin showing)."""
     src = bpy.data.images.load(path)
     w, h = src.size
     px = np.array(src.pixels[:], dtype=np.float32).reshape(h, w, 4)[::-1]
-    g = dark + span * (px[..., :3] @ np.array([0.30, 0.59, 0.11]))
-    return np.dstack([g, g * 1.02, g * 1.05, px[..., 3]])
+    lum = px[..., :3] @ np.array([0.30, 0.59, 0.11])
+    g = dark + span * lum
+    a = px[..., 3] if clear_below is None else px[..., 3] * _ramp((clear_below - 0.04, clear_below + 0.04), lum)
+    return np.dstack([g, g * 1.02, g * 1.05, a])
 
 
 def _ramp(edge, x):
     return np.clip((x - edge[0]) / (edge[1] - edge[0]), 0.0, 1.0)
 
 
-def roundel(star_rgb, disc_rgb, n=512, big_r=0.78, width=0.13):
+def roundel(star_rgb, disc_rgb, n=512, big_r=0.78, width=0.13, solid=False):
     """The IAF roundel as an RGBA array: a Magen David (two triangle outlines, circumradius `big_r`, stroke `width`
-    of the disc radius) in `star_rgb` on a disc of `disc_rgb`."""
+    of the disc radius; `solid`: the two triangles filled) in `star_rgb` on a disc of `disc_rgb`. With `star_rgb`
+    None the star is clear: the low-visibility roundel, whose star is the skin's own grey."""
     ys, xs = np.mgrid[0:n, 0:n]
     px = (xs + 0.5) / n * 2 - 1
     py = 1 - (ys + 0.5) / n * 2
@@ -409,7 +413,10 @@ def roundel(star_rgb, disc_rgb, n=512, big_r=0.78, width=0.13):
         for k in range(3):
             a = rot + k * 2 * math.pi / 3
             d = np.minimum(d, big_r / 2 - (px * math.cos(a) + py * math.sin(a)))
-        star = np.maximum(star, _ramp((-aa, aa), d) * _ramp((width + aa, width - aa), d))
+        stroke = 1.0 if solid else _ramp((width + aa, width - aa), d)
+        star = np.maximum(star, _ramp((-aa, aa), d) * stroke)
+    if star_rgb is None:
+        return np.dstack([np.broadcast_to(np.array(disc_rgb, float), px.shape + (3,)), disc * (1 - star)])
     rgb = np.array(disc_rgb) * (1 - star[..., None]) + np.array(star_rgb) * star[..., None]
     return np.dstack([rgb, disc])
 
