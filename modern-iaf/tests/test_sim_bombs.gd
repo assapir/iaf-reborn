@@ -287,6 +287,8 @@ func _man(p: Vector3, radius: float) -> void:
 	var before := _released()
 	w.fire_selected()
 	_step(v)
+	_step(v)
+	check(not w.releasing and not w.ag.frozen, "MAN: the ripple over, WPN REL still held: the pipper tracks again")
 	w.release_selected()
 	check(_released() == before - 1, "MAN: released at once")
 	await _hit("MAN", p, radius)

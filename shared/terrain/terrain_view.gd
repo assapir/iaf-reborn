@@ -3793,6 +3793,14 @@ func _leave_downed(old: Dictionary) -> void:
 	crashed = false
 	jet_gone = false
 	fm_stopped = false
+	# The next ejection is the new jet's own: its seats, chute view and EjectReport (the old parachuters fly on).
+	_seats_thrown = false
+	_chute_view_done = false
+	_eject_radio_done = false
+	_chute = null
+	_eject_ticks = 0.0
+	_eject_count = 0
+	_eject_last = 0.0
 
 
 ## The ejected old jet after Fly (FUN_005485a0: engine off, stick fixed): its flight model flies it on until it crashes
@@ -3916,6 +3924,9 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	rig.position = st.position
 	rig.basis = Basis(st.right, st.up, -st.forward)
 	weapons.rearm(target, mission_object, mission_bdb, AircraftModel.load_descriptor(player.plane), new_load)
+	# The panel lights are the new jet's controller's (FUN_004a8e70(3)): none of the old jet's fire, caution, RWR or
+	# ECM lamps; the autopilot's comes back with it.
+	cockpit.indicators.fill(false)
 	_start_autopilot(airborne_start)
 	padlock_target = null
 	print("player: now %s (flight %d, type %d)" % [target.name, player_flight_number, player.type])
@@ -5173,7 +5184,7 @@ func _on_landed() -> void:
 ## "Eject (x3)" (command 18, FUN_00548330): three presses, each less than 1 s after the previous one.
 ## Nothing is shown or said per press.
 func _eject_key() -> void:
-	if ejected or crashed:
+	if ejected or crashed or not _can_eject():
 		return
 	var now := _sim_time
 	if now - _eject_last >= EJECT_KEY_WINDOW:
@@ -5187,6 +5198,15 @@ func _eject_key() -> void:
 			_eject()
 		else:
 			_eject_last = now
+
+
+## FUN_005485a0's first test: the player still flies the jet (control mode 3) or it is fatally hit (state 3); never
+## after it exploded in the air (state 4 / 5, control 0). Without a mission: not after the jet is gone.
+func _can_eject() -> bool:
+	var p: Dictionary = runtime.player_entity() if runtime != null else {}
+	if p.is_empty():
+		return not jet_gone
+	return int(p.state) == 3 or int(p.control) == 3
 
 
 ## FUN_005485a0: engine off, stick fixed, controls ignored; the jet flies on until it crashes. The

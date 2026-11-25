@@ -129,6 +129,8 @@ const BASE_NAMES := {
 ## radio menu should disappear after few seconds if not in use"; the original game has no such menu: inferred).
 const MENU_S := 6.0
 const SCORE_EVERY := 3.0
+## A run whose score() fails this many times in a row ends, failed: "the flight could not be scored" in the debrief.
+const SCORE_TRIES := 3
 const PAST_BUDGET := 5.0
 ## A take-off's fail reasons no later flying can mend: the mission ends on them once airborne.
 const FINAL := ["wrong_runway", "excursion", "over_time"]
@@ -171,8 +173,10 @@ var trainer: RefCounted
 var _why := ""
 ## The runway ends not the mission's the tower named already.
 var _wrong_said: Array = []
-## When the flight ends into the debrief (ms, real time), once the mission ended.
-var _end_ms := INF
+## When the flight ends into the debrief (s, sim time: a pause or the time compression holds it), once the mission
+## ended; score() failures in a row.
+var _end_at := INF
+var _score_fails := 0
 ## A start-up lesson's items of the jet's card it asks for (the readable mission's training.checklist: card item ids,
 ## training.md §12), the flight model's start-up steps whose switches are on (ids: IafFlight.start_on, read each
 ## frame), a step's fault waiting for the live check, the last fault shown, the jet's checklist card (card.gd) and
@@ -757,8 +761,8 @@ func pick(id: String) -> String:
 
 
 func _process(delta: float) -> void:
-	if not result.is_empty() and Time.get_ticks_msec() >= _end_ms:
-		_end_ms = INF
+	if not result.is_empty() and float(host._sim_time) >= _end_at:
+		_end_at = INF
 		host._end_flight(true)  # into the debrief (Settings.flown_sortie)
 	if open and Time.get_ticks_msec() - _menu_at > MENU_S * 1000.0:
 		set_open(false)  # not in use
@@ -829,8 +833,9 @@ func _process(delta: float) -> void:
 	_next_score = t + SCORE_EVERY
 	var d := score()
 	if d.has("error"):
-		push_warning("training: %s" % d.error)
+		_score_failed(d)
 		return
+	_score_fails = 0
 	# A pass holds; a take-off not yet on its heading or with the gear down may still pass: scored again until its
 	# budget (no line over the flight says what is missing: the user, 25 Nov 2026, only radio over the flight; the
 	# debrief does). A roll off the runway or past the budget cannot pass: it ends.
@@ -857,9 +862,20 @@ func _end_now(t: float) -> void:
 	_next_score = t + SCORE_EVERY
 	var d := score()
 	if d.has("error"):
-		push_warning("training: %s" % d.error)
+		_score_failed(d)
 	else:
 		_finish(d)
+
+
+## score() failed (`d.error`): after SCORE_TRIES in a row the run ends, failed, its debrief saying it could not be
+## scored (reason "no_score", the front end's string), so a run never flies on with no word.
+func _score_failed(d: Dictionary) -> void:
+	push_warning("training: %s" % d.error)
+	_score_fails += 1
+	if _score_fails >= SCORE_TRIES and result.is_empty():
+		_finish(
+			{"pass": false, "reasons": ["no_score"], "kind": String(rules.get("kind", "")), "error": String(d.error)}
+		)
 
 
 ## The player ended the flight before the mission's end: scored as it stands.
@@ -906,7 +922,7 @@ func _finish(d: Dictionary) -> void:
 		else:
 			_accomplished()
 	else:
-		_end_ms = Time.get_ticks_msec() + trainer.end_hold_s() * 1000.0
+		_end_at = float(host._sim_time) + trainer.end_hold_s()
 		set_open(false)
 
 

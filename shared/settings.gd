@@ -1371,6 +1371,12 @@ func eject_ends_sortie() -> bool:
 	return false
 
 
+## The A-G pipper's freeze (Space held) ends at the ripple's end and when the HUD leaves the bomb modes. The original
+## keeps it until Space is let go in a bomb mode (FUN_00456100): Modern IAF's (sim_settings.gd) only.
+func ag_freeze_ends() -> bool:
+	return false
+
+
 ## The talking towers' iaf.ibx sections (radio.gd), from the file's `sections`: [] for the original game's ten bases
 ## (radio.gd BASES, the first four talking). Modern IAF's: every base of its own iaf.ibx.
 func tower_bases(_sections: Dictionary) -> Array:

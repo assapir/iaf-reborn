@@ -26,7 +26,17 @@ func run() -> void:
 	rt.set_damage_level(me, DM.HIT)
 	await frames(2)
 	check(tv.fatal_hit and int(me.state) == DM.HIT, "the own jet is fatally hit")
+	# The old jet's controller: its fire and ECM lamps lit, Safety off, the tanks gone.
+	tv.cockpit.indicators[1] = true
+	tv.cockpit.indicators[6] = true
+	tv.weapons.safety_off = true
+	tv.weapons.tanks_jettisoned = true
 	await fly_bravo(tv)
+	check(
+		not tv.cockpit.indicators[1] and not tv.weapons.ecm_on() and not tv.weapons.safety_off,
+		"Fly: the new jet's own controller: no old lamps, Safety on (FUN_004a8e70(3))"
+	)
+	check(not tv.weapons.tanks_jettisoned, "Fly: the new jet's tanks are its own")
 	var now: Dictionary = rt.player_entity()
 	check(
 		not now.is_empty() and now != me and now.control == 3 and not now.has("pilot"),
@@ -59,7 +69,15 @@ func run() -> void:
 	tv._eject()
 	await frames(3)
 	check(tv.ejected and rt._all_dead, "ejected: rule 1 runs (short ejection: the FlyTSD at once: %s)" % tv.eject_short)
+	# (As after a full ejection: the seats thrown, the chute view shown, the EjectReport said.)
+	tv._seats_thrown = true
+	tv._chute_view_done = true
+	tv._eject_radio_done = true
 	await fly_bravo(tv)
+	check(
+		not tv._seats_thrown and not tv._chute_view_done and not tv._eject_radio_done and tv._chute == null,
+		"Fly: the next ejection is the new jet's own (its seats, chute view and EjectReport)"
+	)
 	now = rt.player_entity()
 	check(
 		not now.is_empty() and now != me and not tv.ejected and tv.fe_overlay == null,
@@ -70,3 +88,14 @@ func run() -> void:
 		"the empty old jet flies on with its own flight model"
 	)
 	check(rt._all_dead, "rule 1 still ends the flight")
+
+	# --- exploded in the air: Eject is refused (FUN_005485a0: state 3 or control mode 3 only) ---
+	tv = await start_mission(221)
+	await frames(10)
+	rt = tv.runtime
+	me = rt.player_entity()
+	rt.set_damage_level(me, DM.EXPLODED)
+	await frames(2)
+	for _i in 3:
+		tv._eject_key()
+	check(tv.jet_gone and not tv.ejected, "exploded: three Eject presses do nothing")

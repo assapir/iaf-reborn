@@ -482,8 +482,11 @@ mission `modern-iaf/data/missions/<id>.json` and the airbase files:
   resumes it and the panel does not come back; Debrief ends the flight into the debrief. The panel opens once the
   radio's phrase channel has said what it had queued (`flight_sounds.gd phrase_cue`), so the pause never cuts a
   voice. No radio line announces the pass;
-- a fail: 5 s later (real time, `end_hold_s`) the flight ends into the debrief, the reason first; nothing shows over
-  the view meanwhile (until 2026-11-25 a banner with "Fail" and the reason; the user then: only radio over the flight);
+- a fail: 5 s later (sim time since 2026-11-25: a pause holds it, `end_hold_s`) the flight ends into the debrief, the
+  reason first; nothing shows over the view meanwhile (until 2026-11-25 a banner with "Fail" and the reason; the user
+  then: only radio over the flight);
+- a run that cannot be scored (the scorer's error three times in a row, `SCORE_TRIES`) ends the same way, failed; the
+  debrief's remark says the flight could not be scored (`no_score`);
 - an ejection ends the sortie (`Settings.eject_ends_sortie`, the sim only): every sound and the radio stop at once
   (`flight_sounds.gd silence`, no radio menu), the view stays outside on the seat and the jet at any height (no
   FlyTSD), the recording gets an `eject` event and the mission fails with `ejected` first. The original game's

@@ -61,6 +61,9 @@ func run() -> void:
 	if only == "clearance":  # --only clearance: each phase without the tower's clearance fails (the Sufa)
 		await clearance()
 		return
+	if only == "no_score":  # --only no_score: a run that cannot be scored ends, failed, on sim time
+		await no_score()
+		return
 	var repeat := int(args[args.find("--repeat") + 1]) if args.has("--repeat") else 1
 	for i in repeat:  # --repeat N: N runs in one process (the headless model loads, gltf.gd `ahead`)
 		for id in JETS:
@@ -74,6 +77,7 @@ func run() -> void:
 		await ab_sound()
 		await core_sound()
 		await crash()
+		await no_score()
 		await eject()
 		await wrong_order()
 		await shutdown()
@@ -398,6 +402,24 @@ func crash() -> void:
 		not d.is_empty() and not bool(d.get("pass", true)) and d.get("reasons", [""])[0] == "crash",
 		"a crash ends the start-up at once: %s %s" % [d.get("pass"), d.get("reasons")]
 	)
+
+
+## A fail whose score() keeps failing (its readable mission gone): after SCORE_TRIES tries the run ends, failed with
+## "no_score", and the hold before the debrief runs on sim time (the statemachines audit, #9).
+func no_score() -> void:
+	var tv := await _start("ramon_startup")
+	await fly(tv, 1.0)
+	tv.addon.mission_name = "no_such_mission"
+	tv.addon._why = "off_pavement"  # a fail the live check found
+	var t0: float = tv._sim_time
+	while tv.addon.result.is_empty() and tv._sim_time - t0 < 15.0:
+		await frames(1)
+	var d: Dictionary = tv.addon.result
+	check(
+		d.get("reasons", []) == ["no_score"] and not bool(d.get("pass", true)),
+		"not scorable: failed with no_score after %d tries (%s)" % [tv.addon._score_fails, d.get("reasons")]
+	)
+	check(tv.addon._end_at > tv._sim_time, "the hold before the debrief on sim time (%.1f)" % tv.addon._end_at)
 
 
 ## An ejection in the take-off: the sortie ends (Settings.eject_ends_sortie): silent, Fail "ejected" first.

@@ -53,6 +53,10 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
 modern aircraft / weapons, the Pi 5 profile.
 
 ## Small bugs (fix between jobs)
+- **Hidden state machines (fixed 2026-11-25, the audit of 25 Nov):** a second ejection after Fly throws its seats and
+  gets its chute view and EjectReport; Eject is refused after the jet exploded in the air, as FUN_005485a0 refuses
+  it; Fly gives the new jet its own panel lights and weapons controller state (views.md §1); the mission editor's
+  Open ends the Place, Paste or Route mode with its button.
 - **Mission sweep 2026-10-14** (`tools/mission_sweep.sh`: all 60 playable missions headless, the player parked
   300 s, then the targets destroyed):
   - No script errors; every mission passes once its targets die.

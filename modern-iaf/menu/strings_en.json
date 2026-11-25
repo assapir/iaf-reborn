@@ -200,6 +200,7 @@
 	"from_runway": "%s, runway %s",
 	"goals": "GOALS",
 	"remarks": "REMARKS",
+	"no_score": "The flight could not be scored.",
 	"next_time": "Next time:",
 	"map_flight": "THE WHOLE FLIGHT ON THE MAP",
 	"graphs": "THE FLIGHT",

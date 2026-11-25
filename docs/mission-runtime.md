@@ -496,7 +496,8 @@ else: count += 1
 
 **`FUN_005485a0(entity)`** (disassembly @5485a0; the Ghidra output is stack-garbled):
 1. **Checks.** Abort if the crew is already out (`FUN_00540350`: crew obj +0xc == 0). Abort unless control mode
-   (status+0x14) == 3 (player-controlled) **or** state (status+0xc) == 3 (fatally hit, "going down").
+   (status+0x14) == 3 (player-controlled) **or** state (status+0xc) == 3 (fatally hit, "going down"). So a jet that
+   exploded in the air (state 4 / 5, control 0) cannot eject (the port: `terrain_view.gd` `_can_eject`).
 2. **Radio report.** Schedule the "FlightControllerEjectReport" event (vtable `0x60c908` → `FUN_0054e560`) at
    **t0 + 4.5 s** (`0x60c8c0` = −4.5). The radio says `EJECTED_PHRASE` = "%S1 EJECTED" (phrasetemplates.trx;
    `GEjected.wav` "ejected" after the callsign). This happens only if `DAT_00832ad8` == 0, the ejector is on the

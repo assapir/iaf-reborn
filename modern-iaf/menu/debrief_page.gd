@@ -153,7 +153,7 @@ static func _sheet(fe: Control, m: Dictionary, j: Dictionary) -> void:
 	var names: Dictionary = rec.get("strings", {}).get(lang, {})
 	var lines := []
 	for r in rec.get("reasons", []):
-		lines.append(str(names.get(r, r)))
+		lines.append(str(names.get(r, fe.s(r) if fe.strings.has(r) else r)))  # "no_score": the front end's
 	if rec.get("pass", false) and fe.strings.has("done_" + str(rec.get("kind", ""))):
 		lines.append(fe.s("done_" + str(rec.kind)))
 	var next = rec.get("next")

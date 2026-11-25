@@ -819,6 +819,10 @@ func eject_ends_sortie() -> bool:
 	return true
 
 
+func ag_freeze_ends() -> bool:
+	return true
+
+
 ## Every base of the own iaf.ibx has a talking tower (modern-iaf/docs/airbases.md §9), in the file's order.
 func tower_bases(sections: Dictionary) -> Array:
 	return sections.keys().filter(func(k): return k != "")

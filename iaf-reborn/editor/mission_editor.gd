@@ -239,7 +239,7 @@ func _open(id: int, name: String, main: String, main_data: Dictionary) -> void:
 	undo.clear()
 	sel_id = -1
 	sel_wp = -1
-	mode = ""
+	_set_mode("")  # the buttons and the route buffers too
 	_new_map(id)
 	_fill_object_picker()
 	_fill_flight_types()

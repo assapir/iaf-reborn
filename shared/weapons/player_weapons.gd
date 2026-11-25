@@ -339,8 +339,35 @@ func rearm(entity: Dictionary, object: Dictionary, bdb: Dictionary, desc: Dictio
 	_bc_store_nodes = {}
 	_pod_nodes = []
 	_given_load = load
+	_reset_for_new_jet()
 	setup(host, entity, object, bdb, desc)
 	_given_load = []
+
+
+## The controller's state as a jet's own controller starts (FUN_004a8e70(3) makes the new unit's controller, ctl =
+## unit+0x34, the player's: its master / HUD mode, safety, jettison and release state are its own, not the old jet's).
+func _reset_for_new_jet() -> void:
+	_modes = ClassDB.instantiate("IafModes")
+	safety_off = false
+	_override_from = {}
+	releasing = false
+	if firing:
+		gun_stop()  # the burst and its sound end with the old jet
+	firing = false
+	flir_pod = false  # setup() sets them from the new jet's stores and definition
+	ecm_fitted = false
+	tanks_jettisoned = false
+	bombs_jettisoned = false
+	_racks_gone = {}
+	ripple_left = 0
+	_ripple_next = INF
+	ag.frozen = false
+	tgp_slaved = false
+	tgp_stby = false
+	laser_fire = false
+	pod_power_at = NAN
+	ews = null
+	nav = null
 
 
 ## A load that replaces the spawn load in setup() (rearm()).
@@ -517,6 +544,8 @@ func _set_hud_mode(h: int) -> void:
 		seeker.exit()
 	var entering_ir := h == 1 and hud_mode != 1
 	hud_mode = h
+	if Settings.ag_freeze_ends() and not h in [5, 6]:
+		ag.frozen = false  # ours (Modern IAF): the frozen pipper ends with its mode (the original keeps it, FUN_00456100)
 	if entering_ir:
 		seeker.set_weapon(stores.station(stores.cur).get("w", {}))
 		# FUN_00461b00: the seek tone starts only when the selected station is empty (FUN_0053bcd0); the
@@ -780,6 +809,8 @@ func _update_pod() -> void:
 		eo_on_unit = false
 	if _laser_bomb != null and _laser_bomb.ended:
 		_laser_bomb = null
+	if pod_state() != 3:
+		laser_fire = false  # the pod off, cooling or in STBY: the laser key's latch ends (pressed again once working)
 	eo.laser = ClassDB.class_call_static("IafEo", "lasing", pod_state(), laser_arm, tgp_masked, laser_fire, laser_ttg())
 
 
@@ -2512,6 +2543,8 @@ func _ripple_end() -> void:
 	_ripple_next = INF
 	pre_index = 0
 	releasing = false
+	if Settings.ag_freeze_ends():
+		ag.frozen = false  # ours (Modern IAF): the pipper tracks again after the last bomb
 	ag.blink_until = now + BLINK_TIME
 
 

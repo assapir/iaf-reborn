@@ -143,6 +143,15 @@ func _mask(p: Vector3) -> void:
 	_put(tv.world_to_scene(Vector3(p.x - 7000.0, p.y, p.z + 1000.0)), Vector3(200, 0, 0), 90.0)
 	await fly(tv, 0.3)
 	check(not w.tgp_masked and w.eo.laser, "level again: the laser fires")
+	# STBY ends the laser key's latch: back in A-G the laser waits for the key (the statemachines audit, #21).
+	await osb(0, 1)
+	check(w.pod_state() == 2 and not w.laser_fire and not w.eo.laser, "STBY: the laser off, its key's latch ended")
+	await osb(0, 1)
+	await fly(tv, 0.3)
+	check(w.pod_state() == 3 and not w.eo.laser, "A-G again: the laser waits for its key")
+	_tap(KEY_L)
+	await frames(2)
+	check(w.eo.laser, "the key again: the laser fires")
 
 
 ## The laser key off, LASER ARM on: the GBU-12 takes the spot at release and the laser fires by itself within LASER

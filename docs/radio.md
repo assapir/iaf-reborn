@@ -288,7 +288,9 @@ A report is printed and played only when all hold:
 `4a9e70` runs at the end of every damage-level change (docs/damage.md §3.1 step 5).
 
 **Airborne / landed filters:** the report is said unless its callsign was the last airborne (+0x38c) or the last
-landed (+0x388) callsign; then that field takes it. Neither checks for a network game.
+landed (+0x388) callsign; then that field takes it. Neither checks for a network game. Neither does the waypoint report: none of the three
+reads the unit's state when it fires, so a unit lost in the 3 s still reports (checked in `54dc00`, `54e310`,
+`54de90`; kept as the exe does, 25 Nov 2026).
 
 **Kill calls** (`54c2a0`). The terms:
 - *air*: class 1, 2, 3 or 0x1c;

@@ -46,7 +46,7 @@ Make the TGP the SOI (@mfd). Then:
 + With the laser armed, the pod fires it by itself in the last seconds of a released bomb's fall (the time is the DED's LASER ST TIME).
 
 #in-sim[
-  - The laser fires only in A-G, armed, with the aim point in sight.
+  - The laser fires only in A-G, armed, with the aim point in sight. When the pod leaves A-G (STBY, or its power lost), the laser stops; fire it again once the pod works.
   - The cooling time, the masking angle and the automatic laser's layout are inferred.
   - #term("Not modelled"): the picture's polarity (WHOT, BHOT) and its television picture; the laser's spot search and tracking of another laser.
 ]

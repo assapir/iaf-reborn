@@ -127,7 +127,7 @@ the gun.
 | power | ST STA on (with the avionics: Ctrl+A, or the start-up's four AVIONIC POWER switches) | — | Ctrl+A | 122 |
 | master arm | MASTER ARM to ARM: every flight starts SAFE (§3) | the same | Shift+A | 125 |
 | gear | up: nothing releases with the gear handle down | the same | G | 20 |
-| bombs | A-G: the HUD's CCIP pipper (HUD mode 5) | A-G: the CCIP cue (a GPS bomb, HUD mode 6) | `[` | 65 |
+| bombs | A-G: the HUD's CCIP pipper (HUD mode 5; WPN REL held freezes it until the last bomb leaves or the HUD leaves the bomb modes: ours, the original keeps it frozen until Space is let go in a bomb mode, FUN_00456100) | A-G: the CCIP cue (a GPS bomb, HUD mode 6) | `[` | 65 |
 | release | the pickle held: the bombs leave as a pair once the pipper reaches the aim point | held: the bay doors open, the bombs leave, the doors close | Space | 69 |
 | jettison | the emergency jettison: every store and rack but the A-A missiles and the pods in one press; the SMS's S-J, then the pickle: the selected store's stations | every store but the A-A missiles and the pods, the bays' once the doors are open | Shift+C | 72 |
 | missiles | A-A: the AIM-9M's seeker circle | A-A: the AIM-120 (it waits for the bay doors) | `]` | 66 |
@@ -292,7 +292,7 @@ procedure", bridged by `IafEo`). Wiring: `player_weapons.gd` `_update_pod`. Draw
 | Cursor zero | CZ (OSB 7) zeroes the slews: the pod back on the SPI | TGP OSB 7 |
 | The HUD's TD box | once the pod tracks or was slewed off the SPI, the HUD's target designator box sits on the pod's aim point with its slant range | — |
 | Laser code | the DED's LASR page (LIST, 0 MISC, 5 LASR) sets the TGP CODE (default 1688). The page shows it bottom left, above ARM's place. The laser bombs carry code 1688, set on the ground (inferred). A bomb takes the spot only when the codes match | the ICP |
-| Laser | LASER ARM (Shift + L, the 3D cockpit's switch), then L fires the laser until pressed again. It fires only with the pod in A-G and the line of sight clear. The legend LASR is highlighted while the laser fires | Shift + L, L |
+| Laser | LASER ARM (Shift + L, the 3D cockpit's switch), then L fires the laser until pressed again. It fires only with the pod in A-G and the line of sight clear; the pod leaving A-G (STBY, its power lost) ends the key's latch: L again once it works. The legend LASR is highlighted while the laser fires | Shift + L, L |
 | Automatic laser | a released laser bomb's time to impact counts down bottom right (in place of the range); with LASER ARM on the laser fires by itself within LASER ST TIME (the DED's 16 s) of the impact; the L flashes while it fires. A bomb released with LASER ARM on and the line of sight clear takes the spot | — |
 | Masking | a line of sight more than 2° above the belly's plane passes through the jet (inferred: the chin pod sees the lower half). The page shows MASK and the laser holds | — |
 

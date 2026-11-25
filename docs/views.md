@@ -48,6 +48,12 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
        old jet becomes brain controlled (`FUN_004a8e70(1)`).
     3. The camera goes to the cockpit view on the player's jet (`FUN_0057f2a0(…, 1, player)`).
 
+    The controller is the unit's own (unit+0x34, made the player's in `FUN_004a8e70(3)`), so the new jet brings its
+    own state. The port, with one cockpit and weapons controller, resets them at Fly: the panel lights off (the
+    autopilot's comes back with the new jet's autopilot), the master / HUD mode, Safety, the jettison, ripple and pod
+    latches (`player_weapons.gd` `_reset_for_new_jet`), and the ejection's record, so an ejection from the new jet
+    throws its own seats and gets its own chute view and EjectReport (`terrain_view.gd` `_leave_downed`).
+
     So Fly on the player's own flight only returns the cockpit view.
   * **Visit** (`FUN_005046b0`, in flight with a selected unit) calls `FUN_004d3450` with that unit, then the flight
     resumes. `FUN_004d3450` sets the main camera to the radar-target view on the unit (`FUN_00580f50`, type 9, the F4

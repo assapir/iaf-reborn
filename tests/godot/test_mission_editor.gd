@@ -295,7 +295,12 @@ func run() -> void:
 	ed.save()
 	var saved := JSON.stringify(ed.data, "", true, true)
 	var path: String = ed.file
+	ed._set_mode("route")
 	ed.open_original(512)
+	check(
+		ed.mode == "" and not ed._ui.route_mode.button_pressed and ed.route_pts.is_empty(),
+		"Open ends Route: its button up, its points dropped"
+	)
 	ed.open_file(path)
 	check(JSON.stringify(ed.data, "", true, true) == saved, "Save then Open gives the same mission")
 	check(ed.briefing.en == "Edited briefing." and ed.source == 512, "and its briefing and source")

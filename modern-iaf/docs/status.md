@@ -3,6 +3,10 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Hidden state machines, bugs and risks, part 2 (2026-11-25, the audit of 25 Nov):** a training run whose scorer
+  keeps failing ends, failed, with "could not be scored" in the debrief, and a fail's hold before the debrief runs on
+  sim time ([training.md](training.md)); the frozen CCIP pipper tracks again after the last bomb and when the HUD
+  leaves the bomb modes, and the pod leaving A-G ends the laser key's latch ([weapons.md](weapons.md)).
 - **The Givatayim fly-by's faults (2026-11-25, the user: "no loose corners";
   [../../docs/real-hud.md](../../docs/real-hud.md) "DASH helmet", [../../docs/rendering.md](../../docs/rendering.md) §6,
   [../../docs/scenery.md](../../docs/scenery.md)):** the Sufa's and the Barak's helmet display blanks while the head
