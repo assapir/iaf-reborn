@@ -43,7 +43,7 @@ const ALLOWED := {
 	"res://shared/util/gltf.gd": ['return path.contains("/converted/models/")'],
 }
 ## The lines (stripped) that may call install_dir(), by file: the install gate (install()) and the original's
-## own_dir() in settings.gd, the sim's answers, and a comparison that reads nothing (terrain.gd).
+## own_dir() in settings.gd, the sim's answers, and comparisons that read nothing (terrain.gd, scene_script.gd).
 const INSTALL_ALLOWED := {
 	"res://shared/settings.gd":
 	["func install_dir() -> String:", "return install_dir().path_join(rel)", "return install_dir()"],
@@ -54,6 +54,12 @@ const INSTALL_ALLOWED := {
 		"return install_dir().path_join(rel)",
 	],
 	"res://shared/terrain/terrain.gd": ["if own_frame and Settings.own_dir() == Settings.install_dir():"],
+	# The scripted runs' data check (require_data): it asks whether the data is there and reads nothing.
+	"res://shared/util/scene_script.gd":
+	[
+		"if s.own_dir() != s.install_dir():",
+		"elif FileAccess.file_exists(s.keys_file()) and DirAccess.dir_exists_absolute(s.install_dir()):",
+	],
 }
 
 var _literal := RegEx.create_from_string('"[^"\\n]*converted/[^"\\n]*"|assets_dir\\(\\)\\.path_join\\(')
