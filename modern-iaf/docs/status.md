@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Only radio over the flight; no reason lines; no pane on Updates (2026-11-25, the user's third notes on A86, A98,
+  A101; [front-end.md](front-end.md) §8, §14):** every in-flight line that is not a radio call (switch states,
+  refusals, damage, cheats, the training's "To complete" and wrong-runway lines and its fail banner) is gone from the screen and kept in
+  the recorded flight; the AWACS page dims a request it cannot take without a reason line; Settings → Updates shows no
+  explanation pane. The game manual (English and Hebrew) explains each. Open: the CMDS manual program has no cockpit
+  sign: its real one, the CMDS panel's PRGM knob, is not in the F-16 cockpit model.
 - **The enemy's dogfight moves and the air-defence network's shared tracks (2026-11-25, the user: "no loose corners";
   the enemy-AI list's "IADS network, enemy-fighter BFM"; [ai-plan.md](ai-plan.md) K4–K6, X4;
   [../../docs/ai.md](../../docs/ai.md) §15.1, §15.5, §17, §18.2):** a MiG-29A in the dogfight also flies the reversal
@@ -19,7 +25,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   it not directly in the middle of the flight. It's ai should know to run away if needed or call for help"; ai-plan
   C1, C2, K10; [../../docs/ai.md](../../docs/ai.md) §24):** the radio menu's third page asks the AWACS for a picture,
   bogey dope, declare and the vectors to the target, home and the tanker; it answers in NATO brevity (BRAA from the
-  player), voiced in English and Hebrew, and a request it cannot take is dimmed with its reason. In Scramble the Eitam
+  player), voiced in English and Hebrew, and a request it cannot take is dimmed (since 2026-11-25 without a reason line: the game manual says when). In Scramble the Eitam
   (our own G550 CAEW model) flies a standoff racetrack behind the flight's way at 41,000 ft; a hostile group near it
   sends it away at Mach 0.85 with a call for help ("threat ... Eitam retrograding, commit"). Its radar feeds the
   picture, the contact calls and the data link; the enemy can shoot it down, which ends the service. Open: the G550's
@@ -1256,12 +1262,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   a crash, any damage or the wheels off the pavement fail a mission at once with that reason first; a pass is kept
   and the flight goes on until the player ends it (since 2026-11-13); the debrief sheet shows only the mission's goals
   ([training.md](training.md) §3.0, §4). A pass pauses the flight under "Mission accomplished" with Continue the flight and
-  Debrief (since 2026-11-15); a fail shows a banner with its reason, then the flight ends into the debrief; an ejection ends the sortie: silent, outside view, Fail "ejected" (§9). Since 2026-11-13 (the
+  Debrief (since 2026-11-15); a fail ends the flight 5 s later into the debrief (no banner since 2026-11-25); an ejection ends the sortie: silent, outside view, Fail "ejected" (§9). Since 2026-11-13 (the
   user: "missions should fail if I start without tower permissions") a take-off mission fails at once on a phase
   without the tower's clearance (the engine start, leaving the spot, entering the runway, the roll), the tower saying
   so (the start-up missions since 2026-11-15 too: the engine start and leaving the spot, after the start-up call as
   their first step); lined up on another runway end the tower names it and the roll there fails; airborne, the goal still missing
-  shows live ("To complete: raise the gear.") ([training.md](training.md) §3.3, §9). The start-up
+  is in the debrief (the live "To complete" line went on 2026-11-25: only radio over the flight, [front-end.md](front-end.md) §8) ([training.md](training.md) §3.3, §9). The start-up
   mission is the real start by keys: the F-16's six-step checklist and the F-35I's battery, IPP, engine, canopy, on
   a card in both languages; a step out of order has its consequence (a hot start, no power) and fails (§7.1).
 - **[B2b](plan.md#b2-the-airbases), the airbases in the game (2026-11-03):** `iaf-sim airbases` compiles Ramon, Ramat David, Hatzerim and

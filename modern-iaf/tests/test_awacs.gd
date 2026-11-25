@@ -1,12 +1,12 @@
 # The AWACS controller (docs/ai.md §24), headless, on the Sufa, from Ramon's Scramble start in the air:
 # - the radio menu's AWACS page in English and Hebrew: its six requests, Declare off without a radar lock and Vector
-#   to tanker off with no tanker in the air, each with its one-line reason;
+#   to tanker off with no tanker in the air, dimmed without a reason line (the game manual says when);
 # - Picture, Bogey dope, Vector to target and Vector home with a known MiG-29A 20 km ahead: the pilot's call ("Eitam,
 #   Kidon 1, picture") then the controller's answer in brevity (two groups or one, BRAA, "home plate", "target");
 # - the wingman holding the MiG in its radar reports "contact" after the answer named it;
 # - the Eitam (docs/ai.md §24.3) on its station: 41,000 ft, Mach 0.80, off the flight's way to the fight, the fight
 #   inside its radar; a known MiG 40 km from it: its call for help ("threat ... Eitam retrograding, commit") and its
-#   retreat at Mach 0.85; shot down: the AWACS page all off ("The Eitam is lost"), no contact call, no AWACS track on
+#   retreat at Mach 0.85; shot down: the AWACS page all off, no contact call, no AWACS track on
 #   the data link.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_awacs.gd --log-file <temp>
@@ -158,7 +158,6 @@ func _eitam(tv: Node) -> void:
 	sim.choose(3)
 	var off: Dictionary = sim._off()
 	check(off.size() == 6, "Eitam down: every request off (%s)" % off)
-	check(String(off.get(0, "")) == sim._bi(sim.ui.s("fl_awx_lost")), "Eitam down: the reason (%s)" % off.get(0))
 	sim.set_open(false)
 	check(r.awacs_request("picture").is_empty(), "Eitam down: no answer")
 	if ews != null:
@@ -170,17 +169,18 @@ func _eitam(tv: Node) -> void:
 	check(calls.is_empty(), "Eitam down: no contact call (%d)" % calls.size())
 
 
-## The AWACS page in `lang`: the six requests, Declare and the tanker off with their reasons.
+## The AWACS page in `lang`: the six requests, Declare and the tanker off (dimmed, no reason line).
 func _page(sim: Node, lang: String) -> void:
 	sim.set_open(true)
 	sim.choose(3)
 	check(sim.page == "awacs", "%s: AWACS opens its page (%s)" % [lang, sim.page])
 	check(sim.shown == sim.AWACS_ITEMS.map(func(x): return x[0]), "%s: the six requests %s" % [lang, sim.shown])
 	var off: Dictionary = sim._off()
-	var want := {2: "fl_awx_no_lock", 5: "fl_awx_no_tanker"}
-	check(off.keys() == want.keys(), "%s: Declare and the tanker off (%s)" % [lang, off])
-	for i in want:
-		check(String(off.get(i, "")) == sim._bi(sim.ui.s(want[i])), "%s: the reason %s" % [lang, off.get(i)])
+	check(off.keys() == [2, 5], "%s: Declare and the tanker off (%s)" % [lang, off])
+	var buttons: Array = sim.ui.menu_box.get_children().filter(func(c): return c is Button)
+	var dim: Array = range(buttons.size()).filter(func(i): return buttons[i].disabled)
+	check(dim == [2, 5], "%s: just those two dimmed (%s)" % [lang, dim])
+	check(sim.ui.menu_texts().size() == 1 + 6 + 1, "%s: no reason line (%s)" % [lang, sim.ui.menu_texts()])
 	var text: String = sim.menu_text()
 	var label: String = sim.AWACS_ITEMS[0][2 if lang == "he" else 1]
 	check(label in text, "%s: the page's lines (%s)" % [lang, text])

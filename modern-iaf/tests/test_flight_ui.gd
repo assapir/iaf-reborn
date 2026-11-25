@@ -1,7 +1,7 @@
 # Modern IAF's text over the flight (flight/flight_ui.gd, modern-iaf/docs/front-end.md §8) in English and Hebrew: a
 # clean start (no pause menu, the flight running; H opens nothing), the radio lines in the sim's band (not the
-# original's console), entirely in the game's language but for callsigns and runway designators, and no key hint over
-# the flight at any time (the user, 2026-11-15: "we said to remove it completely").
+# original's console) and nothing else there, entirely in the game's language but for callsigns and runway designators,
+# and no key hint over the flight at any time (the user, 2026-11-15: "we said to remove it completely").
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_flight_ui.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -51,6 +51,12 @@ func run() -> void:
 			await create_timer(0.1, true, false, true).timeout
 		check(band.size() >= 2, "%s: the radio lines in the band (%s)" % [lang, band])
 		check(tv.cockpit.subtitles.is_empty(), "%s: nothing in the original's console" % lang)
+		# Only radio over the flight (the user, 25 Nov 2026): damage, a refusal, a cheat put no line anywhere.
+		tv.damage_console("Structural damage")
+		tv._cockpit_note("Cheat: Reload Weapons")
+		await frames(1)
+		var notes: Array = ui.band_texts().filter(func(t): return "damage" in t or "Cheat" in t)
+		check(notes.is_empty() and tv.cockpit.subtitles.is_empty(), "%s: no non-radio line (%s)" % [lang, notes])
 		if lang == "en":  # the lines said in English show in Hebrew after a switch (the Mac's take-off, 2026-11-13)
 			s.language = "he"
 			await frames(2)

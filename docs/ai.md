@@ -2504,7 +2504,7 @@ gdext `IafAwacs` (`crates/iaf-godot/src/awacs.rs`). `shared/audio/radio.gd` asks
 - **The virtual AWACS** where the flight has none (the training missions, the range): the 1998 game's sphere round
   the player, 96.3 km (`fctrl.rs`).
 - **Neither** once the Eitam is shot down: the service ends. The radio menu's AWACS page (§24.5) shows every request off
-  with "The Eitam is lost: no AWACS" ("העיטם אבד: אין AWACS"), the contact calls stop and the data link loses the
+  (dimmed), the contact calls stop and the data link loses the
   AWACS's tracks (§24.4).
 - Both see an aircraft only above the terrain + 175 m, the floor of the 1998 contact calls and of the data link
   (`fctrl::CONTACT_AGL`), so the picture, the calls and the HSD agree.
@@ -2618,10 +2618,9 @@ player, the 1998 rule), nothing once it is lost; the virtual sphere where the fl
 The first page's third line, AWACS (the same in Hebrew, the game manual's term), opens the page
 (`sim_flight.gd` `AWACS_ITEMS`): 1 Picture, 2 Bogey dope, 3 Declare, 4 Vector to target, 5 Vector home, 6 Vector to
 tanker (Hebrew: תמונה אווירית, המגע הקרוב, זיהוי, הכוונה למטרה, הכוונה לבסיס, הכוונה למטוס התדלוק). A request that
-cannot be made now is shown off with its reason in one line (`radio.gd awacs_refusal`, `IafAwacs.refusal`): "The
-Eitam is lost: no AWACS", "Lock a target to ask for its identity", "No tanker in the air", "No home base in this
-flight" (Hebrew: "העיטם אבד: אין AWACS", "יש לנעול מטרה כדי לבקש את זיהויה", "אין מטוס תדלוק באוויר", "אין בסיס אם
-בטיסה זו"). A pick is the pilot's call, printed in both languages and said by the pilot's voice ("Eitam, Kidon 1,
+cannot be made now is dimmed and takes no click (`radio.gd awacs_refusal`, `IafAwacs.refusal`: the Eitam lost, no
+radar lock for Declare, no tanker, no home base); no line says why (the user, 25 Nov 2026: "no need to write why
+something is disabled, this goes in game manual"), the game manual's AWACS section does. A pick is the pilot's call, printed in both languages and said by the pilot's voice ("Eitam, Kidon 1,
 picture": `PILOT_CALL` with `EITAM_P` and `REQ_AWX_*`; Kidon 1's whole call one English clip), the radio's gap, then
 the answer (`radio.gd awacs_request`), recorded as a `radio` event `awacs:<request>`. Scramble's task target comes from
 `free_combat.gd task_target` (`radio.gd awacs_task`); the home base is the mission's base (its lineup point).
@@ -2644,7 +2643,7 @@ call for help, the retreat at Mach 0.85, the call again after a minute, the retu
 + he, Declare and the tanker off with their reasons; picture, bogey dope, the vectors to the target and home said
 after the pilot's call; the wingman's "contact"; the Eitam at 41,000 ft and Mach 0.80 off the flight's way with the
 fight in its radar, an entity of our side; a known MiG 40 km from it: one call for help and the retreat at Mach 0.85;
-the MiGs on the data link; shot down: every request off with "The Eitam is lost", no answer, no AWACS track, no
+the MiGs on the data link; shot down: every request off, no answer, no AWACS track, no
 contact call); `cargo test -p iaf-avionics --lib -- datalink` (the controller's word over the link's own query).
 
 Status (25 November 2026): built whole: the controller and its page with the voices, the Eitam in Scramble with its

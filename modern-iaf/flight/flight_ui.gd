@@ -1,9 +1,9 @@
 # Modern IAF's text over the flight (modern-iaf/docs/front-end.md §8), in the front end's look (menu/look.gd, Heebo),
 # mirrored in Hebrew, on the front end's 1080-high canvas scaled to the window:
-# - the radio lines and the training messages: a strip centred at the top, the newest at the bottom, each for
-#   LINE_S seconds (terrain_view.gd _on_subtitle hands them to the flight add-on instead of the original's console);
-# - a panel at the inline-start top for the radio menu (its title and numbered lines, each clickable) and the training
-#   result (flight/sim_flight.gd);
+# - the radio lines (nothing else: the user, 25 Nov 2026): a strip centred at the top, the newest at the bottom, each
+#   for LINE_S seconds (terrain_view.gd _on_subtitle hands them to the flight add-on, not the original's console);
+# - a panel at the inline-start top for the radio menu (its title and numbered lines, each clickable;
+#   flight/sim_flight.gd);
 # No key hint over the flight (the user, 13 Nov: "lets remove the kb hints"; 15 Nov: "remove it completely"): the keys
 # are listed in the pilot's notebook (H) and the Keys screen.
 # All of it follows the game's language, also when the pause menu's Preferences switch it mid-flight: the radio lines
@@ -24,7 +24,6 @@ const SUBTITLE_PX := 20
 var host: Node
 var strings := {}
 var panel: PanelContainer
-var panel_label: Label
 ## The radio menu in the panel: its title, then a flat button per line (show_menu).
 var menu_box: VBoxContainer
 var _on_pick := Callable()
@@ -65,9 +64,6 @@ func _ready() -> void:
 	panel.name = "Panel"
 	panel.add_theme_stylebox_override("panel", Look.box(Color(Look.BG, 0.88), Look.LINE, 1, 8, Vector2(28, 20)))
 	add_child(panel)
-	panel_label = Label.new()
-	panel_label.add_theme_font_size_override("font_size", 24)
-	panel.add_child(panel_label)
 	menu_box = VBoxContainer.new()
 	menu_box.name = "Menu"
 	menu_box.add_theme_constant_override("separation", 0)
@@ -84,7 +80,7 @@ func _apply_language() -> void:
 	var dir := Control.LAYOUT_DIRECTION_RTL if he() else Control.LAYOUT_DIRECTION_LTR
 	# The panel's text, not the panel: an RTL control mirrors its own anchors, which put the top-right panel back at
 	# the left (the Mac's Hebrew radio menu and "To complete", 2026-11-13). The band is centred.
-	for c in [_band, panel_label, menu_box]:  # not the add-on's own (an RTL child here mirrors its anchors)
+	for c in [_band, menu_box]:  # not the add-on's own (an RTL child here mirrors its anchors)
 		c.layout_direction = dir
 	# The panel by its anchors: the right edge in Hebrew.
 	_place()
@@ -100,13 +96,10 @@ func _apply_language() -> void:
 	language_changed.emit()
 
 
-## A radio line in the game's language (radio.gd `subtitles`: the line in both), a message with a Hebrew string
-## ("msg:" + its English text in menu/strings_he.json), else `text` as given.
+## A radio line in the game's language (radio.gd `subtitles`: the line in both), else `text` as given.
 func _in_language(text: String) -> String:
 	var pair = host.radio.subtitles.get(text) if host.get("radio") != null else null
-	if pair != null:
-		return String(pair[1 if he() else 0])
-	return s("msg:" + text) if he() and strings.has("msg:" + text) else text
+	return String(pair[1 if he() else 0]) if pair != null else text
 
 
 ## The front end's canvas, scaled to the window's height (the original's sizes stay the flight's).
@@ -146,7 +139,7 @@ func _process(_delta: float) -> void:
 		_lines.pop_front()[0].queue_free()
 
 
-# --- the panel (radio menu, training result) --------------------------------------------------------------------------
+# --- the panel (the radio menu) ---------------------------------------------------------------------------------------
 
 
 ## The panel at its corner (the right edge in Hebrew), its size back to its content's: a page narrower than the one
@@ -156,16 +149,13 @@ func _place() -> void:
 	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT if he() else Control.PRESET_TOP_LEFT)
 
 
-func show_panel(text: String) -> void:
-	panel_label.text = text
-	panel_label.visible = true
-	menu_box.visible = false
-	panel.visible = text != ""
-	_place()
+func hide_panel() -> void:
+	panel.visible = false
 
 
 ## The radio menu: `title`, then each of `lines` ("1. Request taxi") as a flat button in the panel's text size; a click
-## calls `on_pick` with the line's index (the number keys pick the same lines, sim_flight.gd key()).
+## calls `on_pick` with the line's index (the number keys pick the same lines, sim_flight.gd key()); a line in `off`
+## (its index) is dimmed and takes no click.
 func show_menu(title: String, lines: Array, on_pick: Callable, off := {}) -> void:
 	_on_pick = on_pick
 	for c in menu_box.get_children():
@@ -187,20 +177,11 @@ func show_menu(title: String, lines: Array, on_pick: Callable, off := {}) -> voi
 		b.text_direction = Control.TEXT_DIRECTION_INHERITED
 		b.pressed.connect(func(): _on_pick.call(i))
 		menu_box.add_child(b)
-		if off.has(i):  # shown off, with its reason in one line below
-			b.disabled = true
-			var r := Label.new()
-			r.text = String(off[i])
-			r.text_direction = Control.TEXT_DIRECTION_INHERITED
-			r.add_theme_font_size_override("font_size", 24)
-			r.modulate = Color(1, 1, 1, 0.6)
-			menu_box.add_child(r)
-	panel_label.visible = false
-	menu_box.visible = true
+		b.disabled = off.has(i)  # shown off: dimmed, no reason (the game manual says when)
 	panel.visible = true
 	_place()
 
 
-## The menu's text as shown: the title and each line (and a reason line).
+## The menu's text as shown: the title and each line.
 func menu_texts() -> Array:
 	return menu_box.get_children().map(func(c): return String(c.text))

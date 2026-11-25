@@ -55,11 +55,11 @@ The jet and the mission's clock run faster. The #term("time allowed") is counted
 
 The pass is yours from this moment (@scoring-pass-kept).
 
-While a goal is still open after the take-off, a line at the top corner of the screen names what is missing, for example "To complete: raise the gear."
+While a goal is still open after the take-off, the mission goes on. The goals are in the briefing and on the #term("notebook"); the debrief names a goal that stayed open.
 
 === A failed mission <time-pause-fail>
 
-#idx("Fail banner")When a Training mission fails, a banner shows #scr("fail") and the reason. Five seconds later the flight ends and the debrief opens. The reasons are in @scoring.
+When a Training mission fails, the flight ends five seconds later and the debrief opens, with the reason first. The reasons are in @scoring.
 
 === Leaving a flight <time-pause-leave>
 

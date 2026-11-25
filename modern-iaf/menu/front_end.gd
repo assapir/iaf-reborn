@@ -1672,7 +1672,7 @@ func _hover(c: Control, key: String) -> void:
 
 ## The right pane for setting `key` (or "preset"): its Off / On picture (our own renders, tests/_settings_previews.gd)
 ## for a graphics setting, its name, what it does (strings <key>_about), and for the graphics the frame time measured
-## on this computer (§14.2). Its row lit.
+## on this computer (§14.2); hidden for Updates (its <key>_about is the game manual's). Its row lit.
 func _about(key: String) -> void:
 	if _about_box == null or not is_instance_valid(_about_box):
 		return
@@ -1685,8 +1685,9 @@ func _about(key: String) -> void:
 		_about_box.remove_child(c)
 		c.queue_free()
 	var graphics: bool = key == "preset" or PREFS[0][1].any(func(r): return r[0] == key)
-	_about_box.get_parent().visible = key != ""
-	if key == "":
+	# Updates has no pane: the game manual explains it (the user, 25 Nov 2026: "the explanation box ... remove it").
+	_about_box.get_parent().visible = key not in ["", "update_mode"]
+	if not _about_box.get_parent().visible:
 		return
 	var pic := _preview(key)
 	if pic != null:

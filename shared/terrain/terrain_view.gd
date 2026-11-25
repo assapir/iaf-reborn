@@ -1942,7 +1942,7 @@ func _check_collisions() -> void:
 
 # The player's systems damage callbacks (shared/mission/player_damage.gd).
 func damage_console(text: String) -> void:
-	_on_subtitle(text)
+	_cockpit_note(text)
 
 
 func damage_sound(code: String, sub1: String) -> void:
@@ -1987,9 +1987,10 @@ func mission_play_wav(wav: String) -> void:
 		_voice.play()
 
 
-## A switch's, a key's or a display's new state as a line of text: the original game's console line. Modern IAF's
-## cockpit shows the change itself (the switch, the lamp, the display, the view), so there it is no line
-## (Settings.cockpit_notes; modern-iaf/docs/front-end.md §8).
+## A line that is not a radio call (a switch's, a key's or a display's new state, a refusal, damage, a cheat): the
+## original game's console line. Modern IAF shows only radio lines over the flight (the user, 25 Nov 2026: "remove
+## this functionality completely for nothing which isn't radio"), so there it is no line, only the recorded flight's
+## (Settings.cockpit_notes; modern-iaf/docs/front-end.md §8). Radio lines go to _on_subtitle.
 func _cockpit_note(text: String) -> void:
 	if Settings.cockpit_notes():
 		_on_subtitle(text)
@@ -3464,7 +3465,7 @@ func _command(cmd: Array) -> bool:
 				if p1 == 3:
 					_helmet_video_step()
 				elif not cockpit.pcd.flc(p1):
-					_on_subtitle("FLC: no layers on this format")
+					_cockpit_note("FLC: no layers on this format")
 		303:
 			# Ours, Modern IAF's F-16s: the night-vision goggles flipped down / up (Shift + N; _goggles_key).
 			_goggles_key()
@@ -3489,7 +3490,7 @@ func _command(cmd: Array) -> bool:
 					_cockpit_note("ADV MODE on" if nav.adv_on() else "ADV MODE off")
 				1:
 					nav.man_flyup = not nav.man_flyup
-					_on_subtitle("Manual TF fly-up " + ("enabled" if nav.man_flyup else "disabled"))
+					_cockpit_note("Manual TF fly-up " + ("enabled" if nav.man_flyup else "disabled"))
 		260, 261, 262, 263, 264, 265:
 			# Ours, the modern F-16s' EW and identification keys (Modern IAF's keys.json; modern-iaf/docs/ews.md): 260
 			# the AIFF (p1 0 SCAN, 1 LOS); 261 the CMS (p1 0 forward, 1 aft, 2 right); 262 the CMDS MODE knob, the next
@@ -3505,10 +3506,10 @@ func _command(cmd: Array) -> bool:
 					e.cms(p1)
 				262:
 					e.cmds_mode()
-					_on_subtitle("CMDS " + String(e.cmds_state().mode_name))
+					_cockpit_note("CMDS " + String(e.cmds_state().mode_name))
 				263:
 					e.cmds_next_program()
-					_on_subtitle("CMDS program %d" % int(e.cmds_state().program))
+					_cockpit_note("CMDS program %d" % int(e.cmds_state().program))
 				264:
 					e.twd_button(p1, true)
 				265:
@@ -3547,7 +3548,7 @@ func _command(cmd: Array) -> bool:
 				if said != "" and p1 == 1:
 					_cockpit_note(said)  # SPOT / SCAN: the SMS's OSB 2
 				elif said != "":
-					_on_subtitle(said)  # UNCAGE / CAGE: the HUD's diamond grows only with a track
+					_cockpit_note(said)  # UNCAGE / CAGE: the HUD's diamond grows only with a track
 		272:
 			in_cockpit = not in_cockpit  # ours, Modern IAF's Ctrl + F2 (keys.json record 220; _own_key in the 1998 game)
 		273:
@@ -3598,22 +3599,22 @@ func _cheat(p1: int) -> void:
 		4:
 			# Shift+R: the stores reload, behind its key combination (player_weapons.gd cheat_reload).
 			if weapons != null and weapons.cheat_reload():
-				_on_subtitle("Cheat: Reload Weapons")
+				_cockpit_note("Cheat: Reload Weapons")
 		12:
 			_cheat_refuel()
 		27:
 			# Shift+S: ctl+0x970, firing with the gear handle down ([DamageLocalization] SafetyOff / SafetyOn defaults).
 			if weapons != null:
 				weapons.safety_off = not weapons.safety_off
-				_on_subtitle("Safety Off" if weapons.safety_off else "Safety On")
+				_cockpit_note("Safety Off" if weapons.safety_off else "Safety On")
 		28:
 			# Shift+D: DAT_0062f064, the console on / off; each message goes through the console, so "off" shows first.
 			if text_messages:
-				_on_subtitle("Cheat: Text messages off")
+				_cockpit_note("Cheat: Text messages off")
 				text_messages = false
 			else:
 				text_messages = true
-				_on_subtitle("Cheat: Text messages on")
+				_cockpit_note("Cheat: Text messages on")
 
 
 ## Shift+F "Cheat: Refuel internal tank" (FUN_0044e250): only while the release permission fails (FUN_0045ee10 = 0:
@@ -3627,7 +3628,7 @@ func _cheat_refuel() -> void:
 		return
 	if float(st.fuel_lbs) < float(st.internal_fuel_kg) * 2.2046:
 		flight.set_fuel(float(st.internal_fuel_kg))
-	_on_subtitle("Cheat: Refuel internal tank")
+	_cockpit_note("Cheat: Refuel internal tank")
 
 
 ## Ctrl+Q: "Are you sure you want to quit the mission?" with DEBRIEF / CONTINUE / EXIT; outside a mission: the menus.
@@ -4316,7 +4317,7 @@ func _own_key(event: InputEventKey) -> void:
 		KEY_N:
 			if event.shift_pressed and Settings.night_vision:
 				if goggles_tube().is_empty():
-					_on_subtitle("no night-vision goggles in %d" % int(Settings.mission_year()))
+					_cockpit_note("no night-vision goggles in %d" % int(Settings.mission_year()))
 				else:
 					_toggle_goggles()
 
@@ -4326,7 +4327,7 @@ func _gps_key(step: bool) -> void:
 	if step:
 		var t: String = weapons.gps_step_key()
 		if t != "":
-			_on_subtitle(t)
+			_cockpit_note(t)
 	elif weapons.gps_mode_key():
 		_cockpit_note("VIS" if weapons.gps_vis(weapons.gps_station()) else "PRE")
 
@@ -4369,7 +4370,7 @@ var _hud_level := 0
 ## its helmet has a night camera.
 func _goggles_key() -> void:
 	if not Settings.airframe(player.get("type", 0)).get("nvg", false):
-		_on_subtitle("No goggles: use the helmet's night camera")
+		_cockpit_note("No goggles: use the helmet's night camera")
 		return
 	if cockpit.goggles == null:
 		cockpit.goggles = ClassDB.instantiate("IafGoggles")

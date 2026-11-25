@@ -26,7 +26,7 @@ The lesson passes when all of these are true:
   [Nothing failed], [None of the things that fail any mission at once happened (@scoring-at-once).],
 )
 
-The game checks the flight every 3 seconds once you are in the air. While a goal is still open, a line at the top corner of the screen names it: "To complete: raise the gear." or "To complete: climb out on the runway heading with the gear up." When the last goal is met, the #scr("fl_complete") panel opens (@time-pause-done). The #term("debrief") then reads: #scr-text("done_takeoff")
+The game checks the flight every 3 seconds once you are in the air. While a goal is still open, the mission goes on. When the last goal is met, the #scr("fl_complete") panel opens (@time-pause-done). The #term("debrief") then reads: #scr-text("done_takeoff")
 
 The runway headings are 246° for Ramon's 25R, 265° for Ramat David's 27 and 256° for Nevatim's 26L.
 
@@ -54,7 +54,7 @@ The reference speed is a number to learn from: no lift-off speed fails the lesso
   [The jet left the pavement on the taxi.], [The mission fails at once: "The jet left the pavement."], [Keep the nose wheel on the yellow taxi line. Slow down before each turn.],
   [You started the roll on another runway.], [On the line-up the tower warns you once. Faster than 30 kt there, the mission fails at once: "The take-off was not from the assigned runway."], [Follow the signs to your runway's number (@ground-signs-signs). On the tower's warning, stop and taxi off.],
   [The jet left the runway during the roll.], [The mission fails: "The jet left the runway during the take-off roll."], [Hold the centreline with the rudder through the whole roll.],
-  [You climbed out with the gear down, or turned off the heading before the gear was up.], [The "To complete" line stays. When 15 minutes have passed, the mission fails.], [Raise the gear right after the lift-off, on the runway's heading, before any turn.],
+  [You climbed out with the gear down, or turned off the heading before the gear was up.], [The mission goes on. When 15 minutes have passed, it fails.], [Raise the gear right after the lift-off, on the runway's heading, before any turn.],
   [15 minutes passed.], [Five seconds later the mission ends as a fail. The reason names the open goal: "The jet never left the ground.", "The gear was never raised." or "Not on the runway heading with the gear up."], [Ask the tower for the next step as soon as the last one is done.],
   [You never left the ground.], [When you end the flight, or the time runs out, the mission fails: "The jet never left the ground."], [Use full power on the runway and raise the nose as the speed nears the reference.],
 )

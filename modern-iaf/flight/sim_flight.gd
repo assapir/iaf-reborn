@@ -18,10 +18,8 @@ const FreeCombat := preload("free_combat.gd")
 const Card := preload("card.gd")
 const FlightUi := preload("flight_ui.gd")
 const FrameMeter := preload("frame_meter.gd")
-const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of the original's project loads it too
-const Look := preload("../menu/look.gd")
 ## A pass pauses the flight under the front end's "accomplished" panel (training.md §9) once the radio's queued speech
-## is said; a fail shows the record's "Fail" and its reason in a banner, then the debrief.
+## is said; a fail flies on end_hold_s with nothing over the view, then ends into the debrief.
 ## The menu's lines: [request id, English, Hebrew] (radio.gd request; "landing": its Ctrl+T contact_tower).
 const ITEMS := [
 	["startup", "Request start-up", "בקשת התנעה"],
@@ -162,12 +160,10 @@ var _ready_at := INF
 ## The training run's IafTraining (its live check and scorer), its fail reason ("" while none) and when it passed.
 var trainer: RefCounted
 var _why := ""
-## The runway end the jet is lined up on that is not the mission's (shown), and the ends the tower named already.
-var _wrong_shown := ""
+## The runway ends not the mission's the tower named already.
 var _wrong_said: Array = []
-## When the flight ends into the debrief (ms, real time), once the mission ended; the banner over the view.
+## When the flight ends into the debrief (ms, real time), once the mission ended.
 var _end_ms := INF
-var _banner: PanelContainer
 ## A start-up lesson's items of the jet's card it asks for (the readable mission's training.checklist: card item ids,
 ## training.md §12), the flight model's start-up steps whose switches are on (ids: IafFlight.start_on, read each
 ## frame), a step's fault waiting for the live check, the last fault shown, the jet's checklist card (card.gd) and
@@ -397,15 +393,15 @@ func _lines() -> Array:
 	return lines
 
 
-## The lines shown off (index in `shown` -> the reason), clickable no more: the AWACS's requests that cannot be made
-## now (radio.gd awacs_refusal: the Eitam lost, no radar lock, no tanker, no home base).
+## The lines shown off (index in `shown` -> true), dimmed and clickable no more: the AWACS's requests that cannot be
+## made now (radio.gd awacs_refusal: the Eitam lost, no radar lock, no tanker, no home base). No reason line: the game
+## manual says when each is off (the user, 25 Nov 2026: "no need to write why something is disabled").
 func _off() -> Dictionary:
 	var off := {}
 	if page == "awacs":
 		for i in shown.size():
-			var why: String = host.radio.awacs_refusal(String(shown[i]))
-			if why != "":
-				off[i] = _bi(ui.s("fl_awx_" + why))
+			if host.radio.awacs_refusal(String(shown[i])) != "":
+				off[i] = true
 	return off
 
 
@@ -454,13 +450,10 @@ func _base_name(i: int, lang := -1) -> String:
 	return names[lang if lang >= 0 else (1 if _he() else 0)]
 
 
-## The panel in the new language: the open menu now, a training line ("To complete: …", the wrong runway) at the next
-## frame's score.
+## The panel in the new language: the open menu now.
 func _language_changed() -> void:
 	if open:
 		_show()
-	_wrong_shown = ""
-	_next_score = 0.0
 
 
 func set_open(on: bool) -> void:
@@ -469,7 +462,6 @@ func set_open(on: bool) -> void:
 	_rest = false
 	_menu_at = Time.get_ticks_msec()
 	_show()
-	_wrong_shown = ""  # the wrong-runway line (if any) back once the menu closes
 
 
 ## The menu's page now in the panel, each line clickable (`choose`), or the panel cleared when closed.
@@ -480,7 +472,7 @@ func _show() -> void:
 	if open:
 		ui.show_menu(_title(), _lines(), _clicked, _off())
 	else:
-		ui.show_panel("")
+		ui.hide_panel()
 
 
 ## A line clicked: its number, 0 the back line (after the entries).
@@ -520,7 +512,7 @@ func choose(n: int) -> void:
 		set_open(false)
 		pick(id)
 	elif page == "awacs":
-		if host.radio.awacs_refusal(id) == "":  # off: the line says why
+		if host.radio.awacs_refusal(id) == "":  # off: dimmed, no pick
 			set_open(false)
 			awacs_pick(id)
 	elif page == "":
@@ -754,31 +746,23 @@ func _process(delta: float) -> void:
 	if d.has("error"):
 		push_warning("training: %s" % d.error)
 		return
-	# A pass holds; a take-off not yet on its heading or with the gear down may still pass: scored again, its missing
-	# goal shown ("To complete: …"), until its budget. A roll off the runway or past the budget cannot pass: it ends.
+	# A pass holds; a take-off not yet on its heading or with the gear down may still pass: scored again until its
+	# budget (no line over the flight says what is missing: the user, 25 Nov 2026, only radio over the flight; the
+	# debrief does). A roll off the runway or past the budget cannot pass: it ends.
 	var why: Array = d.get("reasons", [])
 	if bool(d.get("pass", false)):
-		ui.show_panel("")
 		_finish(d)  # a pass stays: the flight goes on until the player ends it
 	elif t > budget + PAST_BUDGET or String(rules.kind) == "startup" or why.any(func(r): return r in FINAL):
 		_finish(d)
-	elif not open and not why.is_empty():
-		ui.show_panel(String(trainer.text("todo_" + String(why[0]), "he" if _he() else "en")))
 
 
 ## Lined up on runway end `wrong` ("" none), not the mission's: the tower says so once per end ("Kidon 1, you are on
-## runway 7 left, the assigned runway is 25 right": ACFT_WRONG_RUNWAY, training.md §3.3) and the panel shows it while
-## it lasts; the roll on it fails (IafTraining.check "wrong_runway").
+## runway 7 left, the assigned runway is 25 right": ACFT_WRONG_RUNWAY, training.md §3.3); the roll on it fails
+## (IafTraining.check "wrong_runway").
 func _wrong_runway(wrong: String) -> void:
-	var mine := String(trainer.runway())
 	if wrong != "" and not wrong in _wrong_said:
 		_wrong_said.append(wrong)
-		host.radio.say("ACFT_WRONG_RUNWAY", [host.radio._tower_callsign()], [wrong, mine])
-	if wrong == _wrong_shown or open:  # the menu holds the panel: shown once it closes
-		return
-	_wrong_shown = wrong
-	var t := String(trainer.text("todo_wrong_runway", "he" if _he() else "en")).split("{}")
-	ui.show_panel(t[0] + wrong + t[1] + mine + t[2] if wrong != "" else "")
+		host.radio.say("ACFT_WRONG_RUNWAY", [host.radio._tower_callsign()], [wrong, String(trainer.runway())])
 
 
 ## The mission ends now: scored and finished (retried every SCORE_EVERY s if it cannot be scored).
@@ -824,13 +808,12 @@ func _finish(d: Dictionary) -> void:
 	var db: String = Settings.records_db() if out_dir == "" else _dir().path_join("modern-iaf.sqlite")
 	sortie = IafPilotLog.log_sortie(db, Settings.pilot(), int(host.mission_id), JSON.stringify(d))
 	Settings.flown_sortie = sortie
-	var en: Dictionary = d.get("strings", {}).get("en", {})
 	print("training %s: %s %s" % [mission_name, "PASS" if d["pass"] else "FAIL", d.get("reasons", [])])
 	host._log_event(host._log_st, {"event": "mission", "name": "training " + ("pass" if d["pass"] else "fail")})
-	var s: Dictionary = d.get("strings", {}).get("he" if _he() else "en", en)
 	# A pass: the flight pauses under the "accomplished" panel, Continue or Debrief (the user, 2026-11-15: "it pause and
 	# show 'continue/debrief' buttons"), once the radio has said what it queued (the pause would cut its voice); a fail
-	# shows its reason end_hold_s, then the flight ends into the debrief.
+	# flies on end_hold_s (the radio's last line said), with nothing over the view (the user, 25 Nov 2026: only radio
+	# over the flight), then ends into the debrief, which names the reason.
 	if d["pass"]:
 		var snd = host.get("sounds")
 		if snd is Object and snd.has_method("phrase_cue") and snd.get("silenced") != true:
@@ -839,8 +822,7 @@ func _finish(d: Dictionary) -> void:
 			_accomplished()
 	else:
 		_end_ms = Time.get_ticks_msec() + trainer.end_hold_s() * 1000.0
-		var why: Array = d.get("reasons", [])
-		_show_banner(String(s.get("fail", "")), String(s.get(why[0], why[0])) if not why.is_empty() else "")
+		set_open(false)
 
 
 # --- the start-up checklist (training.md §7.1) ------------------------------------------------------------------
@@ -1224,34 +1206,3 @@ func _accomplished() -> void:
 	kneeboard.set_raised(false)
 	host.close_front_end()  # the pause menu, should it be open
 	host._open_front_end("done")
-
-
-## The banner over the view in the front end's look (navy, Heebo) until the flight ends into the debrief: "Fail" with
-## the reason that ended it.
-func _show_banner(title: String, reason: String) -> void:
-	if _banner != null:
-		_banner.queue_free()
-	var font := FontFile.new()
-	font.load_dynamic_font(Settings.disk_path(WizardTheme.FONT))
-	_banner = PanelContainer.new()
-	_banner.name = "Banner"
-	_banner.add_theme_stylebox_override("panel", Look.box(Look.NAVY, Look.ACCENT, 3, 5, Vector2(48, 24)))
-	_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_banner.position.y = 160
-	var v := VBoxContainer.new()
-	_banner.add_child(v)
-	for line in [[title, 48, Color.WHITE], [reason, 26, Look.ACCENT_TEXT]]:
-		if line[0] == "":
-			continue
-		var l := Label.new()
-		l.text = line[0]
-		l.add_theme_font_override("font", font)
-		l.add_theme_font_size_override("font_size", line[1])
-		l.add_theme_color_override("font_color", line[2])
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.text_direction = Control.TEXT_DIRECTION_RTL if _he() else Control.TEXT_DIRECTION_LTR
-		v.add_child(l)
-	ui.add_child(_banner)
-	ui.show_panel("")
-	open = false

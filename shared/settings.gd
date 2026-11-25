@@ -1492,9 +1492,9 @@ func info_line_full() -> bool:
 	return true
 
 
-## A switch's, a key's or a display's new state also shows as a console line ("Master arm", "Laser armed"): the
-## original game. Modern IAF's cockpit shows the change itself, so its band keeps the radio lines and the messages with
-## no cockpit sign (terrain_view.gd _cockpit_note; modern-iaf/docs/front-end.md §8).
+## A line that is not radio (a switch's new state, a refusal, damage, a cheat) also shows as a console line ("Master
+## arm", "Structural damage"): the original game. Modern IAF's band keeps the radio lines only (terrain_view.gd
+## _cockpit_note; modern-iaf/docs/front-end.md §8).
 func cockpit_notes() -> bool:
 	return true
 

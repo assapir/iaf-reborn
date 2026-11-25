@@ -128,14 +128,6 @@ const STRINGS: &[(&str, &str, &str)] = &[
         "Fewer ground targets destroyed than the range asks.",
         "הושמדו פחות מטרות קרקע ממה שהמטווח דורש.",
     ),
-    // A take-off's goal still missing, shown live (sim_flight.gd); {} the designators.
-    ("todo_wrong_runway", "Wrong runway: this is {}, the assigned one is {}.", "מסלול שגוי: זה {}, המסלול שהוקצה {}."),
-    ("todo_gear_down", "To complete: raise the gear.", "להשלמה: איסוף כן הנסע."),
-    (
-        "todo_off_heading",
-        "To complete: climb out on the runway heading with the gear up.",
-        "להשלמה: טיפוס בכיוון המסלול עם כן נסע אסוף.",
-    ),
     // A phase without the tower's clearance (`Watch::check`, training.md §3.3).
     ("no_start_clearance", "Engine start without start-up clearance.", "התנעה ללא אישור התנעה מהמגדל."),
     ("no_taxi_clearance", "Taxied without clearance.", "הסעה ללא אישור הסעה מהמגדל."),

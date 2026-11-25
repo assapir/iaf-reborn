@@ -471,10 +471,6 @@
 	"fl_kept": "The pass is kept. Continue the flight, or end it now for the debrief.",
 	"fl_radio": "Radio: %s tower",
 	"fl_radio_top": "Radio",
-	"fl_awx_lost": "The Eitam is lost: no AWACS",
-	"fl_awx_no_lock": "Lock a target to ask for its identity",
-	"fl_awx_no_tanker": "No tanker in the air",
-	"fl_awx_no_home": "No home base in this flight",
 	"fl_radio_back": "Back",
 	"fl_radio_to": "Radio: %s",
 	"learn": "What you will learn",
@@ -547,7 +543,5 @@
 	"pre_click_map": "click the map…",
 	"pre_footer": "Without a pick: the mission's target (%s). In flight %s steps through all of them.",
 	"pre_refused": "That pick cannot be used: choose a target of this mission.",
-	"pre_footer_none": "Without a pick a bomb has no target before you step one. In flight %s steps through the targets.",
-	"msg:Structural damage": "Structural damage",
-	"msg:No goggles: use the helmet's night camera": "No goggles: use the helmet's night camera"
+	"pre_footer_none": "Without a pick a bomb has no target before you step one. In flight %s steps through the targets."
 }

@@ -24,7 +24,7 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 | Missions | the Hangar's Fly (§2): a card per section, Training, Campaign, Single missions and Scramble, each with its number, its title and the pilot's progress in it; a section without missions greyed, "Coming later", out of the focus, without a click; Scramble (§2.1) shows no progress; the footer's Back (Esc) | ![Missions](pictures/front-end/missions_en.webp) | ![Missions, Hebrew](pictures/front-end/missions_he.webp) |
 | A section's list | the Hangar jet's missions of the section in order, numbered 1, 2 …: the title, the base and what it trains, the last result (Pass with the best time, Fail, Not flown yet); the next one to fly marked Next, tinted and focused (every mission passed: no Next, the first focused); beside the list a panel on the mission under the focus or the pointer (§2); the footer's Back (Esc) | ![Training](pictures/front-end/section_en.webp) | ![Training, Hebrew](pictures/front-end/section_he.webp) |
 | Briefing | the briefing, map first (§10): the map over the screen, opened on the base and the route with the pins; the mission card (the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming, Fly: Edit and Arming open the Loadout screen §10.1); what you will learn and how to fly it, the keys as bound; the map's chips | ![Briefing](pictures/front-end/mission_en.webp) | ![Briefing, Hebrew](pictures/front-end/mission_he.webp) |
-| Settings | the search; the sections Graphics, Language, Updates (Updates on start: Ask / Always download / Never, ../../docs/release.md §7), Sound and Devices with their counts at the inline start; the picked one's settings beside them as segmented buttons, switches and sliders, Graphics with its Preset row and a cost chip per row; the pane at the inline end on the hovered setting (§14); Devices has the afterburner detent (§9.2); the footer's Defaults, Export settings file / Import settings file (below) and Back to the hangar | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
+| Settings | the search; the sections Graphics, Language, Updates (Updates on start: Ask / Always download / Never, ../../docs/release.md §7), Sound and Devices with their counts at the inline start; the picked one's settings beside them as segmented buttons, switches and sliders, Graphics with its Preset row and a cost chip per row; the pane at the inline end on the hovered setting (§14; none on Updates: the game manual explains it, the user 25 Nov 2026); Devices has the afterburner detent (§9.2); the footer's Defaults, Export settings file / Import settings file (below) and Back to the hangar | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the sheet at the inline start (Plane flown, From, Time, Mission, Result; the goals with the target, the flown figure and ✓ / !; Remarks with "Next time:"), at the inline end the whole flight on the map and the flight's graphs (§13); Pilot log, Export flight data (below), Back to missions, Fly again, Next mission (§2) | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
 | Pilot | the Hangar → the pilot: the name and the nickname, the enemy's skill (Low / Medium / High), under them the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog; without a picture the initials, or a head and shoulders before there is a name), and beside that column the logbook panel down to the bottom bar (§3) with its Pilot log button, and once the pilot has flown combat the four combat totals and More stats (§3); the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
 | Create your pilot | the first start, before the Hangar: the Pilot screen with Save only and no pilot in the top bar yet; the logbook panel says "No flights yet." (§3) | ![Create your pilot](pictures/front-end/pilot_first_en.webp) | ![Create your pilot, Hebrew](pictures/front-end/pilot_first_he.webp) |
@@ -47,8 +47,8 @@ At a training mission's goal the flight pauses under a panel in the pause menu's
 
 The panel waits until the radio has said every line already queued (the tower's last answer), so the pause never cuts
 a voice; the flight runs on meanwhile. The pilot's notebook (H) and the radio menu are put away when the panel opens.
-A fail shows a banner with "Fail" and the reason; about 5 s later the flight ends into its debrief
-([training.md](training.md) §9).
+A fail ends the flight about 5 s later into its debrief, the reason first, with nothing over the view meanwhile (the
+fail banner went on 2026-11-25: only radio over the flight; [training.md](training.md) §9).
 
 Over a flight, Esc opens the pause menu: the mission and the jet flown ("Take-off · F-16I Sufa"), then Continue the
 flight, Settings, End the flight, Quit to desktop ("יציאה לשולחן העבודה"; it asks "Quit the sim?" first; the user,
@@ -534,7 +534,7 @@ In Hebrew the page is mirrored: the bar fills from the inline start, the right.
 
 `modern-iaf/tests/_loading_shot.gd` takes these pictures (its header).
 
-## 8. Over the flight: the radio lines, no key hint
+## 8. Over the flight: the radio lines only, no key hint
 
 The sim draws its own text over the flight in the front end's look (`modern-iaf/flight/flight_ui.gd`, Heebo, look.gd's
 palette, on the 1080-high canvas scaled to the window), mirrored in Hebrew; the original game's console and panels
@@ -542,19 +542,21 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
 
 - **A clean start:** a flight starts with the flight running and nothing over it (the user, 2026-11-13; no key hint
   since 2026-11-15, below). A start-up mission starts with the pilot's notebook raised; H (the Checklist notebook key) raises and stows it ([training.md](training.md) §11). The mission's goals
-  are in the briefing (§10), the panel's live "To complete: …" line, the completion message and the debrief
-  ([training.md](training.md) §3). The in-flight mission card on H was
+  are in the briefing (§10), the completion message and the debrief ([training.md](training.md) §3). The panel's live
+  "To complete: …" line and the wrong-runway line went on 2026-11-25 (below; the tower still names a wrong runway). The in-flight mission card on H was
   removed on 2026-11-13 (the user's order); H is the notebook's key since the same day (record 118).
-- **The radio lines and messages** show in a strip centred at the top, over the sky rather than the cockpit's panel,
+- **The radio lines** show in a strip centred at the top, over the sky rather than the cockpit's panel,
   the newest at the bottom, three at most, each for 8 s, wholly in the game's language ([training.md](training.md)
   §8). A radio line shows as its voice starts, not at the menu's pick: the pilot's call after its key click, the
   tower's answer after the pilot's call and the gap (the user, 2026-11-13: "comms subtitle should show up as talking";
   `radio.gd cue_subtitle`, `flight_sounds.gd phrase_cue`: a mark in the speech channel's queue). A line without a clip
   (no sound file) shows at once. The text is subtitle size, 20 px at 1080 (the Mac play test, 2026-11-11: 26 px was too big).
-- **No line for a change the cockpit shows** (the user, 2026-11-19: "Do it"): a switch, key or display whose new
-  state the cockpit already shows (a lamp, a switch's position, a display, the view itself) puts no line in the
-  strip (`Settings.cockpit_notes()` false, `terrain_view.gd _cockpit_note`). The strip keeps the radio lines and the
-  lines for actions with no sign in the cockpit. The original game keeps all its console lines. The autopilot's lines
+- **Nothing but the radio** (the user, 2026-11-25: "why I still see any popup in flight? remove this functionality
+  completely for nothing which isn't radio"; before that, 2026-11-19: no line for a change the cockpit shows): every
+  line that is not a radio call (a switch's new state, a refusal, damage, a cheat) goes through
+  `terrain_view.gd _cockpit_note`, which in Modern IAF (`Settings.cockpit_notes()` false) only writes it to the
+  recorded flight. Radio calls (`radio.gd say`, `cue_subtitle`) and the mission's messages (`mission_runtime.gd`
+  `subtitle`) keep `_on_subtitle` and the strip. The original game keeps all its console lines. The autopilot's lines
   went on 2026-11-25 (the user: "why the fuck there is still notes on a/p, I thought we removed them all?"): until then
   a refused PITCH switch said "A/P OFF: …" (twice in the Scramble dusk pictures, with the sim's own autopilot
   flying).
@@ -577,13 +579,21 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   | "PITCH …" / "ROLL …" (the autopilot switches, 292) | removed | the switches' positions |
   | "A/P OFF: …" (a PITCH switch that will not stay engaged) | removed (2026-11-25) | the switch springs back; the manual lists the conditions |
   | "TRIM/AP DISC …" (294), "FLCS RESET" (295) | removed (2026-11-25) | the MANUAL TRIM panel's TRIM/AP DISC switch; the FLT CONTROL panel's FLCS RESET switch and the fault list ([cockpit.md](cockpit.md) §5.10) |
-  | "Manual TF fly-up …" (242 p1 1) | kept | the switch is not modelled |
-  | "CMDS …" mode (262), "CMDS program …" (263) | kept | the knob shows OFF / STBY / MAN only; no program knob |
-  | "Seeker uncaged" / "caged" (280 p1 0) | kept | the HUD's diamond grows only with a track |
-  | "PRE n/m" (234), "FLC: no layers on this format" (302) | kept | no display shows the target's number; a refusal |
-  | radio lines, mission messages, damage messages, training lines | kept | no cockpit sign |
-- **The panel** at the inline-start top (the left in English, the right in Hebrew) holds the radio menu (Ctrl+T) and
-  the training result. Its text runs in the language's direction; the panel itself keeps the root's direction and
+  | "Manual TF fly-up …" (242 p1 1) | removed (2026-11-25) | the TFR page's MAN FLYUP OFF (`f16_mfd.gd`); the switch itself is not in the cockpit model |
+  | "CMDS …" mode (262) | removed (2026-11-25) | the MODE knob (OFF / STBY / MAN) and the DED's EWS CONTROLS page (every mode) |
+  | "CMDS program …" (263) | removed (2026-11-25) | open: the real cue is the CMDS panel's PRGM knob, which the cockpit model (`f16.glb`) does not have |
+  | "Seeker uncaged" / "caged" (280 p1 0) | removed (2026-11-25) | the HUD's diamond grows with a track |
+  | "PRE n/m" (234) | removed (2026-11-25) | the F-16 SMS page's STA n PP n/N; the F-35I WPN-S page's target per bomb |
+  | "FLC: no layers on this format" (302) | removed (2026-11-25) | nothing changes on the format |
+  | "No goggles: use the helmet's night camera" (303, the F-35I) | removed (2026-11-25) | nothing changes; the F-35I has no goggles |
+  | "Structural damage" and the other damage lines | removed (2026-11-25) | the caution and warning lamps |
+  | the cheats' lines (Shift + R, S, D, F) | removed (2026-11-25) | none (not a cockpit function) |
+  | the training's fail banner ("Fail" and the reason) | removed (2026-11-25) | the debrief, the reason first |
+  | "To complete: …", "Wrong runway: …" (the training panel) | removed (2026-11-25) | the tower's call names a wrong runway; the debrief names an open goal |
+  | radio lines, mission messages | kept | the radio |
+- **The panel** at the inline-start top (the left in English, the right in Hebrew) holds the radio menu (Ctrl+T). A
+  request that cannot be made now is dimmed and takes no click; no line says why (the user, 2026-11-25: "no need to
+  write why something is disabled, this goes in game manual"); the game manual says when each is off. Its text runs in the language's direction; the panel itself keeps the root's direction and
   takes its side from its anchors. Until 2026-11-13 the panel was set right-to-left too, and Godot mirrors such a
   control's anchors, so in Hebrew the radio menu and "To complete" stood at the top left (the Mac run of 2026-11-13).
 - **The info line** (F12, at the top left): the mission's name and the frames per second (`Settings.info_line_full`
@@ -602,7 +612,7 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   radio band showed faintly through the Settings top bar. `test_flight_ui.gd` checks each of those screens.
 
 A language switched over the flight (Esc → Settings → Language) applies at once to the panel (an
-open radio menu at once, a training line at the next frame's score), the pilot's notebook ([training.md](training.md)
+open radio menu), the pilot's notebook ([training.md](training.md)
 §11) and the radio lines: `radio.gd` keeps each line it prints in both languages (`subtitles`, the pilot's call from
 `sim_flight.gd pick`), so a line shown, or still waiting for its voice, shows in the language of the moment.
 Before 2026-11-13 a line kept the language it was said in: the Mac's take-off pictures, switched to Hebrew after the

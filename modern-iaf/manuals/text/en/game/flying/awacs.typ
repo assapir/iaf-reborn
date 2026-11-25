@@ -56,7 +56,7 @@ The calls are spoken in the AWACS's own voice, in the game's language, and show 
 + Press #key("Call the tower").
   #then[The list shows 1 Tower, 2 Wingmen and 3 AWACS.]
 + Press 3.
-  #then[The AWACS's requests show. A request you cannot make now is dimmed, with the reason beside it. #keycap("0") goes back.]
+  #then[The AWACS's requests show. A request you cannot make now is dimmed and does nothing; the table below says when each one is. #keycap("0") goes back.]
 + Press the number of a request.
   #then[You call the AWACS ("Eitam, Kidon 1, picture"), and it answers.]
 
@@ -67,7 +67,7 @@ The calls are spoken in the AWACS's own voice, in the game's language, and show 
   [Bogey dope], [The group nearest you, in the same words.],
   [Declare], [What the aircraft your radar has locked is: "hostile", "bogey" (unknown) or "friendly"; "clean" when the AWACS does not see it. Dimmed without a lock.],
   [Vector to target], [The heading and distance to your target: "Kidon 1, vector 040, 25 miles, target". In a #scr("sec_fly_now") flight the target is your task's; else the nearest hostile group.],
-  [Vector home], [The heading and distance to your home base: "... home plate".],
+  [Vector home], [The heading and distance to your home base: "... home plate". Dimmed in a flight without a home base.],
   [Vector to tanker], [The heading and distance to the nearest tanker. No tanker flies yet, so this line is dimmed.],
 )
 
@@ -95,4 +95,4 @@ The enemy can attack the Eitam. When enemy aircraft come close to it, it turns a
 
 The group is given from you, as in a picture: fly to it, or send your wingmen (@radio-flight). The call comes again every minute while the enemy is near the Eitam. Once it is clear, the Eitam goes back to an oval a little further back.
 
-If the Eitam is shot down, the AWACS is gone for the rest of the flight: no more calls, every request dimmed ("The Eitam is lost: no AWACS"), and the jets' data link shows no more of its aircraft.
+If the Eitam is shot down, the AWACS is gone for the rest of the flight: no more calls, every request dimmed, and the jets' data link shows no more of its aircraft.

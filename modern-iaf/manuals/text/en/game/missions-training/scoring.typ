@@ -9,7 +9,7 @@ The jets' manuals describe what a procedure does to the aircraft. This section d
 - *A pass* needs every goal of the lesson reached, within the #term("time allowed"), with nothing from @scoring-at-once on the way.
 - *A fail* comes at once from any of the things in @scoring-at-once, or at the end of the flight from a goal that was not reached.
 
-A fail at once shows a banner with #scr("fail") and the reason. Five seconds later the flight ends and the #term("debrief") opens, with that reason first.
+After a fail at once, the flight ends five seconds later and the #term("debrief") opens, with the reason first.
 
 === What fails any mission at once <scoring-at-once>
 
@@ -45,7 +45,7 @@ A fail at once shows a banner with #scr("fail") and the reason. Five seconds lat
 
 The Start-up lessons check the first two phases. The Take-off and Weapons range lessons check all four.
 
-*The wrong runway.* When you line up within 30° of a runway end that is not the mission's, the tower tells you once which runway you are on and which one is assigned, and a line at the top corner of the screen says the same while you stand there. Lining up there only warns. The roll there fails the mission.
+*The wrong runway.* When you line up within 30° of a runway end that is not the mission's, the tower tells you once which runway you are on and which one is assigned. Lining up there only warns. The roll there fails the mission.
 
 === The engine start's order <scoring-order>
 

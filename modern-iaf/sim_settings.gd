@@ -610,7 +610,7 @@ func info_line_full() -> bool:
 	return false
 
 
-## No band line for a change the cockpit shows (the user, 2026-11-19; modern-iaf/docs/front-end.md §8).
+## No band line for anything but the radio (the user, 2026-11-19 and 2026-11-25; modern-iaf/docs/front-end.md §8).
 func cockpit_notes() -> bool:
 	return false
 

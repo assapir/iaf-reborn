@@ -5,9 +5,10 @@
 # - SWAP on the function bar trades the bar's halves, the portals stay;
 # - MENU on the function bar opens its page as a pop-up on the portal under it; CRUS restores the default layout;
 # - CNTL> opens the format's control page: the TFLIR's ZOOM IN, WIDE / SPOT and LSR act; SMS has no CNTL>.
-# - the FLC (command 302): turned steps the cursor portal's format, pushed the TSD's layers, a notice on SRCH;
+# - the FLC (command 302): turned steps the cursor portal's format, pushed the TSD's layers, nothing on SRCH;
 # - DAS: its camera renders only while the format is drawn; Alt + F7 steps the helmet's picture;
-# - the helmet's steps and the master arm switch put no line in the band (Settings.cockpit_notes).
+# - the helmet's steps, the master arm switch and every other non-radio line put no line in the band
+#   (Settings.cockpit_notes).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_sim_adir_pcd.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -224,7 +225,8 @@ func _das() -> void:
 		if want == 2:
 			var tint: Vector3 = tv._goggles.get_child(0).material.get_shader_parameter("tint")
 			check(tint == tv.DAS_VIDEO.tint, "the DAS video is grey (%s)" % tint)
-	# The F-35I has no goggles: their key (record 255, Shift + N) leaves the helmet's night camera on and says so.
+	# The F-35I has no goggles: their key (record 255, Shift + N) leaves the helmet's night camera on, with no line (only
+	# radio over the flight: the user, 25 Nov 2026).
 	tv._command([302, 3, 0])
 	tv._command([303, 0, 0])
 	await frames(1)
@@ -233,9 +235,9 @@ func _das() -> void:
 			tv.cockpit.goggles == null
 			and tv._goggles.visible
 			and tv._helmet_mode == 1
-			and tv.addon.ui._lines.back()[0].get_child(0).text == "No goggles: use the helmet's night camera"
+			and not tv.addon.ui.band_texts().any(func(t): return "goggles" in t)
 		),
-		"the F-35I: no goggles, a notice, the night camera stays"
+		"the F-35I: no goggles, no line, the night camera stays"
 	)
 	tv._command([302, 3, 0])
 	tv._command([302, 3, 0])  # back to off
@@ -248,7 +250,7 @@ func _das() -> void:
 	check(w.master_arm, "master arm: the switch moves")
 	for t in ["Helmet video off", "Helmet night camera", "Helmet DAS video", "Master arm"]:
 		check(not t in band, 'no "%s" in the band' % t)
-	tv._on_subtitle("CMDS STBY")  # a kept line still reaches the band
+	tv._cockpit_note("CMDS STBY")  # no line but the radio's (the user, 25 Nov 2026)
 	await frames(1)
-	check(tv.addon.ui._lines.back()[0].get_child(0).text == "CMDS STBY", "a kept line shows in the band")
+	check(not "CMDS STBY" in tv.addon.ui.band_texts(), "no CMDS line in the band")
 	tv._command([202, 0, 0])

@@ -122,8 +122,8 @@ Since 2026-11-13 (the user: "missions should fail if I start without tower permi
 tower to align and for take off") a mission's `training.clearances` (mission data: the three take-off missions
 `["startup", "taxi", "takeoff"]`; since 2026-11-15 the three start-up missions `["startup", "taxi"]`, with the tower's
 start-up call as the briefing's first step, the user: "I started without tower permissions and the mission didn't
-failed") makes each phase wait for its clearance. Doing it first fails the mission at once (§3.0's pattern: the banner with the reason,
-the debrief 5 s later), the tower says so once (sound.md §3) and the recording gets `{"event": "clearance",
+failed") makes each phase wait for its clearance. Doing it first fails the mission at once (§3.0's pattern: the debrief 5 s later, the reason
+first), the tower says so once (sound.md §3) and the recording gets `{"event": "clearance",
 "reason": …}`. `Watch::check` in `crates/iaf-tools/src/training.rs` decides; the clearances come from the tower's
 answers so far (`Cleared::of`, the same state the radio menu lists its calls from):
 
@@ -471,8 +471,8 @@ mission `modern-iaf/data/missions/<id>.json` and the airbase files:
   (off the pavement: a `surface` event first);
 - a start-up is scored once the engine idles with the avionics up, a take-off once airborne (then every 3 s until it
   passes; since 2026-11-13 also with the gear down, the user: "why I didn't get completed mission … after I
-  airborned?"). A goal still missing shows in the panel ("To complete: raise the gear." / "To complete: climb out on
-  the runway heading with the gear up."); a take-off that cannot pass any more (`wrong_runway`, `excursion`,
+  airborned?"). A goal still missing is named in the debrief (until 2026-11-25 also live in the panel, "To complete:
+  raise the gear."; the user then: only radio over the flight, [front-end.md](front-end.md) §8); a take-off that cannot pass any more (`wrong_runway`, `excursion`,
   `over_time`) ends at once as a Fail; a pass is stored at once and kept (since 2026-11-13); 5 s past its time
   budget it ends as scored;
 - the player ending the flight first (Esc → End the flight, Ctrl+Q) ends the mission there, scored as it stands;
@@ -482,8 +482,8 @@ mission `modern-iaf/data/missions/<id>.json` and the airbase files:
   resumes it and the panel does not come back; Debrief ends the flight into the debrief. The panel opens once the
   radio's phrase channel has said what it had queued (`flight_sounds.gd phrase_cue`), so the pause never cuts a
   voice. No radio line announces the pass;
-- a fail shows a banner in the front end's look (navy, Heebo) with "Fail" and the reason that ended it, and 5 s later
-  (real time, `end_hold_s`) the flight ends into the debrief;
+- a fail: 5 s later (real time, `end_hold_s`) the flight ends into the debrief, the reason first; nothing shows over
+  the view meanwhile (until 2026-11-25 a banner with "Fail" and the reason; the user then: only radio over the flight);
 - an ejection ends the sortie (`Settings.eject_ends_sortie`, the sim only): every sound and the radio stop at once
   (`flight_sounds.gd silence`, no radio menu), the view stays outside on the seat and the jet at any height (no
   FlyTSD), the recording gets an `eject` event and the mission fails with `ejected` first. The original game's
