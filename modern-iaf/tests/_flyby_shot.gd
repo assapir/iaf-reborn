@@ -3,7 +3,7 @@
 # in afterburner (the heat haze over the jet's own body) and from the side. SHOT_MISSION picks the jet by its mission
 # (2012 Sufa, 2022 Barak, 2032 Adir: the take-offs, moved by `--at`); the place is `--at` (UTM metres, altitude m,
 # heading, pitch), e.g. Tel Aviv's towers from _settings_previews.gd. SHOT_DIR/<jet>_<view>.png; SHOT_VIEWS=<name,...>
-# takes those only.
+# takes those only; SHOT_FROZEN=1 holds the jet still (the same camera for before / after pictures of the town).
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> SHOT_MISSION=2012 \
 #     -- --log-file <temp> --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_flyby_shot.gd \
 #     -- --at 668000 3550689 300 90 0
@@ -71,6 +71,9 @@ func run() -> void:
 	tv._command([292, 0, 1])  # PITCH: ATT HOLD, then ALT HOLD
 	tv._command([292, 0, 1])
 	await ground_streamed(tv, 20000)
+	if OS.get_environment("SHOT_FROZEN") == "1":
+		tv.frozen = true
+		tv.fm_stopped = true
 	await seconds(4.0)
 	var jet: String = s.sim_jet
 	var only := OS.get_environment("SHOT_VIEWS").split(",", false)

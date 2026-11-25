@@ -37,6 +37,8 @@ uniform bool night = false;
 // The walls and roofs take their far colour from FADE_NEAR to FADE_FAR (m).
 const float FADE_NEAR = 700.0;
 const float FADE_FAR = 2200.0;
+// The far window grid's contrast: the openings darker and the wall between lighter, the mean colour the same.
+const float FAR_WINDOWS = 0.8;
 // Window recess and loggia depth (m).
 const float RECESS = 0.22;
 const float LOGGIA = 1.4;
@@ -84,6 +86,18 @@ vec3 srgb_to_linear(vec3 c) {
 float band(float x, float a, float b, float aa) {
 	aa = max(aa, 1e-4);  // smoothstep's edges must differ
 	return smoothstep(a - aa, a + aa, x) * (1.0 - smoothstep(b - aa, b + aa, x));
+}
+
+// The integral of the pulses [lo, hi] + n over 0..x (a pulse each unit).
+float pulses_to(float x, float lo, float hi) {
+	return floor(x) * (hi - lo) + clamp(fract(x), lo, hi) - lo;
+}
+
+// The share of a pixel `w` wide at x inside the pulses [lo, hi] + n: box-filtered, so it shimmers at no size and
+// comes to the pulses' mean (hi - lo) as they shrink under a pixel.
+float pulses(float x, float w, float lo, float hi) {
+	w = max(w, 1e-4);
+	return (pulses_to(x + 0.5 * w, lo, hi) - pulses_to(x - 0.5 * w, lo, hi)) / w;
 }
 
 #include "res://shared/terrain/city_glow.gdshaderinc"
@@ -300,7 +314,16 @@ void fragment() {
 		float fy = fwidth(UV.y);
 		face = mix(face, min(base * 1.3, vec3(wall_cap(w))), smoothstep(v_height - 0.1 - fy, v_height - 0.1 + fy, UV.y));
 		float fade = smoothstep(FADE_NEAR, FADE_FAR, v_dist);
-		albedo = mix(face, palette_colours ? base0 * 0.76 : min(photo * WALL_GAIN, vec3(MAX_ALBEDO)), fade);
+		// The far facade: the far colour with the building's own window grid, box-filtered (the windows' and loggias'
+		// openings darker, the wall between lighter by as much: the same mean), so far towers keep their rows of
+		// windows until a row is under a pixel, as the near facade's (2026-11-25: plain boxes before).
+		vec3 far_c = palette_colours ? base0 * 0.76 : min(photo * WALL_GAIN, vec3(MAX_ALBEDO));
+		vec2 far_lo = loggia ? vec2(0.1, 0.0) : vec2(0.5 - half_w, y0);
+		vec2 far_hi = loggia ? vec2(0.9, 0.93) : vec2(0.5 + half_w, y1);
+		float far_win = pulses(g.x, px.x, far_lo.x, far_hi.x) * pulses(g.y, px.y, far_lo.y, far_hi.y);
+		float far_mean = (far_hi.x - far_lo.x) * (far_hi.y - far_lo.y);
+		far_c = min(far_c * (w == 3 ? 1.0 : 1.0 + FAR_WINDOWS * (far_mean - far_win)), vec3(MAX_ALBEDO));
+		albedo = mix(face, far_c, fade);
 		glass *= 1.0 - fade;
 		// Glass reflects the sky: each pane tilted and rough by its own seed.
 		rough = mix(0.9, 0.08 + 0.3 * h_win2, glass);

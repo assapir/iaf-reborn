@@ -518,7 +518,12 @@ texture.
     far one's tone; a dome keeps the photo's colour. Details under about two pixels fade out.
 - **Distance:** a window under about two pixels fades to the wall's average (no shimmer); from 700 m to 2.2 km the
   walls and roofs fade to the photo's colour at the building, so the far town keeps the photo's hues instead of
-  turning into uniform pale blocks (Building colours = Palette: to their own colours, §3.4).
+  turning into uniform pale blocks (Building colours = Palette: to their own colours, §3.4). That far colour keeps the
+  building's own window grid (its bays, levels and loggias), box-filtered over each pixel: the openings darker and the
+  wall between lighter, so the mean colour stays the same and a far tower keeps its rows of windows until a row is under
+  a pixel (`scenery_detailed.gdshader` `pulses`; no wall brighter than the walls' cap). Until 2026-11-25 far towers
+  were plain boxes in one colour (the Givatayim fly-by; Approvals 2). Its cost is within the noise on the laptop's Iris
+  Xe over Tel Aviv (GPU 26.8 ms before and 25.5 ms after at 150 m, 28.2 and 28.0 ms at 300 m; two runs each).
 - **Roof clutter** (`roof_rows` in crates/iaf-avionics/src/scenery.rs, the models in `scenery.gd roof_mesh`, drawn
   by `scenery_roof.gdshader`): on the near flat roofs of 30 m² and more, on a 2.4 × 2.8 m grid along the roof's
   longest edge, at least 1.4 m inside the parapet, seeded per building:

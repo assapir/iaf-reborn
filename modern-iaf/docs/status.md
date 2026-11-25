@@ -11,7 +11,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   take a material per model instead of an instance uniform: over Tel Aviv at 300 m the log had 1,039 (Sufa) and 1,145
   (Barak) "Too many instances using shader instance variables" errors, now none, the same picture; on the laptop's Iris
   Xe (Everything on, 1080p) the frame over Tel Aviv took 37.5 / 36.0 ms at 150 / 300 m before and 36.0 / 35.6 ms after.
-  The engine's heat haze never bends the town or the sky over the jet's own body. Pictures:
+  The engine's heat haze never bends the town or the sky over the jet's own body. With Scenery Detailed the far
+  towers keep their rows of windows (box-filtered, the same mean colour) instead of plain one-colour boxes. Pictures:
   `modern-iaf/tests/_flyby_shot.gd`.
 - **Only radio over the flight; no reason lines; no pane on Updates (2026-11-25, the user's third notes on A86, A98,
   A101; [front-end.md](front-end.md) §8, §14):** every in-flight line that is not a radio call (switch states,
