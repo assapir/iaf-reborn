@@ -21,6 +21,8 @@ const GUN_BURST := 5
 ## Ours: the launch call by the missile's guidance (brevity: Fox 1 semi-active radar, Fox 2 infrared, Fox 3 active
 ## radar; modern-iaf/docs/research/radio-terms.md), by combat.gd's weapon type.
 const FOX := {570: "fox_2", 580: "fox_2", 600: "fox_3", 610: "fox_1"}
+## The infrared air-to-air missiles (the R-73 on the helmet sight, docs/ai.md §18.2).
+const IR_TYPES := [570, 580]
 ## FUN_004a9100: the FM start velocity (200, 200, 0) → 282.84 m/s along the heading.
 const START_SPEED := 282.842712
 
@@ -691,6 +693,7 @@ func _weapons_of(ai, n: int, ent: Dictionary, t: Dictionary) -> void:
 		and w.missiles.any(func(mis): return mine.call(mis) and mis.target_key == t.get("key"))
 	)
 	ai.set_weapons(n, env[0], env[1], env[2] or armed, flying)
+	ai.set_ir(n, env.size() > 3 and env[3])
 
 
 ## Jet `n`'s shot or burst at `t` this frame (IafAi shoot / gun) through combat.gd: the missile (300), or the gun
@@ -905,6 +908,9 @@ func _step_enemy(f: Dictionary, now: float) -> void:
 			combat.combat(ent, "320" if d == 1 else "310", {})
 		_set_jam(ent, alive and f.ai.jams(m[0]))
 		_radar_lock(f.ai, m[0], ent, foe if alive else {}, f.locks)
+		# Its radar's contact shared with the network (docs/ai.md §15.5): it cues the sites and the GCI.
+		if alive and not n.is_empty() and not foe.is_empty() and f.ai.state(m[0]).get("contact", false):
+			n.get_or_add("contacts", {})[String(foe.key)] = now
 
 
 ## Jet `n`'s radar lock on `t` (combat.gd on_lock: the target's RWR) while its radar holds it (IafAi state "contact")
@@ -940,7 +946,7 @@ func _jam_of(t: Dictionary) -> float:
 
 ## The air-to-air missile an enemy jet `u` shoots at `t` (combat.gd's stations and DLZ): of those it has left, the one
 ## with the shortest reach whose envelope holds the target (the infrared one close in), else the farthest reaching;
-## selected. [max, min, a missile left].
+## selected. [max, min, a missile left, it homes on infrared (the helmet sight cues it, docs/ai.md §18.2)].
 func _pick_aa(u, t: Dictionary) -> Array:
 	var o: Dictionary = combat._pose(u)
 	var tgt := {"pos": world_of(t), "vel": combat._velocity_of(t)}
@@ -964,7 +970,7 @@ func _pick_aa(u, t: Dictionary) -> Array:
 		return [0.0, 0.0, false]
 	if best[0] != u.cur and not combat._releasing(u):
 		combat._select(u, best[0])
-	return [best[1], best[2], true]
+	return [best[1], best[2], true, int(u.stations[best[0]].w.get("type", 0)) in IR_TYPES]
 
 
 ## The FM start (FUN_004a9100 → FUN_005a5820): the player's rules, 282.84 m/s along the heading.

@@ -33,6 +33,10 @@ pub struct Net {
     pub radar: Vec3,
     /// The picture: each target's last time seen by a radar of the network.
     pub picture: HashMap<String, f64>,
+    /// The jets the network's fighters hold in their radars this tick (the host's, [`crate::Flight`]'s contacts): the
+    /// IADS passes "early warning, acquisition, tracking and firing data up, sideways and down" (TC 7-100.2 §11-15),
+    /// so a fighter's track cues a site as the radar's does.
+    pub shared: Vec<String>,
     next_scan: f64,
 }
 
@@ -58,7 +62,7 @@ impl Net {
         let mut cues = vec![Vec::new(); members.len()];
         if !up {
             // A network restored sweeps at once.
-            *self = Net::new(self.radar);
+            *self = Net { shared: std::mem::take(&mut self.shared), ..Net::new(self.radar) };
             return cues;
         }
         let mut jets: Vec<&Target> = Vec::new();
@@ -77,6 +81,9 @@ impl Net {
         }
         for c in members.iter().flat_map(|m| &m.site.channels).filter(|c| c.radar) {
             self.picture.insert(c.target.clone(), now);
+        }
+        for id in self.shared.iter().filter(|id| jets.iter().any(|t| &t.id == *id)) {
+            self.picture.insert(id.clone(), now);
         }
         self.picture.retain(|id, seen| now - *seen <= STALE && jets.iter().any(|t| &t.id == id));
         // The most dangerous first: the soonest to arrive at a site.
@@ -143,6 +150,10 @@ impl Track {
 pub struct Gci {
     pub radar: Vec3,
     pub tracks: Vec<Track>,
+    /// The jets the network's other radars hold this tick (the host's: the sites' tracks and the fighters' contacts,
+    /// TC 7-100.2 §11-15): each refreshes its track as a sweep would, so a jet under the 64N6E2's horizon that a Tor
+    /// or a MiG holds is vectored on.
+    pub shared: Vec<String>,
     next_scan: f64,
 }
 
@@ -151,23 +162,28 @@ impl Gci {
         Gci { radar, ..Gci::default() }
     }
 
-    /// One tick at `now`: with the search radar and the post alive (`up`), a sweep every [`SCAN`] adds or refreshes
-    /// the `jets` the radar sees (the sites' rule: the cross-section, the terrain, the earth's curvature); a track not
-    /// seen for two sweeps drops. Lost, the picture is cleared; restored, it sweeps at once.
+    /// One tick at `now`: with the search radar and the post alive (`up`), the jets of [`Gci::shared`] and a sweep
+    /// every [`SCAN`] add or refresh the `jets` the radars see (the sites' rule: the cross-section, the terrain, the
+    /// earth's curvature); a track not seen for two sweeps drops. Lost, the picture is cleared; restored, it sweeps at
+    /// once.
     pub fn tick(&mut self, now: f64, up: bool, jets: &[Target], terrain: &dyn Fn(Vec3) -> Option<f64>) {
         if !up {
-            *self = Gci::new(self.radar);
+            *self = Gci { shared: std::mem::take(&mut self.shared), ..Gci::new(self.radar) };
             return;
         }
-        if now >= self.next_scan {
+        let sweep = now >= self.next_scan;
+        if sweep {
             self.next_scan = now + SCAN;
-            let eye = self.radar.raised(ANTENNA);
-            for t in jets.iter().filter(|t| Site::sees(eye, REACH, t, terrain)) {
-                let track = Track { id: t.id.clone(), pos: t.pos, vel: t.vel, seen: now };
-                match self.tracks.iter_mut().find(|k| k.id == t.id) {
-                    Some(k) => *k = track,
-                    None => self.tracks.push(track),
-                }
+        }
+        let eye = self.radar.raised(ANTENNA);
+        for t in jets {
+            if !(self.shared.contains(&t.id) || sweep && Site::sees(eye, REACH, t, terrain)) {
+                continue;
+            }
+            let track = Track { id: t.id.clone(), pos: t.pos, vel: t.vel, seen: now };
+            match self.tracks.iter_mut().find(|k| k.id == t.id) {
+                Some(k) => *k = track,
+                None => self.tracks.push(track),
             }
         }
         self.tracks.retain(|k| now - k.seen <= STALE && jets.iter().any(|t| t.id == k.id));

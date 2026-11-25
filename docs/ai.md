@@ -1497,8 +1497,13 @@ target gone, out of reach or masked) frees its channel.
 - **EMCON** (§5.2, the caller's choice per site): `radiate` searches all the time; `silent` never radiates (the ZSU
   lays optically); `cue` keeps the radars off until a cued target (the caller's `cued`, the network's track) is
   seconds from the envelope (its edge plus the acquisition time at its closing speed), then the track radar comes on
-  to acquire it and fire (§11-134).
-- **Relocation** (§11-121): after an engagement, 20 s without a track (inferred), the site takes its march order
+  to acquire it and fire (§11-134). By the crew's skill (§17): a High crew's search radar, autonomous under
+  `radiate` and engaging nothing, radiates 20 s in each minute (the Serbian SAM crews of 1999 "would periodically
+  emit with their radars for 20 seconds and then shut down the radars"[^lambeth-sead]; the minute, each site's starting at its own time, is inferred); its
+  tracks keep their radar on.
+- **Relocation** (§11-121): after an engagement, 20 s without a track at Medium (60 s Low, 5 s High: shoot and scoot,
+  a capable system moving "as often as every 10 minutes", §11-121, the Serbian crews "dispersed and
+  mobile"[^lambeth-sead]; the times inferred), the site takes its march order
   (radars off), drives to its next position (the placed one and its alternates in turn), sets up and searches
   again. Its route is a convoy's (§19.2, `convoy::Route`): `IafSite.tick` asks the road layer for the road route
   between the road points nearest the two positions and takes it as a convoy does, else straight across country; it
@@ -1647,7 +1652,11 @@ same 0.5 s tick; the dev hook is `AirDefence.spawn_net(radar_pos, post_pos, memb
 | drawn as | our model, its antenna turning while it radiates (§15.4) | the Ural-4320 model (§15.4) |
 
 - **The picture:** each sweep adds the jets the radar sees (the sites' rule: the jet's cross-section, the terrain and
-  the earth's curvature); every site's radar track adds its jet at each tick. A jet no radar of the network has seen
+  the earth's curvature); every site's radar track adds its jet at each tick; so does every radar contact of the
+  enemy fighters flying on the network (`Net::shared`, from `ai_flights.gd _step_enemy` through
+  `air_defence.gd _net_tick`): the IADS passes "early warning, acquisition, tracking and firing data up, sideways and
+  down" (§11-15[^tc7100]). A jet under the 64N6E2's horizon that a MiG holds is cued to a site, which fires on it with
+  its own search off. A jet no radar of the network has seen
   for two sweeps (25 s, inferred) drops out. A jet flying below the 64N6E2's horizon stays in the picture while a
   site tracks it.
 - **The cue** (§11-35, §11-36[^tc7100]): a networked site runs EMCON `cue` whatever its own: its search radar stays
@@ -1882,7 +1891,8 @@ the same struct.
 | the gun's laying error, each way (mrad, one standard deviation) | 8 | 4 | 2 |
 | the missile launch range, share of the envelope from its minimum range out | 1.0 | 0.9 | 0.8 |
 | a fighter's tactics (§18) | the plain ones | the crank, the notch | the crank, the notch, the drag |
-| a fighter's dogfight moves (§18.2) | pure pursuit, a level turn, the break | also the lag, the low yo-yo, the rate or radius fight, the break down | also the high yo-yo, the vertical, the guns jink |
+| a fighter's dogfight moves (§18.2) | pure pursuit, a level turn, the break | also the lag, the low yo-yo, the rate or radius fight, the break down, the reversal, the flat scissors, the extension | also the high yo-yo, the vertical, the rolling scissors, the guns jink |
+| a site's emission control and move (§15.1) | moves 60 s after its last track | moves after 20 s | moves after 5 s; its search on 20 s a minute while autonomous and idle |
 
 Every figure is inferred: no source grades crews in numbers. The names are the front end's words for the same scale,
 "נמוכה / בינונית / גבוהה" (Low / Medium / High, as the Settings' cost column); "מיומנות" is the IDF's word for a
@@ -1951,8 +1961,9 @@ rejoin, collision avoidance and threat reactions are the wingmen's (§8.7, §8.8
 The opposing force relies on its vectoring posts to "redirect fighters in flight to the proper location at the most
 opportune time"; Iran's fighter control sits in the KADHQ's radar network
 (modern-iaf/docs/research/enemies.md §5.1). So the network's 64N6E2 and 54K6E2 (§15.5) vector the pair: `IafGci`
-(`net::Gci`) keeps a picture of the jets the radar's sweeps see (every 12 s, the sites' radar rule), reckons each track
-on at its last velocity between sweeps, and gives the pair the track nearest its station inside the commit range. With
+(`net::Gci`) keeps a picture of the jets the radar's sweeps see (every 12 s, the sites' radar rule) and of the jets the
+network's sites track and its fighters hold in their radars (`Gci::shared`, refreshed each tick; §15.5), reckons each
+track on at its last velocity between sweeps, and gives the pair the track nearest its station inside the commit range. With
 the radar or the post out of action, or with no network, the pair has only its own radar: the host gives the nearest
 hostile jet, which the pair knows only while its radar holds it.
 
@@ -1961,7 +1972,7 @@ hostile jet, which the pair knows only while its radar holds it.
 | CAP | the lead orbits its station clockwise at the station's height, steering at the point 30° ahead on the circle; the wingman keeps its slot | radius 15 km, 2 g, 220 m/s |
 | commit | a bogey inside the commit range of the station, with a missile left: the pair commits after the lead's reaction time | 90 km |
 | intercept | the collision course at the bogey (the point where the two meet flying straight; pure pursuit when it cannot be caught) | 4 g, 300 m/s, at most 120 s ahead |
-| shot | committed, its own radar holding the bogey, a missile left and none of its own flying at it, the bogey inside its share of the envelope (§17) for its reaction time (the launch's timing: Low 3 s, Medium 1 s, High 0.5 s): `Order::shoot`; the host fires through `combat.gd`'s launch (the envelope, the cone, the fire gate) | the radar: 74 km against 5 m², ±60° (the wingmen's; "The radar" below) |
+| shot | committed, its own radar holding the bogey (an infrared missile: or its pilot seeing it, §18.2), a missile left and none of its own flying at it, the bogey inside its share of the envelope (§17) for its reaction time (the launch's timing: Low 3 s, Medium 1 s, High 0.5 s): `Order::shoot`; the host fires through `combat.gd`'s launch (the envelope, the cone, the fire gate) | the radar: 74 km against 5 m², ±60° (the wingmen's; "The radar" below) |
 | crank | its missile flying, the radar holding the bogey: the bogey 50° off the nose on the side it is on (tactics 1 and up) | 250 m/s |
 | defence | a missile at it, after its reaction (a lock alone does not stop the attack): an infrared one the break into it; a radar one the beam at its height (tactics 0), the notch down into the look-down, the missile beamed (1), the drag, a 4 g turn away then full power going down, while the missile is farther than 20 km, inside that the notch (2); chaff or flares each decision while the missile is within 6 s, the 5 s clear (§8.8) | the descent: the steer point 500 m below, near 10°, down to 500 m above the ground; drag 400 m/s |
 | back | the bogey lost, past 150 km from the station, or nothing left to shoot with none flying: back to the CAP | 150 km |
@@ -2012,8 +2023,8 @@ are ours (inferred). The skill's tactics (§17) pick the branches:
 | situation | tactics 0 | tactics 1 adds | tactics 2 adds |
 |---|---|---|---|
 | offensive: the bogey within 90° of its nose, itself within 90° of the bogey's tail | pure pursuit (the lead point inside the gun's range) at full g, its closure controlled | the lag (1.5 s behind the bogey) when closing faster than 60 m/s inside 2.5 km or when its turn circle is wider; the low yo-yo (the point 0.4 of the range below) when out of the gun's range and falling back, or slow | the high yo-yo (the lag point 0.4 of the range above) when closing at 120 m/s from more than 45° off the tail |
-| defensive: the bogey behind its beam, its nose within 60° of it, inside 5 km | the break: full g into the bogey, level | the break in any plane; the break down (the point 0.4 of the range below) when 600 m of energy height behind | the guns jink inside 1.35 km: the point a range above or below, flipped every 2 s |
-| neutral | a level turn at full g toward the bogey | the rate fight (pure pursuit, the speed held near the corner) when it out-turns the bogey, else the radius fight (full g at 0.75 of the corner speed) | the vertical (the point 0.4 of the range above) when 600 m of energy height ahead and faster than the corner speed |
+| defensive: the bogey behind its beam, its nose within 60° of it, inside 5 km | the break: full g into the bogey, level | the break in any plane; the break down (the point 0.4 of the range below) when 600 m of energy height behind; the reversal before both when the bogey closes faster than 60 m/s inside the gun's range (full g into it at 0.6 of the corner speed, the speed brake out: it overshoots) | the guns jink inside 1.35 km: the point a range above or below, flipped every 2 s |
+| neutral | a level turn at full g toward the bogey | the flat scissors inside 1.5 km with the bogey off its wing (45–135° off the nose), both flying within 45° of one way and the bogey below the corner speed (full g into it at 0.6 of the corner speed: the slower one ends behind); the extension when 600 m of energy height behind, farther than 3 km and in the bogey's rear quarter (its nose more than 120° off: unloaded to 2 g at full power, straight away and 0.1 of the range down, until past the fight's 9 km, then the intercept back); else the rate fight (pure pursuit, the speed held near the corner) when it out-turns the bogey, else the radius fight (full g at 0.75 of the corner speed) | the rolling scissors in place of the flat (the point 0.4 of the range above); the vertical (the point 0.4 of the range above) when 600 m of energy height ahead and faster than the corner speed |
 
 - **Energy.** No move asks more than the wing gives at the speed (no pull into the α limit's drag). From tactics 1 the
   fighter holds its speed near the corner: in the rate fight, the lag, the high yo-yo and the vertical it unloads to
@@ -2048,6 +2059,13 @@ are ours (inferred). The skill's tactics (§17) pick the branches:
   rear", modern-iaf/docs/research/enemies.md §4.2); once seen, it keeps sight inside the 8 km (checking six). The
   bogey's truth is then known without the radar; the radar's lock and the missile shot still need the radar's
   contact.
+- **The R-73 on the helmet sight.** Its missile shot (§18.1) wants its radar's contact, or, with an infrared missile
+  selected (the R-73: `_pick_aa` takes the shortest reach whose envelope holds the bogey, so close in the R-73), its
+  pilot seeing the bogey: the MiG-29's helmet sight gave "a lock on any target the pilot could see ... almost 45
+  degrees off boresight"[^w-mig29]. The host's launch keeps combat.gd's cone (30° times the skill's factor). The
+  shot is checked before the dogfight's move each decision, so a fighter in the BFM leaf fires its R-73 when the
+  bogey is inside its window, on the physical missile (docs/real-weapons.md §2.1). `IafAi.set_ir`; Rust test
+  `dogfight.rs r73_on_the_helmet_sight` (a bogey jamming its radar, seen: the R-73 shot, not the R-27R).
 - **The gun.** Inside 330–900 m (the 30 mm's, inferred) with the lead point (the round's flight time at 860 m/s plus its
   own speed) within 2° of the nose in any move (a lag behind a bogey flying straight included) and the bogey itself
   within combat.gd's 5° gun cone, the fighter orders a burst (`Order::gun`); the lead point is laid off by the skill's
@@ -2064,8 +2082,13 @@ are ours (inferred). The skill's tactics (§17) pick the branches:
   defensive with a High fighter behind, each level breaks or jinks (the level break within 30 m of its height); behind
   a jet flying straight each level settles in the gun's range without passing it; neutral head-on passes 0.5, 1 and 2 km apart,
   High against Low both ways, 120 s each: High offensive longer, 36 s against 0 in sum, its rate fight at the corner
-  speed out-turning Low's fast level turn), `bfm::tests` (the moves by geometry, energy and tactics; the
-  points); `modern-iaf/tests/test_dogfight.gd` (headless: a MiG-29A behind a scripted jet sees it, commits, flies a
+  speed out-turning Low's fast level turn), `scissors_reversal_and_extension` (two Medium fighters line abreast and
+  slow fly the flat scissors; a jet closing fast behind a Medium one overshoots it after the reversal; a Medium fighter
+  low and slow in the rear quarter of a jet extends and comes back by the intercept), `bfm::tests` (the moves by
+  geometry, energy and tactics; the points); `modern-iaf/tests/test_bfm_iads.gd` (headless: a MiG-29A with R-73s on
+  an S-300 network whose search radar is out of reach, behind a scripted jet: its contact shared, the GCI's vector
+  on the jet from that contact alone, an R-73 fired in the fight;
+  an autonomous Medium battery searching on); `modern-iaf/tests/test_dogfight.gd` (headless: a MiG-29A behind a scripted jet sees it, commits, flies a
   BFM move and fires its gun through combat.gd). The tests repeat: the Rust ones are deterministic (the laying
   error is a seeded hash).
 - **CPU:** 4.1–7.8 µs per jet per frame on the build Mac for the Rust part (two fighters in the BFM leaf; the 6-DoF,
@@ -2670,7 +2693,9 @@ Open questions in this document:
 [^ar-64n6]: Army Recognition, "64N6 Tombstone 64N6E 64N6E2", https://armyrecognition.com/military-products/army/radars/air-defense-radars/64n6-tombstone-64n6e-64n6e2 (a double-sided phased array, hydraulically raised, on a semi-trailer; "full 360-degree mechanical rotation every 12 seconds"; length 13.2 m; read 2026-11-23).
 [^w-mzkt7930]: Wikipedia, "MZKT-7930", https://en.wikipedia.org/wiki/MZKT-7930 (12.7 m long, 3 m wide, 3.29 m high; read 2026-11-23).
 [^w-ural]: Wikipedia, "Ural-4320", https://en.wikipedia.org/wiki/Ural-4320 (7,366 mm long, 2,500 mm wide, 2,715 mm high; top speed 82 km/h with the V8, 75 km/h with the V6; read 2026-11-22 and 2026-11-23).
-[^shaw]: Robert L. Shaw, "Fighter Combat: Tactics and Maneuvering", Naval Institute Press, 1985, ISBN 0-87021-059-9 (pursuit: lead, pure, lag; the high and low yo-yo; the break and the guns jink; one-circle and two-circle fights; energy height; closure control; the terms only, no figure taken).
+[^shaw]: Robert L. Shaw, "Fighter Combat: Tactics and Maneuvering", Naval Institute Press, 1985, ISBN 0-87021-059-9 (pursuit: lead, pure, lag; the high and low yo-yo; the break and the guns jink; one-circle and two-circle fights; the flat and rolling scissors; the reversal and the overshoot; the extension (separation); energy height; closure control; the terms only, no figure taken).
+[^lambeth-sead]: Benjamin S. Lambeth, "Kosovo and the Continuing SEAD Challenge", Aerospace Power Journal, Summer 2002, mirrored at https://ausairpower.net/APJ-Lambeth-Mirror.html ("the Serbs kept their SAMs defensively dispersed and operating in an emission-control mode"; "would periodically emit with their radars for 20 seconds and then shut down the radars"; "by remaining dispersed and mobile, and by activating their radars only selectively"; read 2026-11-25).
+[^w-mig29]: Wikipedia, "Mikoyan MiG-29", https://en.wikipedia.org/wiki/Mikoyan_MiG-29 (the Shchel-3UM helmet-mounted sight; the German evaluation: "a lock on any target the pilot could see ... within the missile field of view, including those almost 45 degrees off boresight"; read 2026-11-25).
 [^w-mig29-jam]: Wikipedia, "Mikoyan MiG-29" (the 9.13: "the installation of the L-203BE Gardenyia-1 jammer that was
   lacking on the initial 9.12 version"; read 2026-11-22): https://en.wikipedia.org/wiki/Mikoyan_MiG-29
 [^w-jam]: Wikipedia, "Radar jamming and deception" ("The burn-through range is the distance from the radar at which the jamming is ineffective"; a self-protection jammer "essentially broadcasts its position") (read 2026-11-22): https://en.wikipedia.org/wiki/Radar_jamming_and_deception

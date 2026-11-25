@@ -698,3 +698,37 @@ fn a_team_is_no_network_member() {
     let t = low("a", 0.0, 3_000.0, 200.0, -200.0);
     assert!(site.eta(0.0, &[true], &t, &flat).is_infinite());
 }
+
+/// The emission control and the move by the crew's skill (docs/ai.md §15.1, Lambeth 2002): a High crew's search
+/// blinks 20 s in each minute while it engages nothing; after an engagement the crew moves 60, 20 or 5 s after its
+/// last track.
+#[test]
+fn skill_sets_emission_control_and_the_move() {
+    // A High crew's search blinks: on 20 s in each 60.
+    let mut site = Site::new(Kind::S300, Vec3::ZERO, 0.0, &[]);
+    site.skill = Skill::HIGH;
+    let mut sim = Sim::new(site, vec![]);
+    sim.run(120.0);
+    let on = sim.log.iter().filter(|(_, o, _)| o.search).count();
+    assert_eq!(on, 80, "20 s of 60, ticks of 0.5 s");
+    assert_eq!((sim.site.phase(130.0), sim.site.phase(150.0)), ("search", "silent"), "its phase by the blink");
+    // The move after the last track: Low 60 s, Medium 20 s, High 5 s.
+    for skill in [Skill::LOW, Skill::MEDIUM, Skill::HIGH] {
+        let mut site = Site::new(Kind::S300, Vec3::ZERO, 0.0, &[Vec3::new(5000.0, 0.0, 0.0)]);
+        site.skill = skill;
+        let mut sim = Sim::new(site, vec![inbound("a", 60.0, 0.0)]);
+        sim.fly = 6.0;
+        while sim.launches().len() < 2 {
+            sim.run(0.5);
+        }
+        sim.run(10.0);
+        sim.targets.clear();
+        let gone = sim.now;
+        while !matches!(sim.site.mode, Mode::March(_)) {
+            sim.run(0.5);
+        }
+        let quiet = sim.now - 0.5 - gone;
+        let want = [60.0, 20.0, 5.0][usize::from(skill.tactics)];
+        assert!((quiet - want).abs() <= 0.5, "{skill:?}: moved {quiet} s after its last track");
+    }
+}

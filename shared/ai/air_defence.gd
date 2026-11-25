@@ -258,6 +258,22 @@ func _net_tick(n: Dictionary, now: float) -> void:
 	var members: Array = n.sites.map(
 		func(s): return [s.site, s.ents.map(func(e): return int(e.state) < 3), _targets(s)]
 	)
+	# The tracks shared over the network (TC 7-100.2 §11-15): its fighters' radar contacts (ai_flights.gd, this tick
+	# or the last) cue the sites; the GCI also takes the sites' own tracks.
+	var fighters := PackedStringArray()
+	var contacts: Dictionary = n.get("contacts", {})
+	for key in contacts.keys():
+		if now - float(contacts[key]) <= 2.0 * TICK:
+			fighters.append(key)
+		else:
+			contacts.erase(key)
+	var shared := fighters.duplicate()
+	for s in n.sites:
+		for key in s.locked.keys():
+			if not shared.has(key):
+				shared.append(key)
+	n.net.set_shared(fighters)
+	n.gci.set_shared(shared)
 	var cues: Array = n.net.tick(now, up[0], up[1], members, host.mission_ground)
 	n.gci.tick(now, up[0] and up[1], jets(n.ents[0].side), host.mission_ground)
 	for i in n.sites.size():

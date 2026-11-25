@@ -21,8 +21,14 @@ pub const FIGHTER: Rcs = Rcs { front_m2: 5.0, side_m2: 25.0, rear_m2: 12.5, bays
 /// The earth's radius (m) and the standard refraction's 4/3 earth radius for the radar horizon (inferred standard).
 const EARTH_R: f64 = 6_371_000.0;
 const REFRACTION: f64 = 4.0 / 3.0;
-/// The quiet time after the last track ends before the crew ceases fire and moves (s, inferred).
-const CEASE: f64 = 20.0;
+/// The quiet time after the last track ends before the crew ceases fire and moves (s, inferred), by the skill's
+/// tactics (0, 1, 2): a capable crew moves "as often as every 10 minutes" (TC 7-100.2 §11-121), the Serbian crews of
+/// 1999 stayed "dispersed and mobile" (Lambeth 2002); a slow one lingers.
+const CEASE: [f64; 3] = [60.0, 20.0, 5.0];
+/// A High crew's search when autonomous and engaging nothing: on this long (s) in each period (s): the Serbian SAM
+/// crews of 1999 "would periodically emit with their radars for 20 seconds and then shut down the radars" (Lambeth
+/// 2002); the period is inferred.
+const BLINK: (f64, f64) = (20.0, 60.0);
 /// On the move off the roads a site drives at this share of its road speed (inferred).
 const CROSS_SHARE: f64 = 0.6;
 /// The 30N6E2 on its optional 40V6M tower (enemies.md §2.3): the antenna's height (m, inferred).
@@ -643,6 +649,16 @@ impl Site {
         }
     }
 
+    /// A High crew's search is off in its blink (the emission control by skill, [`BLINK`]): autonomous, engaging
+    /// nothing, outside its 20 s of each minute; each site's minute starts at its own time (its seed).
+    fn blinked(&self, now: f64) -> bool {
+        let offset = (self.seed % 120) as f64 * 0.5;
+        self.skill.tactics >= 2
+            && self.emission() == Emcon::Radiate
+            && self.channels.is_empty()
+            && (now + offset).rem_euclid(BLINK.1) >= BLINK.0
+    }
+
     /// The EMCON it runs: Cue under the network, else its own.
     fn emission(&self) -> Emcon {
         if self.net { Emcon::Cue } else { self.emcon }
@@ -783,7 +799,8 @@ impl Site {
         let duty_off = now < self.off_until && now >= self.window_until;
         let placed = self.placed();
         let up = placed && !duty_off;
-        let search_on = up && self.emission() == Emcon::Radiate && self.radar(alive, false).is_some();
+        let search_on =
+            up && !self.blinked(now) && self.emission() == Emcon::Radiate && self.radar(alive, false).is_some();
         let track_ok = up && can_track && self.emission() != Emcon::Silent;
         // How the site holds `t` now: Some(true) by radar, Some(false) optically.
         let hold = |s: &Site, t: &Target, radar_before: bool| -> Option<bool> {
@@ -940,7 +957,8 @@ impl Site {
             self.quiet_since = now;
             return;
         }
-        if self.fired_here > 0 && self.positions.len() > 1 && now - self.quiet_since >= CEASE {
+        let cease = CEASE[usize::from(self.skill.tactics.min(2))];
+        if self.fired_here > 0 && self.positions.len() > 1 && now - self.quiet_since >= cease {
             self.relocate(now);
         }
     }
@@ -1020,7 +1038,7 @@ impl Site {
             Mode::Setup(_) => "setup",
             Mode::Ready if now < self.off_until && now >= self.window_until => "rest",
             Mode::Ready if !self.channels.is_empty() => "engage",
-            Mode::Ready if self.emission() == Emcon::Radiate => "search",
+            Mode::Ready if self.emission() == Emcon::Radiate && !self.blinked(now) => "search",
             Mode::Ready => "silent",
         }
     }

@@ -240,6 +240,87 @@ fn closure_control_settles_behind() {
     }
 }
 
+/// A scripted jet flying straight at `speed` along `heading` (deg) at its height.
+fn straight(j: &mut Jet, heading: f64, speed: f32) {
+    let p = j.fm.state().position;
+    let h = heading.to_radians();
+    let to = p + Vec3::new(h.sin(), h.cos(), 0.0) * 400_000.0;
+    j.ap.steer = Some(Steer { to, g: 3.0, speed, thr_max: 1.0, fighter: false });
+    j.ap.set_mode(&mut j.fm, MODE_STEER);
+}
+
+/// Jet `n`'s moves in order (each once per run of decisions).
+fn moves(w: &mut Duel, n: usize, secs: f64) -> Vec<&'static str> {
+    let mut out = Vec::new();
+    w.run(secs, &mut |w| {
+        if out.last() != Some(&w.phase(n)) {
+            out.push(w.phase(n));
+        }
+    });
+    out
+}
+
+#[test]
+fn scissors_reversal_and_extension() {
+    // (1) Two Medium fighters line abreast 800 m apart, slow (170 m/s, below the corner): both fly the flat scissors.
+    // (2) A scripted jet 860 m behind a Medium one (outside its blind cone) closing at 80 m/s: it reverses, and the jet
+    // overshoots (passes its 3-9 line) within 15 s. (3) A Medium fighter 1.5 km lower and slower in the rear quarter of
+    // a jet flying away: it extends (unloaded, away), then comes back (the intercept). Shaw's moves (docs/ai.md §18.2).
+    let Some(dir) = own() else { return };
+    let duel = |a, b| Duel { jets: [a, b], t: 0.0, frames: 0, busy: Default::default(), err: (0.0, 0.0) };
+    let m = Some(Skill::MEDIUM);
+    let mut w =
+        duel(jet(&dir, Vec3::new(0.0, 0.0, ALT), 0.0, 170.0, m), jet(&dir, Vec3::new(800.0, 0.0, ALT), 0.0, 170.0, m));
+    let mut both = [Vec::new(), Vec::new()];
+    w.run(30.0, &mut |w| {
+        for (n, b) in both.iter_mut().enumerate() {
+            if b.last() != Some(&w.phase(n)) {
+                b.push(w.phase(n));
+            }
+        }
+    });
+    println!("abreast: {both:?}");
+    assert!(w.alive(), "both fly");
+    assert!(both.iter().all(|b| b.contains(&"flat scissors")), "{both:?}");
+
+    let mut attacker = jet(&dir, Vec3::new(-500.0, -700.0, ALT), 0.0, 350.0, None);
+    straight(&mut attacker, 0.0, 350.0);
+    let mut w = duel(jet(&dir, Vec3::new(0.0, 0.0, ALT), 0.0, 250.0, m), attacker);
+    let mut passed = None;
+    let mut seq = Vec::new();
+    w.run(15.0, &mut |w| {
+        if seq.last() != Some(&w.phase(0)) {
+            seq.push(w.phase(0));
+        }
+        // The attacker's angle off the defender's tail past 90°: it is in front of the defender's 3-9 line.
+        let (_, _, aa) = w.geometry(1);
+        if aa > 90.0 && passed.is_none() {
+            passed = Some(w.t);
+        }
+    });
+    // After the overshoot the defender turns the tables: offensive on the jet (within 60° of its nose, behind its 3-9
+    // line, inside 3 km) within 20 s.
+    let mut turned = None;
+    w.run(20.0, &mut |w| {
+        let (r, ata, aa) = w.geometry(0);
+        if r < 3000.0 && ata < 60.0 && aa < 90.0 && turned.is_none() {
+            turned = Some(w.t);
+        }
+    });
+    println!("overshoot: {seq:?}, passed at {passed:?}, offensive at {turned:?}");
+    assert!(w.alive(), "both fly");
+    assert!(seq.contains(&"reversal") && passed.is_some() && turned.is_some(), "{seq:?} {passed:?} {turned:?}");
+
+    let mut away = jet(&dir, Vec3::new(4000.0, 0.0, ALT + 1500.0), 90.0, 250.0, None);
+    straight(&mut away, 90.0, 250.0);
+    let mut w = duel(jet(&dir, Vec3::new(0.0, 0.0, ALT), 0.0, 200.0, m), away);
+    let seq = moves(&mut w, 0, 90.0);
+    println!("extension: {seq:?}");
+    assert!(w.alive(), "both fly");
+    let ext = seq.iter().position(|p| *p == "extend");
+    assert!(ext.is_some_and(|i| seq[i + 1..].iter().any(|p| *p != "extend")), "{seq:?}");
+}
+
 #[test]
 fn defensive_break() {
     // A fighter at High 1.2 km behind, nose on: the defender breaks (turns hard into it) at once and is out of its gun
@@ -324,4 +405,33 @@ fn neutral_merge_skill_decides() {
         score[1][0], score[1][1], score[0][0], score[0][1]
     );
     assert!(score[1][0] > score[0][0], "High offensive longer");
+}
+
+#[test]
+fn r73_on_the_helmet_sight() {
+    // A bogey 4 km ahead jamming the MiG's radar beyond its burn-through (the strobe: no range, no radar shot): with
+    // the R-73 selected its pilot, seeing the bogey, shoots on the helmet sight; with the R-27R it does not.
+    let Some(dir) = own() else { return };
+    for ir in [false, true] {
+        let mut j = jet(&dir, Vec3::new(0.0, 0.0, ALT), 0.0, 250.0, Some(Skill::MEDIUM));
+        let f = j.flight.as_mut().unwrap();
+        let (mut t, mut shot) = (0.0, false);
+        while t < 5.0 && !shot {
+            let b = Bogey { pos: Vec3::new(1000.0, 4000.0 + 50.0 * t, ALT), vel: Vec3::new(0.0, 200.0, 0.0) };
+            f.sense(1, true, &j.fm, &j.ap);
+            f.bandits(vec![Bandit::new(1, b, 0.01)]);
+            f.weapons(1, (8000.0, 300.0), true, false);
+            f.weapon_ir(1, ir);
+            f.step(t);
+            let e = &f.members[0].enemy;
+            assert!(e.strobe && !e.contact && e.visual, "jammed, seen: {e:?}");
+            shot = f.members[0].order.shoot;
+            apply(&f.members[0].order, &mut j.ap, &mut j.fm);
+            j.ap.step(&mut j.fm, &|_, _| 0.0);
+            j.fm.step(DT);
+            t += DT;
+        }
+        println!("ir {ir}: shot {shot} at {t:.2} s");
+        assert_eq!(shot, ir);
+    }
 }

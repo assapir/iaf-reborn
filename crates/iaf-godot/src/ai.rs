@@ -274,6 +274,12 @@ impl IafAi {
         self.flight.weapons(number.clamp(0, 255) as u8, (max, min), armed, in_air);
     }
 
+    /// A jet `number`'s selected missile homes on infrared: its pilot's helmet sight cues it on a bogey in sight.
+    #[func]
+    fn set_ir(&mut self, number: i64, ir: bool) {
+        self.flight.weapon_ir(number.clamp(0, 255) as u8, ir);
+    }
+
     /// An enemy jet `number` shoots at its bogey this frame (after `step`; the host's launch: combat.gd's).
     #[func]
     fn shoot(&self, number: i64) -> bool {
@@ -416,6 +422,12 @@ impl IafGci {
         let jets: Vec<Target> =
             jets.iter_shared().filter_map(|v| v.try_to::<VarDictionary>().ok()).map(|d| target(&d)).collect();
         self.gci.tick(now, up, &jets, &terrain(Some(ground)));
+    }
+
+    /// The jets the network's other radars hold this tick (the sites' tracks, the fighters' contacts): ids.
+    #[func]
+    fn set_shared(&mut self, ids: PackedStringArray) {
+        self.gci.shared = ids.as_slice().iter().map(|s| s.to_string()).collect();
     }
 
     /// The vector for fighters on station at `station` (world): {id, pos, vel} (world) of the track nearest it within
@@ -615,6 +627,12 @@ impl IafNet {
     #[func]
     fn create(radar: Vector3) -> Gd<Self> {
         Gd::from_object(Self { net: Net::new(vec3(radar)) })
+    }
+
+    /// The jets the network's fighters hold in their radars this tick: ids (their tracks cue the sites).
+    #[func]
+    fn set_shared(&mut self, ids: PackedStringArray) {
+        self.net.shared = ids.as_slice().iter().map(|s| s.to_string()).collect();
     }
 
     /// Its parts, as `IafSite.parts`: the 64N6E2 search radar (the S-300's RWR symbol) and the 54K6E2 command post.

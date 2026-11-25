@@ -304,3 +304,36 @@ fn gci_vectors_the_nearest_sweep_track() {
     gci.tick(13.5, true, &[b], &flat);
     assert_eq!(gci.tracks.len(), 1);
 }
+
+#[test]
+fn fighters_and_sites_share_their_tracks() {
+    // TC 7-100.2 §11-15: a jet below the 64N6E2's horizon that a fighter's radar holds goes into the picture and
+    // cues a site, whose search stays off and whose track radar fires on it; the GCI refreshes its track from the
+    // shared contacts between sweeps and keeps it while they hold it.
+    let hill = |p: Vec3| Some(if p.y > 2_000.0 && p.y < 4_000.0 { 3_000.0 } else { 0.0 });
+    let low = jet("low", Vec3::new(0.0, 60_000.0, 100.0), Vec3::new(0.0, -250.0, 0.0));
+    let mut gci = Gci::new(Vec3::ZERO);
+    gci.tick(0.0, true, std::slice::from_ref(&low), &hill);
+    assert!(gci.tracks.is_empty(), "masked from the 64N6E2");
+    gci.shared = vec!["low".into()];
+    let later = Target { pos: Vec3::new(0.0, 59_000.0, 100.0), ..low.clone() };
+    gci.tick(4.0, true, std::slice::from_ref(&later), &hill);
+    assert_eq!(gci.tracks.len(), 1, "a fighter's contact");
+    assert_eq!(gci.tracks[0].pos, later.pos, "refreshed between sweeps");
+    gci.shared.clear();
+    gci.tick(4.0 + 2.0 * SCAN + 2.0, true, std::slice::from_ref(&later), &hill);
+    assert!(gci.tracks.is_empty(), "dropped once nothing holds it");
+
+    // The network: the radar 30 km south behind a ridge sees nothing low to the north; a fighter's contact cues the
+    // site, which fires with its search off.
+    let mut sim = Sim::new(Vec3::new(0.0, -30_000.0, 0.0), &[Vec3::ZERO], vec![southbound("a", 60.0)]);
+    sim.targets[0].pos.z = 60.0;
+    sim.radar = true;
+    sim.run(20.0);
+    assert!(sim.launches(0).is_empty() && !sim.net.picture.contains_key("a"), "under the horizon: no picture");
+    sim.net.shared = vec!["a".into()];
+    sim.run(120.0);
+    assert!(sim.net.picture.contains_key("a"), "the fighter's track in the picture");
+    assert!(!sim.launches(0).is_empty(), "the site fires on the fighter's track");
+    assert!(sim.when(0, |o| o.search).is_empty(), "its search off");
+}

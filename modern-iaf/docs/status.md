@@ -3,6 +3,18 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The enemy's dogfight moves and the air-defence network's shared tracks (2026-11-25, the user: "no loose corners";
+  the enemy-AI list's "IADS network, enemy-fighter BFM"; [ai-plan.md](ai-plan.md) K4–K6, X4;
+  [../../docs/ai.md](../../docs/ai.md) §15.1, §15.5, §17, §18.2):** a MiG-29A in the dogfight also flies the reversal
+  (it slows into an attacker closing fast so the attacker overshoots), the flat and rolling scissors, and the
+  extension (away at full power when low on energy in the bogey's rear quarter, then back by the intercept), by its
+  skill's tactics; it fires its R-73 on a bogey its pilot sees (the helmet sight), without its radar. The S-300
+  network takes its fighters' radar contacts and the sites' tracks into its picture: a site cued on a MiG's track fires
+  with its own search off, and the GCI vectors on a jet below the search radar's horizon that a site or a MiG holds.
+  The crews' emission control and move by skill: a High crew's search radiates 20 s a minute while it is alone and
+  idle; after an engagement a crew moves 60 s (Low), 20 s (Medium) or 5 s (High) after its last track. Tests:
+  `crates/iaf-ai/tests/dogfight.rs`, `net.rs`, `sites.rs`, `modern-iaf/tests/test_bfm_iads.gd`. No mission places
+  one.
 - **The full AWACS (2026-11-25, the user: "Full AWACS"; "The eitam should be in the sky in makes sense place - where
   it not directly in the middle of the flight. It's ai should know to run away if needed or call for help"; ai-plan
   C1, C2, K10; [../../docs/ai.md](../../docs/ai.md) §24):** the radio menu's third page asks the AWACS for a picture,

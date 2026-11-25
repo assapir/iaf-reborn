@@ -69,6 +69,10 @@ pub struct Enemy {
     /// its own missile flying at the bogey.
     pub dlz: (f64, f64),
     pub armed: bool,
+    /// The selected missile homes on infrared (the R-73): the pilot's helmet sight cues it on a bogey in sight, no
+    /// radar needed ("a lock on any target the pilot could see ... almost 45 degrees off boresight", Wikipedia, the
+    /// MiG-29; combat.gd's launch cone still holds).
+    pub ir: bool,
     pub in_air: bool,
     /// What it knows of the bogey this decision: its own radar's contact, else the ground's vector, else its radar's
     /// jamming strobe.
@@ -225,12 +229,13 @@ pub(crate) fn evade(m: &mut Member) -> Status {
     steer(m, st, phase)
 }
 
-/// Its missile at the bogey (the host's launch, `Order::shoot`): committed, its radar holding the bogey, a missile
-/// left and none of its own flying at it, the bogey inside its window ([`in_window`]) for its reaction time (the
-/// launch's timing: the bogey goes deeper while it reacts). A side effect: the tree goes on.
+/// Its missile at the bogey (the host's launch, `Order::shoot`): committed, its radar holding the bogey (an infrared
+/// missile: or its pilot seeing it, [`Enemy::ir`]), a missile left and none of its own flying at it, the bogey inside
+/// its window ([`in_window`]) for its reaction time (the launch's timing: the bogey goes deeper while it reacts). A
+/// side effect: the tree goes on.
 pub(crate) fn shoot(m: &mut Member) -> Status {
     let e = &m.enemy;
-    let ready = e.bogey.filter(|_| e.committed && e.contact && e.armed && !e.in_air);
+    let ready = e.bogey.filter(|_| e.committed && (e.contact || e.visual && e.ir) && e.armed && !e.in_air);
     if !ready.is_some_and(|b| in_window(b.pos.distance(m.v.pos), e.dlz, m.skill.launch_range)) {
         m.enemy.aimed = None;
     } else if m.now >= *m.enemy.aimed.get_or_insert(m.now) + m.skill.reaction_s {
@@ -239,8 +244,8 @@ pub(crate) fn shoot(m: &mut Member) -> Status {
     Status::Failure
 }
 
-/// The lead committed: the collision course at the bogey, or the crank while its missile flies (tactics 1 and up);
-/// back to the station (fails) once the bogey is lost, past [`ABORT_M`] from the station, or with nothing left to shoot.
+/// The lead committed: the collision course at the bogey, or the crank while its missile flies (tactics 1 and up); back
+/// to the station (fails) once the bogey is lost, past [`ABORT_M`] from the station, or with nothing left to shoot.
 pub(crate) fn intercept(m: &mut Member) -> Status {
     let e = &m.enemy;
     let Some(b) = e.bogey.filter(|b| flat(b.pos, e.station) <= ABORT_M && (e.armed || e.in_air)) else {

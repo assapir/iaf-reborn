@@ -3,13 +3,14 @@
 //! the two jets' energy heights, its own turn from the 6-DoF's real limits (the corner speed: the wing's lift at the α
 //! limit against the g limit, [`Member::corner`]) and the bogey's turn as seen (its velocity's swing between two
 //! decisions), and picks a move after Shaw's "Fighter Combat" (1985): pursuit (lead, pure, lag) and the yo-yos when
-//! offensive; the break and the guns jink when defensive; the rate fight, the radius fight or the vertical when neutral.
-//! The skill's tactics pick the branches ([`Skill::tactics`]): 0 the plain ones (pure pursuit, a level turn at full
-//! g and full power, the break), 1 also the lag, the low yo-yo, the speed held at the corner, the choice between the
-//! rate and the radius fight, the break down, 2 also the high yo-yo, the vertical and the jink. The autopilot's BFM
-//! loop ([`MODE_BFM`]) flies the move's point in any plane; the point follows the bogey every frame ([`aim_point`]).
-//! The gun fires when the lead point is on the nose inside the gun's range, off by the skill's laying error
-//! ([`Skill::lay`]). Every figure here is inferred unless its comment names a source.
+//! offensive; the break, the reversal into a scissors and the guns jink when defensive; the rate fight, the radius
+//! fight, the vertical, the scissors or the extension when neutral. The skill's tactics pick the branches
+//! ([`Skill::tactics`]): 0 the plain ones (pure pursuit, a level turn at full g and full power, the break), 1 also the
+//! lag, the low yo-yo, the speed held at the corner, the choice between the rate and the radius fight, the break down,
+//! the flat scissors and the extension, 2 also the high yo-yo, the vertical, the rolling scissors and the jink. The
+//! autopilot's BFM loop ([`MODE_BFM`]) flies the move's point in any plane; the point follows the bogey every frame
+//! ([`aim_point`]). The gun fires when the lead point is on the nose inside the gun's range, off by the skill's laying
+//! error ([`Skill::lay`]). Every figure here is inferred unless its comment names a source.
 
 use iaf_flight::Vec3;
 use iaf_flight::autopilot::{MODE_BFM, MODE_STEER, Steer};
@@ -64,6 +65,22 @@ const JINK: f64 = 1.0;
 const RADIUS_SPEED: f32 = 0.75;
 const UNLOAD: (f32, f32) = (0.85, 3.0);
 const FULL: f32 = 600.0;
+/// The scissors (Shaw: two jets close and slow, side by side, each reversing to get behind the other; the slower one
+/// wins): the bogey within this range (m), off its wing (its nose this far off the bogey, deg), both flying the same
+/// way (the paths within [`SCISSORS_DEG`]'s first angle) and the bogey slower than the corner speed; flown at this
+/// share of the corner speed, the speed brake out. Defensive, an attacker closing faster than [`OVERSHOOT`]'s rate
+/// inside the gun's range is made to overshoot by the same slow reversal.
+const SCISSORS_M: f64 = 1500.0;
+const SCISSORS_DEG: (f64, f64) = (45.0, 135.0);
+const SCISSORS_SPEED: f32 = 0.6;
+/// The extension (Shaw's separation: unloaded at full power, out of the fight, to come back with the energy): neutral,
+/// this much energy height behind (m), farther than this (m), the bogey's nose this far or more off it (deg: 180 less
+/// its aspect angle: it is in the bogey's rear quarter, its nose a long turn away); the turn it keeps (g) and the
+/// dive's point below (share of the range).
+const EXTEND_M: (f64, f64) = (600.0, 3000.0);
+const EXTEND_NOSE_DEG: f64 = 120.0;
+const EXTEND_G: f32 = 2.0;
+const EXTEND_DIVE: f64 = 0.1;
 /// The corner speed when the flight model gives none (the original model; m/s, about 330 kt, inferred).
 const CORNER: f32 = 170.0;
 /// The fight's floor: no point below this height above the ground (m; the intercept's notch floor).
@@ -71,12 +88,14 @@ pub const FLOOR_M: f64 = 500.0;
 const G: f64 = 9.80665;
 
 /// Where the move's point lies: on the bogey's path `lead_s` ahead (behind when negative), `up` × the range above it
-/// (below when negative); `level` at that height (m; a level turn: the height it began at).
+/// (below when negative); `level` at that height (m; a level turn: the height it began at); `away`: the bogey's
+/// point mirrored through its own position (the extension: straight away from it), `up` then off its own height.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Aim {
     pub lead_s: f64,
     pub up: f64,
     pub level: Option<f64>,
+    pub away: bool,
 }
 
 /// A move: its name, its point, the load factor (g) and the speed (m/s) it flies.
@@ -158,7 +177,7 @@ pub fn choose(own: &Jet, b: &Jet, corner: f32, max_g: f32, skill: &Skill, now: f
         // bogey's as seen).
         let wide = speed as f64 / own.rate > b.vel.length() / b.rate.max(1e-3);
         if t >= 2 && closure > 2.0 * OVERSHOOT.0 && range < OVERSHOOT.1 && aa > HIGH_YOYO_DEG {
-            return corner_move("high yo-yo", Aim { lead_s: -LAG_S, up: YOYO, level: None }, close);
+            return corner_move("high yo-yo", Aim { lead_s: -LAG_S, up: YOYO, ..at }, close);
         }
         if range < OVERSHOOT.1 && closure > OVERSHOOT.0 || wide && range > GUN_M.1 && range < OVERSHOOT.1 {
             return corner_move("lag", Aim { lead_s: -LAG_S, ..at }, close);
@@ -170,7 +189,17 @@ pub fn choose(own: &Jet, b: &Jet, corner: f32, max_g: f32, skill: &Skill, now: f
         let (name, aim) = if range <= GUN_M.1 { ("lead", lead) } else { ("pursuit", at) };
         return chase(name, aim);
     }
+    // Slow, pulling into the bogey with the speed brake out: it flies past (the overshoot) or falls behind.
+    let scissors = |name| Move {
+        name,
+        aim: Aim { up: if t >= 2 { YOYO } else { 0.0 }, ..at },
+        g: max_g,
+        speed: SCISSORS_SPEED * corner,
+    };
     if defensive(range, ata, aa) {
+        if t >= 1 && range < GUN_M.1 && closure > OVERSHOOT.0 {
+            return scissors("reversal");
+        }
         if t >= 2 && range < GUN_M.1 * 1.5 {
             let up = if (now / JINK_S).floor() as i64 % 2 == 0 { JINK } else { -JINK };
             return full("jink", Aim { up, ..at });
@@ -182,6 +211,14 @@ pub fn choose(own: &Jet, b: &Jet, corner: f32, max_g: f32, skill: &Skill, now: f
     }
     if t == 0 {
         return full("turn", Aim { level: Some(own.pos[2]), ..at });
+    }
+    let together = angle(own.vel, b.vel) < SCISSORS_DEG.0 && (b.vel.length() as f32) < corner;
+    if range < SCISSORS_M && (SCISSORS_DEG.0..=SCISSORS_DEG.1).contains(&ata) && together {
+        return scissors(if t >= 2 { "rolling scissors" } else { "flat scissors" });
+    }
+    if de < -EXTEND_M.0 && range > EXTEND_M.1 && 180.0 - aa >= EXTEND_NOSE_DEG {
+        let aim = Aim { up: -EXTEND_DIVE, away: true, ..at };
+        return Move { name: "extend", aim, g: EXTEND_G.min(max_g), speed: FULL };
     }
     if t >= 2 && de > ENERGY_M && speed > corner {
         return corner_move("vertical", Aim { up: YOYO, ..at }, FULL);
@@ -197,6 +234,10 @@ pub fn choose(own: &Jet, b: &Jet, corner: f32, max_g: f32, skill: &Skill, now: f
 pub fn aim_point(p: Vec3, b: &Bogey, aim: &Aim, lay: [f64; 2], floor: f64) -> Vec3 {
     let mut to = b.pos + b.vel * aim.lead_s;
     let range = (to - p).length();
+    if aim.away {
+        to = p * 2.0 - to;
+        to[2] = p[2];
+    }
     to[2] += aim.up * range;
     let los = (to - p).try_normalize().unwrap_or(Vec3::NORTH);
     let across = los.cross(Vec3::UP).try_normalize().unwrap_or(Vec3::new(1.0, 0.0, 0.0));
@@ -303,6 +344,28 @@ mod tests {
         assert_eq!(pick(&jet(0.0, 0.0, 0.1, 0.0, 250.0), &head, 1), "radius");
         let high = Jet { pos: Vec3::new(0.0, 0.0, 6000.0), ..me };
         assert_eq!(pick(&high, &head, 2), "vertical");
+        // Side by side 800 m apart, abeam, the bogey slow: the flat scissors (1), the rolling one (2), the plain turn
+        // (0); slow. Passing head-on: no scissors.
+        let abeam = jet(800.0, 0.0, 0.2, 0.0, 200.0);
+        assert_eq!(pick(&me, &abeam, 0), "turn");
+        assert_eq!(pick(&me, &abeam, 1), "flat scissors");
+        let mv = choose(&me, &abeam, 220.0, 9.0, &s(2), 0.0);
+        assert_eq!((mv.name, mv.speed, mv.aim.up), ("rolling scissors", SCISSORS_SPEED * 220.0, YOYO));
+        assert!(!pick(&me, &jet(800.0, 0.0, 0.2, 0.0, -200.0), 1).contains("scissors"));
+        // The bogey 700 m behind closing at 100 m/s: the reversal (1, 2) before the jink; the break (0).
+        let closing = jet(0.0, -700.0, 0.2, 0.0, 350.0);
+        assert_eq!(pick(&me, &closing, 0), "break");
+        assert_eq!(pick(&me, &closing, 1), "reversal");
+        assert_eq!(pick(&me, &closing, 2), "reversal");
+        // 4 km off (abeam: not offensive), 1 km of energy height lower, the bogey flying away: the extension (1, 2),
+        // unloaded at full power; its nose on it: no extension.
+        let low = Jet { pos: Vec3::new(0.0, 0.0, 4000.0), ..me };
+        let crossing = Jet { pos: Vec3::new(4000.0, 0.0, 5000.0), vel: Vec3::new(250.0, 0.0, 0.0), rate: 0.2 };
+        assert_eq!(pick(&low, &crossing, 0), "turn");
+        let mv = choose(&low, &crossing, 220.0, 9.0, &s(1), 0.0);
+        assert_eq!((mv.name, mv.g, mv.speed, mv.aim.away), ("extend", EXTEND_G, FULL, true));
+        let pointing = Jet { vel: Vec3::new(-250.0, 0.0, 0.0), ..crossing };
+        assert_ne!(pick(&low, &pointing, 1), "extend");
         // Below the corner speed the rate fight unloads.
         let slow = jet(0.0, 0.0, 0.3, 0.0, 150.0);
         let mv = choose(&slow, &head, 220.0, 9.0, &s(1), 0.0);
@@ -318,9 +381,13 @@ mod tests {
             aim_point(p, &b, &Aim { lead_s: 0.5, ..Aim::default() }, [0.0; 2], 0.0),
             Vec3::new(100.0, 1000.0, 5000.0)
         );
-        let lag = aim_point(p, &b, &Aim { lead_s: -LAG_S, up: YOYO, level: None }, [0.0; 2], 0.0);
+        let lag = aim_point(p, &b, &Aim { lead_s: -LAG_S, up: YOYO, ..Aim::default() }, [0.0; 2], 0.0);
         let r = (Vec3::new(-300.0, 1000.0, 5000.0) - p).length();
         assert!((lag[0] + 300.0).abs() < 1e-9 && (lag[2] - 5000.0 - YOYO * r).abs() < 1e-9, "{lag:?}");
+        // The extension: the bogey's point mirrored through its own, a share of the range below its own height.
+        let ext = aim_point(p, &b, &Aim { up: -EXTEND_DIVE, away: true, ..Aim::default() }, [0.0; 2], 0.0);
+        let r = (b.pos - p).length();
+        assert!(ext[1] == -1000.0 && ext[0] == 0.0 && (ext[2] - 4000.0 + EXTEND_DIVE * r).abs() < 1e-9, "{ext:?}");
         assert_eq!(aim_point(p, &b, &Aim { level: Some(4000.0), ..Aim::default() }, [0.0; 2], 0.0)[2], 4000.0);
         // A laying error of 2 mrad across moves the point 2 m per km sideways.
         let off =

@@ -1047,6 +1047,13 @@ impl Flight {
         }
     }
 
+    /// Jet `number`'s selected missile homes on infrared ([`Enemy::ir`](crate::fighter::Enemy::ir)).
+    pub fn weapon_ir(&mut self, number: u8, ir: bool) {
+        if let Some(i) = self.index(number) {
+            self.members[i].enemy.ir = ir;
+        }
+    }
+
     /// An AWACS contact call (fctrl.rs) at `now`: the contact's compass bearing (deg) and range (NM) from the player's
     /// jet (else the lead's); `enemy`: hostile or unidentified. The first AI jet by number holding it in its radar
     /// reports "contact" after its reaction time: a bandit at the point as this decision's radar holds it
