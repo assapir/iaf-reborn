@@ -6,15 +6,15 @@
 #     -s ../tests/godot/test_detailed_cockpit.gd
 extends "res://../tests/godot/base.gd"
 
-const Gltf := preload("res://shared/util/gltf.gd")
-
 
 func run() -> void:
 	await require_data()
+	# Loaded here, not preloaded: gltf.gd reaches Settings, which a scene script (-s) compiles before.
+	var gltf: GDScript = load("res://shared/util/gltf.gd")
 	var aircraft_model: GDScript = load("res://shared/aircraft/aircraft_model.gd")
-	for path in [Gltf.DETAILED["f16_h.gltf"], settings().airframe_def("f16i").model]:
+	for path in [gltf.DETAILED["f16_h.gltf"], settings().airframe_def("f16i").model]:
 		var tag := String(path).get_file()
-		var whole: Node3D = Gltf.instance(Gltf.model(path))
+		var whole: Node3D = gltf.instance(gltf.model(path))
 		var crew := whole.find_child("pilot", true, false) as MeshInstance3D
 		var n: int = aircraft_model.F16_SEAT_SURFACES
 		check(
@@ -35,6 +35,8 @@ func run() -> void:
 		var ahead := 0
 		var seat_aft := -INF
 		for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
+			if not mi.visible:  # the canopy's glass, kept hidden for an open canopy (Modern IAF)
+				continue
 			var xf: Transform3D = root.transform * mi.transform if mi.get_parent() == root else root.transform
 			for s in mi.mesh.get_surface_count():
 				var v: PackedVector3Array = mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
@@ -55,6 +57,7 @@ func run() -> void:
 			"%s: seat back %.2f m behind the eye" % [tag, seat_aft - eye.z]
 		)
 		check(root.get_node_or_null("pilotB") != null, "%s: the rear cockpit and its crew stay" % tag)
+		_check_well(aircraft_model, path, tag)
 		for g in ["LdgF", "LdgL", "LdgR", "LdgDr"]:
 			check(root.get_node_or_null(g) == null, "%s: no %s" % [tag, g])
 		check((root.get_node("LdgDrUp") as Node3D).visible, "%s: the closed gear doors shown" % tag)
@@ -66,7 +69,7 @@ func run() -> void:
 		check(grey, "%s: the canopy frame in frame grey, not the livery" % tag)
 		var seat := root.get_node("pilot") as MeshInstance3D
 		var seat_mat := seat.mesh.surface_get_material(0) as BaseMaterial3D
-		var orig_mat := Gltf.instance(Gltf.model(path)).find_child("pilot", true, false) as MeshInstance3D
+		var orig_mat := gltf.instance(gltf.model(path)).find_child("pilot", true, false) as MeshInstance3D
 		check(
 			seat_mat.roughness > 0.8 and orig_mat.get_active_material(0).roughness == 0.5,
 			(
@@ -87,3 +90,34 @@ func run() -> void:
 		check(tv.own_bc != null and detailed == c[2], "Models %s, %s: detailed cockpit model %s" % c)
 	settings().models = "original"
 	settings().f16_variant = "barak"
+
+
+## With the 3D cockpit (both games): no interior triangle stands in the front seat's well, where the rear cockpit's
+## footwell stood as a black slab (docs/aircraft-models.md §1.4).
+func _check_well(aircraft_model: GDScript, path: String, tag: String) -> void:
+	var cut: Array = aircraft_model.detailed_cockpit(path, true)
+	var m: Node3D = cut[0]
+	var eye: Vector3 = cut[1] + Vector3(0, aircraft_model.F16_3D_SEAT_DOWN, 0)
+	var root := m.get_child(0) as Node3D
+	var left := 0
+	for mi: MeshInstance3D in m.find_children("*", "MeshInstance3D", true, false):
+		if not mi.visible or mi.name == "pilot":
+			continue
+		var xf: Transform3D = root.transform * mi.transform if mi.get_parent() == root else root.transform
+		for s in mi.mesh.get_surface_count():
+			if not mi.mesh.surface_get_material(s).resource_name.begins_with("ac_"):
+				continue
+			var a := mi.mesh.surface_get_arrays(s)
+			var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+			var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
+			for i in range(0, idx.size(), 3):
+				var in_well := true
+				var near := false
+				for k in 3:
+					var q := xf * v[idx[i + k]]
+					in_well = in_well and absf(q.x) < aircraft_model.F16_SEAT_HALF_WIDTH
+					in_well = in_well and q.y < eye.y - aircraft_model.F16_LAP_BELOW
+					near = near or q.z < eye.z + aircraft_model.F16_CONSOLE_AFT
+				left += 1 if in_well and near else 0
+	check(left == 0, "%s: the 3D cockpit's seat well empty (%d triangles)" % [tag, left])
+	m.free()

@@ -146,7 +146,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   counts "1 flight" / "טיסה אחת" in the singular. Tests: `cargo test -p iaf-tools --lib combat_log pilot_log`,
   `modern-iaf/tests/test_combat_log.gd` (the events from a flight), `test_combat_screens.gd` (the screens, en + he).
   The unit names in Hebrew (משגר S-300, מכ"ם גילוי S-300, גרוטת F-16 …) are ours: the system names as Israeli press
-  writes them with the Hebrew noun for the vehicle; open: an IAF source for each.
+  writes them with the Hebrew noun for the vehicle; an IAF source for each: no public source found (searched
+  2026-11-26).
 - **The big fight (2026-11-23, the user, 22 Nov: "If possible create a video of your multiplabes multi sam etc
   dogfight?"; [ai-plan.md](ai-plan.md) K12, X5; [../../docs/ai.md](../../docs/ai.md) §22):** one dev-hook scenario
   with everything at once. Our four-ship flies low and gets the sort, weapons free and a ground attack. It faces a MiG-29A pair on
@@ -906,7 +907,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   it from the photo's camera. The switch held runs the canopy, the lever down locks it and puts the CANOPY light out;
   Ctrl+K does the whole sequence ([cockpit.md](cockpit.md) §5.6). The grey rod drawn on the sill from 2026-11-11 was
   removed the same day (the user: "remove the f16 cockpit handle. It isn't right for sure"). Open: no marking, the
-  jettison T-handle and a two-seater's own wall, for want of a picture.
+  jettison T-handle and a two-seater's own wall: no public source found (searched 2026-11-26).
 - **The F-16s' DED DATA and DEPR RET switches (2026-11-19, A62):** the HUD remote control
   panel's third and fourth switch move and are clicked as its other four; each a click or its key (Alt + D, Alt + R)
   ([cockpit.md](cockpit.md) §5.11).
@@ -1199,8 +1200,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   and its
   place ([cockpit.md](cockpit.md) §5.2). The F-35I's the same on its own panels: BATT, IPP, ENG (or START, or the
   throttle) and CANOPY, new nodes of `f35i.glb` at inferred places. `test_mvp.gd` (the Sufa's and the F-35I's
-  start-up by clicks). Open: the JFS switch's spring back to OFF, the INS knob mostly hidden by the right sill from
-  the eye, the F-35I's ENG guard.
+  start-up by clicks). The JFS switch springs back to OFF once the engine sustains itself, and the F-35I's ENG switch
+  sits under its red guard, a first click lifting it ([cockpit.md](cockpit.md) §5.2). Open: the INS knob mostly hidden
+  by the right sill from the eye.
 - **AVIONIC POWER switches one by one, the AoA at rest on the ground (2026-11-11, from the user's Mac):** a click
   throws one AVIONIC POWER switch with its click; the four on take the step; MFD powers the MFDs, UFC the DED
   ([cockpit.md](cockpit.md) §5.2). The AoA gauge, indexer and HUD rest at 0° below 60 kt and follow the flow above it

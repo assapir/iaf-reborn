@@ -96,7 +96,8 @@ are never committed. From the checkout, by hand: `target/release/iaf-setup guide
    - A picture whose stamp (`<name>.stamp`: its entry, the shot script, Godot's version, the frame size, the data's
      paths and sizes, without the scenery, roads and detailed models that no shot draws) still matches is kept;
      `--force` renders every one. Other game code is not in the stamp, so a game update keeps the pictures (in a
-     release bundle the shot script is inside the game too); `--force` from a checkout renders them again. A FAIL
+     release bundle the shot script is inside the game too); the wizard's redo on the Pilot guides step renders them
+     again, in a release bundle as in a checkout (`IafSetup.start`: the step's redo sets `force`). A FAIL
      line, a crash or a process stuck past `GUIDE_TIMEOUT` s per shot (default 600) fails the step.
    - The Godot logs go to `assets/logs/guide-shots-<seconds>-<pid>/`, kept only when something failed. Each
      failure line ends with its process's log file, and the step's error lists the failed processes' logs.

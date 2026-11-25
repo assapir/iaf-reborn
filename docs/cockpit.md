@@ -689,8 +689,10 @@ occlusion, 2.0 MB; built by
   modern-iaf/docs/cockpit.md §5.3): at the head's lowest the camera looks 72° down. Modern IAF shows the pilot's body
   there, FlightGear's internal-view pilot (`f16_pilot.glb`): the legs to the rudder pedals, the right hand on the
   stick, the left on the throttle; the head bends forward over it (`LOOK_DOWN_LEAN`). The original game shows no
-  body: looking down it sees the seat's well, the cut model's seat and, standing in the well as a black slab, the
-  rear cockpit's footwell (open: for later).
+  body: looking down it sees the seat's cushion and, ahead of it, the footwell down to the rudder pedals. In both
+  games the rear cockpit's footwell, which runs on under the front seat, is left out of the seat's well
+  (`aircraft_model.gd` `F16_SEAT_HALF_WIDTH`), and the helmet display blanks over the footwell (real-hud.md "DASH
+  helmet").
 * **A cockpit dir with no panel art** (Modern IAF; `tests/godot/test_cockpit_no_panel.gd`): a
   `cockpit.json` without the art's `FileName` keys loads no panel bitmap, lamps, HUD glass, tapes or ADI ball, and
   with the 3D cockpit on nothing else needs them: the 3D cockpit draws the MFDs, the HUD, the RWR scope and the

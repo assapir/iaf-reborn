@@ -243,7 +243,7 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		for mi: MeshInstance3D in top.find_children("*", "MeshInstance3D", true, false):
 			var tris := _opaque_tris(mi)
 			if tris != null:
-				_sight_room.append([mi, tris, mi.get_aabb()])
+				_sight_room.append([mi, tris, mi.get_aabb(), BLANK_TUB_M if is_ancestor_of(mi) else BLANK_M])
 	_setup_instruments(n)
 	_setup_light(n)
 	var table := path.get_basename() + "_controls.json"
@@ -1109,21 +1109,21 @@ func _nose_shift() -> Vector2:
 
 
 ## The helmet display's cockpit blanking (docs/real-hud.md "DASH helmet"): true while the helmet's line of sight (the
-## camera's axis) meets the cockpit's own opaque surfaces within BLANK_M of the eye (the canopy rail, the consoles, the
-## panel, the pilot's body), so the symbols never draw over the cockpit. Only with a combiner glass: the F-35I's
+## camera's axis) meets the cockpit's opaque surfaces (the canopy rail, the consoles, the panel, the pilot's body, the
+## footwell): the cockpit-view model's within BLANK_M of the eye, this cockpit's own within BLANK_TUB_M, so the symbols
+## never draw over the cockpit. Only with a combiner glass: the F-35I's
 ## helmet display draws everywhere.
 func _sight_in_cockpit() -> bool:
 	if _glass == null:
 		return false
 	var eye := camera.global_position
-	var to := eye - camera.global_basis.z * BLANK_M
 	for e in _sight_room:
 		var mi: MeshInstance3D = e[0]
 		if not is_instance_valid(mi) or not mi.is_visible_in_tree():
 			continue
 		var inv := mi.global_transform.affine_inverse()
 		var a := inv * eye
-		var b := inv * to
+		var b := inv * (eye - camera.global_basis.z * float(e[3]))
 		# The box first: most meshes are nowhere near the line of sight.
 		if not (e[2] as AABB).intersects_segment(a, b):
 			continue
@@ -1132,9 +1132,13 @@ func _sight_in_cockpit() -> bool:
 	return false
 
 
-## The helmet's line of sight meets the cockpit this close (m): the rail and the consoles, not the wing or the nose.
+## The helmet's line of sight meets the cockpit-view model this close (m): the rail and the seat, not the wing or
+## the nose; this cockpit's own tub within BLANK_TUB_M (its footwell ahead of the seat lies 1.1 m under the eye at
+## true size, 2.2 m at World scale Original's ×2). Both in world metres.
 const BLANK_M := 1.2
-var _sight_room := []  # [MeshInstance3D, TriangleMesh, AABB] of the opaque cockpit surfaces (_sight_in_cockpit, setup)
+const BLANK_TUB_M := 2.5
+## [MeshInstance3D, TriangleMesh, AABB, reach (m)] of the opaque cockpit surfaces (_sight_in_cockpit, setup).
+var _sight_room := []
 
 
 ## `mi`'s opaque surfaces as one TriangleMesh (null for none): no glass, no screen (a material_override).

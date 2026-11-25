@@ -275,12 +275,11 @@ version on Barak it stays the original's `f16_bc`.
   out, so the nose, the instrument panel and the front of the canopy never show over the cockpit art.
 - **Left out**: the front pilot's body (the crew mesh's surfaces after the first `F16_SEAT_SURFACES`, the ACES II
   seat's; tools/f16/base.py `cockpit` joins seat then pilot), the canopy glass (from inside it fogs the whole view; the original hides
-  the canopy there too), the gear legs and the open gear doors. The closed doors show. With the pilot's body in the
-  3D cockpit (Modern IAF, `Settings.cockpit_pilot_body()`, cockpit.md "Looking down at the pilot") also the
-  interior in the front seat's well: 0.36 m either side of the centre line (`F16_SEAT_HALF_WIDTH`; the seat is
-  0.25), from 0.2 m under the eye (`F16_LAP_BELOW`) down, to `F16_CONSOLE_AFT` behind it. The rear cockpit's
-  footwell runs on under the front seat (inferred from its place, 0.98 m aft with the rear tub), and it stood out
-  of the pilot's lap as a black slab.
+  the canopy there too), the gear legs and the open gear doors. The closed doors show. With the 3D cockpit (both
+  games, cockpit.md "Looking down at the pilot") also the interior in the front seat's well: 0.36 m either side of
+  the centre line (`F16_SEAT_HALF_WIDTH`; the seat is 0.25), from 0.2 m under the eye (`F16_LAP_BELOW`) down, to
+  `F16_CONSOLE_AFT` behind it. The rear cockpit's footwell runs on under the front seat (inferred from its place,
+  0.98 m aft with the rear tub); kept, it would stand in the seat's well as a black slab.
 - **Kept**: the front seat with its headrest 0.56 m behind the eye (its headrest, pitot tubes, parachute container
   and back structure at FlightGear's full detail, `SEAT_SEEN`; the rest of both seats decimated to 30 %; both
   pilots' helmet and visor whole, `PILOT_WHOLE`, the rear pilot's helmet subdivided once and smooth, `REAR_SMOOTH`;

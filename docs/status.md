@@ -146,6 +146,9 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   the game lacks (radios, HMD video, the standby display's knobs, lights, seat) move with no system behind them.
 - **Controls**: one joypad (the first connected), as the original's one DirectInput device; no force feedback; chat
   is unhandled (multiplayer only; records 104–107, controls.md §3).
+- **Pilot guide shots (F-35I)**: `head_set`, `hud_srm`, `hud_mrm` and `hud_gun` find no radar lock on the placed
+  MiG-23 (`lock_m=-` in the shot's GUIDE_INFO, run of 2026-11-26), so their callouts fail and the guides step stops
+  before the PDFs; the F-16's same shots pass.
 - **Pilot guide PDFs** (not urgent): some pictures land at the top of the next page above the following heading; one
   nearly empty page (F-16 "Not drawn"); the MFD pictures are the ~128 px original art scaled (blocky; Better cockpit's
   crisp MFD pages draw them sharp, mfd.md §8).
@@ -178,10 +181,8 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   Fixed 2026-11-03: the F-35I's screens draw 2.5 % of their distance nearer the eye, enough to 100 km (cockpit.md "3D
   cockpit", the F-35I's). Fixed at any distance 2026-11-25: the floating origin keeps what is drawn near the camera
   within 4 km of Godot's origin, in both games (rendering.md §11, `test_floating_origin.gd`: 0.07 mm 300 km out).
-- **3D cockpit look-down in the original game**: with the head at its lowest the F-16's 3D cockpit shows the seat's
-  well and, in it, the rear cockpit's footwell as a black slab (cockpit.md "Looking down at the pilot"). Modern IAF
-  shows the pilot's body there; the original's fix is open. The body's hands stay still while the stick and throttle
-  move (modern-iaf/docs/cockpit.md §5.3).
+- **3D cockpit look-down (Modern IAF)**: the pilot's right glove stays still while the side-stick moves its few
+  degrees (modern-iaf/docs/cockpit.md §5.3); the left glove follows the throttle.
 - **Scenery trees**: a forest is an even stand, a pine in every 10 m canopy cell of 4 m or more; the real Carmel and
   Galilee are a mosaic of pine, oak maquis and open scrub (needs the cell data rebuilt, scenery.md §3.2 "The hills'
   look"). The near pine model still reads as a fir up close.

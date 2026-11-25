@@ -21,7 +21,6 @@
 extends "res://../tests/godot/base.gd"
 
 const TimeOfDay := preload("res://shared/terrain/time_of_day.gd")
-const NightLights := preload("res://shared/terrain/night_lights.gd")
 ## Every option at its best (Settings keys). TAA at native resolution: FSR 2 fades distant jets.
 const AFTER := {
 	"terrain_detail": 1.0,
@@ -315,7 +314,9 @@ func _camera() -> void:
 ## The night glows are sized in the rendering view's rows: the twin's, not the (smaller) window's.
 func _shot_rows() -> void:
 	var rows := float(shot_vp.size.y) * shot_vp.scaling_3d_scale
-	for m: ShaderMaterial in [NightLights.glow(), NightLights.nav_glow()]:
+	# Loaded here, not preloaded: night_lights.gd reaches Settings (gltf.gd), which a scene script (-s) compiles before.
+	var night_lights: GDScript = load("res://shared/terrain/night_lights.gd")
+	for m: ShaderMaterial in [night_lights.glow(), night_lights.nav_glow()]:
 		m.set_shader_parameter("vp_h", rows)
 	if tv.get("_city_lights") != null:
 		tv._city_lights._mat.set_shader_parameter("vp_h", rows)
