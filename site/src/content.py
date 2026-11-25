@@ -41,7 +41,7 @@ SECTIONS = [
         "figs": [
             ("sufa_air_cockpit", "The Sufa's cockpit over the Negev.", "תא הטייס של סופה מעל הנגב."),
             ("nvg", "Night-vision goggles down on the approach to Hatzerim, the cockpit lit for the goggles.",
-             "משקפת ראיית לילה בגישה לחצרים, ותא הטייס מואר בתאורה המותאמת לה."),
+             "אמצעי ראיית לילה בגישה לחצרים, ותא הטייס מואר בתאורה המותאמת לראיית לילה."),
             ("barak_air_cockpit", "The Barak's cockpit over the Jezreel Valley.", "תא הטייס של ברק מעל עמק יזרעאל."),
             ("adir_air_cockpit", "The Adir's helmet display and panoramic display over the Judean Desert.",
              "תצוגת הקסדה והתצוגה הפנורמית של אדיר מעל מדבר יהודה."),
