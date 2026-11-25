@@ -758,7 +758,7 @@ func jet_stores(j: Dictionary, lo = null) -> Dictionary:
 			"path": str(w.model),
 			"count": int(slots[st].count),
 			# By its top from the station's lugs, as the flight hangs it (stores.gd LUGGED: bombs, tanks and pods).
-			"lugged": k in ["bomb", "tank", "pod"],
+			"lugged": k in ["bomb", "laser_bomb", "tank", "pod"],
 			"bomb": k == "bomb",
 			# On a rack: the record's rack entry (a count over one, with the rack_kg the flight's load carries).
 			"racked": int(slots[st].get("max", 1)) > 1,

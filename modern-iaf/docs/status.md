@@ -1242,7 +1242,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the records database and flies with the mission (mass, drag, tanks' fuel, the stores' models), Reset brings back
   the record's ([front-end.md](front-end.md) §10). Since 2026-11-11 the racks' weight rides in flight too (the
   BRU-57/A's 120.2 kg sourced), and since 2026-11-14 every store's and rack's drag index (inferred from its size, none in the F-35I's bays; [flight-model.md](flight-model.md) §9.18), the bombs, guided bombs and tanks hang by their lugs under the
-  F-16's pylons, and the Python 5 and SPICE 2000 fly as `modern_weapons.gd` records with their public figures. The
+  F-16's pylons (since 2026-11-25 the lugs' tops on the pylons' bottoms at their middles, every store parallel to its
+  sloped wing pylon or rail, no gap; [data-formats.md](data-formats.md) §3), and the Python 5 and SPICE 2000 fly as `modern_weapons.gd` records with their public figures. The
   Delilah is dropped for now (the user, 2026-11-14): no store list offers or carries it, as it needs a powered
   cruise-missile flight class the engine does not have; its record stays. Since 2026-11-20 the 600 US gal tank has its
   model (the user: "It should be high in priority"): FlightGear's tank at IMI's 238.5 in by 32.6 in, painted as the

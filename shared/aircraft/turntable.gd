@@ -151,11 +151,7 @@ func show_jet(plane: String, stores: Dictionary) -> bool:
 		var p = desc.get("stations", {}).get(Stores.FRAMES[i])
 		if not p is Array:
 			continue
-		var attach := Vector3(p[0], p[1], p[2])
-		var lug = desc.get("lugs", {}).get(Stores.FRAMES[i])
-		var top := Stores._top(path) if lug is Array and st.lugged else 0.0
-		if top > 0.0:
-			attach = Vector3(lug[0], lug[1] - top, lug[2])
+		var attach := Stores.attach_point(desc, i, path, st.lugged)
 		var n := int(st.count)
 		var at := {"index": i, "w": {"model_path": path}}
 		at.merge(Stores.place(i, attach, n, st.bomb, path, PlayerWeapons._pilon_of(path), st.get("racked", false)))

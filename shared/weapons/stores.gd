@@ -38,10 +38,14 @@ const LETTERS := "ABCDEFGHI---JK"
 const BOMBS := [500, 510]
 const DRAWN := [500, 510, 640, 635, 570, 650, 580, 590, 600, 610, 660]
 ## Ours: the stores that hang by their lugs (bombs, the guided bombs, tanks and pods), on a descriptor's `lugs` point
-## where it has one (Modern IAF's F-16, sim.rs F16_SIM_LUGS): their model's highest point (the lugs or the fins) on
-## the pylon's bottom. The rest (the missiles)
-## hang at the station's own point, the rail.
+## where it has one (Modern IAF's F-16, sim.rs F16_SIM_LUGS; the F-35I's wing pylons): the top of their lugs (_top) on
+## the pylon's bottom (attach_point). The rest (the missiles) hang at the station's own point, the rail.
 const LUGGED := [500, 510, 650, 660]
+## The middle share of a store's length its lugs stand in (_top): the suspension lugs are 14 or 30 inches apart about
+## its centre (MIL-A-8591), inside the middle 40 % of every store we draw; the fins, wings and canards are outside it.
+const LUG_SPAN := 0.4
+## The narrowest a lug's top is across, m (_top): an arming wire is narrower.
+const LUG_WIDTH := 0.005
 
 ## Stations: index -> {index, w (weapon record), count, initial, unlimited, attach (glTF), slots [glTF], drawn};
 ## missing index = no station.
@@ -97,6 +101,8 @@ var tank_moment: float:
 
 ## The detailed models' boxes measured so far (_box): full path -> AABB.
 static var _boxes := {}
+## The lugs' tops measured so far (_top): full path -> m.
+static var _tops := {}
 
 var _s = ClassDB.instantiate("IafStores")
 var _st := {}
@@ -133,11 +139,7 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 		if w.is_empty():
 			continue
 		var p = frames.get(FRAMES[i])
-		var attach := Vector3(p[0], p[1], p[2]) if p is Array else Vector3.ZERO
-		var lug = descriptor.get("lugs", {}).get(FRAMES[i])
-		var top := _top(String(w.get("model_path", ""))) if lug is Array and int(w.type) in LUGGED else 0.0
-		if top > 0.0:  # without a model of ours to measure, the store keeps the station's point
-			attach = Vector3(lug[0], lug[1] - top, lug[2])
+		var attach := attach_point(descriptor, i, String(w.get("model_path", "")), int(w.type) in LUGGED)
 		if int(w.type) == GUN and w.has("rounds_per_tick"):
 			var RealWeapons := preload("res://shared/weapons/real_weapons.gd")
 			w = RealWeapons.jet_gun(w, jet_type)
@@ -180,6 +182,27 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 	_sync()
 
 
+## Where station `i`'s store of the model at `path` hangs its origin (glTF, the descriptor's frame; zero without a
+## station): a `lugged` store under a descriptor's `lugs` point hangs the top of its lugs (_top) there, the pylon's
+## bottom; every other store (and one with no model of ours to measure) its origin at the station's point. The flight
+## (setup) and the Hangar's and the Loadout screen's jet (turntable.gd) alike.
+static func attach_point(descriptor: Dictionary, i: int, path: String, lugged: bool) -> Vector3:
+	var p = descriptor.get("stations", {}).get(FRAMES[i])
+	var attach := Vector3(p[0], p[1], p[2]) if p is Array else Vector3.ZERO
+	var lug = descriptor.get("lugs", {}).get(FRAMES[i])
+	var top := _top(path) if lug is Array and lugged else 0.0
+	return Vector3(lug[0], lug[1] - top, lug[2]) if top > 0.0 else attach
+
+
+## Station `i`'s pylon as the stores' drawing turns them: [the point they turn about (its `lugs` point, else the
+## station's), the pitch (rad, nose up +; the descriptor's `pitch`: the F-16's wing pylons and rails, sim.rs
+## F16_SIM_PITCH)]; a pitch of 0 without one.
+static func pylon_pitch(descriptor: Dictionary, i: int) -> Array:
+	var p = descriptor.get("lugs", {}).get(FRAMES[i], descriptor.get("stations", {}).get(FRAMES[i]))
+	var at := Vector3(p[0], p[1], p[2]) if p is Array else Vector3.ZERO
+	return [at, deg_to_rad(float(descriptor.get("pitch", {}).get(FRAMES[i], 0.0)))]
+
+
 ## The store places of station `i` (`count` stores of the model at `path`, `bomb` the bomb rack layout, `pilon` the
 ## store's Pilon helper or null): {slots [glTF]}, the original's (IafStores.slots, FUN_0053c990); with `racked` and a
 ## rack of ours for the store (rack_layout) {slots, rolls, rack, rack_at}. The flight (setup) and the Hangar's and the
@@ -206,7 +229,7 @@ static func rack_layout(path: String, attach: Vector3) -> Dictionary:
 	var rb := _box(rack)
 	if not store.has_volume() or not rb.has_volume():
 		return {}
-	var top := store.end.y
+	var top := _top(path)
 	var half := store.end.x
 	var h := rb.size.y
 	var p := attach + Vector3(0, top, 0)  # the pylon's bottom
@@ -226,9 +249,58 @@ static func rack_layout(path: String, attach: Vector3) -> Dictionary:
 	return out
 
 
-## How far the top of the store model of `path` (our detailed one, its lugs) stands above its origin, m; 0 without it.
+## How far the top of the lugs of the store model of `path` (our detailed one) stands above its origin, m: its highest
+## point within the middle LUG_SPAN of its length (z), where the lugs are; the fins, wings and canards fore and aft
+## rise higher on some. 0 without the model.
 static func _top(path: String) -> float:
-	return _box(Gltf.detailed(path)).end.y
+	var full := Gltf.detailed(path)
+	if not _tops.has(full):
+		var tris := PackedVector3Array()  # every triangle's corners, in the model's frame
+		var model = Gltf.model(full) if full != "" else null
+		if model != null:
+			var n := Gltf.instance(model)
+			for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false):
+				var xf := mi.transform
+				var up := mi.get_parent() as Node3D
+				while up != null and up != n:
+					xf = up.transform * xf
+					up = up.get_parent() as Node3D
+				for k in mi.mesh.get_surface_count():
+					var a := mi.mesh.surface_get_arrays(k)
+					var vs: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+					var ix = a[Mesh.ARRAY_INDEX]
+					for j in ix.size() if ix != null else vs.size():
+						tris.append(xf * vs[ix[j] if ix != null else j])
+			n.free()
+		var lo := INF
+		var hi := -INF
+		for v in tris:
+			lo = minf(lo, v.z)
+			hi = maxf(hi, v.z)
+		var z0 := (lo + hi - (hi - lo) * LUG_SPAN) * 0.5
+		var z1 := (lo + hi + (hi - lo) * LUG_SPAN) * 0.5
+		# The highest point of the surface between z0 and z1: a corner inside, or where an edge crosses z0 or z1 (a
+		# long body panel has its corners only at its ends). A triangle under LUG_WIDTH across is a wire's (the Mk 84's
+		# arming wire rises 0.045 m above its lugs to the rack), not a lug's. ponytail: a quad split into two slivers
+		# would be skipped too; a lug's top is at least a centimetre each way on every model we draw.
+		var top := -INF
+		for t in range(0, tris.size() - 2, 3):
+			var a0 := tris[t]
+			var long := maxf(
+				maxf(a0.distance_to(tris[t + 1]), a0.distance_to(tris[t + 2])), tris[t + 1].distance_to(tris[t + 2])
+			)
+			if (tris[t + 1] - a0).cross(tris[t + 2] - a0).length() < LUG_WIDTH * long:  # its height under LUG_WIDTH
+				continue
+			for e in 3:
+				var a := tris[t + e]
+				var b := tris[t + (e + 1) % 3]
+				if a.z >= z0 and a.z <= z1:
+					top = maxf(top, a.y)
+				for z in [z0, z1]:
+					if (a.z - z) * (b.z - z) < 0.0:
+						top = maxf(top, lerpf(a.y, b.y, (z - a.z) / (b.z - a.z)))
+		_tops[full] = maxf(top, 0.0)
+	return _tops[full]
 
 
 ## The box of the model at the full path `full` (its frame), measured once; empty without the model.

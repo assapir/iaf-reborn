@@ -240,7 +240,7 @@ func no_panel(tv: Node, what: String) -> void:
 
 
 ## The Sufa's modern records and stores (A15 leftovers): the Python 5, SPICE 2000 and Delilah built as their
-## modern_weapons.gd records; a TER-9/A of three Mk 82 weighs with its rack; the Mk 84 hangs by its lug.
+## modern_weapons.gd records; a TER-9/A of three Mk 82 weighs with its rack; the Mk 84 hangs by its lugs.
 func _check_stores(db: RefCounted) -> void:
 	var built := []
 	for k in [1002, 1011, 1012]:
@@ -255,4 +255,10 @@ func _check_stores(db: RefCounted) -> void:
 	var kg := (3.0 * float(db.by_id(4).weight_lb) + float(db.by_id(2).weight_lb)) * 0.45359 + 47.6
 	check(absf(st.fm_mass - kg) < 0.5, "Sufa: three Mk 82 on their TER and a Mk 84: %.1f kg (%.1f)" % [st.fm_mass, kg])
 	var y := float(st.station(6).get("attach", Vector3.ZERO).y)
-	check(y < -0.392 - 0.3, "Sufa: the Mk 84 on 7 hangs under the pylon's lug (its origin at y %.3f)" % y)
+	var lug := float(desc.lugs.StationG[1])
+	# Its lugs' top 0.322 m above its origin: the arming wire above them (0.370 m) does not count.
+	var top: float = st._top(String(db.by_id(2).model_path))
+	check(
+		absf(top - 0.322) < 0.005 and absf(y - (lug - top)) < 1e-4,
+		"Sufa: the Mk 84 on 7 hangs its lugs' top (%.3f m) on the pylon's bottom (its origin at y %.3f)" % [top, y]
+	)

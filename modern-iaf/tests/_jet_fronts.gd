@@ -14,14 +14,14 @@ const JETS := {
 }
 ## The F-16 stations on our model (glTF metres; sim.rs F16_SIM_STATIONS, the station numbers 1–4 and 6–9).
 const F16_STATIONS := {
-	"1": Vector3(-4.7075, -0.2015, 2.35),
-	"2": Vector3(-3.974, -0.3855, 2.496),
-	"3": Vector3(-2.986, -0.4555, 1.912),
+	"1": Vector3(-4.7075, -0.1295, 2.35),
+	"2": Vector3(-3.974, -0.352, 2.496),
+	"3": Vector3(-2.986, -0.36, 1.912),
 	"4": Vector3(-1.735, -0.669, 1.023),
 	"6": Vector3(1.726, -0.669, 1.023),
-	"7": Vector3(2.977, -0.4555, 1.912),
-	"8": Vector3(3.965, -0.3855, 2.496),
-	"9": Vector3(4.7115, -0.2015, 2.347),
+	"7": Vector3(2.977, -0.36, 1.912),
+	"8": Vector3(3.965, -0.352, 2.496),
+	"9": Vector3(4.7115, -0.1295, 2.347),
 }
 ## The F-35I's stations on our model (glTF metres; its descriptor's, shared/extra/planes/f35i/aircraft.json, by real
 ## station number, docs/f35i.md §3.1): the wing pylons' feet; 2 / 10, which have no pylon, at 3.55 m on the line

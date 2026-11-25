@@ -3725,6 +3725,14 @@ static func hang(st: Dictionary, model: Node3D) -> Dictionary:
 	var rack: Node3D = _own_rack(st) if st.has("rack") else _rack(st, list)
 	if rack != null:
 		mount(model).add_child(rack)
+	# The drawing parallel to the pylon (its pitch, nose down on the F-16's wing pylons): the releases keep the slots.
+	var desc = model.get("desc")
+	var pp: Array = Stores.pylon_pitch(desc, int(st.index)) if desc is Dictionary else [Vector3.ZERO, 0.0]
+	if pp[1] != 0.0:
+		var turn := Basis(Vector3.RIGHT, pp[1])
+		for n: Node3D in list + ([rack] if rack != null else []):
+			n.position = pp[0] + turn * (n.position - pp[0])
+			n.basis = turn * n.basis
 	return {"nodes": list, "rack": rack}
 
 

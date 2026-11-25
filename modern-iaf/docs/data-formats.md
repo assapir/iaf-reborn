@@ -183,9 +183,21 @@ AIM-9 about a missile diameter above and outboard of our rails and the tank's to
 - Stations 4 and 6: the tank's top on the inboard pylon's bottom, on the pylon's middle.
 - Station 11, the centreline (the real 5, StationK; 2026-11-20): the 300 US gal tank's body top on the centreline
   pylon's bottom, its attach point under the pylon's middle ([weapons.md](weapons.md) §7.3).
-- The bomb lugs (`sim.rs` `F16_SIM_LUGS`, the descriptor's `lugs`, 2026-11-11): on 3 / 7 and 4 / 6 a bomb, a guided
-  bomb or a tank (`stores.gd` `LUGGED`) hangs with its model's top on the pylon's bottom, on its middle; a missile
-  keeps the station's rail point. Before, the Mk 84 on 3 / 7 hung on the AIM-9's axis, its top 0.3 m inside the pylon.
+- The bomb lugs (`sim.rs` `F16_SIM_LUGS`, the descriptor's `lugs`, 2026-11-11): on 3 / 7, 4 / 6, the chin stations
+  and the centreline a bomb, a guided bomb, a tank or a pod (`stores.gd` `LUGGED`) hangs the top of its lugs on the
+  pylon's bottom at its middle (`stores.gd` `attach_point`); a missile keeps the station's rail point. The lugs' top
+  is the store model's highest point within the middle 40 % of its length, where the suspension lugs sit (14 or 30
+  in apart about the centre); a thin arming wire does not count (`stores.gd` `_top`). The F-35I's wing pylons B / H
+  have `lugs` too (their bottoms, `shared/extra/planes/f35i/aircraft.json`).
+- The pitch (`sim.rs` `F16_SIM_PITCH`, the descriptor's `pitch`, 2026-11-25): the F-16's wing pylons and rails slope
+  up aft, 4.5° (3 / 7, 4 / 6) and 3.5° (1 / 9, 2 / 8; FlightGear's figure, the outboard pylon's own bottom 3.1°: about 0.01 m at a missile's ends), and every store on them is drawn parallel to them, turned nose
+  down about the station's lug point (`player_weapons.gd` `hang`), as FlightGear hangs them (`loads_models-*.xml`).
+  The releases keep the level slots.
+
+Until 2026-11-25 the heights were the pylons' bottoms at their noses, 0.03 to 0.095 m lower than at their middles,
+and a store hung level by its highest point (the Mk 84's arming wire, 0.05 m above its lugs; the 300 US gal tank's tail cone):
+the bombs hung up to 0.15 m under their pylons. Before 2026-11-11 the Mk 84 on 3 / 7 hung on the AIM-9's axis, its
+top 0.3 m inside the pylon.
 
 Outside, the left wingtip, station 3 and the left tank (left to right), from the front and from the side:
 

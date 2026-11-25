@@ -80,10 +80,13 @@ pub const MIG29_GLB: &str = "shared/extra/models/mig29/mig29.glb";
 /// tank's top inside the wing (modern-iaf/docs/data-formats.md §3, side and front views).
 ///   - 1 and 9 (StationA, StationI): under the launcher rails (x 4.62 to 4.795 m out, y −0.138 to 0.127 m, z 1.17 to
 ///     3.54 m in f16d.glb and f16i.glb), the AIM-9's axis one body radius (63.5 mm) below the rail, on its middle (the
-///     hang under the rail inferred from the F-16's LAU-129);
+///     hang under the rail inferred from the F-16's LAU-129), where the rail's bottom, rising 3.5° aft from −0.138 m at
+///     its nose (`F16_SIM_PITCH`), is 0.072 m higher;
 ///   - 2 and 8 (StationB, StationH), 3 and 7 (StationC, StationG): under the outboard and middle pylons (x ±3.97 and
-///     ±2.98 m, bottoms y −0.322 and −0.392 m, z 1.89 to 3.10 and 0.71 to 3.12 m), the AIM-9's axis one body radius
-///     below the pylon's bottom, on its middle (inferred, as at the rails);
+///     ±2.98 m, bottoms y −0.321 and −0.391 m at their noses, rising aft 3.1° and 4.5°, z 1.89 to 3.10 and 0.71 to
+///     3.12 m), the AIM-9's axis one body radius below the pylon's bottom at its middle (−0.288 and −0.296 m;
+///     inferred, as at the rails). Until 2026-11-25 these four and the rails' took the bottom at the nose, so the
+///     missiles hung 0.03 to 0.095 m below their pylons' middles;
 ///   - 4 and 6 (StationD, StationF): under the inboard pylons (x ±1.73 m, bottom y −0.341 m, z −0.18 to 2.23 m), the
 ///     370 US gal tank's top (0.328 m above its origin in stores/f16ftk.glb) on the pylon's bottom.
 ///   - 5 (StationE): the Sufa's targeting pod station, the right chin hardpoint under the intake (ours: the sim's
@@ -105,33 +108,50 @@ pub const MIG29_GLB: &str = "shared/extra/models/mig29/mig29.glb";
 ///
 /// These are the rail points the missiles hang at; the stores that hang by their lugs take `F16_SIM_LUGS` instead.
 const F16_SIM_STATIONS: [(&str, [f64; 3]); 11] = [
-    ("StationA", [-4.7075, -0.2015, 2.35]),
-    ("StationB", [-3.974, -0.3855, 2.496]),
-    ("StationC", [-2.986, -0.4555, 1.912]),
+    ("StationA", [-4.7075, -0.1295, 2.35]),
+    ("StationB", [-3.974, -0.352, 2.496]),
+    ("StationC", [-2.986, -0.36, 1.912]),
     ("StationD", [-1.735, -0.669, 1.023]),
     ("StationE", [0.69, -1.02, -1.2]),
     ("StationF", [1.726, -0.669, 1.023]),
-    ("StationG", [2.977, -0.4555, 1.912]),
-    ("StationH", [3.965, -0.3855, 2.496]),
-    ("StationI", [4.7115, -0.2015, 2.347]),
+    ("StationG", [2.977, -0.36, 1.912]),
+    ("StationH", [3.965, -0.352, 2.496]),
+    ("StationI", [4.7115, -0.1295, 2.347]),
     ("StationJ", [-0.66, -1.02, -1.4]),
     ("StationK", [0.0, -1.307, 1.034]),
 ];
 
 /// The bomb lugs of the F-16's heavy stations 3 / 7 (StationC, StationG) and 4 / 6 (StationD, StationF): the pylon's
-/// bottom on its middle (the same pylons as `F16_SIM_STATIONS`), the descriptor's `lugs`. A bomb, a guided bomb or a
-/// tank hangs its top there (stores.gd `LUGGED`), so the Mk 84 on 3 / 7 hangs under the pylon, not on the AIM-9's
-/// axis inside it; the tank's place on 4 / 6 stays as before. The chin pods (E, J) hang their tops there too. The
-/// centreline (K): the 300 US gal tank's highest point is its tail cone, 0.088 m above its body's top and aft of the
-/// pylon, so that point goes 0.088 m above the pylon's bottom (y −1.010 m + 0.088 m) and the body's top touches it.
+/// bottom at its middle (the same pylons as `F16_SIM_STATIONS`), the descriptor's `lugs`. A bomb, a guided bomb, a tank
+/// or a pod hangs the top of its lugs there (stores.gd `LUGGED`, `attach_point`), so the Mk 84 on 3 / 7 hangs under the
+/// pylon, not on the AIM-9's axis inside it. The pylons' bottoms slope up aft (4.5°, `F16_SIM_PITCH`): from y −0.391 m
+/// at the middle pylon's nose (z 0.707 m) and −0.340 m at the inboard one's (z −0.182 m), 0.079 m a metre; at their
+/// middles, −0.296 m and −0.245 m. Until 2026-11-25 the nose's height, 0.095 m lower: a level store's lugs hung that
+/// far below the pylon. The chin pods (E, J) hang their mounts there too; the centreline (K), the 300 US gal tank's
+/// body top on the centreline pylon's bottom (y −1.010 m).
 const F16_SIM_LUGS: [(&str, [f64; 3]); 7] = [
-    ("StationC", [-2.986, -0.392, 1.912]),
-    ("StationD", [-1.735, -0.341, 1.023]),
+    ("StationC", [-2.986, -0.296, 1.912]),
+    ("StationD", [-1.735, -0.245, 1.023]),
     ("StationE", [0.69, -0.82, -1.2]),
-    ("StationF", [1.726, -0.341, 1.023]),
-    ("StationG", [2.977, -0.392, 1.912]),
+    ("StationF", [1.726, -0.245, 1.023]),
+    ("StationG", [2.977, -0.296, 1.912]),
     ("StationJ", [-0.66, -0.592, -1.4]),
-    ("StationK", [0.0, -0.922, 1.034]),
+    ("StationK", [0.0, -1.01, 1.034]),
+];
+
+/// The wing stations' pitch, degrees (nose up +), the descriptor's `pitch`: their stores hang parallel to the pylon's
+/// bottom or the launcher rail, nose down, turned about the station's lug point (player_weapons.gd `hang`). FlightGear
+/// pitches every store on these stations so (loads_models-tip.xml, -outer.xml: −3.5°; -middle.xml, -inner.xml:
+/// −4.5°), and our model's pylons slope so (the middle and inboard pylons' bottoms 4.5°, the outboard one's 3.1°).
+const F16_SIM_PITCH: [(&str, f64); 8] = [
+    ("StationA", -3.5),
+    ("StationB", -3.5),
+    ("StationC", -4.5),
+    ("StationD", -4.5),
+    ("StationF", -4.5),
+    ("StationG", -4.5),
+    ("StationH", -3.5),
+    ("StationI", -3.5),
 ];
 
 /// The F-16 model's own adapters (nodes of f16d.glb / f16i.glb, hidden until shown) by station: the right chin
@@ -1508,6 +1528,9 @@ fn planes(repo: &Path, assets: &Path) -> Result<()> {
     for (station, p) in F16_SIM_LUGS {
         d["lugs"][station] = json!(p);
     }
+    for (station, p) in F16_SIM_PITCH {
+        d["pitch"][station] = json!(p);
+    }
     // The model's own adapter per station, shown while the station is loaded (turntable.gd, attach_stores).
     for (station, node) in F16_SIM_PYLONS {
         d["pylons"][station] = json!(node);
@@ -2175,6 +2198,7 @@ mod tests {
         assert!(mig["parts"]["LdgL"]["axis"].is_array() && mig["engines"]["pairs"] == 2);
         assert_eq!(f16["stations"]["StationA"], json!(F16_SIM_STATIONS[0].1));
         assert_eq!(f16["lugs"]["StationC"], json!(F16_SIM_LUGS[0].1));
+        assert_eq!(f16["pitch"]["StationC"], json!(-4.5));
         assert_eq!(f16["pylons"]["StationE"], "PylonChinR");
         assert_eq!(
             (f16["pylons"]["StationJ"].as_str(), f16["lugs"]["StationJ"][0].as_f64()),
@@ -2182,7 +2206,7 @@ mod tests {
         );
         assert_eq!(
             (f16["stations"]["StationK"][2].as_f64(), f16["lugs"]["StationK"][1].as_f64()),
-            (Some(1.034), Some(-0.922))
+            (Some(1.034), Some(-1.01))
         );
         let clip = |f: &str| ogg_seconds(&std::fs::read(sounds.join(f.to_lowercase())).unwrap()).unwrap();
         let trx = std::fs::read_to_string(sounds.join("soundprop.trx")).unwrap();

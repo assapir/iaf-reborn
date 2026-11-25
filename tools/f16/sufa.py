@@ -197,6 +197,15 @@ def livery(albedo, skin):
     fpos, _ = texels(albedo, [tris[i] for i in fin], [uvs[i] for i in fin])
     on_fin = ~np.isnan(fpos[..., 0])
     pos[on_fin], nz[on_fin] = fpos[on_fin], 0.0
+    # FlightGear's CFT maps each tank's inner flange (on the fuselage, out of sight, facing down) over a thin band of
+    # its outer side's texels; where the flange won, the side wore the underside grey as a stripe from behind the
+    # canopy to the fin. A CFT texel that a face looking up or sideways uses takes that face's paint.
+    u0, v0, u1, v1 = CFT_UV
+    up = [i for i, (t, uv) in enumerate(zip(tris, uvs)) if all(u0 <= c.x < u1 and v0 <= c.y < v1 for c in uv)
+          and (t[1] - t[0]).cross(t[2] - t[0]).normalized().z > -0.35]
+    upos, unz = texels(albedo, [tris[i] for i in up], [uvs[i] for i in up])
+    seen = ~np.isnan(unz)
+    pos[seen], nz[seen] = upos[seen], unz[seen]
     recolour(albedo, [(c, SUFA_PAINT[f]) for c, f in FG_PAINT], 0.16, nz > -0.35)
     recolour(albedo, [(c, SUFA_PAINT[f]) for c, f in FG_PAINT[3:]], 0.16, nz <= -0.35)  # underneath: grey only
     yy, xx = np.mgrid[h - 1:-1:-1, 0:w]  # pixel coordinates from the top left, in Blender's row order
@@ -209,7 +218,6 @@ def livery(albedo, skin):
     covered = ~np.isnan(pos[..., 0])
     d = np.stack([np.linalg.norm(src[..., :3] - np.array(c, dtype=np.float32), axis=2) for c, _ in FG_PAINT])
     camo_src = (d.argmin(axis=0) < 3) & (d.min(axis=0) < 0.16)
-    u0, v0, u1, v1 = CFT_UV
     cft = (xx >= u0 * w) & (xx < u1 * w) & (h - 1 - yy >= v0 * h) & (h - 1 - yy < v1 * h)
     hole = old_fin_marks((h, w))  # the livery's 101 Squadron markings and number (base.BADGES, STRIPES, DIGITS)
     want = camo_src | cft | hole
