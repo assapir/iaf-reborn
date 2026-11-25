@@ -734,7 +734,7 @@ lessons' scorer reads.
 
 **The lessons.** A lesson keeps its own prompts (the tower calls and their waits, the TAXI / T-O page) and names the
 card's items it asks for: the start-up lessons' `training.checklist` lists every checked item from BEFORE STARTING
-ENGINE through BEFORE TAXI (33 for the F-16s, 14 for the F-35I), and their time budget is 10 minutes (it was 5 for the
+ENGINE through BEFORE TAXI (36 for the F-16s, 15 for the F-35I), and their time budget is 10 minutes (it was 5 for the
 six steps). The scorer fails an item not ticked with its own line for the start-up's six steps and "Skipped: a
 checklist item" for the rest. The take-off lessons show and ring the same card; they are scored as before.
 

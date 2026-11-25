@@ -110,6 +110,6 @@
     "time_budget_s": 600,
     "end_hold_s": 5,
     "goals": [],
-    "checklist": ["epu_norm", "eng_feed", "le_flaps", "air_source", "master_arm_off", "gear_down", "batt", "flcs_pwr_test", "main_power", "starter", "engine", "jfs_off", "engine_lights", "probe_heat_test", "fire_test", "mal_ind_test", "avionics", "gps_dl", "ins_align", "hdpt", "fcr", "rdr_alt", "hud", "master_caution", "flcs_bit", "dbu", "mpo", "epu_check", "canopy", "ext_lights", "cmds", "ins", "taxi_light"]
+    "checklist": ["epu_norm", "eng_feed", "fuel_master", "le_flaps", "air_source", "master_arm_off", "gear_down", "batt", "flcs_pwr_test", "main_power", "starter", "engine", "jfs_off", "engine_lights", "probe_heat_test", "fire_test", "mal_ind_test", "avionics", "gps_dl", "ins_align", "hdpt", "fcr", "rdr_alt", "hud", "master_caution", "flcs_bit", "dbu", "mpo", "speedbrakes", "epu_check", "canopy", "ext_lights", "cmds", "ins", "taxi_light", "parking_brake_off"]
   }
 }

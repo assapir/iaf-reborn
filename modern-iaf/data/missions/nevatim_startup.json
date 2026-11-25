@@ -102,6 +102,6 @@
     "time_budget_s": 600,
     "end_hold_s": 5,
     "goals": [],
-    "checklist": ["park_brake", "master_arm_safe", "alt_gear_norm", "land_taxi_off", "gear_down", "main_power", "starter", "engine", "selftest", "hmd", "icaw", "canopy", "taxi_light", "park_brake_off"]
+    "checklist": ["park_brake", "master_arm_safe", "alt_gear_norm", "land_taxi_off", "gear_down", "main_power", "starter", "engine", "selftest", "hmd", "icaw", "canopy", "seat_arm", "taxi_light", "park_brake_off"]
   }
 }

@@ -24,7 +24,7 @@ The lesson passes when all of these are true:
   (auto, 1fr),
   ([Check], [Exactly]),
   [The tower cleared the start], [You requested start-up and heard "cleared to start" before the engine turned (@tower-ground).],
-  [The checklist is done], [Every item of the card from its top to the end of its section before taxi is ticked in the #term("notebook"), except the items you only read and acknowledge (@notebook-checklist). The Sufa and the Barak have 33 such items. The Adir has 14.],
+  [The checklist is done], [Every item of the card from its top to the end of its section before taxi is ticked in the #term("notebook"), except the items you only read and acknowledge (@notebook-checklist). The Sufa and the Barak have 36 such items. The Adir has 15.],
   [The engine idles], [The engine runs at 60 % #term("RPM") or more.],
   [The avionics are up], [The displays and the avionics have power. In the Adir the avionics report ready 90 seconds after the battery went on.],
   [In time], [All of the above within 10 minutes of the start of the flight.],
