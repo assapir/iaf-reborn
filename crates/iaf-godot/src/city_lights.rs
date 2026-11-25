@@ -44,6 +44,8 @@ static MADE: LazyLock<Mutex<HashMap<(i64, i64), Made>>> = LazyLock::new(Default:
 static ROAD_LAMPS: AtomicBool = AtomicBool::new(false);
 /// The towns' glow when made (`glow`).
 static GLOW: LazyLock<Mutex<Option<Glow>>> = LazyLock::new(Default::default);
+/// The glow was asked for since the last `open` (`request_glow`, `want_glow`).
+static GLOW_ASKED: AtomicBool = AtomicBool::new(false);
 /// The glow's square (m), and the most squares on a side: over a larger box (the whole theatre's lights) the square
 /// grows by whole steps of GLOW_M (250 m over the theatre: 3 200 × 4 200, 13 MB).
 const GLOW_M: f64 = 125.0;
@@ -91,6 +93,22 @@ fn glow() -> Glow {
         }
     }
     g
+}
+
+/// The towns' glow at a world point, 0..1, 0 until made: the real FCR's GM picture shows the towns bright (radar.rs).
+pub fn town(p: Vec3) -> f64 {
+    GLOW.lock().unwrap().as_ref().map_or(0.0, |g| g.at(p.x, p.y))
+}
+
+/// The towns' glow for the GM picture by day: the scenery's cells under `dir` indexed if no flight did (city_lights.gd
+/// opens them at night), and the glow made once on the lights thread.
+pub fn want_glow(dir: &str) {
+    if STATE.lock().unwrap().blocks.is_empty() {
+        IafCityLights::open(dir.into());
+    }
+    if !GLOW_ASKED.swap(true, Ordering::Relaxed) {
+        let _ = QUEUE.lock().unwrap().send(Job::Glow);
+    }
 }
 
 /// The block's lights of rank below SHARES[mesh], sorted into its meshes 0..=mesh, the farthest first.
@@ -160,6 +178,7 @@ impl IafCityLights {
         *STATE.lock().unwrap() = State { blocks };
         MADE.lock().unwrap().clear();
         *GLOW.lock().unwrap() = None;
+        GLOW_ASKED.store(false, Ordering::Relaxed);
         n
     }
 
@@ -226,6 +245,7 @@ impl IafCityLights {
     /// Starts making the towns' glow on the lights thread (after the blocks asked so far).
     #[func]
     fn request_glow() {
+        GLOW_ASKED.store(true, Ordering::Relaxed);
         let _ = QUEUE.lock().unwrap().send(Job::Glow);
     }
 

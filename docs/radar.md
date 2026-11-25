@@ -334,7 +334,11 @@ modes"). Only the jets with `radar.fcr`; the original's MAP / GMT stay as §1–
   patch falls back to EXP (inferred; the real limit is open). A manual range step returns to NORM (inferred from a
   simulator).
 - **The picture** (`radar.rs` `render`, one per radar frame, 108 × 106 px over the window (12, 12)–(120, 118); inferred
-  shading): the ground's return grows with its slope toward the radar, with a fixed speckle; water (the sea level) and
+  shading): the ground's return is its slope toward the radar against level ground's at that range (the receiver's
+  gain follows the range): level ground reads one mid level near and far, a slope facing the radar brighter up to
+  full, one facing away darker; a fixed speckle; the towns bright by their built-up share (since 2026-11-25: the
+  scenery's town glow, `city_lights.rs` `Glow`, the night lights' map, made once on the lights thread when the radar
+  starts, 125–250 m squares; until it is made, and where Setup made no scenery, no towns); water (the sea level) and
   the runways (`shared/terrain/airbases.gd`) return nothing; the terrain's shadow is dark (one march per 0.25° of
   azimuth from the jet, the steepest rise so far; the bare ground's heights, no roofs or trees); outside the NORM fan black;
   the listed returns bright, as large as their units. `mfd.gd` draws it at a display gain of 2.2 (the GM format's

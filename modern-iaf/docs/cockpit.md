@@ -1404,9 +1404,6 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 
 - `mfd.gd crisp_sprite` reads the RWR glyphs from the install's `rwrsymb.bmp` (Better cockpit "crisp MFD", the 1998
   pages only); the sim does not use it.
-- The sim's GM picture: every land at one brightness; its relief and cities are open (the original game's copy takes
-  the original's shading, §8 "TSD map").
-- The F-35I's threat symbols.
 - Rivers are not drawn; the Suez Canal shows only where the land polygons leave it open (a thin line).
 
 [^uoaf]: UOAF codex, "RWR" (Falcon BMS community reference of the US AN/ALR-56: airborne emitters "displayed with an

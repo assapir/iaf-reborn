@@ -278,6 +278,8 @@ pub struct Real {
     pub agr: Option<f64>,
     agr_at: Option<Vec3>,
     pub runways: Vec<Runway>,
+    /// The towns' share at a world point, 0..1 (`set_towns`): bright returns in the GM picture.
+    towns: Option<fn(Vec3) -> f64>,
     pub picture: Picture,
     /// The next picture, painted on its own thread off the frame (`Input::bare`); `update` publishes it.
     painting: Painting,
@@ -330,6 +332,7 @@ impl Real {
             agr: None,
             agr_at: None,
             runways: Vec::new(),
+            towns: None,
             picture: Picture::default(),
             painting: Painting::default(),
         }
@@ -2116,6 +2119,13 @@ impl Radar {
         }
     }
 
+    /// The towns the GM picture shows bright: their built-up share at a world point, 0..1.
+    pub fn set_towns(&mut self, towns: Option<fn(Vec3) -> f64>) {
+        if let Some(r) = &mut self.real {
+            r.towns = towns;
+        }
+    }
+
     /// The GM picture of this frame (radar.md §9.7), painted by [`Sketch::paint`]: with `Input::bare` on its own
     /// thread, published by a later `update` (a frame or two on), else in the call.
     fn render(&mut self, input: &Input) {
@@ -2130,7 +2140,8 @@ impl Radar {
             .map(|c| (f.to_px(c.pos), (input.unit(&c.key).map_or(5.0, |u| u.coll_radius) / f.k).max(0.8)))
             .collect();
         let gain = if self.mode == Mode::Gmt { GMT_DIM } else { 1.0 };
-        let sketch = Sketch { f, own: input.own.pos.raised(LOS_RAISE), gain, runways: r.runways.clone(), blips };
+        let own = input.own.pos.raised(LOS_RAISE);
+        let sketch = Sketch { f, own, gain, runways: r.runways.clone(), towns: r.towns, blips };
         self.publish(true);
         let Some(r) = &mut self.real else { return };
         match input.bare {
@@ -2246,19 +2257,22 @@ fn body_angles(own: &Own, d: Vec3) -> (f64, f64) {
     (x.atan2(y).to_degrees(), z.atan2(x.hypot(y)).to_degrees())
 }
 
-/// One GM picture's inputs (radar.md §9.7): its frame, the radar's place, GMT's dimming, the runways and the listed
-/// returns (MFD px, radius px).
+/// One GM picture's inputs (radar.md §9.7): its frame, the radar's place, GMT's dimming, the runways, the towns and the
+/// listed returns (MFD px, radius px).
 struct Sketch {
     f: GroundFrame,
     own: Vec3,
     gain: f64,
     runways: Vec<Runway>,
+    towns: Option<fn(Vec3) -> f64>,
     blips: Vec<((f64, f64), f64)>,
 }
 
 impl Sketch {
-    /// Each px of `PIC_WINDOW` at its ground point. The ground returns by the terrain's slope toward the radar with a
-    /// fixed speckle (land), none from water (the sea level) and runways, none in the terrain's shadow; NORM only
+    /// Each px of `PIC_WINDOW` at its ground point. The ground returns by the terrain's slope toward the radar against
+    /// level ground's at that range (the receiver's gain follows the range, so level ground reads one mid level near
+    /// and far, a slope facing the radar brighter, one facing away darker), with a fixed speckle; the towns bright by
+    /// their built-up share; none from water (the sea level) and runways, none in the terrain's shadow; NORM only
     /// inside the ±60° fan; the listed returns bright, as large as their units; GMT's map dimmed under its movers; no
     /// data (unstreamed terrain): transparent. Inferred shading. LA8 bytes.
     fn paint(&self, ground: &dyn Fn(Vec3) -> Option<f64>) -> Vec<u8> {
@@ -2322,7 +2336,12 @@ impl Sketch {
                 if shadowed(p) {
                     continue;
                 }
-                let v = (0.12 + 0.88 * cos.powf(1.5)) * speckle(p) * gain;
+                let flat = ((own.z - p.z) / look.length().max(1e-9)).max(GM_FLAT_MIN);
+                let mut v = GM_DARK + (GM_SPAN * GM_LEVEL * cos / flat).min(GM_SPAN);
+                if let Some(t) = self.towns {
+                    v = v.max(GM_DARK + GM_SPAN * (GM_LEVEL + (1.0 - GM_LEVEL) * t(p).clamp(0.0, 1.0)));
+                }
+                let v = v * speckle(p) * gain;
                 la8[at] = (v * 255.0).clamp(0.0, 255.0) as u8;
             }
         }
@@ -2345,6 +2364,14 @@ impl Sketch {
         la8
     }
 }
+
+/// The GM picture's levels before the display's gain (mfd.gd: 2.2, so 0.45 reads full): a slope turned away, the span
+/// over it to the brightest return, level ground's share of the span, the flattest look counted (sin of the depression
+/// angle; inferred).
+const GM_DARK: f64 = 0.03;
+const GM_SPAN: f64 = 0.42;
+const GM_LEVEL: f64 = 0.32;
+const GM_FLAT_MIN: f64 = 0.02;
 
 /// The GM picture's fixed speckle (0.85..1.15) on a 30 m grid: a hash of the ground cell, so the picture keeps it
 /// frame to frame (inferred).
@@ -3207,6 +3234,30 @@ mod tests {
         };
         assert_eq!(at(Vec3::new(-2000.0, 9500.0, 0.0)), 0, "the runway dark");
         assert!(at(Vec3::new(-2150.0, 9500.0, 0.0)) > 10, "the ground beside it lit");
+    }
+
+    #[test]
+    fn the_picture_shows_towns_bright_and_level_ground_even() {
+        fn town(p: Vec3) -> f64 {
+            if (p.x + 8000.0).abs() < 1500.0 && (p.y - 16000.0).abs() < 1500.0 { 1.0 } else { 0.0 }
+        }
+        let units = [];
+        let mut r = gm(&units);
+        r.set_towns(Some(town));
+        let low = Input { own: Own { pos: Vec3::new(0.0, 0.0, 600.0), ..land(&units).own }, ..land(&units) };
+        r.step_range(-2, 1.0, &low);
+        let pic = r.real().unwrap().picture.clone();
+        let f = pic.frame.unwrap();
+        // The mean of the 5 x 5 px about a point (the speckle averaged out).
+        let at = |w: Vec3| {
+            let (x, y) = f.to_px(w);
+            let (i, j) = ((x - PIC_WINDOW.0) as usize, (y - PIC_WINDOW.1) as usize);
+            let px = |a: usize, b: usize| f64::from(pic.la8[2 * (b * PIC_WINDOW.2 + a)]);
+            (0..25).map(|k| px(i + k % 5 - 2, j + k / 5 - 2)).sum::<f64>() / 25.0
+        };
+        let (near, far) = (at(Vec3::new(-3000.0, 6000.0, 0.0)), at(Vec3::new(-3000.0, 17000.0, 0.0)));
+        assert!(at(Vec3::new(-8000.0, 16000.0, 0.0)) > 1.8 * far, "the town brighter than the plain");
+        assert!((near - far).abs() < 0.25 * far, "level ground one level near and far ({near:.0} vs {far:.0})");
     }
 
     #[test]

@@ -45,6 +45,8 @@ pub struct Airframe {
     pub mfd: Option<String>,
     /// The fly-by-wire flight controls: the roll-rate command and the deep stall in place of the spin (aircraft.rs).
     pub fly_by_wire: Option<bool>,
+    /// Modern IAF's canopy: its full opening in degrees about its hinge (`aircraft_model.gd` `canopy_up`; 30 without).
+    pub canopy_deg: Option<f32>,
     /// A drag chute (`false`: none, so the flight never asks the flight model for one; terrain_view.gd).
     pub drag_chute: Option<bool>,
     /// Flight data Real: the gear's airspeed limit; above it with the gear down the gear is damaged
@@ -364,8 +366,8 @@ mod tests {
     /// With every switch off a 1998 jet's definition holds no value its type-code tables decide, so the game reads
     /// exactly the 1998 values; only what the original has no table for (the model file it is, the 3D cockpit and
     /// its HUD) and `drag_chute: false`, as the 1998 F-16 (its model has no `Parach` part, docs/part-animation.md),
-    /// and `gear_limit`, which only Flight data Real and the 6-DoF read, and `rcs`, which only Modern IAF's enemy
-    /// radars read (`iaf_ai::site`).
+    /// and `gear_limit`, which only Flight data Real and the 6-DoF read, `rcs`, which only Modern IAF's enemy radars
+    /// read (`iaf_ai::site`), and `canopy_deg`, which only Modern IAF's cold start reads.
     #[test]
     fn switches_off_give_the_1998_values() {
         let off = Switches { f16: "barak", f15: "baz" };
@@ -386,6 +388,7 @@ mod tests {
                         "drag_chute",
                         "gear_limit",
                         "rcs",
+                        "canopy_deg",
                     ]
                     .contains(k)
                 }),

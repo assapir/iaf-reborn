@@ -24,7 +24,7 @@ When the radar looks at the ground, the SRCH portal of the #term("PCD") reads AS
 
 - *Top left:* the mode and the picture's size: NORM, EXP, DBS1 or DBS2.
 - *Top right:* STP or TGT, the point the cursor returns to; before it FZ or SP while that function is on.
-- *The picture:* slopes that face the radar are bright; water and runways are black; ground hidden behind a ridge is dark.
+- *The picture:* level ground is one mid grey near and far; slopes that face the radar are bright, slopes that face away dim; towns are bright; water and runways are black; ground hidden behind a ridge is dark.
 - *The cursor* is the crossing of two lines over the whole picture. It marks a point on the ground and stays on it while the jet moves. It starts on the steerpoint.
 - *A return* is drawn by its identity (@radios): the yellow squares of @fig-d-asr_gm are unknown.
 

@@ -88,6 +88,8 @@ func setup(type_code: int, lrs_nm := 0.0) -> void:
 				var e: Array = rw.ends
 				list.append(PackedFloat64Array([e[0][0], e[0][1], e[1][0], e[1][1], float(rw.width)]))
 		_r.set_runways(list)
+		# The towns bright: the scenery's built-up glow (city_lights.rs, made once on its own thread).
+		_r.set_towns(load("res://shared/terrain/scenery.gd").dir())
 	_sync()
 
 

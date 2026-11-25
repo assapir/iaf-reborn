@@ -796,11 +796,12 @@ func _store(at: Vector2, t: int, k: float) -> void:
 
 
 ## The TWD (threat warning display; its picture is open: inferred a heading-up threat circle like the F-16's RWR
-## azimuth indicator). Modern IAF (ews.gd): the shared threat display's symbols (ews.rs Twd: each threat at its
-## bearing on the ring of its lethality, its label by class, the top one in a diamond, a lock in a square, a launch in
-## a flashing circle; the range's drones with their radars on show as "35" / "16"), yellow searching, red locking or
-## launching, and the DAS's missile warnings (ews.rs Maw: an "M" at the missile's bearing, its class and the seconds to
-## impact under it, "AAM 12").
+## azimuth indicator). Modern IAF (ews.gd): the shared threat display's threats (ews.rs Twd: each at its bearing on the
+## ring of its lethality, its label by class; the range's drones with their radars on show as "35" / "16") drawn in
+## the F-35's own track shapes (`track`: a hostile red diamond, a ground threat on its base line; inferred, the F-35's
+## threat symbols are not public), the class under it, yellow searching, red locking or launching; the top one in a
+## larger diamond, a lock in a square, a launch in a flashing circle; and the DAS's missile warnings (ews.rs Maw: an
+## "M" at the missile's bearing, its class and the seconds to impact under it, "AAM 12").
 ## The 1998 game's F-35I: every RWR entry at its bearing and distance (37 km at the rim), its code.
 func twd(r: Rect2) -> void:
 	var c := Vector2(r.get_center().x, r.position.y + r.size.y * 0.48)
@@ -824,14 +825,11 @@ func twd(r: Rect2) -> void:
 			n += 1
 			if (sy.new or sy.launch) and not blink:
 				continue
-			var lw := text_width(sy.label, 5.0)
-			text(p + Vector2(-lw / 2.0, 1.8), sy.label, 5.0, col)
-			if sy.kind == "air":
-				poly(
-					PackedVector2Array([p + Vector2(-2.6, -5.4), p + Vector2(0, -7.2), p + Vector2(2.6, -5.4)]),
-					col,
-					THIN
-				)
+			# The F-35's own track shapes (`track`, Skaff): every threat a hostile red diamond, a ground one on its base
+			# line; its class under it, yellow searching, red locking or launching (inferred).
+			track(p, "hostile", null, sy.kind != "air", 2.6)
+			var lw := text_width(sy.label, 4.6)
+			text(p + Vector2(-lw / 2.0, 11.6), sy.label, 4.6, col)
 			if sy.launch:
 				circle(p, 4.8, RED, LINE)
 			elif sy.lethal:

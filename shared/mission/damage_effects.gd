@@ -428,6 +428,17 @@ func _flash(pos: Vector3) -> void:
 	t.tween_callback(l.queue_free)
 
 
+## Modern IAF's bomb hit on land (gpu_fx.gd bomb_hit: fireball, fragments, thrown earth, the dust's ring and the
+## column), `kg` of explosive, with a lens flash; without Detailed effects the original's 0x4008 (flash, streamers,
+## column).
+func bomb_hit(pos: Vector3, kg: float, ground_y: float) -> void:
+	if gpu == null:
+		explosion(pos, F_FLASH | F_SMOKE_TRAILS, 4.0, 95.0, ground_y)
+		return
+	_flash(pos + Vector3(0, 5, 0))
+	gpu.bomb_hit(pos, kg)
+
+
 ## The pieces' material of a shatter without the unit's model.
 static func _debris_material() -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()

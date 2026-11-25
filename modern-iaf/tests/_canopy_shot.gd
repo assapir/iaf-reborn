@@ -4,6 +4,8 @@
 #     --resolution 1600x900 -s ../modern-iaf/tests/_canopy_shot.gd
 # Writes SHOT_DIR/<jet>_<view>_{up,mid,shut}.png for each outside view (OUT_VIEWS) and seat view (SEAT_VIEWS), see
 # _both. SHOT_JETS: some of them (comma-separated: sufa,barak,adir). SHOT_MID: the canopy's opening for "mid" (0.5).
+# SHOT_FOV: the outside camera's field of view (deg; a long lens from afar matches a photo's camera); SHOT_NO_BASE=1:
+# the base's shelters hidden for the outside pictures.
 extends "res://../tests/godot/base.gd"
 
 const JETS := {2011: "sufa", 2021: "barak", 2031: "adir"}
@@ -69,6 +71,13 @@ func _both(tv: Node, dir: String, jet: String, stage: String) -> void:
 	var part = a.parts.get("Canopy", a.parts.get("canopy"))
 	var at: Vector3 = (part.node as Node3D).global_position if part != null else a.global_position
 	var cam: Camera3D = tv.chase
+	var fov0 := cam.fov
+	# SHOT_NO_BASE=1: the base's furniture (its shelters) hidden, so a camera from afar sees the jet.
+	var base: Node3D = tv.find_child("BaseFurniture", true, false)
+	if base != null and _env("SHOT_NO_BASE", "") != "":
+		base.visible = false
+	if _env("SHOT_FOV", "") != "":
+		cam.fov = float(_env("SHOT_FOV", ""))  # a long lens from afar: a photo's camera
 	for v in _env("OUT_VIEWS", "out:135:25:9").split(","):
 		var f := v.split(":")
 		var az := deg_to_rad(float(f[1]))
@@ -84,6 +93,9 @@ func _both(tv: Node, dir: String, jet: String, stage: String) -> void:
 		await frames(10)
 		await _shot(dir, "%s_%s_%s" % [jet, f[0], stage])
 		place.queue_free()
+	cam.fov = fov0
+	if base != null:
+		base.visible = true
 	tv.in_cockpit = true
 	tv.views.set_cockpit(tv.views.COCKPIT)
 	for v in _env("SEAT_VIEWS", "in:0:0").split(","):

@@ -982,7 +982,7 @@ func _canopy(delta: float) -> void:
 	for f: Node3D in _frames:
 		if is_instance_valid(f) and f.name == "canopy_frame" and part.has("hinge") and not f.has_node("CanopyGlass"):
 			_canopy_glass(f, part, a.desc.get("eye", []))
-	var r := Basis(part.axis, a.canopy_open * a.CANOPY_UP)
+	var r := Basis(part.axis, a.canopy_open * a.canopy_up)
 	for f: Node3D in _frames:
 		if is_instance_valid(f):
 			f.transform = Transform3D(r * _frames[f].basis, _frames[f].origin)

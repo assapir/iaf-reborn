@@ -66,8 +66,16 @@ Each burning flare trails a thin smoke ribbon (`trails.gd` `FLARE`: 0.2 m wide a
 `trail.png`; `decoy_fx.gd` when not `original_art()`) in place of the original's white puffs (3.2 → 9.6 m every
 1/30 s), which around the sim's sprites read as one cloud of smoke.
 
-**Open:** a bomb's hit on the ground draws the shared grey smoke domes, the same as the original game; the sim has no
-fire, dust or debris look of its own yet.
+**Bomb hits** (2026-11-25; `player_weapons.gd` `_explosion_effect`, `damage_effects.gd` `bomb_hit`, `gpu_fx.gd`
+`bomb_hit`): a bomb's hit on land (a burst within 10.5 m of the ground) is the sim's own; an air burst keeps the original's flash and streamers; on water it keeps the splash and ring, and the 1998 game keeps the
+original's grey smoke domes. Its size goes with the cube root of the record's explosive (`power` / 50 kg; k = 1 for a
+Mk 82's 89 kg, 1.7 for a Mk 84's 429 kg): a lens flash; a fireball about 20 m · k across, gone in about 1 s; 40
+white-hot fragments; 90 dark clods of earth and stones thrown up to about 60 m · k, falling back over 3 to 6 s; a skirt
+of dust rolling out along the ground; a stem of earth and smoke under a grey cauliflower crown about 50 m · k up, which
+thins out over half a minute and drifts with the wind. The shape was matched to a photograph of three Mk 82s on the
+Grayling range (a narrow dark stem, a wide crown, a low dust skirt)[^grayling]; the sizes are inferred. It draws with
+Graphics → MORE "Particle effects: Detailed" (on by default in the sim); with it off the original's look stands in.
+Pictures: `_effects_shot.gd` `EFX_ONLY=bomb` (`EFX_BOMB=original`: the old look, `EFX_BOMB_KG`: the charge).
 
 A gun record without a model (the sim's `20mm.json`) draws its rounds as tracers; the original's gun
 record has a model and draws it as before.
@@ -543,3 +551,7 @@ a dud; a GBU-12 in CCRP with the Litening slaved and LASER ARM leaves by itself 
 [^bms-tfr]: Falcon BMS community, the LANTIRN navigation pod's FLIR and TFR as the dash-34 gives them (a simulator community page, secondary), as cited in [research/pods.md](research/pods.md) §3.2–3.3.
 [^twz-spice]: The War Zone, "Israel is bringing SPICE 1000 standoff weapon to the F-35", 16 September 2026 (quoting The
     Jerusalem Post; no stations named), https://www.twz.com/air/israel-is-bringing-spice-1000-standoff-weapon-to-the-f-35
+
+[^grayling]: U.S. Air Force photo, "A-10 Thunderbolt II drops live Mk 82, 500lb bombs on the Grayling Aerial Gunnery
+    Range during Exercise Northern Strike 2014", Wikimedia Commons (public domain),
+    https://commons.wikimedia.org/wiki/File:A-10_Thunderbolt_II_drops_live_Mk_82,_500lb_bombs_on_the_Grayling_Aerial_Gunnery_Range_during_Exercise_Northern_Strike_2014.png

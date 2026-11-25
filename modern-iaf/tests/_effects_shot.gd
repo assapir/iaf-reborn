@@ -98,7 +98,7 @@ func run() -> void:
 	# 3. A missile launch beside the jet, seen from its rear quarter.
 	if _want("missile"):
 		await _missile()
-	# 4. A bomb's hit on the ground ahead (player_weapons.gd: flash + smoke streamers).
+	# 4. A bomb's hit on the ground ahead (player_weapons.gd _explosion_effect).
 	if _want("bomb"):
 		await _bomb()
 	# 5. Over a cloud deck: the jet above the rain's deck, seen from above.
@@ -176,27 +176,41 @@ func _missile() -> void:
 
 
 func _bomb() -> void:
+	# The chase camera, placed after the views place it each frame (as _canopy_shot.gd): the cockpit hidden.
 	var keep := GDScript.new()
-	keep.source_code = "extends Camera3D\nfunc _process(_d):\n\tmake_current()\n"
+	keep.source_code = (
+		"extends Node\nvar cam: Camera3D\nvar eye: Vector3\nvar at: Vector3\n"
+		+ "func _process(_d):\n\tcam.look_at_from_position(eye, at, Vector3.UP)\n"
+	)
 	keep.reload()
-	var cam := Camera3D.new()
-	cam.set_script(keep)
-	cam.process_priority = 1000
-	cam.far = 60000.0
-	tv.add_child(cam)
+	tv.in_cockpit = false
+	tv.views.set_orbit(tv.rig, tv.CHASE_OFFS, 1.0, tv.views.CHASE, false)
+	var place := Node.new()
+	place.set_script(keep)
+	place.process_priority = 1000
+	place.cam = tv.chase
+	tv.add_child(place)
 	var fwd: Vector3 = -tv.rig.global_basis.z
 	fwd = Vector3(fwd.x, 0, fwd.z).normalized()
 	var side := fwd.cross(Vector3.UP)
 	var a: Vector3 = tv.rig.global_position + fwd * 900.0
 	var h = tv.terrain.height_at(a)
 	var gp := Vector3(a.x, float(h) if h != null else a.y, a.z)
-	cam.global_position = gp - fwd * 160.0 + side * 30.0 + Vector3(0, 30, 0)
-	cam.look_at(gp + Vector3(0, 12, 0), Vector3.UP)
+	# EFX_BOMB_KG (default 429, a Mk 84): Modern IAF's own hit (damage_effects.gd bomb_hit), 450 m away; in the 1998
+	# game, or with EFX_BOMB=original, the original's 0x4008 (flash, streamers, column).
+	var orig: bool = settings().original_art() or OS.get_environment("EFX_BOMB") == "original"
+	var kg := float(OS.get_environment("EFX_BOMB_KG")) if OS.get_environment("EFX_BOMB_KG") != "" else 429.0
+	place.eye = gp - fwd * 450.0 + side * 80.0 + Vector3(0, 40, 0)
+	place.at = gp + Vector3(0, 40, 0)
 	await ground_streamed(tv, 20000, 30)
-	tv.effects.explosion(gp, tv.effects.F_FLASH | tv.effects.F_SMOKE_TRAILS, 4.0, 95.0, gp.y)
+	if orig:
+		tv.effects.explosion(gp, tv.effects.F_FLASH | tv.effects.F_SMOKE_TRAILS, 4.0, 95.0, gp.y)
+	else:
+		tv.effects.bomb_hit(gp, kg, gp.y)
 	var t0 := Time.get_ticks_msec()
-	for t in [0.15, 0.6, 2.0]:
+	for t in [0.15, 0.6, 2.0, 6.0, 15.0]:
 		while Time.get_ticks_msec() - t0 < t * 1000.0:
 			await process_frame
 		await _shot("bomb_%s" % str(t))
-	cam.queue_free()
+	place.queue_free()
+	tv.in_cockpit = true

@@ -78,11 +78,12 @@ var crew_visible := true
 var ejected := false
 var canopy_offset := Vector3.ZERO
 var canopy_gone := false
-## Ours (Modern IAF's cold start, modern-iaf/docs/training.md §7.1): the canopy open, 0 shut .. 1 up by CANOPY_UP
+## Ours (Modern IAF's cold start, modern-iaf/docs/training.md §7.1): the canopy open, 0 shut .. 1 up by canopy_up
 ## about its hinge (the F-16's aft, the F-35I's forward); the flight sets it, 0 elsewhere.
 var canopy_open := 0.0
-## The canopy's full opening: FlightGear's F-16 (Models/F-16.xml, canopy/position-norm × 30°); the F-35I's inferred.
-const CANOPY_UP := 0.5236  # 30°
+## The canopy's full opening (rad): the aircraft definition's `canopy_deg` (the F-16s' measured on a photo, 34°), else
+## 30° (FlightGear's F-16, Models/F-16.xml, canopy/position-norm × 30°; the F-35I's inferred).
+var canopy_up := deg_to_rad(30.0)
 var _chute_angle := 0.0
 var _rotor := 0.0  # the rotors' angle, degrees (crew object +0x10)
 ## Rolling wheels (ours, Graphics → MORE; docs/part-animation.md §2.2): the wheel frames WheelsA..F that ride on a
@@ -398,6 +399,7 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 	scene = gltf_scene
 	desc = descriptor
 	type_code = type if type >= 0 else int(desc.get("type", 100))
+	canopy_up = deg_to_rad(float(Settings.airframe(type_code).get("canopy_deg", 30.0)))
 	add_child(scene)
 	root_frame = scene.find_child(str(desc.get("root", "")), true, false) as Node3D
 	if root_frame == null:
@@ -794,7 +796,7 @@ func part_pose(id: int) -> Array:
 		0x16, 0x17:  # canopy, canopyB
 			if ejected:
 				return [0.0, not canopy_gone]
-			return [canopy_open * CANOPY_UP, crew_visible]
+			return [canopy_open * canopy_up, crew_visible]
 		0x27:  # Parach
 			return [_chute_angle, _chute_state == 2]
 		0x90, 0x91, 0x92, 0x93:  # BayLi, BayLo, BayRi, BayRo (ours)

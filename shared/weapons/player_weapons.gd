@@ -2825,7 +2825,7 @@ func _bomb_detonate(bm: Dictionary, p: Vector3) -> void:
 		if bm.get("mine", me.get("player", false)) and not bm.get("jettisoned", false):
 			_log_hit(w, hit)
 	var type := int(w.type)
-	_explosion_effect(p, type)
+	_explosion_effect(p, type, float(w.power))
 	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", OST.get(type, "OST_BOMB")), p)
 	if not hit.is_empty():
 		_place_sound(host.sounds.play("SFX_WEAPON_HIT_TARGET"), p)
@@ -2835,8 +2835,10 @@ func _bomb_detonate(bm: Dictionary, p: Vector3) -> void:
 		host.sounds.stop(bm.sound)
 
 
-## The weapon explosion of FUN_0059df20 by type; `p` world.
-func _explosion_effect(p: Vector3, type: int) -> void:
+## The weapon explosion of FUN_0059df20 by type; `p` world. Modern IAF (not original_art()): a bomb's hit on land
+## is its own (damage_effects.gd bomb_hit; an air burst keeps the flash and streamers), its explosive `power` / 50 kg
+## (the records' damage scale).
+func _explosion_effect(p: Vector3, type: int, power := 0.0) -> void:
 	var sp := to_scene(p)
 	var g = host.scene_ground(sp)
 	var gy: float = g if g != null else sp.y
@@ -2855,6 +2857,9 @@ func _explosion_effect(p: Vector3, type: int) -> void:
 			var f := DamageEffects.F_FIREBALL | (DamageEffects.F_KICK | DamageEffects.F_SMOKE_TRAILS if low else 0)
 			host.effects.explosion(sp, f, 4.0, 95.0, gy)
 		_:
+			if low and not Settings.original_art() and power > 0.0:
+				host.effects.bomb_hit(sp, power / 50.0, gy)
+				return
 			host.effects.explosion(sp, DamageEffects.F_FLASH | DamageEffects.F_SMOKE_TRAILS, 4.0, 95.0, gy)
 
 

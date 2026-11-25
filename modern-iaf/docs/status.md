@@ -701,7 +701,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `.\modern-iaf-setup.ps1`), Fly greyed and out of the focus, and the Hangar tries no model load without the converted
   descriptor (its still picture instead). Missions and campaign stays greyed.
 - **The canopy opens and closes (2026-11-14, canopy round 3):** on the Sufa, the Barak and the F-35I the canopy
-  stands up 30° at a cold start and comes down over 10 s at its checklist step (shut at once on a hot or airborne
+  stands up at a cold start (the F-16s' 34°, measured on a photo since 2026-11-25; the F-35I's 30°) and comes down over 10 s at its checklist step (shut at once on a hot or airborne
   start), outside and from the seat alike. Each canopy has an opaque frame round the glass painted as the airframe
   and turns about its own hinge (the F-16s' aft, the F-35I's front); the F-35I's control is a yellow lever on the
   left wall, aft of the throttle ([training.md](training.md) §7.1, [cockpit.md](cockpit.md) §5.2,
@@ -1199,7 +1199,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   2026-11-14 (`iaf-sim own`, [weapons.md](weapons.md) §2; before: a soft dot, the afterburner a white shaft): flares as bright
   points with thin smoke trails. Since 2026-11-16 a flare sinks away under the jet and burns 4 s, chaff stops in the
   air behind it, so both show from a chase view behind the jet too (weapons.md §2); the F-35I's dispensers sit on its
-  lower aft fuselage. Open: a bomb's hit still draws the shared grey domes.
+  lower aft fuselage. Since 2026-11-25 a bomb's hit on land is the sim's own: flash, fireball, thrown earth, a dust
+  skirt and a grey column ([weapons.md](weapons.md) §2 "Bomb hits").
 - **[A3](plan.md#a3-the-setup-wizard), the setup wizard (2026-11-03):** `./modern-iaf-setup` opens the wizard; it builds the terrain,
   the airbases, the units and weapons, the sounds and voices and the training missions as a step graph with stamps (a
   second run is all up to date), in English and Hebrew ([setup.md](setup.md)). Its look is Godot's default theme until
@@ -1372,9 +1373,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   reproduce on Linux (headless or in a hidden real render) and is not being pursued unless it is seen again. The leak
   reported with it is fixed (docs/rendering.md §1.5; `modern-iaf/tests/test_exit.gd`).
 - **The canopy, after round 3** (2026-11-14): from the F-35I's seat the frame's sides look wide with the lid open;
-  the F-16s' lid opens less far than in photos (30°, FlightGear's value); the frames' colours and sizes are
-  estimated from photos. The briefing still shows the F-35I's canopy lever as text, no picture
-  (`_switch_crops.gd` `HIDDEN`), from when it sat behind the seat.
+  the frames' colours and sizes are estimated from photos. Since 2026-11-25 the F-16s' lid opens 34°, matched to a
+  side photo from the same camera (`airframe.json` `canopy_deg`), and the briefing shows the F-35I's canopy lever in
+  a picture like every other step.
 - **A first start's shader compilation** (2026-11-10; 2026-11-25): the front end now warms the flight's materials while
   the menus show (`shared/util/shader_warmup.gd`), and the release bundles bake Godot's own shaders, the `.gdshader`
   files and the warm-up's materials ([../../docs/rendering.md](../../docs/rendering.md) §1.6 "The first start"). On the

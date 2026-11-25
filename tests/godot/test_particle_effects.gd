@@ -61,8 +61,8 @@ func run() -> void:
 	)
 	check(shown_a > 0, "Original: the puffs are drawn as billboards (%d at most)" % shown_a)
 	check(
-		b.gpu != null and b.find_children("*", "GPUParticles3D", true, false).size() == 3,
-		"Detailed: the three GPU pools"
+		b.gpu != null and b.find_children("*", "GPUParticles3D", true, false).size() == 4,
+		"Detailed: the four GPU pools"
 	)
 	check(a.spawned > 100 and a.spawned == b.spawned, "the same puffs spawn in both (%d / %d)" % [a.spawned, b.spawned])
 	var ca: Dictionary = a.counts()
@@ -73,6 +73,17 @@ func run() -> void:
 	check(shown_b == 0 and b.counts().puffs == 0, "Detailed: no billboards")
 	var em: Dictionary = b.gpu.emitted
 	check(em.smoke > 0 and em.fire > 0 and em.sparks > 0, "Detailed: smoke, fire and sparks emitted (%s)" % [em])
+	# Modern IAF's bomb hit (damage_effects.gd bomb_hit): Detailed draws its own; Original keeps the original's 0x4008.
+	var e0: Dictionary = em.duplicate()
+	b.bomb_hit(Vector3.ZERO, 429.0, 0.0)
+	var e1: Dictionary = b.gpu.emitted
+	check(
+		e1.debris - e0.debris == 90 and e1.fire > e0.fire and e1.smoke - e0.smoke == 82 and e1.sparks > e0.sparks,
+		"Detailed: a bomb hit's earth, fireball, fragments and dust (%s)" % [e1]
+	)
+	var st: int = a._streamers.size()
+	a.bomb_hit(Vector3.ZERO, 429.0, 0.0)
+	check(a._streamers.size() > st, "Original: a bomb hit is the original's streamers")
 
 	# Trails: the same bookkeeping; missile trails become GPU smoke, wingtip trails stay ribbons.
 	var trails_script: GDScript = load("res://shared/mission/trails.gd")

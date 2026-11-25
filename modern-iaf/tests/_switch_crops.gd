@@ -3,21 +3,17 @@
 # shown on the throttle only) and each step of its checklist (sim_flight.gd STEP_IDS) the head turns to the step's
 # controls in the 3D cockpit (the clickable controls whose "click" is the step's command, 210 + its index; none: the
 # throttle's, command 5), zoomed in, and the view around them is cropped with a ring round them, a dark view
-# brightened: data/switches/<unit>/<step>.webp, 300 × 200, the switches as a cold jet has them (HIDDEN: no picture).
+# brightened: data/switches/<unit>/<step>.webp, 300 × 200, the switches as a cold jet has them.
 # SHOT_OUT: another folder; SHOT_MISSIONS: other missions (comma-separated menu ids).
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 -- --log-file <t> \
 #     --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_switch_crops.gd
 extends "res://tests/_switch_shot.gd"
 
-const Look := preload("res://menu/look.gd")
 ## The picture's size (px) and the least part of the screen it shows (px at 1920 × 1080).
 const SIZE := Vector2i(300, 200)
 const MIN_VIEW := Vector2(450, 300)
 ## The parts' size on the screen (px) past which they are pictured in the wide view.
 const BIG := Vector2(700, 450)
-## The steps with no picture: the F-35I's CANOPY switch (tools/f35i cockpit3d.py panel L4, 0.31 m aft) sits behind the
-## seat's side, left to its `where` text.
-const HIDDEN := {"f35i": ["canopy"]}
 
 
 func run() -> void:
@@ -51,8 +47,6 @@ func run() -> void:
 			# The pilot's body hides the consoles' switches; his glove shows the throttle's grip.
 			if tv.cockpit_3d._pilot != null:
 				tv.cockpit_3d._pilot.visible = throttle
-			if step in HIDDEN.get(unit, []):
-				continue
 			check(not parts.is_empty(), "%s %s: a control" % [unit, step])
 			if not parts.is_empty():
 				await _crop(tv, parts.map(func(x): return x[0]), dir.path_join(unit).path_join(step + ".webp"))
@@ -104,10 +98,11 @@ func _crop(tv: Node, parts: Array, file: String) -> void:
 
 ## An ellipse ring (3 px, the front end's accent) round `c` with half-axes `r`, smoothed at its edges.
 static func _ring(img: Image, c: Vector2, r: Vector2) -> void:
+	var accent: Color = load("res://menu/look.gd").ACCENT  # loaded once the autoloads are (a -s script's preload fails)
 	for y in img.get_height():
 		for x in img.get_width():
 			var d := Vector2(x + 0.5, y + 0.5) - c
 			var off := absf(Vector2(d.x / r.x, d.y / r.y).length() - 1.0) * minf(r.x, r.y)
 			var a := clampf(2.0 - off, 0.0, 1.0)
 			if a > 0.0:
-				img.set_pixel(x, y, img.get_pixel(x, y).lerp(Look.ACCENT, a))
+				img.set_pixel(x, y, img.get_pixel(x, y).lerp(accent, a))

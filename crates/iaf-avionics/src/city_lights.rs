@@ -271,8 +271,20 @@ impl Glow {
 
     /// One byte per square: 255 = the full glow, a square root curve so the suburbs' sparse lamps still show.
     pub fn bytes(&self) -> Vec<u8> {
-        let full = GLOW_FULL * (self.m * self.m) as f32;
-        self.sum.iter().map(|&s| ((s / full).min(1.0).sqrt() * 255.0).round() as u8).collect()
+        self.sum.iter().map(|&s| (self.level(s) * 255.0).round() as u8).collect()
+    }
+
+    /// The glow at a world point (x east, y north), 0..1 as `bytes`; 0 outside the grid.
+    pub fn at(&self, x: f64, y: f64) -> f64 {
+        let (i, j) = ((x - self.x0) / self.m, (self.y1 - y) / self.m);
+        if i < 0.0 || j < 0.0 || i as usize >= self.w || j as usize >= self.h {
+            return 0.0;
+        }
+        f64::from(self.level(self.sum[i as usize + j as usize * self.w]))
+    }
+
+    fn level(&self, s: f32) -> f32 {
+        (s / (GLOW_FULL * (self.m * self.m) as f32)).min(1.0).sqrt()
     }
 }
 

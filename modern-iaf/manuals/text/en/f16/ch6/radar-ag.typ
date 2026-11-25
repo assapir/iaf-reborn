@@ -7,7 +7,7 @@ In air-to-ground the #term("FCR") draws a map of the ground ahead from its own r
 #display("fcr_ag", [The FCR in air-to-ground. Top: the ground map (GM), EXP, DBS1. Middle: DBS2 on the same targets, DBS2 on a runway, the ground map with FZ on. Bottom: GMT, SEA, AGR with the slant range.], width: 100%)
 
 #table(columns: (auto, 1fr), table.header[*Mode*][*Shows*],
-  [GM, ground map], [A fan-shaped map, the jet at its point: slopes facing the radar are bright, water and runways dark, and ground hidden behind a ridge is in shadow. Every ground return is a bright mark. Scales 10 to 80 NM.],
+  [GM, ground map], [A fan-shaped map, the jet at its point: level ground is one mid green near and far, slopes facing the radar are bright and slopes facing away dim, towns are bright, water and runways dark, and ground hidden behind a ridge is in shadow. Every ground return is a bright mark. Scales 10 to 80 NM.],
   [GMT, ground moving target], [Moving vehicles only, over a dimmed map. Scales to 40 NM.],
   [SEA], [Ships only.],
   [AGR, air-to-ground ranging], [Selected by itself with a bomb's impact point or the gun in air-to-ground: the radar measures the slant range along the aiming line. The FCR and the #term("HUD") show the range.],
@@ -36,7 +36,7 @@ The ground cursor is the crossing of two lines. It stays on its ground point as 
 + #key("Radar: drop bug / lock (TMS down)") drops it. #then[The cursor returns to the steerpoint.]
 
 #in-sim[
-  - The picture is made from the terrain's heights; buildings and trees give no return. Its shading and the DBS limit near the ground track are inferred.
+  - The picture is made from the terrain's heights and the towns' built-up area; single buildings and trees give no return of their own. Its shading and the DBS limit near the ground track are inferred.
   - No picture of GM without FZ, of EXP and of DBS1 is in this edition.
   - #term("Not modelled"): the beacon and terrain-following modes.
 ]

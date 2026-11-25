@@ -316,6 +316,14 @@ impl IafRadar {
         self.with(|r, _| r.set_agr(at));
     }
 
+    /// Ours, the real FCR's GM picture: the towns bright, from the scenery's cells under `dir` (city_lights.rs
+    /// `want_glow`: made once on the lights thread; none until then).
+    #[func]
+    fn set_towns(&mut self, dir: GString) {
+        crate::city_lights::want_glow(&dir.to_string());
+        self.with(|r, _| r.set_towns(Some(crate::city_lights::town)));
+    }
+
     /// Ours, the real FCR's GM picture: the runways [[x0, y0, x1, y1, width], …] it shows dark.
     #[func]
     fn set_runways(&mut self, list: VarArray) {

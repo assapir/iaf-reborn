@@ -10,11 +10,12 @@
 extends Node3D
 
 ## Particles emitted, per pool (for tests).
-var emitted := {"smoke": 0, "fire": 0, "sparks": 0}
+var emitted := {"smoke": 0, "fire": 0, "sparks": 0, "debris": 0}
 
 var _smoke: GPUParticles3D
 var _fire: GPUParticles3D
 var _sparks: GPUParticles3D
+var _debris: GPUParticles3D
 var _sun: DirectionalLight3D
 var _rng := RandomNumberGenerator.new()
 ## Contrail emitters: owner -> last emitted position.
@@ -122,6 +123,8 @@ uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
 uniform vec3 sun_dir = vec3(0.3, 0.8, 0.5);
 uniform vec3 sun_col : source_color = vec3(1.0);
 uniform vec3 ambient : source_color = vec3(0.45, 0.5, 0.58);
+// A bomb's dust (`bomb_hit`): grey + 2 in COLOR.r draws the grey in this colour.
+uniform vec3 dust : source_color = vec3(0.66, 0.56, 0.42);
 """
 	+ VERTEX
 	+ SOFT
@@ -139,7 +142,7 @@ void fragment() {
 		+ vec3(n2 - 0.5, n1 - 0.5, 0.0) * 0.9);
 	vec3 nw = (INV_VIEW_MATRIX * vec4(nv, 0.0)).xyz;
 	float lit = clamp(dot(nw, normalize(sun_dir)) * 0.6 + 0.45, 0.0, 1.0);
-	float grey = COLOR.r;
+	vec3 grey = COLOR.r > 1.5 ? (COLOR.r - 2.0) * dust : vec3(COLOR.r);
 	vec3 col = grey * (ambient + sun_col * lit * 0.85) * (0.75 + 0.5 * n);
 	float fade = smoothstep(0.0, 0.06, v_f) * (1.0 - v_f * v_f);
 	float a = shape * fade * COLOR.a
@@ -218,6 +221,16 @@ void fragment() {
 """
 )
 
+## A bomb's thrown earth and stones (`bomb_hit`): the sparks' streaks (their vertex), opaque and dark, falling at g.
+const DEBRIS_FRAGMENT := """
+void fragment() {
+	float a = (1.0 - abs(v_local.x) * abs(v_local.x)) * (1.0 - smoothstep(0.85, 1.0, v_f)) * COLOR.a
+		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(v_view));
+	ALBEDO = vec3(0.16, 0.13, 0.10) * COLOR.r;
+	ALPHA = clamp(a, 0.0, 1.0);
+}
+"""
+
 static var _noise_tex: Texture2D
 ## The air mass in scene m/s (Better physics `wind`, terrain_view.gd `apply_wind`): smoke, fire, trails and chaff
 ## drift with it; zero is the original.
@@ -228,6 +241,8 @@ func _ready() -> void:
 	_smoke = _pool(16384, SMOKE_SHADER, 0.0, true)
 	_fire = _pool(4096, FIRE_SHADER, -3.0, false)
 	_sparks = _pool(4096, SPARK_SHADER, 15.0, false)
+	var streak := SPARK_SHADER.substr(0, SPARK_SHADER.find("void fragment()")).replace("blend_add", "blend_mix")
+	_debris = _pool(2048, streak + DEBRIS_FRAGMENT, 9.8, false)
 	_sun = get_viewport().find_child("Sun", true, false) as DirectionalLight3D
 	vapour = preload("res://shared/mission/vapour_fx.gd").new()
 	add_child(vapour)
@@ -387,6 +402,58 @@ func puff(pos: Vector3, vel: Vector3, life: float, w0: float, w1: float, grey: i
 			0.6,
 			0.85
 		)
+
+
+## Modern IAF's bomb hit on land (modern-iaf/docs/weapons.md §2 "Bomb hits"; inferred from photographs of bomb
+## tests): `kg` of explosive at `pos` (scene, on the ground). Sizes go with the cube root of the charge (k = 1 for a
+## Mk 82's 89 kg): a fireball about 20 m across · k gone in 1 s; white-hot fragments; dark earth and stones thrown up
+## to about 60 m · k, falling back over 3–6 s; the dust's ring rolling out along the ground; the dust and smoke column
+## rising to about 50 m · k and drifting for half a minute.
+func bomb_hit(pos: Vector3, kg: float) -> void:
+	var k := pow(maxf(kg, 5.0) / 89.0, 1.0 / 3.0)
+	puff(pos + Vector3(0, 4.0 * k, 0), Vector3.ZERO, 1.1, 70.0 * k, 70.0 * k, 0, true, 0.0)
+	for i in 40:
+		var d := _rand_dir().normalized()
+		d.y = absf(d.y) + 0.15
+		var v := d.normalized() * _rng.randf_range(60.0, 140.0) * sqrt(k)
+		_emit(_sparks, "sparks", pos, v, _rng.randf_range(0.4, 0.9), 0.5, 0.3, 1.0, 0.0, 0.3, 1.0)
+	for i in 90:
+		var a := _rng.randf() * TAU
+		var tilt := _rng.randf_range(0.0, 0.75)  # rad from the vertical
+		var d := Vector3(sin(tilt) * cos(a), cos(tilt), sin(tilt) * sin(a))
+		var v := d * _rng.randf_range(12.0, 34.0) * sqrt(k)
+		var w := _rng.randf_range(0.4, 1.4) * k
+		_emit(_debris, "debris", pos, v, 2.0 * v.y / 9.8 + 0.3, w, w, _rng.randf_range(0.6, 1.2), 0.0, 0.05, 1.0)
+	# The ground skirt: dust rolling out fast, slowed by the air.
+	for i in 28:
+		var a := TAU * i / 28.0 + _rng.randf_range(-0.1, 0.1)
+		var d := Vector3(cos(a), 0.08, sin(a))
+		var g := 2.0 + _rng.randf_range(0.55, 0.75)
+		_emit(
+			_smoke,
+			"smoke",
+			pos + d * 3.0 * k,
+			d * 30.0 * k,
+			_rng.randf_range(8.0, 14.0),
+			6.0 * k,
+			24.0 * k,
+			g,
+			0.05,
+			1.5,
+			0.75
+		)
+	# The stem: earth and smoke strung out up the column (each puff stops at its speed / drag).
+	for i in 14:
+		var d := _rand_dir()
+		var v := Vector3(d.x * 2.0, _rng.randf_range(8.0, 40.0), d.z * 2.0) * k
+		var g := _rng.randf_range(0.18, 0.3) if i % 2 == 0 else 2.0 + _rng.randf_range(0.45, 0.6)
+		_emit(_smoke, "smoke", pos + d * 2.0 * k, v, _rng.randf_range(16.0, 26.0), 6.0 * k, 20.0 * k, g, 0.0, 0.8, 0.85)
+	# The crown: a cauliflower of grey smoke and dust, about 50 m · k up.
+	for i in 30:
+		var d := _rand_dir()
+		var v := Vector3(d.x * 14.0, _rng.randf_range(38.0, 48.0) + d.y * 6.0, d.z * 14.0) * k
+		var g := _rng.randf_range(0.17, 0.32) if i % 3 != 0 else 2.0 + _rng.randf_range(0.45, 0.6)
+		_emit(_smoke, "smoke", pos + d * 3.0 * k, v, _rng.randf_range(20.0, 32.0), 7.0 * k, 26.0 * k, g, 0.05, 0.8, 0.9)
 
 
 ## A missile / rocket trail point (trails.gd MISSILE kind) of owner `key` at `pos`, while its motor burns: the

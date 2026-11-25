@@ -959,9 +959,9 @@ colour round it. They are `modern-iaf/data/switches/<unit>/<step>.webp` (300 × 
 jet's start-up mission: for each step the head turns to the clickable controls whose command is the step's
 ([cockpit.md](cockpit.md) §5.2; the F-16's four AVIONIC POWER switches in one ring, the F-35I's engine step its ENGINE
 switch, the F-16's its throttle with the pilot's glove on it; the pilot's body hidden for the rest).
-A step without a picture has none under its paragraph: the F-35I's canopy, whose switch our model puts behind the
-seat's side (status.md, Open). The F-16s' canopy picture shows its switch and lock lever ([cockpit.md](cockpit.md)
-§5.6). Run the
+A step without a picture has none under its paragraph. The F-16s' canopy picture shows its switch and lock lever
+([cockpit.md](cockpit.md) §5.6); the F-35I's its yellow canopy lever on the left wall aft of the throttle (since
+2026-11-25; before, the tool skipped it from when the lever sat behind the seat's side). Run the
 tool again when a cockpit model or a control's place changes. From 2026-11-10
 to 2026-11-15 the ORDER OF ACTIONS card listed the steps (a start-up's checklist, a take-off's `steps`) with their keys,
 a step with the focus opening to its wait and picture; the user found a checklist the wrong thing to read before the

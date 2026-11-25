@@ -4,15 +4,16 @@ This section covers what warns you of a threat, how you release chaff and flares
 
 === The TWD format <ew-twd>
 
-The threat warning display, TWD, is a format of the #term("PCD"). It shows the radars that the jet hears. The real format's layout is open; the sim's circle is inferred, and its symbols are those of the F-16s' threat display.
+The threat warning display, TWD, is a format of the #term("PCD"). It shows the radars that the jet hears. The real format's layout is open; the sim's circle is inferred, and each threat is drawn in the jet's own track shape for a hostile.
 
 #display("twd_maw", [The TWD: one fighter radar locked on the jet, in the square, and one that has launched a radar-guided missile, in the circle and the diamond; a missile warning at the upper right, "AAM" with 7 seconds.])
 
 - *Your jet* is at the centre, its nose up.
 - *Each radar* shows at its bearing. Its ring tells what it does: the outer ring while it searches, the inner ring when it locks on you, close to the centre when it launches a radar-guided missile. A missile that homes on heat sends no radar signal, so its launch does not show here. A shoulder-fired missile team has no radar at all: nothing of it shows here.
 - *The colour:* yellow while it searches, red when it locks or launches.
-- *The label* tells its kind: an aircraft by a number under a small roof, a ground site by a digit or a letter, a gun by an A in a box, a ship by an S. A radar that the jet cannot name is a U.
-- *The diamond* is on the threat that matters most: a launch before a lock, a lock before a search. *A square* marks a lock. *A flashing circle* marks a launch.
+- *The symbol* is a red diamond, the jet's sign for a hostile; a ground threat stands on a short line.
+- *The label* under it tells its kind: an aircraft by a number, a ground site by a digit or a letter, a gun by an A, a ship by an S. A radar that the jet cannot name is a U.
+- *The larger diamond* is on the threat that matters most: a launch before a lock, a lock before a search. *A square* marks a lock. *A flashing circle* marks a launch.
 - *Bottom:* the count of the threats.
 
 A new threat flashes for 4 seconds with a tone. A launch has its own tone.
