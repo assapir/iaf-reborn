@@ -233,7 +233,9 @@ menus' colours. Pages:
 2. **Requirements**: a table of the parts, why each is needed, and whether it is required: the graphics driver and
    the disk space for the game (required); the disk space for imagery, GDAL, curl, python3 (the pilot guides) and
    Firefox (the Survey's download token, the pilot guides) (optional).
-   A missing part shows its install command. "Check again", next to Next, looks once more.
+   A missing part shows its install command. "Check again", next to Next, looks once more. A release bundle that
+   ships GDAL and curl leaves their rows out and counts them as there (`Settings.ships_tools`); a bundle also leaves
+   out python3, which only builds the pilot guides, a checkout-only step.
 3. **Your CD**: the English CD image, picked with Browse and checked at once. Given the Hebrew CD here, the wizard
    says so and keeps it for the next page. "Find in a folder…" looks in a folder and its subfolders (3 levels) for
    the CD images, the v1.1 patch and the Hebrew packs (`iaf_setup::scan`, in the background), and fills the empty

@@ -47,8 +47,10 @@ built by hand without `$IAF_TOOLS` has none, and setup needs GDAL and curl insta
 
 At start, a bundled game whose tools folder holds bin puts that first on the PATH and sets `GDAL_DATA`, `PROJ_DATA` /
 `PROJ_LIB` and `CURL_CA_BUNDLE` / `SSL_CERT_FILE` to its CA file (`Settings._use_bundled_tools`, in `Settings._init`,
-before any setup thread). The programs setup starts inherit them; the wizard's GDAL and curl checks
-find them. On Windows a program started by name is looked up in `System32` before the PATH, so setup runs Windows'
+before any setup thread). The programs setup starts inherit them. Both wizards then neither check nor list GDAL and
+curl (`Settings.ships_tools`). Jane's IAF reborn's wizard also leaves out python3, which only builds the pilot guides
+(checkout only).
+On Windows a program started by name is looked up in `System32` before the PATH, so setup runs Windows'
 own curl there (it takes the same CA file); GDAL's programs come from the bundle. On macOS the game also clears
 the download's quarantine flag on its tools folder (`xattr -dr com.apple.quarantine`), so Gatekeeper does not stop
 the programs that the player's right-click, Open did not cover. The checkout is unchanged: it uses the installed GDAL and curl. The Microsoft footprints' `.csv.gz` are read

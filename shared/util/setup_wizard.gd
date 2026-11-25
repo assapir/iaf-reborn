@@ -48,7 +48,15 @@ func _start_wizard(page_ids: Array, window: Vector2i) -> void:
 	(func(): resize_window(self, window)).call_deferred()
 	assets = Settings.assets_dir()
 	repo = Settings.app_root()
+	check_tools()
+
+
+## The outside programs this computer has (IafSetup.tools). A bundle that ships GDAL and curl has them: not checked.
+func check_tools() -> void:
 	tools = IafSetup.tools()
+	if Settings.ships_tools():
+		tools.gdal = true
+		tools.curl = true
 
 
 ## A release bundle's data folder, on the first page (docs/release.md): its path and Change… (a folder picker, saved

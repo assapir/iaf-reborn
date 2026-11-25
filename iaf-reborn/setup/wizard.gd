@@ -190,7 +190,7 @@ func _build() -> void:
 	again_button.text = "Check again"
 	again_button.pressed.connect(
 		func():
-			tools = IafSetup.tools()
+			check_tools()
 			_fill_requirements()
 			_update()
 	)
@@ -481,7 +481,7 @@ func _fill_requirements() -> void:
 			false,
 			tools.get("firefox", false),
 			"Firefox",
-			"holds the Survey's download token; prints the pilot guide PDFs",
+			"holds the Survey's download token" + ("" if Settings.bundled() else "; prints the pilot guide PDFs"),
 			"found",
 			by_os(
 				"with your distribution's package manager",
@@ -507,6 +507,11 @@ func _fill_requirements() -> void:
 		return l
 	for h in ["", "Component", "Why it is needed", "Needed", "Status"]:
 		cell.call(h, ORANGE, 0)
+	# A bundle ships GDAL and curl (no rows); its python3 would only build the guides, which a release does not.
+	var hidden: Array = (
+		(["GDAL", "curl"] if Settings.ships_tools() else []) + (["python3"] if Settings.bundled() else [])
+	)
+	items = items.filter(func(it): return it[2] not in hidden)
 	req_ok = true
 	for it in items:
 		var mark_color: Color = GREEN if it[1] else (RED if it[0] else YELLOW)

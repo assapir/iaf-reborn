@@ -1080,12 +1080,18 @@ static func bundled() -> bool:
 	return OS.has_feature("template")
 
 
+## True in a release bundle that ships setup's GDAL and curl (its tools/bin, tools/release/tools_env.sh): the setup
+## wizards neither check nor list them (docs/release.md "The setup tools").
+static func ships_tools() -> bool:
+	return bundled() and DirAccess.dir_exists_absolute(app_root().path_join("tools/bin"))
+
+
 ## A release bundle's setup tools (GDAL, curl: tools/release/tools_env.sh) for the programs setup starts: their bin/
 ## first on the PATH, their data folders and CA bundle in the environment. Before any setup thread starts.
 static func _use_bundled_tools() -> void:
-	var tools := app_root().path_join("tools")
-	if not bundled() or not DirAccess.dir_exists_absolute(tools.path_join("bin")):
+	if not ships_tools():
 		return
+	var tools := app_root().path_join("tools")
 	if OS.get_name() == "macOS":
 		# A quarantined download (approved by right-click, Open) keeps the flag on the programs inside, which
 		# Gatekeeper then stops when setup starts them: cleared on the app's own tools folder.
