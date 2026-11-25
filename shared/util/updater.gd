@@ -178,7 +178,7 @@ func _show(text: String, ask := true) -> void:
 		bar.custom_minimum_size.x = 760
 	else:
 		var k := get_viewport().get_visible_rect().size.y / 1080.0
-		bar.theme = _green_theme(k)
+		bar.theme = _menu_theme(k)
 		bar.custom_minimum_size.x = 760 * k
 	line.text = text
 	update_button.visible = ask
@@ -189,48 +189,14 @@ func _show(text: String, ask := true) -> void:
 	bar.visible = true
 
 
-## The 1998 game's front end has no theme: the menus' green on black, sized for this window (k: its height / 1080).
-func _green_theme(k: float) -> Theme:
-	var t := Theme.new()
+## The 1998 game's front end has no theme: its setup wizard's (the menus' greys and green, its check box), the text
+## sized for this window (k: its height / 1080). Modern IAF over a screen without a theme (a flight): its front end's.
+func _menu_theme(k: float) -> Theme:
+	if Settings.project_folder() == "modern-iaf":
+		return load("res://menu/look.gd").make()
+	var t: Theme = load("res://setup/wizard.gd").menu_theme()
 	t.default_font_size = roundi(22 * k)
-	var green := Color8(0, 220, 0)
-	t.set_stylebox("panel", "PanelContainer", _box(Color.BLACK, green, k, 0))
-	t.set_stylebox("normal", "Button", _box(Color.BLACK, green, k, 24))
-	t.set_stylebox("hover", "Button", _box(Color8(0, 60, 0), green, k, 24))
-	t.set_stylebox("pressed", "Button", _box(Color8(0, 100, 0), green, k, 24))
-	t.set_stylebox("focus", "Button", StyleBoxEmpty.new())
-	# The check box is a Button: its row stays unboxed, only its square shows.
-	for st in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
-		t.set_stylebox(st, "CheckBox", StyleBoxEmpty.new())
-	for type in ["Label", "Button", "CheckBox"]:
-		t.set_color("font_color", type, green)
-	for st in ["font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
-		t.set_color(st, "Button", Color8(0, 255, 0))
-		t.set_color(st, "CheckBox", Color8(0, 255, 0))
-	var square := (
-		"<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26'>"
-		+ "<rect x='2' y='2' width='22' height='22' fill='none' stroke='#00dc00' stroke-width='2.5'/>%s</svg>"
-	)
-	var tick := "<path d='M6 13.5l5 5 9-10' fill='none' stroke='#00ff00' stroke-width='3'/>"
-	for icon in [["unchecked", ""], ["checked", tick]]:
-		var img := Image.new()
-		img.load_svg_from_string(square % icon[1], k)
-		t.set_icon(icon[0], "CheckBox", ImageTexture.create_from_image(img))
-	t.set_constant("h_separation", "CheckBox", roundi(12 * k))
 	return t
-
-
-## A black box with a green line round it; `pad_x`: the text's side margin (a button's), at 1080 lines.
-static func _box(fill: Color, edge: Color, k: float, pad_x: float) -> StyleBoxFlat:
-	var b := StyleBoxFlat.new()
-	b.bg_color = fill
-	b.border_color = edge
-	b.set_border_width_all(maxi(1, roundi(2 * k)))
-	b.content_margin_left = pad_x * k
-	b.content_margin_right = pad_x * k
-	b.content_margin_top = 8 * k
-	b.content_margin_bottom = 8 * k
-	return b
 
 
 ## A click outside the dialog: Later, while it asks or after a failure (never during the download and install).

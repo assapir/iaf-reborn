@@ -50,7 +50,10 @@ func run() -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	var release := OS.get_cache_dir().path_join("iaf-update-shot")
 	DirAccess.make_dir_recursive_absolute(release)
-	var asset := "%s-nightly-macos-arm64.dmg" % settings().project_folder()
+	var kind: String = {"Linux": "linux-x86_64.tar.gz", "Windows": "windows-x86_64.zip"}.get(
+		OS.get_name(), "macos-arm64.dmg"
+	)
+	var asset := "%s-nightly-%s" % [settings().project_folder(), kind]
 	var entry := {"name": asset, "version": NEW.replace("0.1.0", "0.1.0" if modern else "1.1.0"), "size": 177751374}
 	entry.sha256 = "0".repeat(64)
 	FileAccess.open(release.path_join("nightly.json"), FileAccess.WRITE).store_string(

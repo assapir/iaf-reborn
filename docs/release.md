@@ -212,13 +212,13 @@ IAF_ASSETS_DIR=<built data> tools/release/smoke.sh <bundle> --quit-after 3000 --
 
 ## 7. Updates on start
 
-On each start, both games look for two things and, when they find one, show a dialog in the middle of the screen
-with **Update**, **Later** and a **Don't ask me again** box (en / he, `shared/util/update_strings_*.json`). A click
-outside the dialog is Later. In Modern IAF the dialog takes the front end's theme; in Jane's IAF reborn it is the
-menus' green on black (an opaque panel and framed buttons, sized to the window). The user's requests: "we need to
-add auto update on startup for released assests", then
-"same for setup" (24 November 2026); "a pop-up, not like that? Clicking outside dismiss it, have don't ask me again
-option. In setting, add option to always download and never ask or download" (25 November 2026).
+On each start, both games look for two things and, when they find one, show a dialog in the middle of the screen with
+**Update**, **Later** and a **Don't ask me again** box (en / he, `shared/util/update_strings_*.json`). A click outside
+the dialog is Later. In Modern IAF the dialog takes the front end's theme; in Jane's IAF reborn it takes the setup
+wizard's (its framed grey buttons and check box on a black panel, sized to the window). The user's requests: "we need to
+add auto update on startup for released assests", then "same for setup" (24 November 2026); "a pop-up, not like that?
+Clicking outside dismiss it, have don't ask me again option. In setting, add option to always download and never ask or
+download" (25 November 2026).
 
 The setting "Updates on start" (`Settings.update_mode`; Modern IAF: Settings → Updates, Jane's IAF reborn: Extras)
 has three choices:

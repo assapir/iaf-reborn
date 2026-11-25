@@ -154,7 +154,7 @@ func _build() -> void:
 		margin.add_theme_constant_override("margin_" + side, 32)
 	add_child(margin)
 	resized.connect(_cap_width)
-	theme = _theme()
+	theme = menu_theme()
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 16)
 	margin.add_child(v)
@@ -328,8 +328,9 @@ func _cap_width() -> void:
 
 
 ## The original menus' colours on Godot's default controls: grey frame buttons and fields, green when lit, and an
-## unchecked box that shows on the black background (a light outline).
-func _theme() -> Theme:
+## unchecked box that shows on the black background (a light outline). The update dialog (shared/util/updater.gd)
+## uses it too, its panel black in the frame grey.
+static func menu_theme() -> Theme:
 	var t := Theme.new()
 	var box := func(bg: Color, border: Color) -> StyleBoxFlat:
 		var sb := StyleBoxFlat.new()
@@ -372,6 +373,7 @@ func _theme() -> Theme:
 	var groove := StyleBoxFlat.new()
 	groove.bg_color = PANEL
 	t.set_stylebox("background", "ProgressBar", groove)
+	t.set_stylebox("panel", "PanelContainer", box.call(BG, FRAME))
 	var sep := StyleBoxLine.new()
 	sep.color = FRAME
 	t.set_stylebox("separator", "HSeparator", sep)
