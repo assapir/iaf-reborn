@@ -1052,13 +1052,12 @@ func _canopy_glass(f: Node3D, part: Dictionary, eye_a: Array) -> void:
 	# wider than the bar (it lies 1 cm under the glass's face), so the bar is widened (_slot_bar); a stencil keeps the
 	# tint single: the glass marks its pixels and the bar tints only the others.
 	var bow := g.find_child("canopy_bow_ext", true, false) as MeshInstance3D
+	var glass := _glass_material(g)
 	if bow != null and not _glass_marks(g):
 		bow.free()
 	elif bow != null:
-		var m := _glass_material(g).duplicate() as BaseMaterial3D
+		var m := _one_sheet(glass)
 		m.cull_mode = BaseMaterial3D.CULL_BACK
-		# The glass is a shell (its inner and outer faces: two layers of tint); the bar is one, so it tints as two.
-		m.albedo_color.a = 1.0 - pow(1.0 - m.albedo_color.a, 2.0)
 		m.render_priority = 1  # after the glass
 		m.stencil_mode = BaseMaterial3D.STENCIL_MODE_CUSTOM
 		m.stencil_flags = BaseMaterial3D.STENCIL_FLAG_READ | BaseMaterial3D.STENCIL_FLAG_WRITE
@@ -1125,6 +1124,13 @@ static func _glass_material(n: Node) -> BaseMaterial3D:
 	return null
 
 
+## The glass's material for one of its two sheets (`_one_sheet_mesh`), tinting as both do.
+static func _one_sheet(glass: BaseMaterial3D) -> BaseMaterial3D:
+	var m := glass.duplicate() as BaseMaterial3D
+	m.albedo_color.a = 1.0 - pow(1.0 - m.albedo_color.a, 2.0)
+	return m
+
+
 ## The copy's glass marks its pixels in the stencil (reference 1) for the slot's bars; false without glass.
 static func _glass_marks(n: Node) -> bool:
 	var found := false
@@ -1134,7 +1140,10 @@ static func _glass_marks(n: Node) -> bool:
 		for i in mi.mesh.get_surface_count():
 			var m := mi.get_active_material(i)
 			if m is BaseMaterial3D and m.resource_name == "canopy_glass":
-				m = m.duplicate()
+				# One sheet, at both sheets' tint: the two sheets' edges, seen apart from the seat, left a one-sheet
+				# hairline at each edge of the slot (2026-11-25).
+				mi.mesh = _one_sheet_mesh(mi.mesh, i)
+				m = _one_sheet(m)
 				m.stencil_mode = BaseMaterial3D.STENCIL_MODE_CUSTOM
 				m.stencil_flags = BaseMaterial3D.STENCIL_FLAG_WRITE
 				m.stencil_compare = BaseMaterial3D.STENCIL_COMPARE_ALWAYS
@@ -1142,6 +1151,78 @@ static func _glass_marks(n: Node) -> bool:
 				mi.set_surface_override_material(i, m)
 				found = true
 	return found
+
+
+## The download's glass is two sheets 1.4 cm apart, joined at their rims, both facing out, each side a mirror copy of
+## the other whose outer sheet's strips over the seam reach past it (the seam and the sheet beside it covered twice).
+## The copy from the seat keeps the outer sheet alone without those strips, each side's edge at the seam moved onto it
+## (corners under SEAM_SNAP from x = 0). A triangle with another one of the glass more than SHEET_OVERLAP and less than
+## SHEET_GAP farther on the ray from SHEET_FROM (a point under the glass in its mesh's frame) is on the inner sheet;
+## one seen edge-on from there (|cos| under SHEET_RIM) is a rim. SHEET_BIN: the bins (of the rays' unit direction's x
+## and z) the triangles are found in.
+const SHEET_GAP := 0.1
+const SHEET_OVERLAP := 0.002
+const SHEET_FROM := Vector3(0.0, -0.6, 0.0)
+const SHEET_RIM := 0.25
+const SHEET_BIN := 0.03
+const SEAM_SNAP := 0.02
+
+
+## `mesh` with surface `s`'s outer sheet alone, closed at the seam.
+static func _one_sheet_mesh(mesh: Mesh, s: int) -> ArrayMesh:
+	var a := mesh.surface_get_arrays(s)
+	var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+	var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
+	var bin := func(p: Vector3) -> Vector2i:
+		var d := (p - SHEET_FROM).normalized()
+		return Vector2i(floori(d.x / SHEET_BIN), floori(d.z / SHEET_BIN))
+	var bins := {}
+	for t in idx.size() / 3:
+		var b0: Vector2i = bin.call(v[idx[t * 3]])
+		var b1 := b0
+		for k in [1, 2]:
+			var b: Vector2i = bin.call(v[idx[t * 3 + k]])
+			b0 = b0.min(b)
+			b1 = b1.max(b)
+		for x in range(b0.x, b1.x + 1):
+			for z in range(b0.y, b1.y + 1):
+				if not bins.has(Vector2i(x, z)):
+					bins[Vector2i(x, z)] = []
+				bins[Vector2i(x, z)].append(t)
+	var keep := PackedInt32Array()
+	var moved := v.duplicate()
+	for t in idx.size() / 3:
+		var tri := [v[idx[t * 3]], v[idx[t * 3 + 1]], v[idx[t * 3 + 2]]]
+		var xs: Array = tri.map(func(p: Vector3) -> float: return p.x)
+		if xs.min() < 0.0 and xs.max() > 0.0:
+			continue  # a strip over the seam
+		var c: Vector3 = (tri[0] + tri[1] + tri[2]) / 3.0
+		var dist := SHEET_FROM.distance_to(c)
+		var dir := (c - SHEET_FROM) / dist
+		var n: Vector3 = (tri[1] - tri[0]).cross(tri[2] - tri[0]).normalized()
+		var drop := absf(n.dot(dir)) < SHEET_RIM
+		for o: int in [] if drop else bins.get(bin.call(c), []):
+			var h = Geometry3D.ray_intersects_triangle(
+				SHEET_FROM, dir, v[idx[o * 3]], v[idx[o * 3 + 1]], v[idx[o * 3 + 2]]
+			)
+			if o != t and h != null:
+				var e := SHEET_FROM.distance_to(h) - dist
+				drop = e > SHEET_OVERLAP and e < SHEET_GAP
+				if drop:
+					break
+		if not drop:
+			for k in 3:
+				var i := idx[t * 3 + k]
+				keep.append(i)
+				if absf(v[i].x) < SEAM_SNAP:
+					moved[i].x = 0.0
+	a[Mesh.ARRAY_VERTEX] = moved
+	a[Mesh.ARRAY_INDEX] = keep
+	var out := ArrayMesh.new()
+	for i in mesh.get_surface_count():
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a if i == s else mesh.surface_get_arrays(i))
+		out.surface_set_material(i, mesh.surface_get_material(i))
+	return out
 
 
 ## The throttle up from OFF (its keys or the axis) takes the checklist's engine step once the starter step (JFS / IPP)

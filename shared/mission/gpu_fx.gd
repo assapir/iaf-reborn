@@ -124,7 +124,7 @@ uniform vec3 sun_dir = vec3(0.3, 0.8, 0.5);
 uniform vec3 sun_col : source_color = vec3(1.0);
 uniform vec3 ambient : source_color = vec3(0.45, 0.5, 0.58);
 // A bomb's dust (`bomb_hit`): grey + 2 in COLOR.r draws the grey in this colour.
-uniform vec3 dust : source_color = vec3(0.66, 0.56, 0.42);
+uniform vec3 dust : source_color = vec3(0.62, 0.58, 0.52);
 """
 	+ VERTEX
 	+ SOFT
@@ -408,7 +408,7 @@ func puff(pos: Vector3, vel: Vector3, life: float, w0: float, w1: float, grey: i
 ## tests): `kg` of explosive at `pos` (scene, on the ground). Sizes go with the cube root of the charge (k = 1 for a
 ## Mk 82's 89 kg): a fireball about 20 m across · k gone in 1 s; white-hot fragments; dark earth and stones thrown up
 ## to about 60 m · k, falling back over 3–6 s; the dust's ring rolling out along the ground; the dust and smoke column
-## rising to about 50 m · k and drifting for half a minute.
+## rising to about 70 m · k, wider than high, and drifting for half a minute.
 func bomb_hit(pos: Vector3, kg: float) -> void:
 	var k := pow(maxf(kg, 5.0) / 89.0, 1.0 / 3.0)
 	puff(pos + Vector3(0, 4.0 * k, 0), Vector3.ZERO, 1.1, 70.0 * k, 70.0 * k, 0, true, 0.0)
@@ -424,36 +424,28 @@ func bomb_hit(pos: Vector3, kg: float) -> void:
 		var v := d * _rng.randf_range(12.0, 34.0) * sqrt(k)
 		var w := _rng.randf_range(0.4, 1.4) * k
 		_emit(_debris, "debris", pos, v, 2.0 * v.y / 9.8 + 0.3, w, w, _rng.randf_range(0.6, 1.2), 0.0, 0.05, 1.0)
-	# The ground skirt: dust rolling out fast, slowed by the air.
-	for i in 28:
-		var a := TAU * i / 28.0 + _rng.randf_range(-0.1, 0.1)
-		var d := Vector3(cos(a), 0.08, sin(a))
-		var g := 2.0 + _rng.randf_range(0.55, 0.75)
+	# The ground skirt: dust rolling out fast and lifting, slowed by the air.
+	for i in 36:
+		var a := TAU * i / 36.0 + _rng.randf_range(-0.1, 0.1)
+		var d := Vector3(cos(a), _rng.randf_range(0.1, 0.35), sin(a))
+		var g := 2.0 + _rng.randf_range(0.5, 0.7)
+		var v := d * _rng.randf_range(24.0, 36.0) * k
+		_emit(_smoke, "smoke", pos + d * 3.0 * k, v, _rng.randf_range(10.0, 18.0), 8.0 * k, 30.0 * k, g, 0.05, 1.2, 0.6)
+	# The stem: earth and smoke strung out up the column (each puff stops at its speed / drag), brown-grey (the
+	# dust's colour darkened: plain grey reads blue under the sky's light).
+	for i in 24:
+		var d := _rand_dir()
+		var v := Vector3(d.x * 9.0, _rng.randf_range(10.0, 55.0), d.z * 9.0) * k
+		var g := 2.0 + _rng.randf_range(0.3, 0.5)
+		_emit(_smoke, "smoke", pos + d * 5.0 * k, v, _rng.randf_range(18.0, 28.0), 12.0 * k, 32.0 * k, g, 0.0, 0.8, 0.9)
+	# The crown: a broad cauliflower of brown-grey dust and smoke, about 70 m · k up and wider.
+	for i in 48:
+		var d := _rand_dir()
+		var v := Vector3(d.x * 42.0, _rng.randf_range(50.0, 64.0) + d.y * 12.0, d.z * 42.0) * k
+		var g := 2.0 + _rng.randf_range(0.45, 0.8)
 		_emit(
-			_smoke,
-			"smoke",
-			pos + d * 3.0 * k,
-			d * 30.0 * k,
-			_rng.randf_range(8.0, 14.0),
-			6.0 * k,
-			24.0 * k,
-			g,
-			0.05,
-			1.5,
-			0.75
+			_smoke, "smoke", pos + d * 4.0 * k, v, _rng.randf_range(22.0, 34.0), 10.0 * k, 38.0 * k, g, 0.05, 0.8, 0.9
 		)
-	# The stem: earth and smoke strung out up the column (each puff stops at its speed / drag).
-	for i in 14:
-		var d := _rand_dir()
-		var v := Vector3(d.x * 2.0, _rng.randf_range(8.0, 40.0), d.z * 2.0) * k
-		var g := _rng.randf_range(0.18, 0.3) if i % 2 == 0 else 2.0 + _rng.randf_range(0.45, 0.6)
-		_emit(_smoke, "smoke", pos + d * 2.0 * k, v, _rng.randf_range(16.0, 26.0), 6.0 * k, 20.0 * k, g, 0.0, 0.8, 0.85)
-	# The crown: a cauliflower of grey smoke and dust, about 50 m · k up.
-	for i in 30:
-		var d := _rand_dir()
-		var v := Vector3(d.x * 14.0, _rng.randf_range(38.0, 48.0) + d.y * 6.0, d.z * 14.0) * k
-		var g := _rng.randf_range(0.17, 0.32) if i % 3 != 0 else 2.0 + _rng.randf_range(0.45, 0.6)
-		_emit(_smoke, "smoke", pos + d * 3.0 * k, v, _rng.randf_range(20.0, 32.0), 7.0 * k, 26.0 * k, g, 0.05, 0.8, 0.9)
 
 
 ## A missile / rocket trail point (trails.gd MISSILE kind) of owner `key` at `pos`, while its motor burns: the

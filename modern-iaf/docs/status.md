@@ -40,7 +40,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   runs in either order. `test_radio_calls.gd`, `sim::tests` (every seat's particles), `sim_voices::tests`.
 - **The F-35I's canopy bow and exterior lights (2026-11-25, the user on Approvals A88 and A90; [cockpit.md](cockpit.md)
   §5.5, [docs/f35i.md](../../docs/f35i.md) §4.1 "Canopy"):** from the seat the raised canopy shows one dark arch, the
-  slot between its two transparencies filled with glass (it showed as a bright arch); the Lights Master key (Alt + F6)
+  slot between its two transparencies filled with glass (it showed as a bright arch), and since the same day the
+  arch's edges clean (the glass drawn as one sheet from the seat, where a faint hairline showed); the Lights Master key (Alt + F6)
   turns the navigation lights and the strobe on and off, and the jet starts with them off; the landing / taxi lamp sits
   on the nose gear's strut. Pictures: `_canopy_shot.gd`, `_lights_shot.gd` (f35i).
 - **The controls and lamps that moved only, round two (2026-11-25, the user, 18 Nov: "How much of our controls
@@ -1232,7 +1233,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   points with thin smoke trails. Since 2026-11-16 a flare sinks away under the jet and burns 4 s, chaff stops in the
   air behind it, so both show from a chase view behind the jet too (weapons.md §2); the F-35I's dispensers sit on its
   lower aft fuselage. Since 2026-11-25 a bomb's hit on land is the sim's own: flash, fireball, thrown earth, a dust
-  skirt and a grey column ([weapons.md](weapons.md) §2 "Bomb hits").
+  skirt and a broad brown-grey column ([weapons.md](weapons.md) §2 "Bomb hits"; widened and greyed 2026-11-25 after the
+  user's review: it was small, narrow and bluish against the photograph).
 - **[A3](plan.md#a3-the-setup-wizard), the setup wizard (2026-11-03):** `./modern-iaf-setup` opens the wizard; it builds the terrain,
   the airbases, the units and weapons, the sounds and voices and the training missions as a step graph with stamps (a
   second run is all up to date), in English and Hebrew ([setup.md](setup.md)). Its look is Godot's default theme until

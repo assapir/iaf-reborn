@@ -78,7 +78,7 @@ func run() -> void:
 	b.bomb_hit(Vector3.ZERO, 429.0, 0.0)
 	var e1: Dictionary = b.gpu.emitted
 	check(
-		e1.debris - e0.debris == 90 and e1.fire > e0.fire and e1.smoke - e0.smoke == 82 and e1.sparks > e0.sparks,
+		e1.debris - e0.debris == 90 and e1.fire > e0.fire and e1.smoke - e0.smoke == 118 and e1.sparks > e0.sparks,
 		"Detailed: a bomb hit's earth, fireball, fragments and dust (%s)" % [e1]
 	)
 	var st: int = a._streamers.size()

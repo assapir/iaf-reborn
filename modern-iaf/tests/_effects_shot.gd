@@ -8,7 +8,9 @@
 # EFX_JET=sufa|barak|f35i: the free flight's jet (EFX_MISSION=id: a mission's). EFX_HOUR=h: the clock (e.g. 17 for
 # dusk); EFX_ONLY=name,...: some shots (ab_rear, ab_side, cruise_rear, cruise_side, cloud_ab, cloud_cruise, flares,
 # missile, bomb, flares_rear, chaff).
-# EFX_NOHAZE=1: the heat haze hidden (to compare). Saves EFX_OUT/<EFX_TAG>_<shot>.png.
+# EFX_NOHAZE=1: the heat haze hidden (to compare). EFX_BOMB_KG: the bomb's charge (89 a Mk 82, 429 a Mk 84);
+# EFX_BOMB_T: the bomb shots' seconds after the hit (comma list; default 0.15,0.6,2,6,15).
+# Saves EFX_OUT/<EFX_TAG>_<shot>.png.
 extends "res://../tests/godot/base.gd"
 
 ## stores.gd FLARE (its preload fails before the autoloads in a -s script).
@@ -208,7 +210,10 @@ func _bomb() -> void:
 	else:
 		tv.effects.bomb_hit(gp, kg, gp.y)
 	var t0 := Time.get_ticks_msec()
-	for t in [0.15, 0.6, 2.0, 6.0, 15.0]:
+	var times := [0.15, 0.6, 2.0, 6.0, 15.0]
+	if OS.get_environment("EFX_BOMB_T") != "":  # e.g. 1.5,8
+		times = Array(OS.get_environment("EFX_BOMB_T").split(",")).map(func(x): return float(x))
+	for t in times:
 		while Time.get_ticks_msec() - t0 < t * 1000.0:
 			await process_frame
 		await _shot("bomb_%s" % str(t))

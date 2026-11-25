@@ -71,8 +71,11 @@ Each burning flare trails a thin smoke ribbon (`trails.gd` `FLARE`: 0.2 m wide a
 original's grey smoke domes. Its size goes with the cube root of the record's explosive (`power` / 50 kg; k = 1 for a
 Mk 82's 89 kg, 1.7 for a Mk 84's 429 kg): a lens flash; a fireball about 20 m · k across, gone in about 1 s; 40
 white-hot fragments; 90 dark clods of earth and stones thrown up to about 60 m · k, falling back over 3 to 6 s; a skirt
-of dust rolling out along the ground; a stem of earth and smoke under a grey cauliflower crown about 50 m · k up, which
-thins out over half a minute and drifts with the wind. The shape was matched to a photograph of three Mk 82s on the
+of dust rolling out and lifting along the ground; a wide stem of earth and smoke under a broad cauliflower crown about
+70 m · k up and wider than high, which thins out over half a minute and drifts with the wind. The column is drawn in
+the dust's brown-grey (`dust` in the smoke shader), as in the photograph: plain grey read blue under the sky's light,
+and the first version (crown 50 m · k, 26 m · k puffs) read small and narrow beside the photograph (the user,
+2026-11-25). The shape was matched to a photograph of three Mk 82s on the
 Grayling range (a narrow dark stem, a wide crown, a low dust skirt)[^grayling]; the sizes are inferred. It draws with
 Graphics → MORE "Particle effects: Detailed" (on by default in the sim); with it off the original's look stands in.
 Pictures: `_effects_shot.gd` `EFX_ONLY=bomb` (`EFX_BOMB=original`: the old look, `EFX_BOMB_KG`: the charge).
