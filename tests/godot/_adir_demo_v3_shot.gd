@@ -580,7 +580,7 @@ func _ent(prefix: String) -> Dictionary:
 
 
 func _me() -> Vector3:
-	return tv.scene_to_world(tv.rig.global_position)
+	return tv.scene_to_world(tv.to_local(tv.rig.global_position))
 
 
 func _dist(e: Dictionary) -> float:
@@ -598,7 +598,7 @@ func _dist2(p: Vector2) -> float:
 
 
 func _ground_y() -> float:
-	var g = tv.terrain.height_at(tv.rig.global_position)
+	var g = tv.terrain.height_at(tv.to_local(tv.rig.global_position))
 	return float(g) if g != null else 0.0
 
 

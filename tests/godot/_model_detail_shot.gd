@@ -287,7 +287,7 @@ func _place_props() -> void:
 			if h != null:
 				node.global_position.y += ground - h.global_position.y
 		else:
-			var h = tv.terrain.height_at(node.global_position)
+			var h = tv.terrain.height_at(tv.to_local(node.global_position))
 			node.global_position.y = (float(h) if h != null else ground) - raw.position.y * node.scale.y
 
 

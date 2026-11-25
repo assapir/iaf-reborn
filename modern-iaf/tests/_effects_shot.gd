@@ -54,7 +54,7 @@ func run() -> void:
 	tv._tod_t = -INF
 	tv.gear_down = false
 	await ground_streamed(tv, 30000, 30)
-	var g = tv.terrain.height_at(tv.rig.global_position)
+	var g = tv.terrain.height_at(tv.to_local(tv.rig.global_position))
 	print(
 		(
 			"EFX start %s agl %.0f flames %d"

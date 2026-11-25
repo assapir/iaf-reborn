@@ -164,7 +164,7 @@ func jet_flight(id: String) -> void:
 		_hold(tv, 5.0, hdg)
 		var live: Array = w.bombs + w.gps_bombs
 		if not low and not live.is_empty() and live[0].node != null:
-			var g = tv.terrain.height_at(live[0].node.global_position)
+			var g = tv.terrain.height_at(tv.to_local(live[0].node.global_position))
 			low = g != null and live[0].node.global_position.y - float(g) < 25.0
 		await process_frame
 	await fly(tv, 0.35)

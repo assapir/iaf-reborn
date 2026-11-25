@@ -127,22 +127,24 @@ func jet(mission: String, unit: String, station: int, bomb: String, count: int) 
 	)
 	var falling: Array = w.bombs + w.gps_bombs
 	check(falling.size() >= 1 and falling[0].node != null, "%s: the bomb exists and is drawn" % unit)
-	# Its last place before it is gone: the burst (player_weapons.gd _bomb_detonate at IafBomb.check's ground hit).
-	var y0: float = falling[0].node.global_position.y if not falling.is_empty() else 0.0
+	# Its last place before it is gone: the burst (player_weapons.gd _bomb_detonate at IafBomb.check's ground hit). In
+	# the scene's frame (tv.to_local): the floating origin moves global positions by render_shift (terrain_view.gd
+	# _rebase), and height_at reads scene positions.
+	var y0: float = tv.to_local(falling[0].node.global_position).y if not falling.is_empty() else 0.0
 	var last := Vector3.ZERO
 	var t0: float = tv._sim_time
 	while not (w.bombs.is_empty() and w.gps_bombs.is_empty()) and tv._sim_time - t0 < 60.0:
 		var live: Array = w.bombs + w.gps_bombs
 		if not live.is_empty() and live[0].node != null:
-			last = live[0].node.global_position
+			last = tv.to_local(live[0].node.global_position)
 		await process_frame
 	check(w.bombs.is_empty() and w.gps_bombs.is_empty(), "%s: the bomb fell and burst" % unit)
 	var ground = tv.terrain.height_at(last)
 	check(
 		ground != null and last.y - float(ground) < 60.0 and y0 - last.y > 1000.0,
 		(
-			"%s: it fell %.0f m and burst at the terrain (%.0f m above it at the last frame)"
-			% [unit, y0 - last.y, last.y - float(ground)]
+			"%s: it fell %.0f m and burst at the terrain (%.0f m above it at the last frame; scene shift %s)"
+			% [unit, y0 - last.y, last.y - float(ground), tv.render_shift]
 		)
 	)
 	# Shift+C, the emergency jettison: the bombs left and the F-16s' tanks in one press; the stations empty on the page.

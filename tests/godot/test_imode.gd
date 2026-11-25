@@ -43,7 +43,7 @@ func run() -> void:
 	# The friend 3 km to the left, a little ahead, 300 m under the terrain (no line-of-sight test); the enemy 3 km
 	# ahead-right and high.
 	put.call(friend, -3000.0, 500.0, 0.0)
-	var g = tv.terrain.height_at(friend.node.global_position)
+	var g = tv.terrain.height_at(tv.to_local(friend.node.global_position))
 	if g != null:
 		friend.node.global_position.y = g - 300.0
 	put.call(enemy, 3000.0, 1000.0, 1500.0)
