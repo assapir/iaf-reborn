@@ -218,6 +218,16 @@ static func make() -> Theme:
 		"CheckBox",
 		_svg(ring % [_hex(DIM), "<circle cx='15' cy='15' r='6' fill='%s'/>" % _hex(DIM)])
 	)
+	# The check box (the update dialog's Don't ask me again): a rounded square, ticked in the accent.
+	var square := (
+		"<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30'>"
+		+ "<rect x='3' y='3' width='24' height='24' rx='5' fill='%s' stroke='%s' stroke-width='2.5'/>%s</svg>"
+	)
+	var tick := "<path d='M8 15.5l5 5 9-10' fill='none' stroke='%s' stroke-width='3'/>" % _hex(NAVY)
+	t.set_icon("unchecked", "CheckBox", _svg(square % ["none", _hex(MUTED), ""]))
+	t.set_icon("unchecked_disabled", "CheckBox", _svg(square % ["none", _hex(DIM), ""]))
+	t.set_icon("checked", "CheckBox", _svg(square % [_hex(ACCENT), _hex(ACCENT), tick]))
+	t.set_icon("checked_disabled", "CheckBox", _svg(square % [_hex(DIM), _hex(DIM), tick]))
 	t.set_constant("h_separation", "CheckBox", 14)
 	t.set_color("font_color", "CheckBox", TEXT)
 	t.set_stylebox("slider", "HSlider", box(LINE, LINE, 0, 4, Vector2(0, 4)))
