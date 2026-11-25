@@ -15,10 +15,10 @@ HERO = {
             "הבנויה בקנה מידה מלא מנתונים פתוחים: מתאמנים, ואז יוצאים להזנקה מול אויב חי. בעברית ובאנגלית.",
         ),
     ],
-    "asof_en": "Real renders from the sim, November\u00a02026.",
-    "asof_he": "צילומי מסך אמיתיים מהסימולטור, נובמבר\u00a02026.",
+    "asof_en": "Real renders from the sim, November 2026.",
+    "asof_he": "צילומי מסך אמיתיים מהסימולטור, נובמבר 2026.",
     "fig": ("sufa_armed", "The F-16I Sufa armed with Mk 84 bombs and AIM-120 and AIM-9 missiles, over the Negev.",
-            "סופה חמושה בפצצות Mk 84 ובטילי AIM-120 ו־AIM-9, מעל הנגב.", "wide"),
+            "סופה חמושה בפצצות MK-84, בטילי אמראם (AIM-120) ובטילי סיידוויינדר (AIM-9), מעל הנגב.", "wide"),
 }
 
 SECTIONS = [
@@ -26,42 +26,34 @@ SECTIONS = [
         "id": "jets", "nav_en": "Jets", "nav_he": "מטוסים", "en": "The jets", "he": "המטוסים",
         "figs": [
             ("four_ship_break", "A four-ship of Adirs breaks over the Negev.",
-             "רביעיית אדיר נפרדת בפניית הינתקות מעל הנגב.", "wide"),
-            ("sufa_air_ext", "The F-16I Sufa over the Negev, by Mitzpe Ramon.", "סופה מעל הנגב, ליד מצפה רמון.", "wide"),
+             "רביעיית אדיר נפרדת בפניית הינתקות מעל הנגב."),
+            ("sufa_air_ext", "The F-16I Sufa over the Negev, by Mitzpe Ramon.", "סופה מעל הנגב, ליד מצפה רמון."),
             ("barak_armed", "The F-16D Barak with Mk 82 bombs, AIM-9 missiles and fuel tanks.",
-             "ברק עם פצצות Mk 82, טילי AIM-9 ומכלי דלק."),
+             "ברק עם פצצות MK-82, טילי סיידוויינדר (AIM-9) ומכלי דלק."),
             ("barak_air_ext", "The F-16D Barak over the Jezreel Valley.", "ברק מעל עמק יזרעאל."),
             ("adir_armed", "The F-35I Adir over the Dead Sea.", "אדיר מעל ים המלח."),
             ("adir_air_ext", "The F-35I Adir over the Judean Desert.", "אדיר מעל מדבר יהודה."),
             ("sufa_bombs", "The Sufa releases a pair of Mk 84 bombs over the Negev.",
-             "סופה משחררת זוג פצצות Mk 84 מעל הנגב."),
+             "סופה משחררת זוג פצצות MK-84 מעל הנגב."),
             ("barak_missile", "The Barak fires an AIM-9 missile over the Jezreel Valley.",
-             "ברק משגר טיל AIM-9 מעל עמק יזרעאל."),
-            ("adir_afterburner", "The Adir in afterburner in the late-afternoon light.",
-             "אדיר במבער אחורי באור של שעות אחר הצהריים המאוחרות."),
-            ("sufa_ground", "The Sufa in its shelter at Ramon.", "סופה בדת\"ק ברמון."),
-            ("barak_ground_ext", "The Barak in its shelter at Ramat David.", "ברק בדת\"ק ברמת דוד."),
-            ("adir_ground2", "The Adir in its shelter at Nevatim.", "אדיר בדת\"ק בנבטים."),
-            ("pair_runway", "A pair of Sufas lined up on Ramon's runway, each with its own shadow.",
-             "זוג סופה על המסלול ברמון, לכל אחת הצל שלה.", "wide"),
+             "ברק משגר טיל סיידוויינדר (AIM-9) מעל עמק יזרעאל."),
+            ("adir_afterburner", "The Adir in afterburner.", "אדיר במבער אחורי."),
+            ("pair_runway", "A pair of Sufas lined up on Ramon's runway.", "זוג סופה על המסלול ברמון."),
         ],
     },
     {
         "id": "cockpits", "nav_en": "Cockpits", "nav_he": "תאי טייס", "en": "3D cockpits and the HUD",
         "he": "תאי טייס תלת־ממדיים וה־HUD",
         "figs": [
-            ("sufa_air_cockpit", "The Sufa's cockpit over the Negev.", "תא הטייס של סופה מעל הנגב.",
-             "wide"),
-            ("night_telaviv", "Over the Tel Aviv coast at night: the city's lights ahead, the HUD, the displays and "
-             "the panel lit.", "מעל חוף תל אביב בלילה: אורות העיר לפנינו, ה־HUD, התצוגות והלוח מוארים.", "wide"),
-            ("nvg", "Night-vision goggles down on the approach to Hatzerim: the runway's lights in their field, the "
-             "cockpit lit for the goggles.",
-             "משקפת ראיית לילה בגישה לחצרים: אורות המסלול בשדה הראייה שלה, ותא הטייס מואר בתאורה המותאמת לה.", "wide"),
+            ("sufa_air_cockpit", "The Sufa's cockpit over the Negev.", "תא הטייס של סופה מעל הנגב."),
+            ("night_telaviv", "Over the Tel Aviv coast at night.", "מעל חוף תל אביב בלילה."),
+            ("nvg", "Night-vision goggles down on the approach to Hatzerim, the cockpit lit for the goggles.",
+             "משקפת ראיית לילה בגישה לחצרים, ותא הטייס מואר בתאורה המותאמת לה."),
             ("barak_air_cockpit", "The Barak's cockpit over the Jezreel Valley.", "תא הטייס של ברק מעל עמק יזרעאל."),
             ("adir_air_cockpit", "The Adir's helmet display and panoramic display over the Judean Desert.",
              "תצוגת הקסדה והתצוגה הפנורמית של אדיר מעל מדבר יהודה."),
-            ("adir_display", "The Adir's panoramic display and its side consoles, looking down.",
-             "התצוגה הפנורמית של אדיר ופאנלי הצד שלו, במבט כלפי מטה."),
+            ("adir_display", "The Adir's panoramic display and its side consoles.",
+             "התצוגה הפנורמית של אדיר ופאנלי הצד שלו."),
             ("adir_console_right", "The Adir's right console: the side stick and the canopy handle.",
              "הפאנל הימני של אדיר: מוט השליטה בצד וידית החופה."),
         ],
@@ -108,12 +100,10 @@ SECTIONS = [
              "<b>תצוגת התרעת האיום.</b> מכ\"מים שרואים את המטוס מוצגים לפי כיוונם, עם סימון לנעילה ולשיגור."),
         ],
         "figs": [
-            ("av_lamptest", "The Sufa's cockpit with the lamp test on, every warning and indicator lamp lit.",
-             "תא הטייס של סופה עם בדיקת נורות: כל נורות ההתרעה והחיווי דולקות.", "wide"),
-            ("av_hud_lock", "A locked drone: the target box on the HUD and the track on the radar display.",
-             "מל\"ט נעול: תיבת המטרה ב־HUD והמעקב בתצוגת המכ\"ם.", "wide"),
+            ("av_lamptest", "The lamp test in the Sufa's cockpit.", "בדיקת נורות בתא הטייס של סופה."),
+            ("av_hud_lock", "A target drone locked on the radar.", "מל\"ט מטרה נעול במכ\"ם."),
             ("av_barak", "The F-16D Barak with the same avionics: a locked drone off the coast.",
-             "ברק (F-16D) עם אותה אוויוניקה: מל\"ט נעול מול החוף.", "wide"),
+             "ברק (F-16D) עם אותה אוויוניקה: מל\"ט נעול מול החוף."),
             ("adir_av_pcd", "The Adir's panoramic display split into windows: radar, targeting camera and the small "
              "formats below.", "התצוגה הפנורמית של אדיר מפוצלת לחלונות: מכ\"ם, מצלמת איתור ומשטחים קטנים מתחת."),
             ("adir_av_sms", "The stores window: the weapon bays' doors, the stations, the gun and the countermeasures.",
@@ -142,7 +132,7 @@ SECTIONS = [
         ],
         "radio": True,
         "figs": [
-            ("mig29", "A MiG-29 over the Negev.", "מיג-29 מעל הנגב.", "wide"),
+            ("mig29", "A MiG-29 over the Negev.", "מיג-29 מעל הנגב."),
             ("eitam", "The Eitam on its station.", "עיטם בעמדת הסיור שלו."),
             ("scramble*", "The Scramble screen: the flight, the start, the date and the time.",
              "מסך ההזנקה: המבנה, ההתחלה, התאריך והשעה."),
@@ -152,15 +142,14 @@ SECTIONS = [
         "id": "country", "nav_en": "The country", "nav_he": "הארץ", "en": "Over the country", "he": "מעל הארץ",
         "figs": [
             ("telaviv_ext", "Tel Aviv's coast and towers, every building in the city.",
-             "חוף תל אביב ומגדליה, כל בנייני העיר.", "wide"),
+             "חוף תל אביב ומגדליה, כל בנייני העיר."),
             ("telaviv_cockpit", "Up the coast to Tel Aviv from the Adir's cockpit.",
              "לאורך החוף אל תל אביב, מתא הטייס של אדיר."),
             ("haifa_ext", "Haifa and the Carmel from over the bay.", "חיפה והכרמל מעל המפרץ."),
-            ("jerusalem_ext", "Jerusalem.", "ירושלים.", "wide"),
-            ("rishon", "Above Rishon LeZion.", "מעל ראשון לציון.", "wide"),
+            ("jerusalem_ext", "Jerusalem.", "ירושלים."),
+            ("rishon", "Above Rishon LeZion.", "מעל ראשון לציון."),
             ("moon_jerusalem", "Jerusalem at night under a half moon, from the cockpit: the night is as dark as the moon's "
-             "real phase on the date.", "ירושלים בלילה תחת חצי ירח, מתא הטייס: חשכת הלילה לפי מופע הירח האמיתי בתאריך.",
-             "wide"),
+             "real phase on the date.", "ירושלים בלילה תחת חצי ירח, מתא הטייס: חשכת הלילה לפי מופע הירח האמיתי בתאריך."),
             ("moon_telaviv", "A full moon over Tel Aviv.", "ירח מלא מעל תל אביב."),
             ("moon_dusk", "A crescent moon at dusk over the coast.", "ירח חרמש בשעת דמדומים מעל החוף."),
         ],
@@ -178,9 +167,9 @@ SECTIONS = [
             ),
         ],
         "figs": [
-            ("ramatdavid_air", "Ramat David ahead.", "רמת דוד (כנף 1) לפנינו.", "wide"),
-            ("bases_ramatdavid_day", "Ramat David from the air, by day.", "רמת דוד מהאוויר, ביום."),
-            ("bases_hatzerim_shelter_day", "A Hatzerim shelter with its jet, by day.", "דת\"ק בחצרים עם המטוס שבו, ביום."),
+            ("ramatdavid_air", "Ramat David ahead.", "רמת דוד (כנף 1) לפנינו."),
+            ("bases_ramatdavid_day", "Ramat David from the air.", "רמת דוד מהאוויר."),
+            ("bases_hatzerim_shelter_day", "A shelter at Hatzerim with its jet.", "דת\"ק בחצרים עם המטוס שבו."),
             ("bases_nevatim_shelter_night", "A Nevatim shelter at night.", "דת\"ק בנבטים בלילה."),
             ("bases_telnof_night", "Tel Nof at night.", "תל נוף בלילה."),
         ],
@@ -204,8 +193,7 @@ SECTIONS = [
              "רשימת האימונים: כל משימה עם התוצאה האחרונה שלה."),
             ("map*", "The briefing: the map, what the mission teaches and how to fly it.",
              "התדריך: המפה, מה לומדים במשימה ואיך מטיסים אותה."),
-            ("rack*", "The Loadout screen: the jet seen from beneath, where the stores hang.",
-             "מסך החימוש: המטוס במבט מלמטה, היכן שהחימוש תלוי."),
+            ("rack*", "The Loadout screen.", "מסך החימוש."),
             ("notebook*", "The pilot's notebook open at its RADIO page: the base's frequencies and the calls to make.",
              "הבד\"ח של הטייס פתוח בדף הקשר: תדרי הבסיס והקריאות לשידור."),
             ("radio_menu*", "The radio menu: every call to the tower.", "תפריט הקשר: כל הקריאות למגדל."),
@@ -252,27 +240,25 @@ RADIO = {
     ],
 }
 
-# The Download section, before the manuals: each game's nightly build per system (the release's assets, docs/release.md),
+# The Download section, before the manuals: Modern IAF's nightly build per system (the release's assets, docs/release.md),
 # with its size on 25 Nov 2026.
 _DL = "https://github.com/assapir/iaf-reborn/releases/download/nightly/"
 DOWNLOADS = {
     "id": "download", "nav_en": "Download", "nav_he": "הורדה", "en": "Download", "he": "הורדה",
     "text": [
         (
-            "Free and open source. The nightly build of each game, for Linux, macOS 13 or later on Apple silicon and "
-            "Windows: unpack it and start the game; its setup wizard builds the data on the first start. Modern IAF "
-            "downloads its open map data then, about 12 GB. Jane's IAF reborn needs an original Jane's IAF CD. The "
-            "programs are unsigned: on macOS right-click the app and choose Open; on Windows choose More info, then "
+            "Free and <a href=\"https://github.com/assapir/iaf-reborn\">open source</a>. The nightly build for Linux, "
+            "macOS 13 or later on Apple silicon and Windows: unpack it and start the game; its setup wizard builds the "
+            "data on the first start and downloads the open map data, about 12 GB. The programs are unsigned: on macOS right-click the app and choose Open; on Windows choose More info, then "
             "Run anyway.",
-            "חינמי ובקוד פתוח. הגרסה הלילית של כל משחק ל־Linux, ל־macOS 13 ומעלה על מעבדי Apple ול־Windows: "
-            "מחלצים את הקובץ ומפעילים את המשחק; אשף ההתקנה בונה את הנתונים בהפעלה הראשונה. המשחק הזרוע הארוכה "
-            "מוריד אז את נתוני המפה הפתוחים, כ־12 GB. Jane's IAF reborn דורש תקליטור מקורי של Jane's IAF. התוכנות אינן חתומות: "
+            "חינמי ו<a href=\"https://github.com/assapir/iaf-reborn\">בקוד פתוח</a>. הגרסה הלילית ל־Linux, ל־macOS 13 "
+            "ומעלה על מעבדי Apple ול־Windows: מחלצים את הקובץ ומפעילים את המשחק; אשף ההתקנה בונה את הנתונים בהפעלה "
+            "הראשונה ומוריד את נתוני המפה הפתוחים, כ־12 GB. התוכנות אינן חתומות: "
             "ב־macOS לוחצים על היישום בכפתור הימני ובוחרים Open; ב־Windows בוחרים More info ואז Run anyway.",
         ),
     ],
     "games": [
         ("Modern IAF", "הזרוע הארוכה", "modern-iaf", ("205 MB", "246 MB", "203 MB")),
-        ("Jane's IAF reborn", "Jane's IAF reborn", "iaf-reborn", ("156 MB", "184 MB", "149 MB")),
     ],
     "systems": [("Linux", "linux-x86_64.tar.gz"), ("macOS", "macos-arm64.dmg"), ("Windows", "windows-x86_64.zip")],
     "url": _DL,

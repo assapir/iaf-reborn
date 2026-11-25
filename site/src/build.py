@@ -130,7 +130,7 @@ def downloads(s):
     out = '<div class="links dl">'
     for en, he, stem, sizes in s["games"]:
         out += f'<div class="doc"><b>{both(en, he)}</b>' + "".join(
-            f'<a href="{s["url"]}{stem}-nightly-{suffix}">{system}</a> <span>{size}</span><br>'
+            f'<p><a href="{s["url"]}{stem}-nightly-{suffix}">{system}</a> <span>{size}</span></p>'
             for (system, suffix), size in zip(s["systems"], sizes)) + "</div>"
     url, en, he = s["all"]
     return out + f'</div><p><a href="{url}" target="_blank" rel="noopener">{both(en, he)}</a></p>'
@@ -155,15 +155,14 @@ main{max-width:1240px;margin:auto;padding:0 24px 60px}
 .hero{padding:44px 0 12px}
 .hero h1{font-size:54px;line-height:1.1;margin:0 0 6px}.hero h1 img{display:block;width:auto;height:auto;max-height:176px;max-width:100%;margin:0 auto 8px}
 .hero .sub{font-size:22px;color:var(--dim);margin:0 0 18px;text-align:center}
-h1,h2,h3,.hero .sub,.asof{text-wrap:balance}p,li,figcaption{text-wrap:pretty}
-.hero p{max-width:860px;font-size:18px}
+.hero p{font-size:18px}
 .asof{color:var(--dim);font-size:14px}
 .facts{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:26px 0 8px}
 .fact{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .fact b{display:block;font-size:28px;line-height:1.2}.fact span{color:var(--dim);font-size:14px}
 section{padding-top:36px;scroll-margin-top:60px}
 h2{font-size:30px;margin:0 0 10px;border-top:1px solid var(--line);padding-top:26px}
-section p,section li{max-width:900px}
+section p a{color:var(--accent)}
 section ul{padding-inline-start:22px;margin:6px 0 10px}
 .notyet{color:var(--dim);border-inline-start:3px solid var(--warn);padding-inline-start:12px}
 .notyet b{color:var(--warn)}
@@ -180,7 +179,7 @@ figcaption{color:var(--dim);font-size:14.5px;margin-top:6px}
 footer{border-top:1px solid var(--line);color:var(--dim);font-size:13.5px;padding:22px 0 0;margin-top:40px}
 footer p{max-width:none}
 .links{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
-.links.dl{grid-template-columns:repeat(2,1fr)}.dl .doc a{color:var(--accent);font-size:17px;line-height:1.9}
+.links.dl{grid-template-columns:repeat(2,1fr)}.dl .doc p{margin:6px 0}.dl .doc a{color:var(--accent);font-size:17px}
 .radio{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 18px 10px;margin:18px 0}
 .radio h3{margin:10px 0 0}.radio audio{width:100%;max-width:560px}.radio ol{padding-inline-start:22px}.radio li b{color:var(--accent)}
 .doc{display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;color:var(--text);text-decoration:none}
