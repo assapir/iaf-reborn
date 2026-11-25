@@ -397,6 +397,16 @@ pub struct Member {
     strobes: Vec<u32>,
 }
 
+impl Member {
+    /// The lead's order on targets ([`Tactic`]) and its ground attack ([`strike`]) over, with the bandit it fought.
+    /// The two are one job at a time: each order begins here, so a tactic other than None means no attack, and an
+    /// attack (its phase not None) means no tactic. Its weapon stays (the host's).
+    pub(crate) fn end_order(&mut self) {
+        self.strike.clear();
+        (self.tactic, self.assigned, self.holding, self.area, self.bandit) = (Tactic::None, None, false, None, None);
+    }
+}
+
 /// The flight.
 pub struct Flight {
     pub members: Vec<Member>,
@@ -973,10 +983,8 @@ impl Flight {
                 && !m.released
                 && m.strike.weapon.is_some();
             if ok {
-                m.strike.clear();
-                (m.strike.phase, m.strike.turn) = (Phase::Wait, turn);
-                (m.tactic, m.assigned, m.holding, m.area, m.bandit, took) =
-                    (Tactic::None, None, false, None, None, true);
+                m.end_order();
+                (m.strike.phase, m.strike.turn, took) = (Phase::Wait, turn, true);
                 turn += strike::STAGGER_S;
             }
             if i != self.lead {
@@ -1213,8 +1221,7 @@ impl Flight {
                 "rejoin" if flying && !(m.released && m.v.gear_down) => {
                     (m.rtb, m.released, m.transit, m.report) = (false, false, true, true);
                     (m.refuelling, m.refuel) = (false, None);
-                    (m.tactic, m.assigned, m.holding, m.area, m.bandit) = (Tactic::None, None, false, None, None);
-                    m.strike.clear();
+                    m.end_order();
                     if m.number == 3 {
                         self.split = None;
                     }
@@ -1229,8 +1236,8 @@ impl Flight {
                 // Cover (defend the lead): it keeps its slot and fights a bandit that attacks the lead (decide); with
                 // something to shoot. It ends the order it had.
                 "cover" if flying && !m.rtb && !m.winchester => {
-                    (m.tactic, m.assigned, m.holding, m.area, m.bandit) = (Tactic::Cover, None, false, None, None);
-                    m.strike.clear();
+                    m.end_order();
+                    m.tactic = Tactic::Cover;
                     "ack"
                 }
                 "low" | "high" if to == 0 && flying => "ack",
@@ -1464,8 +1471,7 @@ impl Flight {
             m.ahead_moved = ahead_moved;
             m.bingo_kg = RESERVE_KG + KG_PER_KM * home.map_or(0.0, |h| flat(h, m.v.pos) as f32 / 1000.0);
             if !m.alive || m.rtb || m.released {
-                m.strike.clear();
-                (m.tactic, m.assigned, m.holding, m.area, m.bandit) = (Tactic::None, None, false, None, None);
+                m.end_order();
             }
             m.strike.target = self.ground.filter(|_| m.strike.phase != Phase::None);
             (m.order.mode, m.order.decoy, m.order.shoot, m.order.gun) = (None, None, false, false);
@@ -1837,7 +1843,8 @@ impl Flight {
             match next {
                 Some(id) => m.assigned = id,
                 None => {
-                    (m.tactic, m.assigned, m.holding, m.area, m.bandit) = (Tactic::None, None, false, None, None);
+                    // (A tactic: no attack, so this ends no attack.)
+                    m.end_order();
                     (m.transit, m.report) = (true, true);
                 }
             }
