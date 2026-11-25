@@ -167,7 +167,7 @@ nav a{color:var(--dim);text-decoration:none}nav a:hover{color:var(--text)}
 .switch button.on{background:var(--accent);color:#fff}
 main{max-width:1240px;margin:auto;padding:0 24px 60px}
 .hero{padding:44px 0 12px}
-.hero h1{font-size:54px;line-height:1.1;margin:0 0 6px}.hero h1 img{display:block;width:auto;height:auto;max-height:176px;max-width:100%;margin:0 auto 8px}
+.hero h1{font-size:54px;line-height:1.1;margin:0 0 6px}.hero h1 img{display:block;width:auto;max-width:100%;margin:0 auto 8px}.hero h1 img[lang=en]{height:min(176px,calc((100vw - 48px)*326/609))}.hero h1 img[lang=he]{height:min(176px,calc((100vw - 48px)*326/743))}
 .hero .sub{font-size:22px;color:var(--dim);margin:0 0 18px;text-align:center}
 .hero p{font-size:18px}
 .asof{color:var(--dim);font-size:14px}
