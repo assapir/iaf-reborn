@@ -2543,7 +2543,7 @@ writing on the subject uses):
 | English | Hebrew | source |
 |---|---|---|
 | the Eitam; its crew | עיטם; בקר מוטס | sourced: "\"עיטם\" (גאלפסטרים G-550) שמו", "במטוס ה"עיטם" יושבים הבקרים המוטסים"[^jdn-eitam] |
-| picture | תמונה אווירית | sourced: "אחראי על יצירת התמונה האווירית"[^hamichlol-control] |
+| picture | תמונת מצב | the user, 25 Nov 2026: "תמונה אווירית shuld be תמונת מצב" (before: תמונה אווירית, after "אחראי על יצירת התמונה האווירית"[^hamichlol-control]) |
 | group; two groups | מבנה; שני מבנים | the pilots' word for a formation ("חזרתי למבנה"[^walla-dogfight]) applied to the enemy's: ours |
 | hostile | עוין | sourced: "כלי-טיס עוינים ומטוסי אויב"[^jdn-uav] |
 | bogey | לא מזוהה | second-hand: "כלי טיס בלתי מזוהה" (a search engine's quote); the contact calls' "מגעים לא מזוהים" |
@@ -2552,7 +2552,7 @@ writing on the subject uses):
 | hot; flank; beam; drag | מתקרב; באלכסון; בניצב; מתרחק | ours |
 | bogey dope | המגע הקרוב | ours around מגע |
 | declare | זיהוי | sourced as the word: "היכולת לזהות ולסווג מטרות"[^jdn-eitam] |
-| vector 040 | הכוונה אפס ארבע אפס | the word sourced: "בוצע היירוט הראשון בהכוונת בקר"[^hamichlol-control]; the call's form ours |
+| vector 040 | כיוון אפס ארבע אפס | the user, 25 Nov 2026: "הכוונה shuold be כיוון, in all places" (before: הכוונה, after "בוצע היירוט הראשון בהכוונת בקר"[^hamichlol-control]); the call's form ours |
 | target; home plate; tanker | מטרה; בסיס האם; מטוס התדלוק | מטרה sourced (§8.8); the others ours (the IAF's 707 tanker is "ראם", second-hand, a name not a word) |
 | threat; Eitam retrograding; commit | איום; עיטם בנסיגה; יירוט | יירוט sourced ("במטרה ליירט אותם מוקדם ככל האפשר"[^jdn-eitam]); the others ours |
 | 20 thousand | גובה עשרים אלף | ours (רגל left out, as the English "feet") |
@@ -2637,7 +2637,7 @@ player, the 1998 rule), nothing once it is lost; the virtual sphere where the fl
 
 The first page's third line, AWACS (the same in Hebrew, the game manual's term), opens the page
 (`sim_flight.gd` `AWACS_ITEMS`): 1 Picture, 2 Bogey dope, 3 Declare, 4 Vector to target, 5 Vector home, 6 Vector to
-tanker (Hebrew: תמונה אווירית, המגע הקרוב, זיהוי, הכוונה למטרה, הכוונה לבסיס, הכוונה למטוס התדלוק). A request that
+tanker (Hebrew: תמונת מצב, המגע הקרוב, זיהוי, כיוון למטרה, כיוון לבסיס, כיוון למטוס התדלוק). A request that
 cannot be made now is dimmed and takes no click (`radio.gd awacs_refusal`, `IafAwacs.refusal`: the Eitam lost, no
 radar lock for Declare, no tanker, no home base); no line says why (the user, 25 Nov 2026: "no need to write why
 something is disabled, this goes in game manual"), the game manual's AWACS section does. A pick is the pilot's call, printed in both languages and said by the pilot's voice ("Eitam, Kidon 1,

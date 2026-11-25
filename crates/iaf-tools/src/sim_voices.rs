@@ -261,7 +261,8 @@ pub struct Key {
     pub quiet_after: f32,
 }
 
-pub const KEY: Key = Key { quiet_before: 0.1, lead: 0.15, tail: 0.15, burst: 0.08, quiet_after: 0.2 };
+/// `quiet_after`: a second of silence after every call, so a call never sounds cut off (the user, 25 Nov 2026).
+pub const KEY: Key = Key { quiet_before: 0.1, lead: 0.15, tail: 0.15, burst: 0.08, quiet_after: 1.0 };
 
 /// How a clip is made (voices.json `mode`).
 #[derive(Clone, Copy, PartialEq, Debug)]

@@ -41,6 +41,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   (our own G550 CAEW model) flies a standoff racetrack behind the flight's way at 41,000 ft; a hostile group near it
   sends it away at Mach 0.85 with a call for help ("threat ... Eitam retrograding, commit"). Its radar feeds the
   picture, the contact calls and the data link; the enemy can shoot it down, which ends the service. `test_awacs.gd`, `cargo test -p iaf-ai --lib -- awacs`, `--test eitam`.
+- **A second of silence after every call; the AWACS's Hebrew terms (2026-11-25, the user on Approvals A99;
+  [sound.md](sound.md) §5.2, [../../docs/ai.md](../../docs/ai.md) §24.2):** every keyed call (the tower, the AWACS,
+  the wingmen, the tanker, the player; both languages) ends with 1 s of quiet after the squelch's click (0.2 s
+  before), so a call no longer sounds cut. In Hebrew the AWACS's vector is כיוון ("כיוון 040", "כיוון למטרה") and
+  its picture תמונת מצב, on the menu, in the subtitles, the voices and the manual. `sim_voices::tests`.
 - **The Eitam's look and flight (2026-11-25, the user: "The eitam looks strange, only white. look online for pics, look
   for a better model"; [../../docs/ai.md](../../docs/ai.md) §24.3, [flight-model.md](flight-model.md) §9.22):** its
   model matched to photographs of the IAF's CAEW (the drooped nose radome, the tail radome, the side cheeks, the
@@ -1402,6 +1407,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
+- **More callsigns than Kidon (2026-11-25, the user on Approvals A99, "but later"):** more formation names, one drawn
+  at random per mission. Not started.
 - **AI for allies and enemies (2026-11-19, the user's plan session):** the plan is in [ai-plan.md](ai-plan.md): a new
   Rust AI (a behaviour tree per role, a flight and a package lead) over the existing autopilot loops and combat engine;
   milestones in his order: the four-ship of Sufas (F1–F11), the intercept lesson with a controller and the Eitam

@@ -40,18 +40,12 @@ const TOP := [
 ## The AWACS page's requests: id (radio.gd awacs_request), English, Hebrew; the pilot's words after the address
 ## ("Eitam, Kidon 1, picture"), English and Hebrew (docs/ai.md §24.2).
 const AWACS_ITEMS := [
-	["picture", "Picture", "תמונה אווירית", "picture", "תמונה אווירית"],
+	["picture", "Picture", "תמונת מצב", "picture", "תמונת מצב"],
 	["bogey_dope", "Bogey dope", "המגע הקרוב", "bogey dope", "המגע הקרוב"],
 	["declare", "Declare", "זיהוי", "declare", "זיהוי"],
-	["vector_target", "Vector to target", "הכוונה למטרה", "request vector to target", "בקשת הכוונה למטרה"],
-	["vector_home", "Vector home", "הכוונה לבסיס", "request vector home", "בקשת הכוונה לבסיס"],
-	[
-		"vector_tanker",
-		"Vector to tanker",
-		"הכוונה למטוס התדלוק",
-		"request vector to tanker",
-		"בקשת הכוונה למטוס התדלוק"
-	],
+	["vector_target", "Vector to target", "כיוון למטרה", "request vector to target", "בקשת כיוון למטרה"],
+	["vector_home", "Vector home", "כיוון לבסיס", "request vector home", "בקשת כיוון לבסיס"],
+	["vector_tanker", "Vector to tanker", "כיוון למטוס התדלוק", "request vector to tanker", "בקשת כיוון למטוס התדלוק"],
 ]
 ## The tanker's page (only while the flight has a tanker, shared/ai/tanker.gd; the user, 25 Nov 2026: "it should be in
 ## coms, if available (not for every mission) and ask and get approval to start"): the one call, its words in

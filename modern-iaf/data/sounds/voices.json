@@ -5879,7 +5879,7 @@
       "voice": "awacs",
       "say": "vector zero one zero",
       "mode": "particle",
-      "say_he": "הכוונה אפס אחת אפס",
+      "say_he": "כיוון אפס אחת אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5887,7 +5887,7 @@
       "voice": "awacs",
       "say": "vector zero two zero",
       "mode": "particle",
-      "say_he": "הכוונה אפס שתיים אפס",
+      "say_he": "כיוון אפס שתיים אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5895,7 +5895,7 @@
       "voice": "awacs",
       "say": "vector zero three zero",
       "mode": "particle",
-      "say_he": "הכוונה אפס שלוש אפס",
+      "say_he": "כיוון אפס שלוש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5903,7 +5903,7 @@
       "voice": "awacs",
       "say": "vector zero four zero",
       "mode": "particle",
-      "say_he": "הכוונה אפס ארבע אפס",
+      "say_he": "כיוון אפס ארבע אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5911,7 +5911,7 @@
       "voice": "awacs",
       "say": "vector zero five zero",
       "mode": "particle",
-      "say_he": "הכוונה אפס חמש אפס",
+      "say_he": "כיוון אפס חמש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5919,7 +5919,7 @@
       "voice": "awacs",
       "say": "vector zero six zero",
       "mode": "particle",
-      "say_he": "הכוונה אפס שש אפס",
+      "say_he": "כיוון אפס שש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5927,7 +5927,7 @@
       "voice": "awacs",
       "say": "vector zero seven zero",
       "mode": "particle",
-      "say_he": "הכוונה אפס שבע אפס",
+      "say_he": "כיוון אפס שבע אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5935,7 +5935,7 @@
       "voice": "awacs",
       "say": "vector zero eight zero",
       "mode": "particle",
-      "say_he": "הכוונה אפס שמונה אפס",
+      "say_he": "כיוון אפס שמונה אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5943,7 +5943,7 @@
       "voice": "awacs",
       "say": "vector zero nine zero",
       "mode": "particle",
-      "say_he": "הכוונה אפס תשע אפס",
+      "say_he": "כיוון אפס תשע אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5951,7 +5951,7 @@
       "voice": "awacs",
       "say": "vector one zero zero",
       "mode": "particle",
-      "say_he": "הכוונה אחת אפס אפס",
+      "say_he": "כיוון אחת אפס אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5959,7 +5959,7 @@
       "voice": "awacs",
       "say": "vector one one zero",
       "mode": "particle",
-      "say_he": "הכוונה אחת אחת אפס",
+      "say_he": "כיוון אחת אחת אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5967,7 +5967,7 @@
       "voice": "awacs",
       "say": "vector one two zero",
       "mode": "particle",
-      "say_he": "הכוונה אחת שתיים אפס",
+      "say_he": "כיוון אחת שתיים אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5975,7 +5975,7 @@
       "voice": "awacs",
       "say": "vector one three zero",
       "mode": "particle",
-      "say_he": "הכוונה אחת שלוש אפס",
+      "say_he": "כיוון אחת שלוש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5983,7 +5983,7 @@
       "voice": "awacs",
       "say": "vector one four zero",
       "mode": "particle",
-      "say_he": "הכוונה אחת ארבע אפס",
+      "say_he": "כיוון אחת ארבע אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5991,7 +5991,7 @@
       "voice": "awacs",
       "say": "vector one five zero",
       "mode": "particle",
-      "say_he": "הכוונה אחת חמש אפס",
+      "say_he": "כיוון אחת חמש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -5999,7 +5999,7 @@
       "voice": "awacs",
       "say": "vector one six zero",
       "mode": "particle",
-      "say_he": "הכוונה אחת שש אפס",
+      "say_he": "כיוון אחת שש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6007,7 +6007,7 @@
       "voice": "awacs",
       "say": "vector one seven zero",
       "mode": "particle",
-      "say_he": "הכוונה אחת שבע אפס",
+      "say_he": "כיוון אחת שבע אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6015,7 +6015,7 @@
       "voice": "awacs",
       "say": "vector one eight zero",
       "mode": "particle",
-      "say_he": "הכוונה אחת שמונה אפס",
+      "say_he": "כיוון אחת שמונה אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6023,7 +6023,7 @@
       "voice": "awacs",
       "say": "vector one nine zero",
       "mode": "particle",
-      "say_he": "הכוונה אחת תשע אפס",
+      "say_he": "כיוון אחת תשע אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6031,7 +6031,7 @@
       "voice": "awacs",
       "say": "vector two zero zero",
       "mode": "particle",
-      "say_he": "הכוונה שתיים אפס אפס",
+      "say_he": "כיוון שתיים אפס אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6039,7 +6039,7 @@
       "voice": "awacs",
       "say": "vector two one zero",
       "mode": "particle",
-      "say_he": "הכוונה שתיים אחת אפס",
+      "say_he": "כיוון שתיים אחת אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6047,7 +6047,7 @@
       "voice": "awacs",
       "say": "vector two two zero",
       "mode": "particle",
-      "say_he": "הכוונה שתיים שתיים אפס",
+      "say_he": "כיוון שתיים שתיים אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6055,7 +6055,7 @@
       "voice": "awacs",
       "say": "vector two three zero",
       "mode": "particle",
-      "say_he": "הכוונה שתיים שלוש אפס",
+      "say_he": "כיוון שתיים שלוש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6063,7 +6063,7 @@
       "voice": "awacs",
       "say": "vector two four zero",
       "mode": "particle",
-      "say_he": "הכוונה שתיים ארבע אפס",
+      "say_he": "כיוון שתיים ארבע אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6071,7 +6071,7 @@
       "voice": "awacs",
       "say": "vector two five zero",
       "mode": "particle",
-      "say_he": "הכוונה שתיים חמש אפס",
+      "say_he": "כיוון שתיים חמש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6079,7 +6079,7 @@
       "voice": "awacs",
       "say": "vector two six zero",
       "mode": "particle",
-      "say_he": "הכוונה שתיים שש אפס",
+      "say_he": "כיוון שתיים שש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6087,7 +6087,7 @@
       "voice": "awacs",
       "say": "vector two seven zero",
       "mode": "particle",
-      "say_he": "הכוונה שתיים שבע אפס",
+      "say_he": "כיוון שתיים שבע אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6095,7 +6095,7 @@
       "voice": "awacs",
       "say": "vector two eight zero",
       "mode": "particle",
-      "say_he": "הכוונה שתיים שמונה אפס",
+      "say_he": "כיוון שתיים שמונה אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6103,7 +6103,7 @@
       "voice": "awacs",
       "say": "vector two nine zero",
       "mode": "particle",
-      "say_he": "הכוונה שתיים תשע אפס",
+      "say_he": "כיוון שתיים תשע אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6111,7 +6111,7 @@
       "voice": "awacs",
       "say": "vector three zero zero",
       "mode": "particle",
-      "say_he": "הכוונה שלוש אפס אפס",
+      "say_he": "כיוון שלוש אפס אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6119,7 +6119,7 @@
       "voice": "awacs",
       "say": "vector three one zero",
       "mode": "particle",
-      "say_he": "הכוונה שלוש אחת אפס",
+      "say_he": "כיוון שלוש אחת אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6127,7 +6127,7 @@
       "voice": "awacs",
       "say": "vector three two zero",
       "mode": "particle",
-      "say_he": "הכוונה שלוש שתיים אפס",
+      "say_he": "כיוון שלוש שתיים אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6135,7 +6135,7 @@
       "voice": "awacs",
       "say": "vector three three zero",
       "mode": "particle",
-      "say_he": "הכוונה שלוש שלוש אפס",
+      "say_he": "כיוון שלוש שלוש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6143,7 +6143,7 @@
       "voice": "awacs",
       "say": "vector three four zero",
       "mode": "particle",
-      "say_he": "הכוונה שלוש ארבע אפס",
+      "say_he": "כיוון שלוש ארבע אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6151,7 +6151,7 @@
       "voice": "awacs",
       "say": "vector three five zero",
       "mode": "particle",
-      "say_he": "הכוונה שלוש חמש אפס",
+      "say_he": "כיוון שלוש חמש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6159,7 +6159,7 @@
       "voice": "awacs",
       "say": "vector three six zero",
       "mode": "particle",
-      "say_he": "הכוונה שלוש שש אפס",
+      "say_he": "כיוון שלוש שש אפס",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6239,7 +6239,7 @@
       "voice": "pilot",
       "say": "Picture.",
       "mode": "helmet",
-      "say_he": "תמונה אווירית.",
+      "say_he": "תמונת מצב.",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6284,7 +6284,7 @@
       "voice": "pilot",
       "say": "Request vector to target.",
       "mode": "helmet",
-      "say_he": "בקשת הכוונה למטרה.",
+      "say_he": "בקשת כיוון למטרה.",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6299,7 +6299,7 @@
       "voice": "pilot",
       "say": "Request vector home.",
       "mode": "helmet",
-      "say_he": "בקשת הכוונה לבסיס.",
+      "say_he": "בקשת כיוון לבסיס.",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -6314,7 +6314,7 @@
       "voice": "pilot",
       "say": "Request vector to tanker.",
       "mode": "helmet",
-      "say_he": "בקשת הכוונה למטוס התדלוק.",
+      "say_he": "בקשת כיוון למטוס התדלוק.",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -10664,182 +10664,182 @@
     "AWX_VECTOR010": {
       "file": "awx_vector_010.ogg",
       "text": "vector 010",
-      "text_he": "הכוונה 010"
+      "text_he": "כיוון 010"
     },
     "AWX_VECTOR020": {
       "file": "awx_vector_020.ogg",
       "text": "vector 020",
-      "text_he": "הכוונה 020"
+      "text_he": "כיוון 020"
     },
     "AWX_VECTOR030": {
       "file": "awx_vector_030.ogg",
       "text": "vector 030",
-      "text_he": "הכוונה 030"
+      "text_he": "כיוון 030"
     },
     "AWX_VECTOR040": {
       "file": "awx_vector_040.ogg",
       "text": "vector 040",
-      "text_he": "הכוונה 040"
+      "text_he": "כיוון 040"
     },
     "AWX_VECTOR050": {
       "file": "awx_vector_050.ogg",
       "text": "vector 050",
-      "text_he": "הכוונה 050"
+      "text_he": "כיוון 050"
     },
     "AWX_VECTOR060": {
       "file": "awx_vector_060.ogg",
       "text": "vector 060",
-      "text_he": "הכוונה 060"
+      "text_he": "כיוון 060"
     },
     "AWX_VECTOR070": {
       "file": "awx_vector_070.ogg",
       "text": "vector 070",
-      "text_he": "הכוונה 070"
+      "text_he": "כיוון 070"
     },
     "AWX_VECTOR080": {
       "file": "awx_vector_080.ogg",
       "text": "vector 080",
-      "text_he": "הכוונה 080"
+      "text_he": "כיוון 080"
     },
     "AWX_VECTOR090": {
       "file": "awx_vector_090.ogg",
       "text": "vector 090",
-      "text_he": "הכוונה 090"
+      "text_he": "כיוון 090"
     },
     "AWX_VECTOR100": {
       "file": "awx_vector_100.ogg",
       "text": "vector 100",
-      "text_he": "הכוונה 100"
+      "text_he": "כיוון 100"
     },
     "AWX_VECTOR110": {
       "file": "awx_vector_110.ogg",
       "text": "vector 110",
-      "text_he": "הכוונה 110"
+      "text_he": "כיוון 110"
     },
     "AWX_VECTOR120": {
       "file": "awx_vector_120.ogg",
       "text": "vector 120",
-      "text_he": "הכוונה 120"
+      "text_he": "כיוון 120"
     },
     "AWX_VECTOR130": {
       "file": "awx_vector_130.ogg",
       "text": "vector 130",
-      "text_he": "הכוונה 130"
+      "text_he": "כיוון 130"
     },
     "AWX_VECTOR140": {
       "file": "awx_vector_140.ogg",
       "text": "vector 140",
-      "text_he": "הכוונה 140"
+      "text_he": "כיוון 140"
     },
     "AWX_VECTOR150": {
       "file": "awx_vector_150.ogg",
       "text": "vector 150",
-      "text_he": "הכוונה 150"
+      "text_he": "כיוון 150"
     },
     "AWX_VECTOR160": {
       "file": "awx_vector_160.ogg",
       "text": "vector 160",
-      "text_he": "הכוונה 160"
+      "text_he": "כיוון 160"
     },
     "AWX_VECTOR170": {
       "file": "awx_vector_170.ogg",
       "text": "vector 170",
-      "text_he": "הכוונה 170"
+      "text_he": "כיוון 170"
     },
     "AWX_VECTOR180": {
       "file": "awx_vector_180.ogg",
       "text": "vector 180",
-      "text_he": "הכוונה 180"
+      "text_he": "כיוון 180"
     },
     "AWX_VECTOR190": {
       "file": "awx_vector_190.ogg",
       "text": "vector 190",
-      "text_he": "הכוונה 190"
+      "text_he": "כיוון 190"
     },
     "AWX_VECTOR200": {
       "file": "awx_vector_200.ogg",
       "text": "vector 200",
-      "text_he": "הכוונה 200"
+      "text_he": "כיוון 200"
     },
     "AWX_VECTOR210": {
       "file": "awx_vector_210.ogg",
       "text": "vector 210",
-      "text_he": "הכוונה 210"
+      "text_he": "כיוון 210"
     },
     "AWX_VECTOR220": {
       "file": "awx_vector_220.ogg",
       "text": "vector 220",
-      "text_he": "הכוונה 220"
+      "text_he": "כיוון 220"
     },
     "AWX_VECTOR230": {
       "file": "awx_vector_230.ogg",
       "text": "vector 230",
-      "text_he": "הכוונה 230"
+      "text_he": "כיוון 230"
     },
     "AWX_VECTOR240": {
       "file": "awx_vector_240.ogg",
       "text": "vector 240",
-      "text_he": "הכוונה 240"
+      "text_he": "כיוון 240"
     },
     "AWX_VECTOR250": {
       "file": "awx_vector_250.ogg",
       "text": "vector 250",
-      "text_he": "הכוונה 250"
+      "text_he": "כיוון 250"
     },
     "AWX_VECTOR260": {
       "file": "awx_vector_260.ogg",
       "text": "vector 260",
-      "text_he": "הכוונה 260"
+      "text_he": "כיוון 260"
     },
     "AWX_VECTOR270": {
       "file": "awx_vector_270.ogg",
       "text": "vector 270",
-      "text_he": "הכוונה 270"
+      "text_he": "כיוון 270"
     },
     "AWX_VECTOR280": {
       "file": "awx_vector_280.ogg",
       "text": "vector 280",
-      "text_he": "הכוונה 280"
+      "text_he": "כיוון 280"
     },
     "AWX_VECTOR290": {
       "file": "awx_vector_290.ogg",
       "text": "vector 290",
-      "text_he": "הכוונה 290"
+      "text_he": "כיוון 290"
     },
     "AWX_VECTOR300": {
       "file": "awx_vector_300.ogg",
       "text": "vector 300",
-      "text_he": "הכוונה 300"
+      "text_he": "כיוון 300"
     },
     "AWX_VECTOR310": {
       "file": "awx_vector_310.ogg",
       "text": "vector 310",
-      "text_he": "הכוונה 310"
+      "text_he": "כיוון 310"
     },
     "AWX_VECTOR320": {
       "file": "awx_vector_320.ogg",
       "text": "vector 320",
-      "text_he": "הכוונה 320"
+      "text_he": "כיוון 320"
     },
     "AWX_VECTOR330": {
       "file": "awx_vector_330.ogg",
       "text": "vector 330",
-      "text_he": "הכוונה 330"
+      "text_he": "כיוון 330"
     },
     "AWX_VECTOR340": {
       "file": "awx_vector_340.ogg",
       "text": "vector 340",
-      "text_he": "הכוונה 340"
+      "text_he": "כיוון 340"
     },
     "AWX_VECTOR350": {
       "file": "awx_vector_350.ogg",
       "text": "vector 350",
-      "text_he": "הכוונה 350"
+      "text_he": "כיוון 350"
     },
     "AWX_VECTOR360": {
       "file": "awx_vector_360.ogg",
       "text": "vector 360",
-      "text_he": "הכוונה 360"
+      "text_he": "כיוון 360"
     },
     "MILES100": {
       "file": "awx_miles_100.ogg",
@@ -10889,12 +10889,12 @@
     "REQ_AWX_PICTURE": {
       "file": "plt_req_awx_picture.ogg",
       "text": "picture",
-      "text_he": "תמונה אווירית"
+      "text_he": "תמונת מצב"
     },
     "EITAM_P+,+ALPHA_P+,+REQ_AWX_PICTURE": {
       "file": "plt_eitam_kidon1_picture.ogg",
       "text": "Eitam, Kidon 1, picture",
-      "text_he": "עיטם, כידון 1, תמונה אווירית"
+      "text_he": "עיטם, כידון 1, תמונת מצב"
     },
     "REQ_AWX_BOGEY_DOPE": {
       "file": "plt_req_awx_bogey_dope.ogg",
@@ -10919,32 +10919,32 @@
     "REQ_AWX_VECTOR_TARGET": {
       "file": "plt_req_awx_vector_target.ogg",
       "text": "request vector to target",
-      "text_he": "בקשת הכוונה למטרה"
+      "text_he": "בקשת כיוון למטרה"
     },
     "EITAM_P+,+ALPHA_P+,+REQ_AWX_VECTOR_TARGET": {
       "file": "plt_eitam_kidon1_vector_target.ogg",
       "text": "Eitam, Kidon 1, request vector to target",
-      "text_he": "עיטם, כידון 1, בקשת הכוונה למטרה"
+      "text_he": "עיטם, כידון 1, בקשת כיוון למטרה"
     },
     "REQ_AWX_VECTOR_HOME": {
       "file": "plt_req_awx_vector_home.ogg",
       "text": "request vector home",
-      "text_he": "בקשת הכוונה לבסיס"
+      "text_he": "בקשת כיוון לבסיס"
     },
     "EITAM_P+,+ALPHA_P+,+REQ_AWX_VECTOR_HOME": {
       "file": "plt_eitam_kidon1_vector_home.ogg",
       "text": "Eitam, Kidon 1, request vector home",
-      "text_he": "עיטם, כידון 1, בקשת הכוונה לבסיס"
+      "text_he": "עיטם, כידון 1, בקשת כיוון לבסיס"
     },
     "REQ_AWX_VECTOR_TANKER": {
       "file": "plt_req_awx_vector_tanker.ogg",
       "text": "request vector to tanker",
-      "text_he": "בקשת הכוונה למטוס התדלוק"
+      "text_he": "בקשת כיוון למטוס התדלוק"
     },
     "EITAM_P+,+ALPHA_P+,+REQ_AWX_VECTOR_TANKER": {
       "file": "plt_eitam_kidon1_vector_tanker.ogg",
       "text": "Eitam, Kidon 1, request vector to tanker",
-      "text_he": "עיטם, כידון 1, בקשת הכוונה למטוס התדלוק"
+      "text_he": "עיטם, כידון 1, בקשת כיוון למטוס התדלוק"
     },
     "TNK_KIDON1": {
       "file": "tnk_kidon1.ogg",

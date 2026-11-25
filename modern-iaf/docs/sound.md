@@ -665,11 +665,12 @@ only the tower response") use the same chain heard from an oxygen-mask microphon
 `sim_voices.rs`, mode `helmet` in `voices.json`; inferred values): pre-emphasis 0.75 instead of 0.9 and the band's top
 at 2600 Hz instead of 3000 Hz (less air), +4 dB at 500 Hz, Q 0.9 (more low-mid). `sim_flight.gd` `pick()` says the
 call (`PILOT_CALL` = `%S1 , %S2 , %S3`: the tower's address `<BASE>_TWR`, the callsign `<NAME>_P`, `REQ_<ID>`) framed
-by the key clicks, then `radio_gap.ogg` (0.6 s of silence, `RADIO_GAP`: the controller's reply, inferred), then the
-tower's answer, then the player's readback (§3). Each base × callsign (Kidon 1–8, every seat the player can fly) × the
-five requests (start-up, taxi, line-up, take-off, landing) is one joined clip ("Ramon tower, Kidon 3, request
-start-up.": 160 clips, since 25 November 2026; before, only Kidon 1's were whole and Kidon 2–4 played the address, the
-callsign and the request apart). The parts (4 towers, Kidon 1–8, 5 requests) stay for a call to no tower.
+by the key clicks, then `radio_gap.ogg` (0.6 s of silence, `RADIO_GAP`: the controller's reply, inferred; after the
+key-off's 1 s of quiet, so the answer starts about 1.7 s after the call), then the tower's answer, then the player's
+readback (§3). Each base × callsign (Kidon 1–8, every seat the player can fly) × the five requests (start-up, taxi,
+line-up, take-off, landing) is one joined clip ("Ramon tower, Kidon 3, request start-up.": 160 clips, since 25
+November 2026; before, only Kidon 1's were whole and Kidon 2–4 played the address, the callsign and the request
+apart). The parts (4 towers, Kidon 1–8, 5 requests) stay for a call to no tower.
 
 A transmission plays like a receiver's squelch (9 November 2026; the user: "missing a bit of a quiet before / after
 like a real radio"). Measured on a scanner recording of Orlando's tower frequency[^mco] (minutes 5–10, 77 openings,
@@ -684,8 +685,11 @@ about 41 dB; a word is 30 ms or more 12 dB over the carrier, so the 10–20 ms k
 The keys (`KEY` in `sim_voices.rs`), each a computed, seeded clip:
 - `key_on.ogg`: 0.1 s of quiet, the press-to-talk click (2 ms of noise under a Hann window), 0.15 s of carrier hiss
   at the clip's hiss level (the upper quartile's lead: a scanner's recording loses some of it, inferred);
-- `key_off.ogg`: 0.15 s of carrier hiss (the median tail), an 80 ms squelch burst falling away, the click, 0.2 s of
-  quiet.
+- `key_off.ogg`: 0.15 s of carrier hiss (the median tail), an 80 ms squelch burst falling away, the click, 1 s of
+  quiet (since 25 November 2026, the user: "after the radio voices there should be a sec of silence, otherwise it
+  sound like it is cat in the end", that is cut; 0.2 s before). Every keyed call ends with it: the tower, the AWACS,
+  the wingmen, the tanker and the player, in both languages, so the next call starts about 1.1 s after the last one's
+  click (1.07 s measured in the encoded clips).
 
 A `radio` clip (eject, the friendly-fire calls, the map edge) carries both. A tower call is several clips back to
 back, so they carry only the hiss and `radio.gd` `say()` plays `key_on.ogg` before them and `key_off.ogg` after them
