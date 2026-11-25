@@ -720,7 +720,10 @@ side list (Devices, Axes, Buttons) follows the scroll.
   trim (the throttle rocker, docs/controls.md §5.2), None. A role sits on one axis: giving it to another axis leaves
   the old one with None. A role given to another device's axis is read from that device (a throttle or rudder
   pedals beside the stick, since 2026-11-25): the store keeps the device's name (§9.4), `Joystick.role_names` carries
-  it to the poller, which looks the device up by name each poll (two devices with the same name resolve to the first one). Roll moved to another device makes that one the main
+  it to the poller, which looks the device up by name each poll. Two devices with the same name are told apart by
+  the order they were plugged in: the second is "<name> #2" (the lowest number free among the connected ones of that
+  name) and keeps it until it is pulled out, so a twin pulled out never hands its roles or buttons to the other one
+  (`Joystick.dev_key`; two identical devices report one name and one GUID, so nothing else tells them apart). Roll moved to another device makes that one the main
   joystick; the roles still on the old one are pinned to it by name first (`iaf_tools::devices::set_axis`). The bar shows the axis as the flight reads it (`Joystick.role_value`: the role's invert,
   dead zone and sense), so the dead zone is visible as the bar's still centre and the bar fills the way the jet
   responds: the throttle lever forward is a full bar (full power), the stick pushed forward a full pitch bar. The
@@ -728,7 +731,13 @@ side list (Devices, Axes, Buttons) follows the scroll.
   lever or stick pushed forward is −1, so the throttle's bar was empty at full power while the flight (and the 1998
   game) read it right. The one sense now lives in `joystick.gd` (`SENSE`, `shaped`), which the poller and the bars both
   read.
-- **Buttons:** the Keys screen's list with the joystick's buttons. Click a row, then press a button. Conflicts, Default and Reset all work as on the Keys screen. The hat is the
+- **Buttons:** the Keys screen's list with the joystick's buttons. Click a row, then press a button. Conflicts, Default and Reset all work as on the Keys screen.
+  A button on another device (a throttle, pedals; since 2026-11-25) binds the same way and shows with the device's
+  name ("Pedals · Button 3"). The store numbers such devices (`button_devices`, §9.4) and the binding is
+  `slot × 1000 + button` in `Settings.key_bindings`, so the key table keeps one number per binding
+  (`Joystick.button_of`); the main joystick's buttons are 0–999 as before, so they follow the device that flies the
+  jet when Roll moves. The 1998 game reads the main joystick's buttons only. A second device without an SDL mapping
+  gets the main joystick's (its 12th and later buttons off the hat's indices). The hat is the
   1998 game's POV, read by the same code (`Joystick.poll`), its eight directions the snap views (up, right, back, left
   and the corner views front-right, back-right, back-left, front-left). Tested on the Mac 2026-11-11: the sim had
   turned the hat into four buttons of its own, so the diagonals did nothing; reborn's hat had them all along.
@@ -750,6 +759,7 @@ Pitch on an axis, the roll keys roll the jet while the stick pitches it (`Joysti
 |---|---|
 | ![The Joystick screen: the Hotas X flies the jet, six axes with their bars, roles, Invert and dead zones](pictures/front-end/joystick_en.jpg) | ![The Joystick screen in Hebrew: mirrored, the bars still fill left to right](pictures/front-end/joystick_he.jpg) |
 | ![Rudder pedals as a second device: their axes under their name, the rudder on their axis 3](pictures/front-end/joystick_two_en.jpg) | ![The same in Hebrew](pictures/front-end/joystick_two_he.jpg) |
+| ![The gear on the pedals' button 3: the chip names the device, then the button](pictures/front-end/joystick_two_buttons_en.jpg) | ![The same in Hebrew: the button first, then the device](pictures/front-end/joystick_two_buttons_he.jpg) |
 
 In Hebrew the screens are mirrored; the key names and the device name run left to right, and the axis bars keep the
 stick's own direction (right is right). The dropdowns draw the same box both ways: right to left Godot draws an
@@ -789,6 +799,8 @@ The axes are in `user://devices.json`, written compact and only with what differ
   absent field is the default: the device map's axis (else 0–4 in role order), no invert, and the dead zone of
   `joystick.gd` (25 % on the stick and the rudder, 5 % with Stick response Soft centre, 10 % on the rocker). A dead
   zone outside 0–0.9 in a hand-edited file reads as its nearest end.
+- `button_devices`: the devices other than the main joystick whose buttons are bound, by name (`"<name> #2"` for a
+  twin); a button b on the device at index i is bound as `(i + 1) × 1000 + b`. Reset all keeps the list.
 
 A missing or corrupt file reads as an empty store: every default. A `devices.json` from before 2026-11-14 also held
 `keys` (record → key) and `buttons` (record → button); at its start the sim moves them into `Settings.key_bindings`
@@ -806,6 +818,8 @@ The axes' logic is Rust's: `iaf_tools::devices` (unit tests in the same file) be
 | `axes(store, map, soft)` | every role's axis, invert and dead zone |
 | `set_axis(store, map, role, choice, soft)` | sets a role to `choice` {axis, invert, dead, device, main}; a role on that axis of that device gives it up |
 | `reset_axes(store)` | every axis back |
+| `button_slot(store, name)` | the slot (1..) of a device's buttons, added when new; 0 for the main joystick |
+| `button_devices(store)` | the devices of the slots in order |
 | `drop_bindings(store)` | drops the keys and buttons of a store from before 2026-11-14 |
 
 How the flight reads it:
@@ -815,7 +829,7 @@ How the flight reads it:
   column to `Joystick.default_buttons` (`sim_settings.gd _map_buttons`), where reborn's `.joy` files put theirs.
 - **Axes:** `Settings.apply_devices()` (at start, on every Settings save, when a joystick connects) sets
   `Settings.joy_axes` to the roles' axes, `Joystick.tune` to their invert and dead zone, `Joystick.role_names` to
-  their devices, Roll trim on while the trim
+  their devices, `Joystick.button_devices` to the button slots' devices, Roll trim on while the trim
   role has an axis. The hat is the original's POV snap views in both games.
   `joystick.gd` reads them each poll. The original game leaves `tune` empty, so its joystick is
   unchanged (`tests/godot/test_joystick.gd`, `test_controls.gd`, `test_keyboard_stick.gd`).
@@ -837,11 +851,14 @@ How the flight reads it:
   `[keys]` entries both load into `Settings.key_bindings`. `iaf-sim own`'s unit test checks the laptop table compiles
   the same way.
 - `modern-iaf/tests/test_devices.gd` `second`: rudder pedals as a second fake device: 6 + 6 axis rows, the rudder on the
-  pedals' axis 3 stored with their name and read from them (bar and role value), Reset all puts every role back on
-  the main joystick.
+  pedals' axis 3 stored with their name and read from them (bar and role value); Gear bound to the pedals' button 3 by
+  pressing it (1002, shown "Pedals · Button 3"), the stick's button 3 its own; twin pedals: the second is "Pedals #2",
+  its button binds in slot 2 and keeps it while the first is pulled out, the first plugged in again is "Pedals"; Reset
+  all puts every role and button back.
 - `modern-iaf/tests/test_joy_hotplug.gd` flies the Barak with fake devices plugged in and out mid-flight: a stick
   plugged in rolls the jet from the next frames with its map's buttons (the Hotas X's gun on button 1); pedals plugged
-  in move the rudder while the stick's twist does not, the stick's lever still drives the throttle; the pedals pulled
+  in move the rudder while the stick's twist does not, the stick's lever still drives the throttle; a pedals' button
+  bound to the gear raises it; the pedals pulled
   out centre the rudder and give its keys back; the stick pulled out centres the stick.
 - `modern-iaf/tests/test_switch_keys.gd` flies the Barak: W (Wheel brakes (hold)) held in the air brakes and opens no
   speedbrake, and lets go with the key; the waypoints' keys are Shift + W and Shift + Q, and after Shift + W with Shift

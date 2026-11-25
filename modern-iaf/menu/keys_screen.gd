@@ -159,7 +159,13 @@ func default_value(i: int) -> int:
 func value_name(v: int) -> String:
 	if column == "key":
 		return table.key_name(v) if v != 0 else "—"
-	return fe.s("button_n") % (v + 1) if v >= 0 else "—"
+	if v < 0:
+		return "—"
+	var dev: Array = Joystick.button_split(v)  # another device's button: its name first
+	var b: String = fe.s("button_n") % (int(dev[1]) + 1)
+	if dev[0] == "":
+		return b
+	return "%s · %s" % ([b, dev[0]] if fe.he() else [dev[0], b])  # Hebrew: the button first, at the line's start
 
 
 ## Every row's binding again from the store.
@@ -204,8 +210,8 @@ func _input(event: InputEvent) -> void:
 		v = table.key_of_event(event)
 		if v == 0:
 			return  # a lone modifier (or a key the table has no name for): wait for the key
-	elif column == "button" and event is InputEventJoypadButton and event.pressed and Joystick.ours(event):
-		v = Joystick.physical_button(int(event.button_index))
+	elif column == "button" and event is InputEventJoypadButton and event.pressed:
+		v = Joystick.button_of(event, Settings.button_slot)  # a throttle's or pedals' button too
 		if v < 0:
 			return
 	if v == -2:

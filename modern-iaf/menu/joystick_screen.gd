@@ -75,7 +75,7 @@ func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 	for d in ids:
 		var row: HBoxContainer = fe._hbox(fe._margin(body, 0, 14), 20)
 		row.name = "Device_%d" % d
-		var device_name: String = Joystick.joy_name(d)
+		var device_name: String = Joystick.dev_key(d)
 		var name_l: Label = fe._label(row, device_name if device_name != "" else "#%d" % d, "Row")
 		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_l.text_direction = Control.TEXT_DIRECTION_LTR
@@ -89,7 +89,7 @@ func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 		var order: Array = [main] + ids.filter(func(d): return d != main)
 		for d in order:
 			if ids.size() > 1:
-				var l: Label = fe._label(fe._margin(body, 0, 10), Joystick.joy_name(d), "Muted")
+				var l: Label = fe._label(fe._margin(body, 0, 10), Joystick.dev_key(d), "Muted")
 				l.text_direction = Control.TEXT_DIRECTION_LTR
 			var c := _axis_count(d)
 			for i in AXES if c < 0 else clampi(c, 1, AXES):
@@ -243,8 +243,8 @@ func _store(r: String, d: int, axis: int, invert: bool, dead: float) -> void:
 		"axis": axis,
 		"invert": invert,
 		"dead": dead,
-		"device": Joystick.joy_name(d),
-		"main": Joystick.joy_name(Joystick.device()),
+		"device": Joystick.dev_key(d),
+		"main": Joystick.dev_key(Joystick.device()),
 	}
 	IafDevices.set_axis(Settings.devices_file(), Settings.devices_map(), r, choice, _soft())
 	Settings.apply_devices()

@@ -2968,7 +2968,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Ours: RMB drag turns the orbit (heading / pitch, as the pan keys).
 		views.orbit_heading += event.relative.x * 0.005
 		views.orbit_pitch += event.relative.y * 0.005
-	elif event is InputEventJoypadButton and Joystick.ours(event):
+	elif event is InputEventJoypadButton and Joystick.button_of(event) >= 0:
 		_joy_button(event)
 	elif event is InputEventKey and not event.pressed:
 		if event.keycode == KEY_V:
@@ -3015,8 +3015,9 @@ func _press(cmd: Array) -> bool:
 ## command as it is — no drops and no roll / pitch rewrite, so a button on Roll / Pitch does nothing (the
 ## controller has no case for events 2 / 3), one on Rudder moves the rudder. A release counts only after its
 ## press (the poller's held list).
+## A second device's button (Modern IAF: a throttle's) is its own binding (Joystick.button_of).
 func _joy_button(event: InputEventJoypadButton) -> void:
-	var b := Joystick.physical_button(int(event.button_index))
+	var b := Joystick.button_of(event)
 	if b < 0:
 		return  # the hat (the POV snap views, Joystick.poll)
 	if event.pressed:

@@ -3,6 +3,7 @@
 # - a stick plugged in mid-flight flies the jet from the next frame, with its device map's buttons (the Hotas X's);
 # - rudder pedals as a second device: the rudder role on their axis 3 moves the rudder, the stick's twist does not;
 #   the stick's throttle lever still drives the throttle;
+# - a button on the pedals bound to the gear lever raises the gear; the stick's button of the same number stays its own;
 # - the pedals pulled out: the rudder centres and its keys work again; the stick pulled out: the stick centres.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_joy_hotplug.gd --log-file <temp>
@@ -11,6 +12,7 @@ extends "res://../tests/godot/base.gd"
 const STICK := "Thrustmaster T.Flight Hotas X"
 const PEDALS := "Saitek Pro Flight Rudder Pedals"
 const GUN := 64  # the Hotas X map's button 1
+const GEAR := 20
 
 
 func run() -> void:
@@ -66,6 +68,16 @@ func run() -> void:
 	axis(2, -1.0)  # the stick's lever forward, its own axis 3
 	await frames(5)
 	check(js.last_throttle == 100, "the stick's throttle lever still drives the throttle (%d)" % js.last_throttle)
+	# A pedals' button on the gear lever, as the Joystick screen binds it (slot 1 · 1000 + button 3).
+	var v: int = s.button_slot(PEDALS) * 1000 + 2
+	tv.keys.set_column(s.key_bindings, GEAR, "button", v)
+	check(js.button_of(button(2, 1)) == 1002 and js.button_of(button(2, 0)) == 2, "the pedals' button 3 is 1002")
+	tv.gear_down = true
+	root.push_input(button(2, 1))
+	root.push_input(button(2, 1, false))
+	await frames(2)
+	check(not tv.gear_down and tv._held_buttons.is_empty(), "the pedals' button 3 raised the gear")
+	tv.keys.set_column(s.key_bindings, GEAR, "button", tv.keys.default_joystick(GEAR))
 	# Pulled out again.
 	js.fake_devices = [0]
 	await frames(5)
@@ -81,3 +93,11 @@ func run() -> void:
 	DirAccess.remove_absolute(s.devices_path)
 	s.devices_path = ""
 	s.apply_devices()
+
+
+func button(b: int, device: int, pressed := true) -> InputEventJoypadButton:
+	var e := InputEventJoypadButton.new()
+	e.device = device
+	e.button_index = b
+	e.pressed = pressed
+	return e

@@ -44,6 +44,25 @@ impl IafDevices {
         !devices::drop_bindings(&mut s) || write(&store, &s)
     }
 
+    /// The slot (1..) of device `name`'s buttons, added to the store when new; 0 for "" (the main joystick). A
+    /// button b on it is bound as `slot * 1000 + b` (`devices::button_slot`).
+    #[func]
+    fn button_slot(store: GString, name: GString) -> i64 {
+        let mut s = read(&store);
+        let before = s.clone();
+        let slot = devices::button_slot(&mut s, &name.to_string());
+        if s != before {
+            write(&store, &s);
+        }
+        slot
+    }
+
+    /// The devices of the button slots 1.. in order, as JSON text.
+    #[func]
+    fn button_devices(store: GString) -> GString {
+        text(&devices::button_devices(&read(&store)))
+    }
+
     /// Every axis back to the defaults.
     #[func]
     fn reset_axes(store: GString) -> bool {

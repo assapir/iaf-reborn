@@ -117,7 +117,7 @@ A role sits on one axis only. A role without an axis leaves its keys working: wi
 
 The #term("Dead zone") goes from 0 to 50 %. Its default is 25 % on the stick and the rudder, 5 % on them with #scr("stick_response") on #scr("soft"), and 10 % on the trim rocker.
 
-#idx("Joystick, second device")A separate throttle or rudder pedals work beside the joystick. Plug them in, and their axes are listed under their name: give one of them a role as above, and that role reads the device. A device plugged in during a flight works at once. A device pulled out during a flight lets its stick and rudder axes go to the centre, and their keys work again.
+#idx("Joystick, second device")A separate throttle or rudder pedals work beside the joystick. Plug them in, and their axes are listed under their name: give one of them a role as above, and that role reads the device. A device plugged in during a flight works at once. A device pulled out during a flight lets its stick and rudder axes go to the centre, and their keys work again. Two devices with the same name are listed as "#2" for the one plugged in second.
 
 An axis is read only when its setting says so: #scr("flight_controls") on #scr("joystick") for the stick, #scr("rudder") on #scr("pedals"), #scr("throttle") on #scr("lever") (@settings-devices).
 
@@ -126,8 +126,8 @@ An axis is read only when its setting says so: #scr("flight_controls") on #scr("
 #idx("Joystick, buttons")#idx("Joystick, hat")
 + Under #scr("joy_buttons"), select the command's row.
   #then[The row reads #scr("press_button")]
-+ Press the button on the joystick.
-  #then[The row shows the button's number.]
++ Press the button on the joystick, or on another device such as a throttle.
+  #then[The row shows the button's number. A button on another device shows with that device's name first.]
 
 A button that another command has opens the same three choices as a key (@keys-joystick-conflict), and #scr("default") works as on the #scr("keys_screen") screen.
 

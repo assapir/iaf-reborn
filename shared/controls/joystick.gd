@@ -3,7 +3,8 @@
 # used the first DirectInput joystick its EnumDevices callback FUN_004e0f90 could open); in Modern IAF a role's axis may
 # sit on a second device (role_names). Each poll turns the axes into the original's game events, sent only when the
 # integer value changes: GEV 1 stick (x, y ±100), GEV 9 throttle (0..100), GEV 10 rudder (±100) and GEV 22 from the POV
-# hat (the snap views). Buttons reach the key table in the scenes (FUN_004e0dc0 → record +0x1c).
+# hat (the snap views). Buttons reach the key table in the scenes (FUN_004e0dc0 → record +0x1c); in Modern IAF a second
+# device's buttons too (button_devices, button_of).
 extends Node
 
 ## The original's DirectInput axes lX, lY, lZ, lRz as Godot axis numbers: Settings.joy_axes
@@ -76,6 +77,11 @@ var fake_names := {}
 ## rocker) the name of the device its axis is on; "" or absent = the main joystick. The roll role's device is the main
 ## joystick when connected (device()). The original game leaves it empty: one device, as its EnumDevices callback.
 var role_names: Array = []
+## Ours (Modern IAF): the devices other than the main joystick whose buttons are bound, by key (dev_key()); a button b
+## on button_devices[i] is bound as (i + 1) * BUTTON_SLOT + b (button_of()). The original game leaves it empty: only
+## the main joystick's buttons.
+var button_devices: Array = []
+const BUTTON_SLOT := 1000
 ## The flight scene while it takes the events; without one, poll() still runs and its events are
 ## dropped (the original's poller runs in the menus too).
 var consumer: Node = null
@@ -121,13 +127,37 @@ func joy_name(d: int) -> String:
 	return str(fake_names.get(d, Input.get_joy_name(d)))
 
 
-## The connected device named `n`, −1 = none ("" names none).
+## The connected device whose key (dev_key()) is `n`, −1 = none ("" names none).
 func by_name(n: String) -> int:
 	if n != "":
 		for d in connected():
-			if joy_name(d) == n:
+			if dev_key(d) == n:
 				return int(d)
 	return -1
+
+
+## Ours: device id → [its name, its key]. A device's key is its name; a second device of the same name plugged in
+## while the first is connected is "<name> #2" (the lowest number free among the connected ones of that name), and
+## keeps it until it is pulled out, so a pulled-out twin never hands its roles or buttons to the other one.
+var _keys := {}
+
+
+## The name the store keeps device d under: joy_name(), "#2".. for a twin (_keys).
+func dev_key(d: int) -> String:
+	var ids := connected()
+	for k in _keys.keys():
+		if not k in ids or _keys[k][0] != joy_name(k):
+			_keys.erase(k)
+	var fresh := ids.filter(func(i): return not _keys.has(i))
+	fresh.sort()
+	for i in fresh:
+		var n := joy_name(i)
+		var taken := _keys.values().filter(func(v): return v[0] == n).map(func(v): return v[1])
+		var no := 1
+		while (n if no == 1 else "%s #%d" % [n, no]) in taken:
+			no += 1
+		_keys[i] = [n, n if no == 1 else "%s #%d" % [n, no]]
+	return str(_keys[d][1]) if _keys.has(d) else joy_name(d)
 
 
 func _role_name(r: int) -> String:
@@ -266,6 +296,33 @@ func drops_key(id: int) -> bool:
 	return false
 
 
+## A joypad button event as a binding (key_table's joystick column): the main joystick's button (physical_button()),
+## a bound second device's as its slot (button_devices) · BUTTON_SLOT + its button; −1 for the hat, another device, or
+## (`slot_of`, the Joystick screen while it listens: a Callable(key) → slot that adds the device) none.
+func button_of(event: InputEvent, slot_of := Callable()) -> int:
+	if not event is InputEventJoypadButton or device() < 0 or not event.device in connected():
+		return -1
+	var d: int = event.device
+	var b := physical_button(int(event.button_index), d)
+	if d == device() or b < 0:
+		return b
+	if button_devices.is_empty() and not slot_of.is_valid():
+		return -1  # the original game: the main joystick only
+	var s := button_devices.find(dev_key(d)) + 1
+	if s == 0 and slot_of.is_valid():
+		s = int(slot_of.call(dev_key(d)))
+	return s * BUTTON_SLOT + b if s > 0 else -1
+
+
+## Binding v's device key ("" the main joystick) and button (button_of()).
+func button_split(v: int) -> Array:
+	var s := int(v / float(BUTTON_SLOT))
+	if s <= 0:
+		return ["", v]
+	var n: String = str(button_devices[s - 1]) if s <= button_devices.size() else "#%d" % s  # a hand-edited slot
+	return [n, v % BUTTON_SLOT]
+
+
 ## A joypad event from the joystick in use.
 func ours(event: InputEvent) -> bool:
 	return (
@@ -288,6 +345,9 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	if not role_names.is_empty():  # Modern IAF (the 1998 game: one device)
+		for i in connected():
+			_map_unknown(int(i))  # every device before its first button: its 12th and later off the hat's indices
 	var d := device()
 	if d != _device:
 		_device = d
@@ -298,20 +358,25 @@ func _process(_delta: float) -> void:
 
 
 ## A joypad button event's button as the original numbers it (0-based), −1 for the hat (D-pad 11..14: the
-## POV, not buttons, as DirectInput reports it).
-func physical_button(b: int) -> int:
+## POV, not buttons, as DirectInput reports it). `d`: the device (−1 or the main joystick: `remapped`).
+func physical_button(b: int, d := -1) -> int:
 	if b >= JOY_BUTTON_DPAD_UP and b <= JOY_BUTTON_DPAD_RIGHT:
 		return -1
-	if remapped and b >= JOY_BUTTON_MISC1 and b <= JOY_BUTTON_TOUCHPAD:
+	if _remapped(d) and b >= JOY_BUTTON_MISC1 and b <= JOY_BUTTON_TOUCHPAD:
 		return b - 4
 	return b
+
+
+## Device d (−1: the main joystick) got our mapping: the main one's `remapped`, another's from _map_unknown().
+func _remapped(d: int) -> bool:
+	return remapped if d < 0 or d == _device else _mapped.has(Input.get_joy_guid(d))
 
 
 ## An axis −1..1; with our mapping (the main joystick's) axes 4 / 5 are gamepad triggers (0..1 in Godot): back to
 ## −1..1.
 func axis(d: int, i: int) -> float:
 	var v := Input.get_joy_axis(d, i)
-	return v * 2.0 - 1.0 if remapped and d == _device and i >= 4 else v
+	return v * 2.0 - 1.0 if _remapped(d) and i >= 4 else v
 
 
 ## One FUN_004df560 pass: the events [id, p1, p2] of the axes and the hat that changed.
@@ -472,14 +537,9 @@ func _connected(d: int) -> void:
 		print("joystick: none")
 		return
 	var name := joy_name(d)
-	if not Settings.isolated() and not Input.is_joy_known(d):
-		var m := "%s,%s," % [Input.get_joy_guid(d), name.replace(",", " ")]
-		for i in REMAP_BUTTONS.size():
-			m += "%s:b%d," % [REMAP_BUTTONS[i], i]
-		m += "dpup:h0.1,dpright:h0.2,dpdown:h0.4,dpleft:h0.8,"
-		m += "leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,"
-		Input.add_joy_mapping(m, true)
-		remapped = true
+	_map_unknown(d)
+	remapped = _mapped.has(Input.get_joy_guid(d))
+	if remapped:
 		print("joystick: unknown device, buttons 12+ moved off the hat's D-pad indices")
 	if not Settings.isolated():
 		axis_count = IafHid.axis_count(Input.get_joy_guid(d))
@@ -491,6 +551,23 @@ func _connected(d: int) -> void:
 	)
 	_load_joy_map(name)
 	Settings.joystick_connected(name)
+
+
+## Ours: the GUIDs of the devices that got our mapping (is_joy_known() is true after it, for every device of the GUID).
+var _mapped := {}
+
+
+## An unknown device (no SDL gamepad mapping) gets ours (REMAP_BUTTONS), once per GUID.
+func _map_unknown(d: int) -> void:
+	if Settings.isolated() or _mapped.has(Input.get_joy_guid(d)) or Input.is_joy_known(d):
+		return
+	var m := "%s,%s," % [Input.get_joy_guid(d), joy_name(d).replace(",", " ")]
+	for i in REMAP_BUTTONS.size():
+		m += "%s:b%d," % [REMAP_BUTTONS[i], i]
+	m += "dpup:h0.1,dpright:h0.2,dpdown:h0.4,dpleft:h0.8,"
+	m += "leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,"
+	Input.add_joy_mapping(m, true)
+	_mapped[Input.get_joy_guid(d)] = true
 
 
 ## FUN_004e1590 (`<install>\Joy\*.JOY`): the first file whose first line is part of the device's product

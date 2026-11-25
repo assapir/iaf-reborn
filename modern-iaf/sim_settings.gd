@@ -700,11 +700,19 @@ func apply_devices() -> void:
 	joy_axes = []
 	js.tune = []
 	js.role_names = []
+	js.button_devices = JSON.parse_string(IafDevices.button_devices(devices_file()))
 	for r in JOY_ROLES:
 		joy_axes.append(int(a[r].axis))
 		js.tune.append([bool(a[r].invert), float(a[r].dead)])
 		js.role_names.append(str(a[r].device))
 	rocker_trim = joy_axes[4] >= 0
+
+
+## The slot of device `key`'s buttons (Joystick.button_of), the device added to the store when new.
+func button_slot(key: String) -> int:
+	var s: int = IafDevices.button_slot(devices_file(), key)
+	apply_devices()
+	return s
 
 
 func save() -> void:

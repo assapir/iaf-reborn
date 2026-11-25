@@ -4,7 +4,12 @@
 //! `{"axes": {"<role>": {"axis": n, "invert": b, "dead": x, "device": "<name>"}}}`
 //!
 //! `device` puts a role on another device than the main joystick (a throttle, pedals): the device's name as Godot
-//! reports it. Absent = the main joystick, the device of the roll role (`joystick.gd` `device()`).
+//! reports it. Absent = the main joystick, the device of the roll role (`joystick.gd` `device()`). Two devices with
+//! one name are told apart by the order they were plugged in: the second is `"<name> #2"` (`joystick.gd` `dev_key()`).
+//!
+//! `"button_devices": ["<name>", …]` numbers the devices other than the main joystick whose buttons are bound: a button
+//! on the device at index i is stored in `Settings.key_bindings` as `(i + 1) * 1000 + button` (`button_slot`), so the
+//! key table keeps one number per binding; the main joystick's buttons are 0..999 as before.
 //!
 //! The store keeps only what differs from the defaults: `joystick.gd`'s axis numbers and dead zones, or a device map's.
 //! The keys and buttons are both games' one store, `Settings.key_bindings` (`key_table.gd`); a store from before
@@ -70,6 +75,33 @@ fn section<'a>(store: &'a mut Value, name: &str) -> &'a mut Map<String, Value> {
 pub fn drop_bindings(store: &mut Value) -> bool {
     let Some(m) = store.as_object_mut() else { return false };
     m.remove("keys").is_some() | m.remove("buttons").is_some()
+}
+
+/// The slot (1..) of device `name`'s buttons: its place in `button_devices` plus one, the device added when new; 0 for
+/// "" (the main joystick).
+pub fn button_slot(store: &mut Value, name: &str) -> i64 {
+    if name.is_empty() {
+        return 0;
+    }
+    if !store.is_object() {
+        *store = json!({});
+    }
+    let m = store.as_object_mut().expect("object");
+    if !m.get("button_devices").is_some_and(Value::is_array) {
+        m.insert("button_devices".into(), json!([]));
+    }
+    let list = m.get_mut("button_devices").and_then(Value::as_array_mut).expect("array");
+    let i = list.iter().position(|v| v == name).unwrap_or_else(|| {
+        list.push(name.into());
+        list.len() - 1
+    });
+    i as i64 + 1
+}
+
+/// The devices of the button slots 1.. in order (`button_slot`).
+pub fn button_devices(store: &Value) -> Value {
+    let list = store["button_devices"].as_array().cloned().unwrap_or_default();
+    Value::Array(list.into_iter().map(|v| v.as_str().unwrap_or("").into()).collect())
 }
 
 /// Every axis back to the defaults.
@@ -279,6 +311,25 @@ mod tests {
         // Back on the main joystick by name: no device kept, the default again.
         assert!(set_axis(&mut s, &json!({}), "rudder", &Choice { dead: 0.25, ..on(stick, 3) }, false));
         assert!(s["axes"].get("rudder").is_none());
+    }
+
+    /// A second device's buttons get a slot that stays: a new device the next one, a known one its own.
+    #[test]
+    fn button_slots_stay() {
+        let mut s = json!({"axes": {}});
+        assert_eq!(button_slot(&mut s, ""), 0, "the main joystick");
+        assert_eq!(button_slot(&mut s, "Throttle"), 1);
+        assert_eq!(button_slot(&mut s, "Pedals"), 2);
+        assert_eq!(button_slot(&mut s, "Throttle"), 1, "known: its slot");
+        assert_eq!(button_slot(&mut s, "Throttle #2"), 3, "a second throttle of the same name");
+        assert_eq!(button_devices(&s), json!(["Throttle", "Pedals", "Throttle #2"]));
+        assert_eq!(button_devices(&json!({"button_devices": [7]})), json!([""]), "a hand-edited entry names none");
+        reset_axes(&mut s);
+        assert_eq!(
+            button_devices(&s).as_array().unwrap().len(),
+            3,
+            "Reset all keeps the slots: bound buttons use them"
+        );
     }
 
     /// Roll moved to another device makes that one the main joystick: the roles still on the old one are pinned to it.

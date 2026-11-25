@@ -338,8 +338,37 @@ func second(fe: Control, js: Node) -> void:
 	check(scr._axis_rows[k].bar.value == 1.0 and js.role_value(3) == 1.0, "the pedals' bar and the rudder: full right")
 	axis(2, 0.0, 1)
 	axis(3, 0.0)
+	# A pedals' button bound by pressing it: stored as slot 1 (the pedals) · 1000 + button 3, shown with their name.
+	var bs: Node = scr.buttons
+	bs._rows[GEAR].row.pressed.emit()
+	var e2 := joy_button(2)
+	e2.device = 1
+	root.push_input(e2)
+	await frames(1)
+	check(kt.load_table().find_joystick(1002, s.key_bindings) == GEAR, "Gear on the pedals' button 3 (1002)")
+	check(store().button_devices == ["Pedals"] and js.button_devices == ["Pedals"], "the pedals' slot: %s" % store())
+	check(bs._rows[GEAR].chip.text == "Pedals · Button 3", "its chip: %s" % bs._rows[GEAR].chip.text)
+	check(js.button_of(joy_button(2)) == 2, "the stick's button 3 stays its own")
+	# Twin pedals: the second is "Pedals #2" and keeps that name while the first is pulled out.
+	js.fake_names[2] = "Pedals"
+	js.fake_devices = [0, 1, 2]
+	check(js.dev_key(1) == "Pedals" and js.dev_key(2) == "Pedals #2", "twins: %s %s" % [js.dev_key(1), js.dev_key(2)])
+	bs._rows[GUN].row.pressed.emit()
+	var e3 := joy_button(4)
+	e3.device = 2
+	root.push_input(e3)
+	await frames(1)
+	check(kt.load_table().find_joystick(2004, s.key_bindings) == GUN, "Gun on the twin's button 5 (slot 2)")
+	js.fake_devices = [0, 2]
+	check(js.dev_key(2) == "Pedals #2" and js.by_name("Pedals") == -1, "the first twin pulled out: the second keeps #2")
+	check(js.button_of(e3) == 2004 and js.button_of(e2) == -1, "its button still its own, none from the absent twin")
+	js.fake_devices = [0, 2, 1]
+	check(js.dev_key(1) == "Pedals" and js.by_name("Pedals") == 1, "plugged in again: the first twin again")
+	js.fake_names.erase(2)
+	js.fake_devices = [0, 1]
 	fe.find_child("ResetAll", true, false).pressed.emit()
 	check(js.role_names == ["", "", "", "", ""], "Reset all: every role on the main joystick")
+	check(s.key_bindings.is_empty(), "Reset all: the pedals' buttons too")
 	js.fake_devices = [0]
 	js.fake_names = {}
 	await frames(1)

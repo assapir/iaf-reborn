@@ -4,6 +4,7 @@
 # Writes SHOT_DIR/<shot>_<lang>.png at 1920×1080: keys (Pitch up rebound to K), keys_wait (Pitch down waiting for its
 # key), keys_conflict (K pressed for Pitch down), joystick (a fake stick, its axes moved, the throttle lever forward:
 # a full bar), joystick_buttons, joystick_two (rudder pedals as a second device, the rudder on their axis 3),
+# joystick_two_buttons (the gear on the pedals' button 3),
 # prefs_detent (the afterburner detent set), keys_mac (English, or
 # SHOT_LANG=he: the Views as on a Mac). The store is a temporary file.
 extends "res://../tests/godot/base.gd"
@@ -82,6 +83,13 @@ func run() -> void:
 		scr.scroll.scroll_vertical = int(at.position.y) - 140
 		await frames(10)
 		await shot(vp, dir, "joystick_two", lang)
+		# The pedals' button 3 on the gear (record 20), as pressing it binds it: shown with their name.
+		key_table.load_table().set_column(s.key_bindings, 20, "button", s.button_slot(js.dev_key(1)) * 1000 + 2)
+		scr.buttons.refresh()
+		await frames(5)
+		scr.scroll.ensure_control_visible(scr.buttons._rows[20].row)
+		await frames(10)
+		await shot(vp, dir, "joystick_two_buttons", lang)
 		scr.reset_all()
 		js.fake_devices = [0]
 		s.throttle_detent = 82
