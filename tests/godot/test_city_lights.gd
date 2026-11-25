@@ -1,9 +1,9 @@
 # City lights (docs/rendering.md §5.1): with Night lights = Detailed, at night over Tel Aviv the towns get their
 # lights from the installed scenery's buildings (city_lights.gd, IafCityLights): far points for every block in range,
-# near points for the near blocks, lights in the kept Tel Aviv inset too, every light a little above the ground, the
-# colours and ranks in range, the haze on; with the rest of the theatre's cells, Beirut, Damascus, Amman, Cairo and
-# Nicosia lit too. By day they hide and the haze is off; with Night lights = Original there are none. Needs setup's
-# scenery (skips without it).
+# near points for the near blocks (asked nearest first, the near ones drawn first), lights in the kept Tel Aviv inset
+# too, every light a little above the ground, the colours and ranks in range, the haze on; with the rest of the
+# theatre's cells, Beirut, Damascus, Amman, Cairo and Nicosia lit too. By day they hide and the haze is off; with
+# Night lights = Original there are none. Needs setup's scenery (skips without it).
 extends "res://../tests/godot/base.gd"
 
 ## Tel Aviv (engine metres).
@@ -33,6 +33,15 @@ func run() -> void:
 	if cl == null:
 		return
 	var t := Time.get_ticks_msec()
+	# Nearest first (city_lights.gd _process): the near blocks, the towns under the jet, are drawn before the far ones
+	# (asked in a hash map's order, they waited behind up to 200 far blocks).
+	while Time.get_ticks_msec() - t < 30000 and _meshes(cl, 2).is_empty():
+		await frames(1)
+	var far_only := _meshes(cl, 0).size() - _meshes(cl, 2).size()
+	check(
+		not _meshes(cl, 2).is_empty() and far_only <= 2,
+		"the near lights first: after %d ms, with %d far blocks before them" % [Time.get_ticks_msec() - t, far_only]
+	)
 	while (
 		Time.get_ticks_msec() - t < 30000
 		and (_meshes(cl, 2).is_empty() or cl._blocks.values().any(func(b): return b.asking))

@@ -1759,8 +1759,12 @@ a flight hide the city lights.
 **Streaming** (`crates/iaf-godot/src/city_lights.rs` `IafCityLights`, `city_lights.gd`): blocks of 4 × 4 cells
 (≈ 10 km), made on a thread of the extension's own (a plain thread: no Godot pool task to wait for at the quit). It
 reads only the buildings of each cell file (`Cell::read_buildings`) and stands each light on the terrain height
-field; a block whose terrain is not loaded yet is asked again a second later. Every light has a seeded rank. Each
-block has three point meshes by rank:
+field; a block whose terrain is not loaded yet is asked again a second later. The blocks are asked nearest first,
+so the towns under the jet light before the far ones (fixed 25 Nov 2026: asked in a hash map's order, which changes
+each run, the near blocks over Jerusalem or Tel Aviv waited behind up to 200 far ones, and a night start drew the towns
+under the jet seconds late). The haze (below) is made after the blocks asked before it:
+over Jerusalem about 15 s after the night begins. Every light has a seeded rank. Each block has three point meshes
+by rank:
 
 | Mesh | Lights | Drawn while the block is within |
 |---|---|---|

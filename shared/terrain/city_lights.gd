@@ -170,8 +170,12 @@ func _process(delta: float) -> void:
 		_take_glow()
 	var w: Vector3 = _tv.scene_to_world(_tv.to_local(cam.global_position))
 	var near: PackedInt32Array = IafCityLights.blocks_near(w.x, w.y, FAR_RANGE + KEEP)
+	# Nearest first: the lights thread makes the blocks in the order asked, and blocks_near's order is a hash map's
+	# (each run another): the towns under the jet waited seconds behind the theatre's far blocks.
+	var order := range(0, near.size(), 3)
+	order.sort_custom(func(a: int, b: int) -> bool: return near[a + 2] < near[b + 2])
 	var seen := {}
-	for k in range(0, near.size(), 3):
+	for k: int in order:
 		var key := Vector2i(near[k], near[k + 1])
 		var d := float(near[k + 2])
 		seen[key] = true

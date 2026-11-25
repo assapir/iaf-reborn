@@ -47,6 +47,13 @@ func run() -> void:
 	tv.frozen = true
 	tv.fm_stopped = true
 	await ground_streamed(tv, 30000, 20)
+	# The towns' lights all made, their haze last (city_lights.gd): a picture before shows the town half lit.
+	var lit_t := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - lit_t < 60000:
+		var cl: Node = tv.get_node_or_null("CityLights")
+		if cl == null or not cl.visible or cl._glow != null and not cl._blocks.values().any(func(b): return b.asking):
+			break
+		await process_frame
 	var o := _env("SHOT_ORBIT", "150,8,40").split(",")
 	var dir := _env("SHOT_OUT", "/tmp")
 	DirAccess.make_dir_recursive_absolute(dir)
