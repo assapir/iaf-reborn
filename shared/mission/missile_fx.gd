@@ -319,6 +319,7 @@ func _make_flame(lit: bool) -> Dictionary:
 		l.omni_range = 25.0
 		l.shadow_enabled = false
 		l.light_specular = 0.3
+		l.add_to_group("scenery_lit")  # lights the buildings per pixel (scenery.gd LIT_GROUP)
 		root.add_child(l)
 		f.light = l
 	return f

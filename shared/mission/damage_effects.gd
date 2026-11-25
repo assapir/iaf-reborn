@@ -420,6 +420,7 @@ func _flash(pos: Vector3) -> void:
 	l.light_color = Color(1.0, 0.85, 0.6)
 	l.light_energy = 16.0
 	l.omni_range = 600.0
+	l.add_to_group("scenery_lit")  # lights the buildings per pixel (scenery.gd LIT_GROUP)
 	add_child(l)
 	l.position = pos
 	var t := create_tween()

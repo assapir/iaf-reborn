@@ -236,6 +236,7 @@ func _built(i: int, mast_spots: Array) -> void:
 		s.spot_range = POOL_RANGE
 		s.spot_attenuation = 0.5
 		s.shadow_enabled = false
+		s.add_to_group("scenery_lit")  # lights the buildings per pixel (scenery.gd LIT_GROUP)
 		s.distance_fade_enabled = true
 		s.distance_fade_begin = FADE_FAR - 1000.0
 		s.distance_fade_length = 1000.0

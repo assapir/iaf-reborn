@@ -975,6 +975,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Xe 500 m over Tel Aviv the buildings and trees take 5.6 % of the GPU time (14.8 % before), over Beersheba
   6.9 % (13.0 %); the budget is 7 %. The buildings lit per vertex, their shadows from a copy with no material,
   their far parapets and windows' work left out; Far towns Light (the sim's default) ends the trees at 1.2 km.
+  A flash, a landing light or an apron's floodlight lights the buildings within 300 m of it per pixel, so its pool
+  on a wall shows as before.
 - **Devices: a second device and hot-plug (2026-11-25, the gaps list's row 16, [front-end.md](front-end.md) §9.2):** a
   role's axis may sit on a second device (a throttle, rudder pedals), stored by the device's name; the Joystick screen
   lists every device's axes; a device plugged in mid-flight works from the next frame, one pulled out centres its stick

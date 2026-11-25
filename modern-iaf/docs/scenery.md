@@ -239,9 +239,13 @@ The cuts, each with the picture kept:
 
 - **Lit per vertex** (`render_mode vertex_lighting`, the buildings and the far trees): a building's face is flat, one
   normal, so the sun's light at its corners is its light everywhere on it; the shadows stay per pixel. A point or
-  spot light near a wall (an explosion's flash, a landing light, a base's mast) is worked out at the wall's corners
-  and spread over it, and the windows' sun glint is lost: the accepted cost. About 0.6 ms
-  over Tel Aviv. Pictures: 3 pixels of 1.9 million differ by more than 2 % low over Tel Aviv's towers (110 m), none in
+  spot light (a bomb's flash, a missile motor's glow, the landing light, an apron's floodlight) is in the group
+  `scenery_lit`: the cells within its reach, 300 m at most (`scenery.gd` `LIT_REACH`), draw their buildings lit per
+  pixel while it shows (`_light_cells`, a per-pixel copy of the shader warmed up with the rest), so its pool on a
+  wall is as before; the windows' sun glint is lost: the accepted cost. Lit per vertex saves about 0.6 ms over Tel
+  Aviv. At night 500 m
+  over Tel Aviv the buildings and trees take 1.2 ms (5.6 %), with a bomb's flash under the jet 1.0 ms (the cells
+  near it per pixel; its full 600 m would be 1.9 ms, 8 %), with the whole town per pixel 1.56 ms (7.2 %). Pictures: 3 pixels of 1.9 million differ by more than 2 % low over Tel Aviv's towers (110 m), none in
   the town from 500 m.
 - **The shadows from a copy with no material** (`scenery.gd` `_upload`): the buildings' shader moves vertices (the
   near and far models' swap), so the shadow pass ran it whole. A shadow-only copy of each near tile with no material
@@ -257,7 +261,9 @@ The cuts, each with the picture kept:
 - **Far towns Light ends the trees at 1.2 km** (`TREES_LIGHT`, 2 km before; the sim's profile has Light; the 1998
   game's default, Full, keeps 2 km): about 0.35 ms over Tel Aviv, none over Beersheba (few trees). The one visible
   change: the trees 1.2–2 km away are gone and the photo under them shows their crowns as its colour. Pictures before
-  and after from the probe's camera: `~/.claude/iaf-2026-pages/towngpu/`.
+  and after from the probe's camera: `~/.claude/iaf-2026-pages/towngpu/`; at night with a flash, a landing light and a
+  taxi light on a 26 m wall, before (per pixel), per vertex everywhere and per pixel near the light: `night_*` there.
+  Lit per vertex everywhere, the landing light's pool on the wall and the flash's at its foot were gone (2026-11-25).
 
 Tried and dropped (2026-11-25), each the same picture: the far trees drawn with three segments round their axis
 beyond 3 pixels (no gain: their cost is not their triangles); the far trees' models indexed (no gain); the buildings'

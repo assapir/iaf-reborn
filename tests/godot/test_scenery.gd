@@ -173,6 +173,26 @@ func _stream(sc: GDScript, meta: Dictionary, c: Vector2i, mode: String) -> void:
 		func(n): return n is MultiMeshInstance3D and n.multimesh.mesh in sc._roof_meshes
 	)
 	check(roofs.is_empty() == (mode == "on"), "%s: roof clutter %d tiles" % [mode, roofs.size()])
+	# A light in the group (a flash): its cell's buildings lit per pixel while it shows (scenery.gd _light_cells; On's
+	# shader alone is lit per vertex).
+	# The scene moved by a floating-origin step (terrain_view.gd render_shift), the focus with it: the light is placed
+	# by its global position, the cells are in the terrain's frame.
+	var shift := Vector3(8192, 0, 0)
+	t.position -= shift
+	focus.position -= shift
+	var lamp := OmniLight3D.new()
+	lamp.omni_range = 600.0
+	lamp.add_to_group(sc.LIT_GROUP)
+	root.add_child(lamp)
+	lamp.global_position = t.to_global(t.focus_at())
+	await frames(2)
+	check(not mat.shader.code.contains("vertex_lighting"), "%s: lit per pixel by a light in the cell" % mode)
+	lamp.global_position += Vector3(5000, 0, 0)  # beyond its reach (and the cell's)
+	await frames(2)
+	check(mat.shader == shader, "%s: its own shader again once the light is out of reach" % mode)
+	lamp.free()
+	t.position += shift
+	focus.position += shift
 	var house := _house(meta, c)
 	check(IafScenery.top(house) > 10.0, "IafScenery has the house (top %.1f m)" % IafScenery.top(house))
 	var n0: int = t.scenery.loaded().size()

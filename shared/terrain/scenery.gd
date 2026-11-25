@@ -68,6 +68,14 @@ const SHADER := "res://shared/terrain/scenery.gdshader"
 const DETAILED_SHADER := "res://shared/terrain/scenery_detailed.gdshader"
 const TREE_SHADER := "res://shared/terrain/scenery_tree.gdshader"
 const ROOF_SHADER := "res://shared/terrain/scenery_roof.gdshader"
+## The point and spot lights that light buildings (a bomb's flash, a motor's glow, the landing light, the aprons'
+## floodlights) are in this group: the cells within a shown one's reach draw their buildings lit per pixel
+## (building_shader(true)), so the light makes its pool on a wall; the rest stay lit per vertex, inside the GPU budget
+## (modern-iaf/docs/scenery.md §6).
+const LIT_GROUP := "scenery_lit"
+## A light's per-pixel reach (m) at most: farther, a flash's light is under a twentieth of its light 15 m away (1 / d),
+## and a flash's 600 m would put 1.9 ms of buildings per pixel over Tel Aviv at night (0.7 ms more, 8 %).
+const LIT_REACH := 300.0
 const FOLIAGE_SHADER := "res://shared/terrain/scenery_foliage.gdshader"
 const FOLIAGE_FAR_SHADER := "res://shared/terrain/scenery_foliage_far.gdshader"
 ## The foliage textures setup composes (iaf_tools::foliage, under GroundTextures.dir()), the texture array's layers.
@@ -89,8 +97,8 @@ static var base_dir := ""
 ## Detailed night lights at night: the windows lit (terrain_view.gd _night_detailed).
 static var night := false
 static var _walls: Texture2DArray
-## The SCENERY_ORTHO copies of the buildings' shaders (building_shader()), by base shader.
-static var _ortho := {}
+## The SCENERY_ORTHO and per-pixel copies of the buildings' shaders (building_shader()), by base shader and kind.
+static var _variants := {}
 static var _walls_read := false
 static var _tree_meshes: Array = []
 static var _roof_meshes: Array = []
@@ -125,6 +133,7 @@ var _last_select := 0
 var _last_damage := 0
 var _night_shown := false
 var _materials: Array[ShaderMaterial] = []
+var _lit_cells := 0  # the cells lit per pixel (_light_cells)
 
 
 static func dir() -> String:
@@ -289,6 +298,9 @@ static func warm_up(camera: Camera3D, layers: Array) -> Node3D:
 	var quad := QuadMesh.new()
 	quad.size = Vector2(0.001, 0.001)
 	var mats: Array[Material] = [_building_material(PackedByteArray())]
+	var lit := _building_material(PackedByteArray())
+	lit.shader = building_shader(true)
+	mats.append(lit)
 	for kind in KINDS.size():
 		var tm: ArrayMesh = tree_mesh(kind)
 		for s in tm.get_surface_count():
@@ -306,16 +318,24 @@ static func warm_up(camera: Camera3D, layers: Array) -> Node3D:
 	return n
 
 
-## The buildings' shader: Settings.scenery_ortho() compiles it with SCENERY_ORTHO (once per shader).
-static func building_shader() -> Shader:
+## The buildings' shader: Settings.scenery_ortho() compiles it with SCENERY_ORTHO; `pixel` lit per pixel (near a
+## LIT_GROUP light). Each copy made once.
+static func building_shader(pixel := false) -> Shader:
 	var base: Shader = load(DETAILED_SHADER if detailed() else SHADER)
-	if not Settings.scenery_ortho():
+	var ortho: bool = Settings.scenery_ortho()
+	pixel = pixel and base.code.contains(", vertex_lighting;")
+	if not ortho and not pixel:
 		return base
-	if not _ortho.has(base):
+	var key := [base, ortho, pixel]
+	if not _variants.has(key):
 		var s := Shader.new()
-		s.code = base.code.replace("shader_type spatial;", "shader_type spatial;\n#define SCENERY_ORTHO")
-		_ortho[base] = s
-	return _ortho[base]
+		s.code = base.code
+		if ortho:
+			s.code = s.code.replace("shader_type spatial;", "shader_type spatial;\n#define SCENERY_ORTHO")
+		if pixel:
+			s.code = s.code.replace(", vertex_lighting;", ";")
+		_variants[key] = s
+	return _variants[key]
 
 
 static func _building_material(damage: PackedByteArray) -> ShaderMaterial:
@@ -901,6 +921,7 @@ func _process(_delta: float) -> void:
 				_parapet_m = pm
 				for m in _materials:
 					m.set_shader_parameter("parapet_m", pm)
+		_light_cells()
 
 
 func _reselect(fp: Vector3) -> void:
@@ -1111,6 +1132,35 @@ func _refresh_damage() -> void:
 			var d: PackedByteArray = IafScenery.damage_index(k.x, k.y)
 			if d != c.mat.get_meta("damage"):
 				_set_damage(c.mat, d)
+
+
+## Each live cell's buildings lit per pixel while a shown LIT_GROUP light reaches into it, else per vertex.
+func _light_cells() -> void:
+	var lights := []
+	var fp: Vector3 = terrain.focus_at()
+	for l: Light3D in get_tree().get_nodes_in_group(LIT_GROUP):
+		if not l.is_visible_in_tree() or l.light_energy <= 0.0:
+			continue
+		var p := terrain.to_local(l.global_position)  # the cells' frame (the floating origin moves the scene)
+		# Only lights that reach the live cells (the bases' floodlights pile up as the jet passes them).
+		if Vector2(p.x - fp.x, p.z - fp.z).length() < RANGE + KEEP + LIT_REACH:
+			lights.append([p, minf(LIT_REACH, l.omni_range if l is OmniLight3D else l.spot_range)])
+	if lights.is_empty() and _lit_cells == 0:
+		return
+	_lit_cells = 0
+	for k in _live:
+		var c: Dictionary = _cells.get(k, {})
+		if not c.has("mat"):
+			continue
+		var want := false
+		for l in lights:
+			if _dist(k, l[0]) < l[1]:
+				want = true
+				break
+		if want != c.get("pixel", false):
+			c.pixel = want
+			c.mat.shader = building_shader(want)
+		_lit_cells += int(want)
 
 
 func _drop(k: Vector2i) -> void:

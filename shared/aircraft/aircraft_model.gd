@@ -622,6 +622,7 @@ func _panel_lights(e: Dictionary) -> void:
 		_land.shadow_enabled = false
 		_land.light_color = Color(1.0, 0.95, 0.88)
 		_land.visible = false
+		_land.add_to_group("scenery_lit")  # lights the buildings per pixel (scenery.gd LIT_GROUP)
 		get_parent().add_child(_land)
 		tree_exiting.connect(_land.queue_free)
 	if _panel.has("none"):
