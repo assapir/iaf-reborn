@@ -79,11 +79,11 @@ func _whole_card(id: String) -> void:
 	Engine.time_scale = TIME_SCALE
 	# Above 3,000 ft a descent leaves BEFORE LANDING closed.
 	var high := await _wait(tv, id, func(): return _leg >= 1 and _sank_high, 600.0)
-	check(high and _leg == 1 and not card.phase_ok, "%s: a descent above 3,000 ft leaves BEFORE LANDING waiting" % id)
+	check(high and _leg == 1 and not card.phase_ok(), "%s: a descent above 3,000 ft leaves BEFORE LANDING waiting" % id)
 	if not high:
 		return _end_pilot()
 	# The approach: descending below 3,000 ft above the ground the card opens BEFORE LANDING; its items by clicks.
-	var due := func() -> bool: return sec.call() == "before_landing" and card.phase_ok
+	var due := func() -> bool: return sec.call() == "before_landing" and card.phase_ok()
 	var open := await _wait(tv, id, func(): return due.call() and float(tv.flight.state().speed_kt) < 280.0, 900.0)
 	Engine.time_scale = 1.0
 	check(open and not tv.flight.state().on_ground, "%s: BEFORE LANDING opens on the approach" % id)

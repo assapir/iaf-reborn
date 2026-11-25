@@ -27,8 +27,6 @@ var flat: Array = []
 ## The items ticked (id -> true) and the current section's index (sections.size() when all are done).
 var done := {}
 var section := -1
-## The current section's phase is on ("when": airborne, landed): its controls are rung only then.
-var phase_ok := true
 var _seen := {}  # "prop=value": a position a control was put to (a test switch's moment)
 var _flown := false
 var _brakes_out := false  # the speed brakes seen open since the flight began ("speedbrake": "cycled")
@@ -101,12 +99,12 @@ func update() -> bool:
 		changed = true
 	while section < sections.size():
 		var s: Dictionary = sections[section]
-		phase_ok = _phase(String(s.get("when", "")), st)
+		var on := _phase(String(s.get("when", "")), st)
 		var open := false
 		for it: Dictionary in s.items:
 			if not it.has("check"):
 				continue
-			var now := phase_ok and holds(it.check, st)
+			var now := on and holds(it.check, st)
 			if now != done.has(it.id):
 				_tick(String(it.id), now)
 				changed = true
@@ -116,6 +114,15 @@ func update() -> bool:
 		section += 1
 		changed = true
 	return changed
+
+
+## The current section's phase is on ("when": airborne, landed): its controls are rung only then. True when every
+## section is done.
+func phase_ok() -> bool:
+	var f = flight.host.flight
+	if section < 0 or section >= sections.size() or f == null:
+		return true
+	return _phase(String(sections[section].get("when", "")), f.state())
 
 
 ## The first section whose `key` is `value` (sections.size() when none).

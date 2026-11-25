@@ -345,8 +345,11 @@ var overlay: Control
 var fe_overlay: Control
 ## The flight's own 2D layers (cockpit, HUD text, captions, messages) hidden while the front end is over the flight.
 var _fe_hidden: Array = []
-## Ctrl+P froze the sim (flight window +0x40: only when the clock was running).
-var _pause_froze := false
+## Who holds the sim frozen (game event 0x75 until the last one lets go, 0x76): PAUSE (Ctrl+P), MENU (the On-The-Fly
+## menu), BOX (a message box), FE (the FlyTSD). PAUSE and BOX hold it only when they froze a running sim (the flight
+## window's +0x40, FUN_004e3fd0), so closing them over another owner leaves the sim frozen.
+enum Freeze { PAUSE, MENU, BOX, FE }
+var _frozen_by := {}
 var _frozen_sounds: Array = []
 ## Time compression (C, game event 0x77; Ctrl+C 0x78): the sim clock's rate (clock +0x48), 1 → 2 → 4 → 1.
 ## The sim clock runs at rate × real time (FUN_004cfa50), so every sim system gets rate × the frame time:
@@ -1225,8 +1228,6 @@ var _console_tick := -1.0
 var text_messages := true
 var _sim_time := 0.0
 var _msgbox: Control
-## The open box froze the sim (single player, the clock running: FUN_004e3fd0 event 0x75(0); its close sends 0x76).
-var _box_froze := false
 
 ## The mission's files as _mission_player read them (read only: the model list of _parse_ahead).
 var _start_files := []
@@ -2056,10 +2057,9 @@ func _on_mission_box(msg: int, buttons: Array, on_choice := Callable()) -> void:
 	_msgbox.chosen.connect(_on_box_choice.bind(on_choice))
 	# Single player: a box opened while the sim runs releases the held keys and freezes the sim and its sounds
 	# (FUN_004e3fd0: FUN_004e0a60(1), event 0x75(0)); closing it resumes them unless paused (FUN_004e4150: 0x76).
-	if not get_tree().paused:
+	if _frozen_by.is_empty():
 		_release_held_keys()
-		_freeze(true, true)
-		_box_froze = true
+		_freeze_hold(Freeze.BOX, true)
 
 
 ## DEBRIEF: end the flight and show the debrief; CONTINUE: keep flying; EXIT: back to the menus.
@@ -2067,10 +2067,7 @@ func _on_mission_box(msg: int, buttons: Array, on_choice := Callable()) -> void:
 func _on_box_choice(choice: String, on_choice: Callable) -> void:
 	_msgbox.queue_free()
 	_msgbox = null
-	if _box_froze:
-		_box_froze = false
-		if not paused:
-			_freeze(false, true)
+	_freeze_let_go(Freeze.BOX)
 	if on_choice.is_valid():
 		if choice == "yes":
 			on_choice.call()
@@ -4112,13 +4109,11 @@ func _pause_key() -> void:
 		return
 	if not paused:
 		_release_held_keys()
-		_pause_froze = not get_tree().paused
-		if _pause_froze:
-			_freeze(true, true)
+		if _frozen_by.is_empty():
+			_freeze_hold(Freeze.PAUSE, true)
 		paused = true
 	else:
-		if _pause_froze:
-			_freeze(false, true)
+		_freeze_let_go(Freeze.PAUSE)
 		paused = false
 
 
@@ -4129,11 +4124,11 @@ func _menu_key() -> void:
 		return
 	if menu_open:
 		menu_open = false
-		_freeze(false, true)
+		_freeze_let_go(Freeze.MENU)
 	else:
 		_release_held_keys()
 		menu_open = true
-		_freeze(true, true)
+		_freeze_hold(Freeze.MENU, true)
 
 
 ## Esc, "TSD and cockpit toggle" (0x4dc315): unpauses if paused, else closes the menu if open, else
@@ -4145,6 +4140,19 @@ func _esc_key() -> void:
 		_menu_key()
 	elif _msgbox == null:
 		_open_front_end("flytsd")
+
+
+## `why` freezes the sim (`sounds`: as _freeze's), if it runs.
+func _freeze_hold(why: Freeze, sounds: bool) -> void:
+	if _frozen_by.is_empty():
+		_freeze(true, sounds)
+	_frozen_by[why] = true
+
+
+## `why` lets go of the sim; the last owner to let go resumes it.
+func _freeze_let_go(why: Freeze) -> void:
+	if _frozen_by.erase(why) and _frozen_by.is_empty():
+		_freeze(false, false)
 
 
 ## Game events 0x75 / 0x76: the sim clock stops / runs (here the scene tree's pause; the overlays,
@@ -4249,7 +4257,7 @@ func menu_choice(action: String) -> void:
 func _open_front_end(to: String) -> void:
 	if to != "pref":
 		_release_held_keys()
-		_freeze(true, false)
+		_freeze_hold(Freeze.FE, false)
 	# Nothing of the flight's 2D layers shows through the front end's translucent bars and dim: only the 3D view
 	# stays behind it (the weather's layers below 0 belong to that view).
 	_fe_hidden = find_children("*", "CanvasLayer", true, false).filter(func(l): return l.visible and l.layer >= 0)
@@ -4280,7 +4288,7 @@ func close_front_end() -> void:
 	if was == "pref":
 		_apply_preferences()
 	else:
-		_freeze(false, false)
+		_freeze_let_go(Freeze.FE)
 
 
 ## Preferences the flight reads while flying (the in-flight page has no Gameplay tab).

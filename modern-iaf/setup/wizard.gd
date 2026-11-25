@@ -698,7 +698,7 @@ func remove_data(id: String, downloads: bool) -> void:
 ## A ticked "Run again" makes a finished run installable again (the Install button comes back).
 func _forget_run() -> void:
 	if finished and not running:
-		finished = false
+		run = Run.IDLE
 		failed = ""
 		_note("")
 		_update()

@@ -2569,8 +2569,8 @@ posts 0x75 with param 1, which does not pause sounds.
   * Ours is mouse only.
   * Presses outside the box go to the flight window (§16.2: the menu's items, the cockpit).
 * Ours: `shared/mission/render_box.gd`, created by `terrain_view.gd _on_mission_box` (the On-The-Fly boxes,
-  Ctrl+Q, the mission-end boxes). It freezes the flight as above (`_box_froze`). While a box is up, `window_key`
-  ignores Esc / Ctrl+O / Ctrl+P. The FlyTSD and the in-flight Preferences are the front end and keep the mbgback
+  Ctrl+Q, the mission-end boxes). It freezes the flight as above when the flight runs (`Freeze.BOX`, one of the sim's
+  freeze owners: pause, menu, box, FlyTSD). While a box is up, `window_key` ignores Esc / Ctrl+O / Ctrl+P. The FlyTSD and the in-flight Preferences are the front end and keep the mbgback
   box.
 
 ## 17. Multiplayer: v1.1 rules (not ported yet)

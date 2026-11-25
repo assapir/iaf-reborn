@@ -619,7 +619,7 @@ func _marks() -> Array:
 	# Every Training lesson that starts cold rings the card's current item (until 17 Nov the start-up lesson alone: the
 	# take-off lessons rang nothing, and the user could not find MAIN PWR under the glove).
 	var waits: bool = "startup" in flight.rules.get("clearances", []) and not "ACFT_CLEAR_TO_START" in flight.answers
-	if flight.rules.is_empty() or i >= list.size() or not is_instance_valid(c3d) or waits or not flight.card.phase_ok:
+	if flight.rules.is_empty() or i >= list.size() or not is_instance_valid(c3d) or waits or not flight.card.phase_ok():
 		return out  # no switch ringed before the tower's clearance
 	if c3d.camera == null or not c3d.camera.current or c3d.clickable == null:
 		return out

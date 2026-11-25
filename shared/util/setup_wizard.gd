@@ -15,9 +15,21 @@ var tools := {}
 ## The pages' ids (the game's PAGES in lower case) and the one shown.
 var ids: Array = []
 var page := 0
-var running := false
-var finished := false
+## The install run: IDLE (none yet, or forgotten by Back), RUNNING, CANCELLING (Cancel pressed; the steps stop at
+## their next item), OK, FAILED (`failed` holds why).
+enum Run { IDLE, RUNNING, CANCELLING, OK, FAILED }
+var run := Run.IDLE
 var failed := ""
+## A run is going (also while it cancels).
+var running: bool:
+	get:
+		return run == Run.RUNNING or run == Run.CANCELLING
+## The run ended, OK or FAILED; setting it false forgets the run, true ends it by `failed`.
+var finished: bool:
+	get:
+		return run == Run.OK or run == Run.FAILED
+	set(v):
+		run = (Run.OK if failed == "" else Run.FAILED) if v else Run.IDLE
 ## This run's log file: assets/logs/<log_name>-<date>-<time>.log.
 var log_name := "setup"
 var log_file := ""
@@ -178,6 +190,7 @@ func _update() -> void:
 func _on_back() -> void:
 	if running:
 		setup.cancel()
+		run = Run.CANCELLING
 		_note(s("cancelling"))
 		return
 	# The front end's Update (or Updates' Always download) that failed or was cancelled: Back goes on to the game.
@@ -186,7 +199,7 @@ func _on_back() -> void:
 		return
 	# Leaving Install forgets the last run: changed choices can be installed.
 	if at() == "install":
-		finished = false
+		run = Run.IDLE
 		failed = ""
 	show_page(page - 1)
 
@@ -227,14 +240,14 @@ func start_install() -> void:
 	var redo := redo_ids()
 	log_view.text = ""
 	failed = ""
-	finished = false
+	run = Run.IDLE
 	var stamp := Time.get_datetime_string_from_system().replace(":", "").replace("T", "-")
 	log_file = assets.path_join("logs/%s-%s.log" % [log_name, stamp])
 	var err := _run(redo)
 	if err != "":
 		_note(s("not_started") % err)
 		return
-	running = true
+	run = Run.RUNNING
 	log_view.text = (s("log_file") % log_file) + "\n"
 	_note(s("installing"))
 	_update()
@@ -308,9 +321,8 @@ func _process(_delta: float) -> void:
 		log_view.text += "\n".join(p.log) + "\n"
 		_log_to_end.call_deferred()
 	if p.done:
-		running = false
-		finished = true
 		failed = p.error
+		run = Run.OK if failed == "" else Run.FAILED
 		_finished(p)
 		if failed != "":
 			_show_log(true)

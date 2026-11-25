@@ -103,7 +103,10 @@ var posted: Array = []
 
 # TowersManager +0x3318 base, +0x336c state, +0x3388 last message, +0x337c runway clear, +0x3374 period.
 var base := -1
-var state := 0
+## The TowersManager state (+0x336c, FUN_00550ed0): INIT before the first tick, GROUND under a tower, AIRBORNE (or no
+## tower in range), CLEARED after Ctrl+T ("proceed to runway").
+enum Tower { INIT, GROUND, AIRBORNE, CLEARED }
+var state := Tower.INIT
 var last := NO_MSG
 var runway_clear := false
 var period := 1.0  # +0x3374, the period field (some paths set only the field)
@@ -356,7 +359,7 @@ func _timer(p: float) -> void:
 func _start() -> void:
 	_timer(1.0)
 	_awacs_next = now + AWACS_PERIOD
-	state = 0
+	state = Tower.INIT
 	last = NO_MSG
 	# Better physics "Wind and turbulence": the flight's wind was picked with the mission (Settings.runway_wind).
 	var picked: Array = Settings.flight_wind if not Settings.flight_wind.is_empty() else Settings.pick_wind(_misc_all())
@@ -494,23 +497,23 @@ func _tick() -> void:
 	var st := _st()
 	_find_base()
 	match state:
-		1:
+		Tower.GROUND:
 			if float(st.speed) > STOPPED:
 				_idle_t = now
 			if _idle_t + IDLE_REPEAT <= now:
 				last = NO_MSG
 				_idle_t = now
 			_ground()
-		2:
+		Tower.AIRBORNE:
 			_idle_t = now
 			if bool(st.on_ground):
-				state = 1
-		3:
+				state = Tower.GROUND
+		Tower.CLEARED:
 			_idle_t = now
 			_approach()
 		_:
 			_idle_t = now
-			state = 1 if bool(st.on_ground) else 2
+			state = Tower.GROUND if bool(st.on_ground) else Tower.AIRBORNE
 
 
 ## FUN_0054fbf0: the first base whose tower is within 18.54 km (2-D); none: timer 4 s, state 2.
@@ -518,7 +521,7 @@ func _find_base() -> void:
 	base = base_at(_pos())
 	if base < 0:
 		_timer(4.0)
-		state = 2
+		state = Tower.AIRBORNE
 
 
 ## The first base whose tower is within TOWER_RANGE (2-D) of `p`, −1 none.
@@ -589,7 +592,7 @@ func _player_radius() -> float:
 func _ground() -> void:
 	var st := _st()
 	if not bool(st.on_ground):
-		state = 2
+		state = Tower.AIRBORNE
 		period = 4.0  # the field only: the timer keeps running
 		return
 	var b: Dictionary = bases[base]
@@ -602,7 +605,7 @@ func _ground() -> void:
 			_timer(1.0)
 		if last != 0 and last != 9:
 			_say(0)
-		state = 1
+		state = Tower.GROUND
 		return
 	var busy := last in [10, 6, 8]
 	var lined_up := _zone_check(LINEUP_ZONE, true)
@@ -638,11 +641,11 @@ func _approach() -> void:
 	var on_ground := bool(st.on_ground)
 	if on_ground and float(st.speed) < TAXI_SPEED and last == 6:
 		_say(9)
-		state = 1
+		state = Tower.GROUND
 		return
 	if not r:
 		if last == 6 and not on_ground:
-			state = 2
+			state = Tower.AIRBORNE
 		return
 	var code := 8
 	if runway_clear:
@@ -658,14 +661,14 @@ func _approach() -> void:
 
 ## Ctrl+T (command 107, FUN_0054fb40).
 func contact_tower() -> void:
-	if base >= 0 and base < tower_count and state == 2:
+	if base >= 0 and base < tower_count and state == Tower.AIRBORNE:
 		_timer(1.0)
 		_say(5)
-		state = 3
+		state = Tower.CLEARED
 	elif base == -1 or base >= tower_count:
 		_say(CLICK)
 		_timer(4.0)
-		state = 2
+		state = Tower.AIRBORNE
 
 
 ## Ours, Modern IAF's radio menu (modern-iaf/docs/training.md §8): the player asks the tower of the base within
