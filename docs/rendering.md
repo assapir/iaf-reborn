@@ -716,6 +716,56 @@ the loading screen (the bench marks each frame "loading" or "first flying"); wha
 | worst flying frame, 5 s | 19–51 ms | 14–27 ms | 24–46 ms | 15–17 ms |
 | TSD worst frame | 31–57 ms | 33–65 ms | 39–66 ms | 46–68 ms |
 
+#### The first start
+
+On a first start (and after a Godot or driver update) every material the flight draws compiles behind its loading
+screen. Two things move that work out of the way (2026-11-25, gaps row 18):
+
+- **The front end warms the flight's materials** (`shared/util/shader_warmup.gd`). The list is
+  `shared/extra/flight_materials.tres`: every distinct material a flight drew, without its textures (a texture never
+  changes the shader). The front ends' per-frame driver (`TerrainPreload.follow`) loads it on a loader thread from
+  the first menu on, then puts one 1 mm quad per material 100 km below the ground (shader materials, built-in
+  materials, particle process materials). No camera sees them; Godot compiles their shaders and pipelines when they
+  enter the world and keeps them in its caches, where the flight's own materials find them. The quads go when the
+  flight's loading is done. Nothing runs headless.
+- **The bundles bake the shaders** at export ([release.md](release.md) "Baked shaders"): Godot's own and the
+  `.gdshader` files. The list's materials are warmed up at run time there too (release.md says why they are not
+  baked).
+
+The list is recorded by `tests/godot/_flight_materials.gd` from real flights (Modern IAF's mission 2012 and Jane's
+IAF reborn's 311, each with the defaults and with the graphics extras on: 56 materials, 64 KB). A material the list
+lacks still works: it compiles behind the loading screen as before. Run the recorder again after a change that adds
+or changes a flight's shader or material (its header has the commands).
+
+Measured on the Mac (M4 Pro, Metal, a hidden window; cold: a fresh user folder and the app's own macOS Metal cache
+moved aside), Modern IAF's mission 2012 with the defaults. Through the front end: the mission page open 20 s, then
+Fly (`fe_probe`, a scratch script like `_preload_bench.gd`); the first world frame's time since launch is in the game
+log ("loading: first world frame drawn at … (… s after launch)").
+
+| the checkout, cold | no warm-up | warm-up |
+|---|---|---|
+| Fly to the first world frame | 19.1 s | 7.0 s |
+| launch to the first world frame | 44.5 s | 32.9 s |
+| the menus' worst frame in the 20 s | 0.36 s | 2.3 s (once: the built-in materials' shaders are made on the main thread) |
+
+The one long menu frame is the price: Godot makes a built-in material's shader on the main thread when it is first
+used (up to 0.75 s each on the Mac). Tried 2026-11-25 and dropped: making those shaders on a worker task, one at a
+time. The main thread waited on the renderer's lock instead: 32 menu frames over 50 ms, the worst 2.9 s, and no
+faster start. Warming only the shader materials kept the menus at 1.3 s worst but left Fly at 11.8 s.
+
+The bundle started straight into the mission (`--mission 2012`, no front end; a second start, warm, for comparison):
+
+| the macOS bundle | unbaked | baked |
+|---|---|---|
+| launch to the first world frame, cold | 41.5 s | 34.8–39.6 s (two builds) |
+
+Baking saves the launch's share (Godot's own shaders); the flight's materials are the rest, and the warm-up takes
+those (above). A bundle runs no test script, so its front-end start was not timed.
+
+The Linux laptop (Iris Xe) has no numbers yet: its desktop was locked, so no real window drew, and a headless
+mutter compositor stopped delivering frames during the flight's build. Owed: the same runs there, with
+`MESA_SHADER_CACHE_DISABLE=true` for a cold driver cache.
+
 ### 1.7 Temporal upscaler (Anti-aliasing FSR 2)
 
 Anti-aliasing FSR 2 sets the viewport's `scaling_3d_mode` to `SCALING_3D_MODE_FSR2` (AMD FSR 2.2), or to

@@ -139,6 +139,32 @@ The exports are each project's `export_presets.cfg` (Linux, Windows, macOS): eve
 `tests/` and `tools/`. Jane's IAF reborn's boot splash is the CD's art in the checkout; in a bundle it shows none
 (`boot_splash/show_image.template=false`).
 
+### Baked shaders
+
+Every preset has Godot's shader baker on (`shader_baker/enabled`): the export compiles the shaders of the exported
+resources into the `.pck` for the system's graphics driver (Vulkan on Linux and Windows, Metal on macOS), so a
+bundle's first start does not compile them: Godot's own shaders and the project's `.gdshader` files (333 bake steps
+for Modern IAF). The pipelines (a shader with its draw state) are the driver's and still compile on the player's
+machine.
+
+The flight's material list that the front end warms up ([rendering.md](rendering.md) §1.6 "The first start") is
+not baked: it lies in `shared/extra` (outside the `.pck`, copied beside the game), and a bundle warms it up at run
+time, as the checkout does. Measured on the Mac (2026-11-25, Godot 4.7.2): a bake with the list gave a bundle that
+stopped at the flight's start (Metal: "'sampler' attribute parameter is out of bounds" for the scene shader, the
+game's crash page). A later bake without the list did the same until the editor's own shader cache
+(`editor_data/shader_cache` beside a self-contained Godot, else Godot's user folder) was cleared; after that it flew.
+So the cause is open, and a bake by hand starts from a cleared editor shader cache (CI's runners always do). A baked
+macOS bundle prints three `ERROR` lines at launch ("Not enough bytes for uniform in shader container"): Godot then
+compiles that one shader itself, and the game runs on.
+
+The baker needs a rendering device, so `bundle.sh` exports without `--headless` (stopped after 30 minutes): on Linux
+under `xvfb-run` (the workflow installs Mesa's software Vulkan, `mesa-vulkan-drivers`, and Xvfb), on macOS with the
+runner's Metal, on Windows with Direct3D 12's software adapter when Vulkan has no device (the project's
+`fallback_to_d3d12`). It checks the `.pck` for baked shaders (`shader_cache/….vulkan.cache`, `.metal.cache` or
+`.d3d12.cache`); when there are none it exports again headless, unbaked, with a `::warning::` in the run's log, so the
+nightly still ships. `IAF_BAKE=0` skips the baker. Baking makes the `.pck` larger (Modern IAF: 2.1 to 4.2 MB on Linux,
+2.1 to 39 MB on macOS) and adds a few seconds to an export.
+
 ## 5. Building a bundle by hand
 
 From a checkout with the extension built and the project imported, and Godot with its export templates:

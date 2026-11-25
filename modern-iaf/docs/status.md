@@ -1349,14 +1349,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the F-16s' lid opens less far than in photos (30°, FlightGear's value); the frames' colours and sizes are
   estimated from photos. The briefing still shows the F-35I's canopy lever as text, no picture
   (`_switch_crops.gd` `HIDDEN`), from when it sat behind the seat.
-- **A first start's shader compilation** (2026-11-10): 14 s of the 18 s first start here; with Metal on a Mac it
-  takes about ten times as long. Godot compiles a material's shaders when the material is first drawn. The loading
-  steps spread this work over named frames, but a single frame cannot show progress while it compiles. Godot keeps the
-  compiled shaders across restarts (`user://shader_cache`, the driver's pipeline cache in `user://vulkan`): the next
-  start is the warm 4.4 s. A warm-up in the front end was weighed and not built (2026-11-10). The compilation blocks
-  the main thread wherever it runs, so the wait would move from the loading screen to a frozen menu; it would not get
-  shorter. What remains open: compiling shaders off the main thread, which needs Godot's export-time shader baking
-  (Godot 4.5+, for exported builds only).
+- **A first start's shader compilation** (2026-11-10; 2026-11-25): the front end now warms the flight's materials
+  while the menus show (`shared/util/shader_warmup.gd`), and the release bundles bake Godot's own shaders and the
+  `.gdshader` files ([../../docs/rendering.md](../../docs/rendering.md) §1.6 "The first start"). On the Mac, cold,
+  mission 2012 after 20 s on the mission page: Fly to the first world frame 19.1 s before, 7.0 s after; one menu
+  frame of 2.3 s while the warm-up's built-in materials are made. Open: the Linux laptop's numbers (its desktop was
+  locked during the work), the 2.3 s menu frame, and baking the material list into the bundles (a bake with it
+  stopped the macOS bundle; [../../docs/release.md](../../docs/release.md) "Baked shaders").
 - **[D3](plan.md#d3-f-15c-baz-at-tel-nof), the Baz is not flyable:** it has no 3D cockpit and no model of its own,
   so the front end does not offer it and no mission flies it; type 110 flies the F-15I's flight-model row. Tel Nof's
   apron is placed by eye ([airbases.md](airbases.md) §5).

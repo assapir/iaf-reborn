@@ -7,6 +7,9 @@
 # <date>+<hash>: the nightly workflow passes one for all bundles, which manifest.sh lists).
 # Needs Godot (GODOT, default godot) with its export templates; on macOS codesign and hdiutil, on Windows 7z.
 # $IAF_TOOLS: a folder made by tools/release/tools_env.sh (GDAL and curl for setup), copied in as tools/.
+# The export bakes the shaders into the .pck (Godot's shader baker, docs/release.md "Baked shaders"): it needs a
+# rendering device, so it runs without --headless (on Linux under xvfb-run, with Mesa's software Vulkan where no GPU
+# is). Where no device starts it exports again headless, unbaked, with a warning. $IAF_BAKE=0: headless, unbaked.
 # On macOS it imports the project again with ETC2 / ASTC textures (Apple silicon's) and leaves that import in its
 # .godot folder: run `godot --headless --path <project> --import` after it in a checkout you play from.
 set -euo pipefail
@@ -41,12 +44,34 @@ trap 'cp "$keep" "$project/project.godot"; rm -rf "$stage" "$keep"' EXIT
 # The version the front ends show (Settings.version), in the exported project only (put back on exit).
 sed -i.bak "s|^config/version=.*|config/version=\"$version\"|" "$project/project.godot" && rm "$project/project.godot.bak"
 echo "$project $version: exporting for $os"
+# export_game <out file>: the export, baked when it can be; baked() tells from the .pck's file list.
+baked() { grep -aqE 'shader_cache/[^ ]*\.(vulkan|metal|d3d12)\.cache' "$1" 2>/dev/null; }
+export_game() {
+	if [[ ${IAF_BAKE:-1} == 1 ]]; then
+		local run=("$godot") to
+		[[ $os == linux ]] && run=(xvfb-run -a "$godot" --display-driver x11)
+		# A hung windowed export falls through to the headless one after 30 minutes.
+		to=$(command -v timeout || command -v gtimeout || true)
+		[[ -n $to ]] && run=("$to" 1800 "${run[@]}")
+		"${run[@]}" --audio-driver Dummy --path "$project" --export-release "$preset" "$1" || true
+		local pck=${1%.*}.pck ok=0
+		[[ $os == macos && -s $1 ]] && unzip -p "$1" '*.pck' >"$pck" || true
+		[[ -s $1 ]] && baked "$pck" && ok=1
+		[[ $os == macos ]] && rm -f "$pck"
+		if ((ok)); then
+			echo "$project: shaders baked"
+			return
+		fi
+		echo "::warning::$project ($os): no rendering device for the shader baker; this bundle compiles its shaders on the first start"
+	fi
+	"$godot" --headless --path "$project" --export-release "$preset" "$1"
+}
 if [[ $os == macos ]]; then
 	# Apple silicon needs the ETC2 / ASTC textures: imported for this export only (the checkout imports S3TC / BPTC).
 	awk '{print} /^\[rendering\]$/ {print "textures/vram_compression/import_etc2_astc=true"}' "$keep" >"$project/project.godot"
 	sed -i.bak "s|^config/version=.*|config/version=\"$version\"|" "$project/project.godot" && rm "$project/project.godot.bak"
 	"$godot" --headless --path "$project" --import
-	"$godot" --headless --path "$project" --export-release "$preset" "$stage/app.zip"
+	export_game "$stage/app.zip"
 	(cd "$stage" && unzip -q app.zip && rm app.zip)
 	app=$(ls -d "$stage"/*.app)
 	[[ $(basename "$app") == "$name.app" ]] || mv "$app" "$stage/$name.app"
@@ -56,7 +81,7 @@ else
 	mkdir -p "$stage/$name"
 	exe="$name.x86_64"
 	[[ $os == windows ]] && exe="$name.exe"
-	"$godot" --headless --path "$project" --export-release "$preset" "$stage/$name/$exe"
+	export_game "$stage/$name/$exe"
 	root="$stage/$name"
 fi
 for f in "${files[@]}"; do

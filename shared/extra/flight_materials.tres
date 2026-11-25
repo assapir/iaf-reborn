@@ -1,0 +1,1514 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Shader" path="res://shared/terrain/atmosphere.gdshader" id="1_wwewn"]
+[ext_resource type="Shader" path="res://shared/terrain/scenery_foliage.gdshader" id="2_7hfx7"]
+[ext_resource type="Shader" path="res://shared/terrain/scenery_foliage_far.gdshader" id="3_eguqb"]
+[ext_resource type="Shader" path="res://shared/terrain/terrain.gdshader" id="4_dhyu1"]
+[ext_resource type="Shader" path="res://shared/cockpit/cockpit_composite.gdshader" id="5_1ea3d"]
+[ext_resource type="Shader" path="res://shared/cockpit/cockpit_probe.gdshader" id="6_c73u0"]
+[ext_resource type="Shader" path="res://shared/cockpit/hud_glass.gdshader" id="7_445gc"]
+[ext_resource type="Shader" path="res://shared/cockpit/cockpit_sharp.gdshader" id="8_7nwgi"]
+[ext_resource type="Shader" path="res://shared/cockpit/lens_adi.gdshader" id="9_7hfx7"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lnmv6"]
+shader = ExtResource("1_wwewn")
+shader_parameter/exposure = 1.3
+shader_parameter/air_depth = Vector3(0.045, 0.13, 0.6)
+shader_parameter/haze_depth = 0.12
+shader_parameter/haze_g = 0.75
+shader_parameter/haze_height = 1500.0
+shader_parameter/haze_mass = 0.0
+shader_parameter/dust = Vector3(0, 0, 0)
+shader_parameter/max_air_mass = 6.0
+shader_parameter/sun_depth = Vector3(0.08, 0.22, 0.4)
+shader_parameter/ms_gain = 1.0
+shader_parameter/altitude = 0.0
+shader_parameter/sun_disc_deg = 0.53
+shader_parameter/sun_disc_energy = 30.0
+shader_parameter/overcast = 0.0
+shader_parameter/ground_albedo = Vector3(0.36, 0.33, 0.27)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kcek1"]
+render_priority = 0
+shader = ExtResource("2_7hfx7")
+shader_parameter/layer = 0.0
+shader_parameter/albedo = Vector3(0.1, 0.13, 0.06)
+shader_parameter/trunk = Vector3(0.1, 0.07, 0.05)
+shader_parameter/near_m = 450.0
+shader_parameter/band_m = 50.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_j64em"]
+render_priority = 0
+shader = ExtResource("3_eguqb")
+shader_parameter/albedo = Vector3(0.1, 0.13, 0.06)
+shader_parameter/near_m = 450.0
+shader_parameter/band_m = 50.0
+shader_parameter/far_m = 2000.0
+shader_parameter/grow_m = 300.0
+
+[sub_resource type="Shader" id="Shader_oah0w"]
+code = "// Scenery buildings, Scenery = On (terrain/scenery.gd, docs/scenery.md §3; Detailed: scenery_detailed.gdshader). The
+// mesh arrays come from IafScenery:
+//   UV   = wall coordinates in metres (x along the wall, y above the building's base);
+//   UV2  = (building index in the cell, the building's height on walls / −1 on roofs);
+//   COLOR.rgb = the roof colour on the active Survey 2 m look (sRGB), lightened here toward plaster on walls;
+//   COLOR.a = the wall material / 255 (iaf_tools::thirdparty::SCENERY_WALLS: plaster, stone, concrete, corrugated).
+// The gains, the palette and the roofs' colour: scenery_palette.gdshaderinc (Building colours = Palette: the walls in
+// Detailed's palette, the light flat and gabled roofs lifted out of the photo's grey).
+// Walls: that colour times the ambientCG material's colour detail (its colour over its mean);
+// our window mask (a row per 3 m level, a column every 3.2 m); a ground AO gradient. Damaged buildings: sooted.
+// SCENERY_ORTHO (Modern IAF: Settings.scenery_ortho(); scenery.gd building_shader() compiles a copy with it): the
+// roofs in the air photo's own colour (the footprint's median, iaf-sim scenery) with solar heaters, the walls by the
+// colour of a 2 m ring around the footprint (COLOR.rgb on walls), ribbon windows, a parapet line, a sun / shade step and
+// a darker street level (modern-iaf/docs/scenery.md §7, look study A20).
+shader_type spatial;
+#define SCENERY_ORTHO
+render_mode cull_back;
+
+uniform sampler2DArray walls : filter_linear_mipmap_anisotropic, repeat_enable;
+uniform bool has_walls = false;
+// The repeat of each material's texture (m).
+uniform vec4 wall_size = vec4(2.0, 2.0, 1.1, 2.0);
+// The model by each building's own distance (CUSTOM0.xyz: its centre at its base, mesh frame): the near mesh to
+// `near_m`, the far mesh beyond, rising from the ground over the last `grow_m` before `far_m` (scenery.gd sets these).
+instance uniform bool far_model = false;
+uniform float near_m = 2500.0;
+uniform float far_m = 4500.0;
+uniform float grow_m = 400.0;
+// A byte per building, 256 per row: 0 = intact.
+uniform sampler2D damage : filter_nearest;
+// Detailed night lights at night: some windows lit.
+uniform bool night = false;
+#include \"res://shared/terrain/city_glow.gdshaderinc\"
+
+const float LEVEL_M = 3.0;
+// The plaster the walls' colour lightens toward (sRGB), and how far.
+const vec3 PLASTER = vec3(0.86, 0.83, 0.76);
+const float PLASTER_MIX = 0.6;
+const float BAY_M = 3.2;
+
+varying flat float v_building;
+varying flat float v_roof;
+varying flat float v_wall;
+varying float v_shade;
+// The face's colour before its texture and windows (linear): one per building and face kind, so made per vertex.
+varying flat vec3 v_base;
+#ifdef SCENERY_ORTHO
+varying flat float v_top;  // a wall's building height (m)
+varying flat float v_flat;  // 1 on a flat roof
+varying flat float v_sunward;  // a wall: 1 facing the sun, 0 away (level)
+#endif
+
+float hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+vec3 srgb_to_linear(vec3 c) {
+	return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
+}
+
+#include \"res://shared/terrain/scenery_palette.gdshaderinc\"
+
+void vertex() {
+	vec3 c = CUSTOM0.xyz;
+	float d = distance((MODEL_MATRIX * vec4(c, 1.0)).xyz, MAIN_CAM_INV_VIEW_MATRIX[3].xyz);
+	float g = far_model ? step(near_m, d) * (1.0 - smoothstep(far_m - grow_m, far_m, d)) : 1.0 - step(near_m, d);
+	// Shown: raised to g of its height; not shown: collapsed to its centre (no triangles to draw).
+	VERTEX = g > 0.001 ? vec3(VERTEX.x, c.y + (VERTEX.y - c.y) * g, VERTEX.z) : c;
+	v_city_glow = city_glow_at((MODEL_MATRIX * vec4(c, 1.0)).xz, d);  // at the building's centre
+	v_building = UV2.x;
+	v_roof = UV2.y < -0.5 ? 1.0 : 0.0;
+	v_wall = floor(COLOR.a * 255.0 + 0.5);
+	v_shade = wall_shade(mat3(MODEL_MATRIX) * NORMAL);
+	float fb = float(int(v_building + 0.5));
+	vec3 photo = srgb_to_linear(COLOR.rgb);
+	int w = clamp(int(v_wall), 0, 3);
+	// Photo: the photo's colour lightened toward plaster; Palette: the building's own (as Detailed).
+#ifdef SCENERY_ORTHO
+	v_top = UV2.y;
+	v_flat = v_roof > 0.5 && abs(COLOR.a - 0.5) > 0.1 && COLOR.a < 0.99 ? 1.0 : 0.0;
+	vec3 nw = mat3(MODEL_MATRIX) * NORMAL;
+	float sl = length(scenery_sun);
+	v_sunward = sl > 0.01 ? 0.5 + 0.5 * dot(normalize(vec3(nw.x, 0.0, nw.z) + 1e-5), scenery_sun / sl) : 0.5;
+	if (v_flat > 0.5) {
+		// A flat roof: the air photo's median over its footprint, lit to an albedo (gabled: clay, roof_far).
+		v_base = min(photo * 0.85, vec3(0.75));
+	} else
+#endif
+	v_base = v_roof > 0.5 ? roof_far(photo, COLOR.a, hash(vec2(fb, 7.7)))
+		: (palette_colours ? wall_lit(w, wall_colour(w, fb, photo))
+			: min(srgb_to_linear(mix(COLOR.rgb, PLASTER, PLASTER_MIX)) * WALL_GAIN, vec3(MAX_ALBEDO)));
+}
+
+void fragment() {
+	int b = int(v_building + 0.5);
+	float damaged = step(0.5 / 255.0, texelFetch(damage, ivec2(b % 256, b / 256), 0).r);
+	vec3 albedo;
+	float rough = 0.9;
+	float emit = 0.0;
+	float ao = 1.0;
+	if (v_roof > 0.5) {
+		albedo = v_base;
+#ifdef SCENERY_ORTHO
+		if (v_flat > 0.5) {
+			// Solar water heaters: a dark panel (2.1 × 1.4 m) and its white tank in some 3.5 m cells, a density
+			// per building; under ~2 pixels they fade to their mean.
+			vec2 q = UV * 32.0 / 3.5;
+			vec2 fq = fract(q);
+			float on = step(hash(floor(q) + float(b) * 0.13), mix(0.15, 0.5, hash(vec2(float(b), 2.9))));
+			float ra = max(fwidth(q).x, fwidth(q).y);
+			float panel = step(0.15, fq.x) * step(fq.x, 0.75) * step(0.2, fq.y) * step(fq.y, 0.6);
+			float tank = step(0.78, fq.x) * step(fq.x, 0.92) * step(0.25, fq.y) * step(fq.y, 0.55);
+			float k = smoothstep(0.3, 0.6, ra);
+			albedo = mix(albedo, vec3(0.03, 0.035, 0.05), on * mix(panel, 0.24, k) * 0.9);
+			albedo = mix(albedo, vec3(0.6), on * mix(tank, 0.042, k));
+		}
+#endif
+	} else {
+		int w = clamp(int(v_wall), 0, 3);
+		vec3 base = v_base;
+		if (has_walls) {
+			base *= 2.0 * texture(walls, vec3(UV / wall_size[w], float(w))).rgb;
+		}
+		// Windows (not on corrugated sheds), faded out where a window is under ~2 pixels (no shimmer far away).
+		vec2 g = vec2(UV.x / BAY_M, UV.y / LEVEL_M);
+		vec2 f = fract(g);
+		vec2 px = fwidth(g);
+		float aa = max(px.x, px.y);
+#ifdef SCENERY_ORTHO
+		// Ribbon windows: each axis fades to its mean as it shrinks under ~2 pixels, the rows to a full-width band, so
+		// far walls keep their window bands instead of turning flat.
+		float wx = smoothstep(0.22 - px.x, 0.22 + px.x, f.x) * (1.0 - smoothstep(0.78 - px.x, 0.78 + px.x, f.x));
+		float wy = smoothstep(0.30 - px.y, 0.30 + px.y, f.y) * (1.0 - smoothstep(0.80 - px.y, 0.80 + px.y, f.y));
+		wx = mix(wx, 0.56, smoothstep(0.25, 0.5, px.x));
+		wy = mix(wy, 0.5, smoothstep(0.25, 0.5, px.y));
+		float win = wy * mix(wx, 0.85, smoothstep(0.25, 0.5, px.x)) * (w == 3 ? 0.0 : 1.0);
+		albedo = mix(base, vec3(0.02, 0.025, 0.035), win * 0.9);
+		rough = mix(0.9, 0.15, win * (1.0 - smoothstep(0.25, 0.5, aa)));
+		// The parapet line: the top 0.5 m of every wall (outer and the parapet's inner face) dark.
+		float top = v_top - UV.y;
+		float tw = fwidth(UV.y);
+		float line = 1.0 - smoothstep(0.5 - tw, 0.5 + tw, top);
+		line = mix(line, 0.5 * (1.0 - smoothstep(0.0, 2.0, top)), smoothstep(0.3, 0.6, tw));
+		albedo *= 1.0 - 0.55 * line * (w == 3 ? 0.0 : 1.0);
+#else
+		float win = smoothstep(0.22 - aa, 0.22 + aa, f.x) * (1.0 - smoothstep(0.78 - aa, 0.78 + aa, f.x))
+			* smoothstep(0.30 - aa, 0.30 + aa, f.y) * (1.0 - smoothstep(0.80 - aa, 0.80 + aa, f.y));
+		win *= (w == 3 ? 0.0 : 1.0) * (1.0 - smoothstep(0.25, 0.5, aa));
+		albedo = mix(base, vec3(0.03, 0.04, 0.05), win * 0.85);
+		rough = mix(0.9, 0.15, win);
+#endif
+		// Ground AO: darker at the foot of the wall.
+		albedo *= mix(0.55, 1.0, smoothstep(0.0, 2.5, UV.y));
+		ao = v_shade;  // the side away from the sun darker
+#ifdef SCENERY_ORTHO
+		// The sun's side lit warm at full albedo, the side away a real step darker.
+		albedo *= mix(vec3(0.55), vec3(1.06, 1.0, 0.9), smoothstep(0.25, 0.75, v_sunward));
+		// The street's sky light: the lower floors see less sky between close buildings (a canyon term on the ambient
+		// only, no neighbour lookup: inferred, every wall the same), and the street level a shade darker.
+		ao *= mix(0.45, 1.0, smoothstep(0.0, 12.0, UV.y));
+		albedo *= mix(0.7, 1.0, smoothstep(0.0, 10.0, UV.y));
+#endif
+		if (night && win > 0.0) {
+			float lit = step(hash(floor(g) + vec2(float(b) * 0.37, 0.0)), 0.12);
+			emit = lit * win * (1.0 - damaged);
+		}
+	}
+	albedo *= mix(1.0, 0.25, damaged);
+	ALBEDO = albedo;
+	ROUGHNESS = rough;
+	SPECULAR = 0.3;
+	AO = ao;
+	EMISSION = emit * vec3(1.0, 0.75, 0.45) * 0.6;
+	if (city_glow_k > 0.0) {
+		EMISSION += city_glow_emission(ALBEDO);
+	}
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2ap83"]
+render_priority = 0
+shader = SubResource("Shader_oah0w")
+shader_parameter/has_walls = false
+shader_parameter/wall_size = Vector4(2, 2, 1.1, 2)
+shader_parameter/near_m = 2500.0
+shader_parameter/far_m = 4500.0
+shader_parameter/grow_m = 400.0
+shader_parameter/night = false
+shader_parameter/palette_colours = false
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ynv8n"]
+cull_mode = 2
+albedo_color = Color(0.08, 0.08, 0.08, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cl0d1"]
+vertex_color_use_as_albedo = true
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bno2h"]
+transparency = 4
+vertex_color_use_as_albedo = true
+albedo_color = Color(1, 1, 1, 0.45)
+roughness = 0.9
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_v8u02"]
+render_priority = 0
+shader = ExtResource("4_dhyu1")
+shader_parameter/sea_level_raw = 20342.0
+shader_parameter/height_scale = 9.2575
+shader_parameter/units_to_metres = 1.0
+shader_parameter/h_origin = Vector2(0, 0)
+shader_parameter/h_span = 1024.0
+shader_parameter/h_texel_m = 79.4
+shader_parameter/uv_origin = Vector2(0, 0)
+shader_parameter/uv_scale = 1.0
+shader_parameter/node_m = 1271.0
+shader_parameter/skirt = 20.0
+shader_parameter/valid_uv = Vector2(1, 1)
+shader_parameter/sea_colour = Vector3(0.035, 0.059, 0.302)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tu645"]
+render_priority = 0
+shader = ExtResource("5_1ea3d")
+shader_parameter/probe = false
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hl2ki"]
+render_priority = 0
+shader = ExtResource("6_c73u0")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_31lmw"]
+resource_name = "f16d_paint_2s"
+cull_mode = 2
+metallic = 1.0
+metallic_texture_channel = 2
+roughness_texture_channel = 1
+normal_enabled = true
+ao_enabled = true
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:res://shared/extra/models/f16/f16d.glb#1"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qr64h"]
+resource_name = "f16d_paint"
+metallic = 1.0
+metallic_texture_channel = 2
+roughness_texture_channel = 1
+normal_enabled = true
+ao_enabled = true
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:res://shared/extra/models/f16/f16d.glb#0"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kruwt"]
+resource_name = "ac_plain_3"
+albedo_color = Color(0.961202, 0.98265713, 1, 1)
+roughness = 0.5
+texture_filter = 5
+metadata/model_key = "3:res://shared/extra/models/f16/f16d.glb#124"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3lhn3"]
+resource_name = "ac_nozzle-ring.png_16"
+roughness = 0.5
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:res://shared/extra/models/f16/f16d.glb#125"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kn0e5"]
+resource_name = "ac_plain_25"
+transparency = 4
+albedo_color = Color(1, 1, 1, 0.992)
+roughness = 0.5
+texture_filter = 5
+metadata/model_key = "3:res://shared/extra/models/f16/f16d.glb#126"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8w7mp"]
+resource_name = "ac_nozzle-GE.png_1_2s"
+cull_mode = 2
+roughness = 0.5
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:res://shared/extra/models/f16/f16d.glb#131"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sjaen"]
+resource_name = "pylon_grey"
+cull_mode = 2
+albedo_color = Color(0.6799757, 0.694361, 0.7014107, 1)
+roughness = 0.55
+texture_filter = 5
+metadata/model_key = "3:res://shared/extra/models/f16/f16d.glb#132"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_o2ovh"]
+resource_name = "canopy_glass"
+transparency = 4
+cull_mode = 2
+albedo_color = Color(0.6799757, 0.6651851, 0.58383155, 0.28)
+roughness = 0.05
+texture_filter = 5
+metadata/model_key = "3:res://shared/extra/models/f16/f16d.glb#3"
+
+[sub_resource type="Shader" id="Shader_810c3"]
+code = "
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+uniform float size_m = 4.0;
+uniform float min_px = 4.5;
+uniform float max_px = 28.0;
+uniform float gain = 1.0;
+uniform float fog_k = 0.00003;
+uniform float vp_h = 1080.0;
+uniform float lift = 1.5;
+uniform float pull = -1.0;
+#include \"res://shared/terrain/clouds_behind.gdshaderinc\"
+varying float fade;
+varying vec3 col;
+varying float v_dist;
+void vertex() {
+	vec4 v = MODELVIEW_MATRIX * vec4(VERTEX, 1.0) + VIEW_MATRIX * vec4(0.0, lift, 0.0, 0.0);
+	float d = max(-v.z, 1.0);
+	v_dist = length(v.xyz);
+	float rows = vp_h / 1080.0;
+	float px = size_m * abs(PROJECTION_MATRIX[1][1]) * 0.5 * vp_h / d;
+	// A lamp outshines the haze: half the scene's fog, and a far point keeps 60 % of its light.
+	fade = clamp(px / (min_px * rows), 0.6, 1.0) * exp(-0.5 * fog_k * d) * gain;
+	col = COLOR.rgb;
+	if (COLOR.a < 0.995) {
+		// A one-way fixture (airbase_lights.gd): COLOR.a = the way it shines (angle from Godot +X toward +Z / 360°).
+		float h = COLOR.a * TAU;
+		vec3 f = normalize((MODELVIEW_MATRIX * vec4(cos(h), 0.0, sin(h), 0.0)).xyz);
+		vec3 to_cam = normalize(-v.xyz);
+		fade *= smoothstep(-0.05, 0.25, dot(to_cam, f));
+		if (COLOR.r + COLOR.g < 0.01) {
+			// A PAPI unit: white seen from above its angle (COLOR.b · 10°), red below.
+			vec3 up = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+			float el = degrees(asin(clamp(dot(to_cam, up), -1.0, 1.0)));
+			col = el > COLOR.b * 10.0 ? vec3(1.0, 0.95, 0.85) : vec3(1.0, 0.1, 0.06);
+		}
+	}
+	POINT_SIZE = clamp(px, min_px * rows, max_px * rows);
+	// The sprite is flat at the light's depth: drawn size_m nearer, the ground or skin around the light hides none of it
+	// (`pull` nearer when set: the F-16 panel's lights, which the jet's own skin hides from its far side).
+	POSITION = PROJECTION_MATRIX * vec4(v.xyz * max(d - (pull < 0.0 ? size_m : pull), 0.5) / d, 1.0);
+}
+void fragment() {
+	vec2 c = POINT_COORD * 2.0 - 1.0;
+	float r = length(c);
+	float core = smoothstep(0.6, 0.0, r);
+	float halo = pow(1.0 - smoothstep(0.0, 1.0, r), 2.0) * 1.5;
+	ALBEDO = (col * (core * 3.0 + halo) + vec3(core * 1.2)) * fade * clouds_through(SCREEN_UV, VIEWPORT_SIZE, v_dist);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_37wsr"]
+render_priority = 0
+shader = SubResource("Shader_810c3")
+shader_parameter/size_m = 4.0
+shader_parameter/min_px = 4.5
+shader_parameter/max_px = 28.0
+shader_parameter/gain = 1.0
+shader_parameter/fog_k = 3e-05
+shader_parameter/vp_h = 1080.0
+shader_parameter/lift = 1.5
+shader_parameter/pull = -1.0
+
+[sub_resource type="Shader" id="Shader_ydymf"]
+code = "
+shader_type spatial;
+render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+uniform sampler2D screen : hint_screen_texture, filter_linear_mipmap;
+uniform sampler2D noise : repeat_enable, filter_linear_mipmap;
+uniform float strength = 0.0;
+varying float along;
+varying vec3 axis;
+void vertex() {
+	// The cylinder's local Y (-0.5 at the nozzle, +0.5 at the far end): `along` runs 0 -> 1 from the nozzle.
+	along = VERTEX.y + 0.5;
+	axis = normalize((MODELVIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+}
+void fragment() {
+	// Strongest across the middle of the cone as seen, fading along it.
+	// Seen from the side, the middle of the cone (facing the eye) shimmers and its silhouette fades; seen along
+	// the axis (from behind) the whole cone shimmers.
+	float side_on = 1.0 - abs(dot(axis, normalize(VIEW)));
+	float facing = mix(1.0, abs(dot(normalize(NORMAL), normalize(VIEW))), side_on);
+	vec2 n = vec2(texture(noise, vec2(UV.x * 2.0, along * 1.5 - TIME * 2.2)).r,
+		texture(noise, vec2(UV.x * 2.0 + 0.5, along * 1.5 - TIME * 1.7)).g) - 0.5;
+	float k = strength * smoothstep(0.0, 0.08, along) * (1.0 - along) * facing * facing;
+	ALBEDO = textureLod(screen, SCREEN_UV + n * 0.006 * k, 0.0).rgb;
+	// The screen copy holds the opaque scene only: blend it in no further than the shimmer needs.
+	ALPHA = clamp(k * 0.8, 0.0, 0.8);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_otxrn"]
+render_priority = 0
+shader = SubResource("Shader_ydymf")
+shader_parameter/strength = 0.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_q8y7i"]
+blend_mode = 1
+cull_mode = 2
+depth_draw_mode = 2
+shading_mode = 0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pun2s"]
+shader = ExtResource("7_445gc")
+shader_parameter/count = 0
+shader_parameter/corners = PackedVector2Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_irqts"]
+transparency = 1
+cull_mode = 2
+depth_draw_mode = 2
+shading_mode = 0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_a3hsv"]
+transparency = 1
+depth_draw_mode = 2
+shading_mode = 0
+billboard_mode = 1
+billboard_keep_scale = true
+
+[sub_resource type="Shader" id="Shader_veowm"]
+code = "
+shader_type spatial;
+render_mode blend_mix, unshaded, depth_draw_never, shadows_disabled;
+
+#include \"res://shared/terrain/clouds_behind.gdshaderinc\"
+uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
+void vertex() {
+	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(MAIN_CAM_INV_VIEW_MATRIX[0], MAIN_CAM_INV_VIEW_MATRIX[1],
+		MAIN_CAM_INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
+	MODELVIEW_MATRIX = MODELVIEW_MATRIX * mat4(vec4(length(MODEL_MATRIX[0].xyz), 0.0, 0.0, 0.0),
+		vec4(0.0, length(MODEL_MATRIX[1].xyz), 0.0, 0.0), vec4(0.0, 0.0, length(MODEL_MATRIX[2].xyz), 0.0),
+		vec4(0.0, 0.0, 0.0, 1.0));
+	MODELVIEW_NORMAL_MATRIX = mat3(MODELVIEW_MATRIX);
+}
+void fragment() {
+	vec4 c = texture(tex, UV) * COLOR;
+#ifdef ADD
+	ALBEDO = c.rgb;
+	ALPHA = c.a * clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
+#else
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX), c.rgb);
+	ALPHA = c.a;
+#endif
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vndiw"]
+render_priority = 0
+shader = SubResource("Shader_veowm")
+
+[sub_resource type="Shader" id="Shader_redlh"]
+code = "
+shader_type spatial;
+render_mode blend_add, unshaded, depth_draw_never, shadows_disabled;
+#define ADD
+#include \"res://shared/terrain/clouds_behind.gdshaderinc\"
+uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
+void vertex() {
+	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(MAIN_CAM_INV_VIEW_MATRIX[0], MAIN_CAM_INV_VIEW_MATRIX[1],
+		MAIN_CAM_INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
+	MODELVIEW_MATRIX = MODELVIEW_MATRIX * mat4(vec4(length(MODEL_MATRIX[0].xyz), 0.0, 0.0, 0.0),
+		vec4(0.0, length(MODEL_MATRIX[1].xyz), 0.0, 0.0), vec4(0.0, 0.0, length(MODEL_MATRIX[2].xyz), 0.0),
+		vec4(0.0, 0.0, 0.0, 1.0));
+	MODELVIEW_NORMAL_MATRIX = mat3(MODELVIEW_MATRIX);
+}
+void fragment() {
+	vec4 c = texture(tex, UV) * COLOR;
+#ifdef ADD
+	ALBEDO = c.rgb;
+	ALPHA = c.a * clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
+#else
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX), c.rgb);
+	ALPHA = c.a;
+#endif
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pmv4x"]
+render_priority = 0
+shader = SubResource("Shader_redlh")
+
+[sub_resource type="Shader" id="Shader_1uk8g"]
+code = "
+shader_type particles;
+render_mode disable_velocity, disable_force;
+uniform float now;
+void process() {
+	if (now - CUSTOM.w > CUSTOM.z) { ACTIVE = false; }
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_naqp5"]
+shader = SubResource("Shader_1uk8g")
+shader_parameter/now = 0.0
+
+[sub_resource type="Shader" id="Shader_88051"]
+code = "
+shader_type spatial;
+render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+uniform sampler2D noise : repeat_enable, filter_linear_mipmap;
+uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
+uniform vec3 sun_dir = vec3(0.3, 0.8, 0.5);
+uniform vec3 sun_col : source_color = vec3(1.0);
+uniform vec3 ambient : source_color = vec3(0.45, 0.5, 0.58);
+
+uniform float now;
+uniform float gravity = 0.0;
+uniform vec3 wind = vec3(0.0);
+varying float v_f;
+varying float v_age;
+float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
+// World position and velocity at `age`: drag k slows the velocity as e^(-kt); gravity pulls along -Y; the air
+// mass carries it with the wind (Better physics `wind`, zero: the original).
+vec3 motion(vec3 p0, vec3 v0, float k, float age, out vec3 vel) {
+	float e = exp(-k * age);
+	float tau = k > 0.0 ? (1.0 - e) / k : age;
+	vel = v0 * e - vec3(0.0, gravity * age, 0.0) + wind;
+	return p0 + v0 * tau - vec3(0.0, 0.5 * gravity * age * age, 0.0) + wind * age;
+}
+
+varying float v_seed;
+varying vec2 v_local;
+varying float v_w;
+varying float v_z;
+varying vec3 v_view;
+void vertex() {
+	float age = max(now - INSTANCE_CUSTOM.w, 0.0);
+	v_age = age;
+	v_f = clamp(age / max(INSTANCE_CUSTOM.z, 1e-3), 0.0, 1.0);
+	// Bursts (drag > 0) expand fast and slow down; the original's puffs grow linearly; hidden before the delay.
+	float g = COLOR.b > 0.0 ? 1.0 - pow(1.0 - v_f, 3.0) : v_f;
+	v_w = age < COLOR.g ? 0.0 : mix(INSTANCE_CUSTOM.x, INSTANCE_CUSTOM.y, g);
+	vec3 vel;
+	vec3 c = (VIEW_MATRIX * vec4(motion(MODEL_MATRIX[3].xyz, MODEL_MATRIX[0].xyz, COLOR.b, age, vel), 1.0)).xyz;
+	v_seed = hash(float(INSTANCE_ID) + 0.37);
+	vec2 l = UV * 2.0 - 1.0;
+	v_local = l;
+	float a = v_seed * 6.2832 + age * (v_seed - 0.5) * 0.6;
+	vec2 q = mat2(vec2(cos(a), sin(a)), vec2(-sin(a), cos(a))) * vec2(l.x, -l.y);
+	vec3 v = c + vec3(q, 0.0) * 0.5 * v_w;
+	v_z = v.z;
+	v_view = v;
+	POSITION = PROJECTION_MATRIX * vec4(v, 1.0);
+}
+
+#include \"res://shared/terrain/clouds_behind.gdshaderinc\"
+float soft(vec2 suv, float vz, float d, mat4 inv_proj, sampler2D dt) {
+	float z = texture(dt, suv).r;
+	vec4 p = inv_proj * vec4(suv * 2.0 - 1.0, z, 1.0);
+	float scene = -p.z / p.w;
+	return clamp((scene + vz) / max(d, 0.5), 0.0, 1.0);
+}
+
+void fragment() {
+	float r = length(v_local);
+	vec2 o = vec2(v_seed * 7.1, v_seed * 3.3);
+	float n1 = texture(noise, v_local * 0.32 + o + vec2(0.0, -v_f * 0.15)).r;
+	float n2 = texture(noise, v_local * 0.8 + o.yx + vec2(v_f * 0.1, 0.0)).g;
+	float n = n1 * 0.65 + n2 * 0.35;
+	float shape = smoothstep(1.05, 0.5, r + (0.5 - n) * 0.45);
+	if (shape <= 0.0) { discard; }
+	// A sphere's normal from the billboard position, bumped by the noise: sunlit side and self-shadowed core.
+	vec3 nv = normalize(vec3(v_local.x, -v_local.y, sqrt(max(1.0 - r * r, 0.0)) + 0.3)
+		+ vec3(n2 - 0.5, n1 - 0.5, 0.0) * 0.9);
+	vec3 nw = (INV_VIEW_MATRIX * vec4(nv, 0.0)).xyz;
+	float lit = clamp(dot(nw, normalize(sun_dir)) * 0.6 + 0.45, 0.0, 1.0);
+	float grey = COLOR.r;
+	vec3 col = grey * (ambient + sun_col * lit * 0.85) * (0.75 + 0.5 * n);
+	float fade = smoothstep(0.0, 0.06, v_f) * (1.0 - v_f * v_f);
+	float a = shape * fade * COLOR.a
+		* soft(SCREEN_UV, v_z, v_w * 0.25, INV_PROJECTION_MATRIX, depth_tex);
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(v_view), col);
+	ALPHA = clamp(a, 0.0, 1.0);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_35el1"]
+render_priority = 0
+shader = SubResource("Shader_88051")
+shader_parameter/sun_dir = Vector3(0.3, 0.8, 0.5)
+shader_parameter/sun_col = Color(1, 1, 1, 1)
+shader_parameter/ambient = Color(0.45, 0.5, 0.58, 1)
+shader_parameter/now = 0.0
+shader_parameter/gravity = 0.0
+shader_parameter/wind = Vector3(0, 0, 0)
+
+[sub_resource type="Shader" id="Shader_e1xja"]
+code = "
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+uniform sampler2D noise : repeat_enable, filter_linear_mipmap;
+uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
+
+uniform float now;
+uniform float gravity = 0.0;
+uniform vec3 wind = vec3(0.0);
+varying float v_f;
+varying float v_age;
+float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
+// World position and velocity at `age`: drag k slows the velocity as e^(-kt); gravity pulls along -Y; the air
+// mass carries it with the wind (Better physics `wind`, zero: the original).
+vec3 motion(vec3 p0, vec3 v0, float k, float age, out vec3 vel) {
+	float e = exp(-k * age);
+	float tau = k > 0.0 ? (1.0 - e) / k : age;
+	vel = v0 * e - vec3(0.0, gravity * age, 0.0) + wind;
+	return p0 + v0 * tau - vec3(0.0, 0.5 * gravity * age * age, 0.0) + wind * age;
+}
+
+varying float v_seed;
+varying vec2 v_local;
+varying float v_w;
+varying float v_z;
+varying vec3 v_view;
+void vertex() {
+	float age = max(now - INSTANCE_CUSTOM.w, 0.0);
+	v_age = age;
+	v_f = clamp(age / max(INSTANCE_CUSTOM.z, 1e-3), 0.0, 1.0);
+	// Bursts (drag > 0) expand fast and slow down; the original's puffs grow linearly; hidden before the delay.
+	float g = COLOR.b > 0.0 ? 1.0 - pow(1.0 - v_f, 3.0) : v_f;
+	v_w = age < COLOR.g ? 0.0 : mix(INSTANCE_CUSTOM.x, INSTANCE_CUSTOM.y, g);
+	vec3 vel;
+	vec3 c = (VIEW_MATRIX * vec4(motion(MODEL_MATRIX[3].xyz, MODEL_MATRIX[0].xyz, COLOR.b, age, vel), 1.0)).xyz;
+	v_seed = hash(float(INSTANCE_ID) + 0.37);
+	vec2 l = UV * 2.0 - 1.0;
+	v_local = l;
+	float a = v_seed * 6.2832 + age * (v_seed - 0.5) * 0.6;
+	vec2 q = mat2(vec2(cos(a), sin(a)), vec2(-sin(a), cos(a))) * vec2(l.x, -l.y);
+	vec3 v = c + vec3(q, 0.0) * 0.5 * v_w;
+	v_z = v.z;
+	v_view = v;
+	POSITION = PROJECTION_MATRIX * vec4(v, 1.0);
+}
+
+#include \"res://shared/terrain/clouds_behind.gdshaderinc\"
+float soft(vec2 suv, float vz, float d, mat4 inv_proj, sampler2D dt) {
+	float z = texture(dt, suv).r;
+	vec4 p = inv_proj * vec4(suv * 2.0 - 1.0, z, 1.0);
+	float scene = -p.z / p.w;
+	return clamp((scene + vz) / max(d, 0.5), 0.0, 1.0);
+}
+
+vec3 ramp(float t) {
+	vec3 c = mix(vec3(0.25, 0.03, 0.0), vec3(0.95, 0.28, 0.03), smoothstep(0.0, 0.35, t));
+	c = mix(c, vec3(1.0, 0.62, 0.18), smoothstep(0.35, 0.7, t));
+	return mix(c, vec3(1.0, 0.95, 0.75), smoothstep(0.7, 1.0, t));
+}
+void fragment() {
+	float r = length(v_local);
+	vec2 o = vec2(v_seed * 5.3, v_seed * 9.7);
+	float n = texture(noise, v_local * 0.45 + o + vec2(0.0, -v_f * 0.3)).r * 0.6
+		+ texture(noise, v_local * 1.1 + o.yx).g * 0.4;
+	float shape = smoothstep(0.95, 0.35, r + (0.5 - n) * 1.3);
+	if (shape <= 0.0) { discard; }
+	float heat = clamp((1.0 - v_f * 1.25) * (0.15 + n * 1.25) * (1.25 - r * 0.9) * COLOR.r, 0.0, 1.0);
+	float a = shape * smoothstep(0.0, 0.05, v_f) * pow(1.0 - v_f, 1.4) * COLOR.a
+		* soft(SCREEN_UV, v_z, v_w * 0.2, INV_PROJECTION_MATRIX, depth_tex)
+		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(v_view));
+	ALBEDO = ramp(heat) * a * (0.35 + heat);
+	ALPHA = 1.0;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_v88vn"]
+render_priority = 0
+shader = SubResource("Shader_e1xja")
+shader_parameter/now = 0.0
+shader_parameter/gravity = 0.0
+shader_parameter/wind = Vector3(0, 0, 0)
+
+[sub_resource type="Shader" id="Shader_0pi78"]
+code = "
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+
+uniform float now;
+uniform float gravity = 0.0;
+uniform vec3 wind = vec3(0.0);
+varying float v_f;
+varying float v_age;
+float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
+// World position and velocity at `age`: drag k slows the velocity as e^(-kt); gravity pulls along -Y; the air
+// mass carries it with the wind (Better physics `wind`, zero: the original).
+vec3 motion(vec3 p0, vec3 v0, float k, float age, out vec3 vel) {
+	float e = exp(-k * age);
+	float tau = k > 0.0 ? (1.0 - e) / k : age;
+	vel = v0 * e - vec3(0.0, gravity * age, 0.0) + wind;
+	return p0 + v0 * tau - vec3(0.0, 0.5 * gravity * age * age, 0.0) + wind * age;
+}
+
+#include \"res://shared/terrain/clouds_behind.gdshaderinc\"
+varying vec2 v_local;
+varying vec3 v_view;
+void vertex() {
+	// A streak along the velocity (0.08 s of travel, at least as long as wide), facing the camera.
+	float age = max(now - INSTANCE_CUSTOM.w, 0.0);
+	v_f = clamp(age / max(INSTANCE_CUSTOM.z, 1e-3), 0.0, 1.0);
+	float w = mix(INSTANCE_CUSTOM.x, INSTANCE_CUSTOM.y, v_f);
+	vec3 vel;
+	vec3 c = (VIEW_MATRIX * vec4(motion(MODEL_MATRIX[3].xyz, MODEL_MATRIX[0].xyz, COLOR.b, age, vel), 1.0)).xyz;
+	vec3 ax = mat3(VIEW_MATRIX) * (length(vel) > 1e-3 ? normalize(vel) : vec3(0.0, 1.0, 0.0)) * max(length(vel) * 0.08, w);
+	vec3 side = cross(ax, c);
+	side = length(side) > 1e-6 ? normalize(side) : vec3(1.0, 0.0, 0.0);
+	vec2 l = UV * 2.0 - 1.0;
+	v_local = l;
+	vec3 v = c + side * l.x * 0.5 * w - ax * (l.y * 0.5 + 0.5);
+	v_view = v;
+	POSITION = PROJECTION_MATRIX * vec4(v, 1.0);
+}
+void fragment() {
+	float a = (1.0 - abs(v_local.x)) * (1.0 - (v_local.y * 0.5 + 0.5) * 0.8) * (1.0 - v_f) * COLOR.a
+		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(v_view));
+	vec3 c = mix(vec3(1.0, 0.95, 0.7), vec3(1.0, 0.35, 0.05), v_f);
+	ALBEDO = c * clamp(a, 0.0, 1.0) * 2.0;
+	ALPHA = 1.0;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cf523"]
+render_priority = 0
+shader = SubResource("Shader_0pi78")
+shader_parameter/now = 0.0
+shader_parameter/gravity = 0.0
+shader_parameter/wind = Vector3(0, 0, 0)
+
+[sub_resource type="Shader" id="Shader_0if55"]
+code = "
+shader_type spatial;
+render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabled;
+uniform sampler2D noise : filter_linear_mipmap, repeat_enable;
+uniform vec3 light = vec3(1.0);
+#include \"res://shared/terrain/clouds_behind.gdshaderinc\"
+void fragment() {
+	float across = 1.0 - abs(UV.y * 2.0 - 1.0);
+	float n = texture(noise, vec2(UV.x * 0.12, UV.y * 0.3 + UV.x * 0.031)).g;
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX), light);
+	// Soft across; a solid core at the tip that breaks up along as it ages; faded only within a few metres of the eye
+	// (the own jet's wingtips are 5 m or more away from the cockpit).
+	float broken = mix(1.0, smoothstep(0.2, 0.7, n), smoothstep(0.02, 0.2, COLOR.r));
+	float near = smoothstep(0.5, 3.0, length(VERTEX));
+	// The cloud forms within half a metre behind the tip (no cut end).
+	ALPHA = COLOR.a * smoothstep(0.0, 0.9, across) * broken * smoothstep(0.0, 0.5, UV2.x) * near;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4n3dx"]
+render_priority = 0
+shader = SubResource("Shader_0if55")
+shader_parameter/light = Vector3(1, 1, 1)
+
+[sub_resource type="Shader" id="Shader_wqkww"]
+code = "
+shader_type spatial;
+render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabled;
+uniform sampler2D noise : filter_linear_mipmap, repeat_enable;
+uniform vec3 light = vec3(1.0);
+instance uniform float k_cone = 0.0;
+instance uniform float k_wing = 0.0;
+instance uniform float seed = 0.0;
+// 1 seen from the own cockpit, inside the bell: the vapour around the jet shows all round (no axis fade).
+instance uniform float inside = 0.0;
+varying float v_up;
+varying vec3 v_axis;
+varying float v_ppm;
+
+#include \"res://shared/terrain/clouds_behind.gdshaderinc\"
+float soft(vec3 n, vec3 view, vec3 vtx) {
+	return smoothstep(0.0, 0.4, abs(dot(n, view))) * smoothstep(0.5, 4.0, length(vtx));
+}
+
+void vertex() {
+	// Wing vapour hugs the upper side of the wing: the bell flattens as the wing part takes over.
+	float w = k_wing / (k_cone + k_wing + 1e-3);
+	v_up = UV2.y;
+	// Pixels per metre at the jet: a far bell is a few pixels, where its puffs and soft outline would thin it away.
+	v_ppm = PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y / (2.0 * length(MODELVIEW_MATRIX[3].xyz));
+	VERTEX.y = mix(VERTEX.y, UV2.x + (VERTEX.y - UV2.x) * 0.3, w);
+	v_axis = normalize((MODELVIEW_MATRIX * vec4(0.0, 0.0, 1.0, 0.0)).xyz);
+}
+void fragment() {
+	float t = UV.x;
+	float flick = texture(noise, vec2(seed + TIME * 0.9, seed * 0.37)).r;
+	// From inside, a coarser, smoother noise: the fog is close, its fine grain would read as dirt.
+	vec2 q = vec2(UV.y * mix(6.0, 3.0, inside) + seed, t * 1.2 - TIME * 3.0);
+	float n = texture(noise, q).r * mix(0.65, 0.9, inside) + texture(noise, q * 2.7).g * mix(0.35, 0.1, inside);
+	// A soft front, densest ahead of the shock, a ragged soft aft edge.
+	float shape = smoothstep(0.05, 0.75, t) * (1.0 - smoothstep(0.7 - 0.2 * n, 1.0, t));
+	// Seen along the jet's axis (from behind or ahead) the thin shell is nearly invisible: no ring, no disc.
+	float axis = mix(1.0 - smoothstep(0.3, 0.8, abs(dot(v_axis, VIEW))), 1.0, inside);
+	float cone = k_cone * (0.55 + 0.45 * step(0.0, v_up));
+	float wing = k_wing * step(0.0, v_up);
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX), light);
+	// From inside, a wider silhouette fade: the doubled shell at the outline would read as a hard glassy arc.
+	float sil = smoothstep(0.0, mix(0.4, 0.8, inside), abs(dot(NORMAL, VIEW)));
+	float edge = sil * smoothstep(0.5, 4.0, length(VERTEX));
+	float puffs = smoothstep(mix(0.25, 0.1, inside), 0.7, n + flick * 0.4);
+	// Far off (under ≈ 3 pixels a metre) an even haze with a plain outline, as dense as the puffs on average.
+	float detail = smoothstep(0.5, 3.0, v_ppm);
+	puffs = mix(0.6, puffs, detail);
+	edge = mix(1.0, edge, detail);
+	ALPHA = clamp((cone + wing) * shape * axis * edge * puffs, 0.0, 0.75);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_u4ydp"]
+render_priority = 0
+shader = SubResource("Shader_wqkww")
+shader_parameter/light = Vector3(1, 1, 1)
+
+[sub_resource type="Shader" id="Shader_4a6rj"]
+code = "
+shader_type spatial;
+render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabled;
+uniform sampler2D noise : filter_linear_mipmap, repeat_enable;
+uniform vec3 light = vec3(1.0);
+uniform float min_px = 2.0;
+instance uniform float k_lex = 0.0;
+instance uniform float seed = 0.0;
+varying vec3 v_axis;
+varying float v_px;
+
+#include \"res://shared/terrain/clouds_behind.gdshaderinc\"
+float soft(vec3 n, vec3 view, vec3 vtx) {
+	return smoothstep(0.0, 0.4, abs(dot(n, view))) * smoothstep(0.5, 4.0, length(vtx));
+}
+
+void vertex() {
+	v_axis = normalize((MODELVIEW_MATRIX * vec4(0.0, 0.0, 1.0, 0.0)).xyz);
+	// At least min_px across on screen, so a far jet keeps its wisp (as the missile trails): the arc widens around
+	// the core.
+	vec3 core = (MODELVIEW_MATRIX * vec4(CUSTOM0.xyz, 1.0)).xyz;
+	float px = 2.0 * length(core) / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
+	float w = 2.0 * CUSTOM0.w * length(MODEL_MATRIX[0].xyz);
+	float k = max(1.0, min_px * px / max(w, 1e-4));
+	v_px = w * k / px;
+	VERTEX = CUSTOM0.xyz + (VERTEX - CUSTOM0.xyz) * k;
+}
+void fragment() {
+	float u = UV.x;
+	float v = UV.y;
+	// Streaks along the flow: fine across, long along, scrolling aft; they fray out over the wing.
+	float n = texture(noise, vec2(v * 6.0 + seed, u * 1.1 - TIME * 3.0)).r * 0.55
+		+ texture(noise, vec2(v * 17.0 + seed * 3.0, u * 2.3 - TIME * 5.0)).g * 0.45;
+	// A sheet a few pixels across: an even haze (the streaks would flicker), denser than their average.
+	float detail = smoothstep(3.0, 12.0, v_px);
+	float streaks = mix(0.75, smoothstep(0.3, 0.75, n), detail);
+	// Fading in from the start, thinning to nothing at the sheet's edges, ragged where it streams off.
+	float across = pow(sin(3.14159 * v), 2.0);
+	float shape = smoothstep(0.0, 0.1, u) * (1.0 - smoothstep(0.45 + 0.35 * n * detail, 1.0, u)) * across;
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX), light);
+	// Seen along the vortex (from the cockpit looking back) the thin sheet is all edge-on, yet the eye looks
+	// down the length of the cloud: no silhouette fade then, nor for a far sheet.
+	float along = max(smoothstep(0.5, 0.9, abs(dot(v_axis, VIEW))), 1.0 - detail);
+	float edge = mix(soft(NORMAL, VIEW, VERTEX), smoothstep(0.5, 4.0, length(VERTEX)), along);
+	ALPHA = clamp(k_lex * shape * edge * streaks * 0.5, 0.0, 0.4);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_nlanw"]
+render_priority = 0
+shader = SubResource("Shader_4a6rj")
+shader_parameter/light = Vector3(1, 1, 1)
+shader_parameter/min_px = 2.0
+
+[sub_resource type="Shader" id="Shader_tssrj"]
+code = "
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+uniform bool halo = false;
+uniform float min_px = 12.0;
+#include \"res://shared/terrain/clouds_behind.gdshaderinc\"
+varying vec2 v_uv;
+varying float v_dist;
+varying float v_end_on;
+varying float v_gain;
+void vertex() {
+	vec3 c = MODEL_MATRIX[3].xyz;
+	vec3 ax = MODEL_MATRIX[2].xyz;
+	float len = length(ax);
+	vec3 a = ax / max(len, 1e-4);
+	float wid = length(MODEL_MATRIX[0].xyz);
+	vec3 to_cam = INV_VIEW_MATRIX[3].xyz - c;
+	float d = length(to_cam);
+	v_dist = d;
+	// Looking into the nozzle (from behind the missile) the plume is short and the glow strongest.
+	v_end_on = max(dot(-a, to_cam / max(d, 1e-3)), 0.0);
+	float flick = 0.88 + 0.12 * sin(TIME * 63.0 + c.x * 0.7) * sin(TIME * 41.0 + c.z * 0.9);
+	v_uv = UV;
+	vec3 p;
+	if (halo) {
+		// At least min_px wide on screen: a far motor is still a bright point.
+		float px = 2.0 * d / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
+		// Up close (within ≈ 15 m) a quarter of its size: a chase camera sees a bright nozzle, not a white blob.
+		float w = wid * mix(0.25, 1.0, smoothstep(15.0, 150.0, d));
+		float size = max(w, min_px * px);
+		v_gain = flick * clamp(w / size, 0.35, 1.0);
+		p = c + (INV_VIEW_MATRIX[0].xyz * (UV.x - 0.5) + INV_VIEW_MATRIX[1].xyz * (0.5 - UV.y)) * size;
+	} else {
+		vec3 side = cross(a, to_cam);
+		side = length(side) > 1e-4 ? normalize(side) : INV_VIEW_MATRIX[0].xyz;
+		v_gain = flick;
+		p = c + a * (UV.y * 1.15 - 0.15) * len * flick + side * (UV.x - 0.5) * wid;
+	}
+	POSITION = PROJECTION_MATRIX * (VIEW_MATRIX * vec4(p, 1.0));
+}
+void fragment() {
+	vec3 col;
+	if (halo) {
+		float r2 = dot(v_uv - 0.5, v_uv - 0.5) * 4.0;
+		float g = exp(-r2 * 70.0) * 5.0 + exp(-r2 * 14.0) * 1.1 + exp(-r2 * 4.0) * 0.25;
+		col = mix(vec3(1.0, 0.62, 0.3), vec3(1.0, 0.9, 0.75), exp(-r2 * 30.0)) * g * v_gain * (0.6 + 0.6 * v_end_on);
+	} else {
+		float x = (v_uv.x - 0.5) * 2.0;
+		float t = clamp((v_uv.y * 1.15 - 0.15), 0.0, 1.0);
+		// A teardrop: widest a little behind the nozzle, closing to a point at the tip.
+		float r = 0.55 * sqrt(1.0 - t) * (0.6 + 0.4 * smoothstep(0.0, 0.12, t)) + 0.02;
+		float core = exp(-x * x / (r * r)) * smoothstep(1.0, 0.55, t) * smoothstep(-0.15, 0.0, v_uv.y * 1.15 - 0.15);
+		vec3 hot = vec3(1.0, 0.93, 0.8) * 7.0;
+		vec3 tip = vec3(1.0, 0.42, 0.08) * 2.2;
+		col = mix(hot, tip, smoothstep(0.08, 0.75, t)) * core * v_gain * (1.0 - 0.6 * v_end_on);
+	}
+	ALBEDO = col * clouds_through(SCREEN_UV, VIEWPORT_SIZE, v_dist);
+	ALPHA = 1.0;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_6eugv"]
+render_priority = 0
+shader = SubResource("Shader_tssrj")
+shader_parameter/halo = false
+shader_parameter/min_px = 12.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7h24d"]
+albedo_color = Color(0.07, 0.074, 0.078, 1)
+metallic_specular = 0.2
+roughness = 0.85
+
+[sub_resource type="Shader" id="Shader_03gme"]
+code = "// The 3D cockpit's baked light and relief (cockpit3d.gd _setup_baked_light): each opaque part drawn again over
+// itself, the framebuffer multiplied by
+//   - the ambient occlusion baked on its UV2 (tools/f16d/cockpit3d.py bake_light), `strength` of it;
+//   - the relief of its texture sheet: the sheet's brightness taken as height (the white labels and screw heads stand
+//     up, the dark seams sink), lit from above and behind the pilot (the canopy), up to `relief` brighter or darker.
+// cull_disabled becomes the part's own cull mode; `clip` keeps an alpha-scissored part's cut-outs.
+shader_type spatial;
+render_mode blend_mul, unshaded, fog_disabled, depth_draw_never, cull_disabled;
+
+uniform sampler2D light : hint_default_white, filter_linear_mipmap;
+uniform sampler2D sheet : hint_default_white, filter_linear_mipmap_anisotropic;
+uniform bool clip = false;
+uniform float strength = 0.85;
+uniform float relief = 0.0;
+
+varying vec3 sky;  // the light's direction, view space
+
+void vertex() {
+	sky = normalize((MODELVIEW_MATRIX * vec4(0.0, 1.0, 0.5, 0.0)).xyz);  // up and aft (the model's +z)
+}
+
+float height(vec2 uv) {
+	return dot(texture(sheet, uv).rgb, vec3(0.3, 0.59, 0.11));
+}
+
+void fragment() {
+	if (clip && texture(sheet, UV).a < 0.5) {
+		discard;
+	}
+	float k = mix(1.0, texture(light, UV2).r, strength);
+	if (relief > 0.0) {
+		// The sheet's u and v directions on the surface (view space), from the screen derivatives.
+		vec3 dp1 = dFdx(VERTEX);
+		vec3 dp2 = dFdy(VERTEX);
+		vec2 duv1 = dFdx(UV);
+		vec2 duv2 = dFdy(UV);
+		vec3 n = normalize(NORMAL);
+		vec3 t = cross(dp2, n) * duv1.x + cross(n, dp1) * duv2.x;
+		vec3 b = cross(dp2, n) * duv1.y + cross(n, dp1) * duv2.y;
+		float m = inversesqrt(max(max(dot(t, t), dot(b, b)), 1e-20));
+		// One screen pixel's step on the sheet (at least a texel): the relief at the size it is drawn.
+		vec2 texel = max(1.0 / vec2(textureSize(sheet, 0)), fwidth(UV));
+		vec2 g = vec2(height(UV + vec2(texel.x, 0.0)) - height(UV - vec2(texel.x, 0.0)),
+				height(UV + vec2(0.0, texel.y)) - height(UV - vec2(0.0, texel.y)));
+		// The slope tilts the normal against the height's rise: the faces toward the light brighten.
+		float lit = -(g.x * dot(t * m, sky) + g.y * dot(b * m, sky));
+		k *= clamp(1.0 + relief * lit, 1.0 - relief, 1.0 + relief);
+	}
+	ALBEDO = vec3(k);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ngtan"]
+render_priority = 0
+shader = SubResource("Shader_03gme")
+shader_parameter/clip = false
+shader_parameter/strength = 0.85
+shader_parameter/relief = 0.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0bmq0"]
+resource_name = "ac_icp_controls.png_3_2s"
+next_pass = SubResource("ShaderMaterial_ngtan")
+cull_mode = 2
+metallic_specular = 0.25
+roughness = 0.8
+emission_enabled = true
+emission = Color(2.24, 2.1461217, 2.0210323, 1)
+emission_operator = 1
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:res://shared/extra/models/cockpit3d/f16.glb#0"
+
+[sub_resource type="Shader" id="Shader_ndmvm"]
+code = "// The 3D cockpit's baked light and relief (cockpit3d.gd _setup_baked_light): each opaque part drawn again over
+// itself, the framebuffer multiplied by
+//   - the ambient occlusion baked on its UV2 (tools/f16d/cockpit3d.py bake_light), `strength` of it;
+//   - the relief of its texture sheet: the sheet's brightness taken as height (the white labels and screw heads stand
+//     up, the dark seams sink), lit from above and behind the pilot (the canopy), up to `relief` brighter or darker.
+// cull_back becomes the part's own cull mode; `clip` keeps an alpha-scissored part's cut-outs.
+shader_type spatial;
+render_mode blend_mul, unshaded, fog_disabled, depth_draw_never, cull_back;
+
+uniform sampler2D light : hint_default_white, filter_linear_mipmap;
+uniform sampler2D sheet : hint_default_white, filter_linear_mipmap_anisotropic;
+uniform bool clip = false;
+uniform float strength = 0.85;
+uniform float relief = 0.0;
+
+varying vec3 sky;  // the light's direction, view space
+
+void vertex() {
+	sky = normalize((MODELVIEW_MATRIX * vec4(0.0, 1.0, 0.5, 0.0)).xyz);  // up and aft (the model's +z)
+}
+
+float height(vec2 uv) {
+	return dot(texture(sheet, uv).rgb, vec3(0.3, 0.59, 0.11));
+}
+
+void fragment() {
+	if (clip && texture(sheet, UV).a < 0.5) {
+		discard;
+	}
+	float k = mix(1.0, texture(light, UV2).r, strength);
+	if (relief > 0.0) {
+		// The sheet's u and v directions on the surface (view space), from the screen derivatives.
+		vec3 dp1 = dFdx(VERTEX);
+		vec3 dp2 = dFdy(VERTEX);
+		vec2 duv1 = dFdx(UV);
+		vec2 duv2 = dFdy(UV);
+		vec3 n = normalize(NORMAL);
+		vec3 t = cross(dp2, n) * duv1.x + cross(n, dp1) * duv2.x;
+		vec3 b = cross(dp2, n) * duv1.y + cross(n, dp1) * duv2.y;
+		float m = inversesqrt(max(max(dot(t, t), dot(b, b)), 1e-20));
+		// One screen pixel's step on the sheet (at least a texel): the relief at the size it is drawn.
+		vec2 texel = max(1.0 / vec2(textureSize(sheet, 0)), fwidth(UV));
+		vec2 g = vec2(height(UV + vec2(texel.x, 0.0)) - height(UV - vec2(texel.x, 0.0)),
+				height(UV + vec2(0.0, texel.y)) - height(UV - vec2(0.0, texel.y)));
+		// The slope tilts the normal against the height's rise: the faces toward the light brighten.
+		float lit = -(g.x * dot(t * m, sky) + g.y * dot(b * m, sky));
+		k *= clamp(1.0 + relief * lit, 1.0 - relief, 1.0 + relief);
+	}
+	ALBEDO = vec3(k);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_6eio2"]
+render_priority = 0
+shader = SubResource("Shader_ndmvm")
+shader_parameter/clip = false
+shader_parameter/strength = 0.85
+shader_parameter/relief = 0.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3f3n4"]
+resource_name = "ac_icp_controls.png_3"
+next_pass = SubResource("ShaderMaterial_6eio2")
+metallic_specular = 0.25
+roughness = 0.8
+emission_enabled = true
+emission = Color(2.24, 2.1461217, 2.0210323, 1)
+emission_operator = 1
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:res://shared/extra/models/cockpit3d/f16.glb#2"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n5rqh"]
+resource_name = "ac_marked-iron.png_0_2s"
+transparency = 4
+cull_mode = 2
+metallic_specular = 0.25
+roughness = 0.8
+emission_enabled = true
+emission = Color(2.24, 2.1461217, 2.0210323, 1)
+emission_energy_multiplier = 0.4
+emission_operator = 1
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:res://shared/extra/models/cockpit3d/f16.glb#10"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ig641"]
+resource_name = "ac_faces1.png_19"
+transparency = 4
+metallic_specular = 0.25
+roughness = 0.8
+emission_enabled = true
+emission = Color(2.24, 2.1461217, 2.0210323, 1)
+emission_operator = 1
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:res://shared/extra/models/cockpit3d/f16.glb#30"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dfigk"]
+render_priority = 0
+shader = SubResource("Shader_03gme")
+shader_parameter/clip = false
+shader_parameter/strength = 0.85
+shader_parameter/relief = 0.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2sd8i"]
+resource_name = "ac_plain_2_2s.002"
+next_pass = SubResource("ShaderMaterial_dfigk")
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(1, 1, 1, 0)
+metallic_specular = 0.25
+roughness = 0.8
+texture_filter = 5
+metadata/model_key = "3:res://shared/extra/models/cockpit3d/f16.glb#38"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fy7tb"]
+render_priority = 0
+shader = SubResource("Shader_ndmvm")
+shader_parameter/clip = false
+shader_parameter/strength = 0.85
+shader_parameter/relief = 0.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_m1jla"]
+resource_name = "ac_plain_11"
+next_pass = SubResource("ShaderMaterial_fy7tb")
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+albedo_color = Color(0, 0, 0, 0)
+metallic_specular = 0.25
+roughness = 0.8
+texture_filter = 5
+metadata/model_key = "3:res://shared/extra/models/cockpit3d/f16.glb#44"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6vqa6"]
+albedo_color = Color(0, 0, 0, 1)
+roughness = 0.25
+emission_enabled = true
+emission_energy_multiplier = 0.0
+uv1_scale = Vector3(1.003184, 1.4855492, 1)
+texture_filter = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kkdlh"]
+transparency = 1
+cull_mode = 2
+albedo_color = Color(0.55, 0.75, 0.6, 0)
+metallic_specular = 0.8
+roughness = 0.05
+emission = Color(0.55, 0.75, 0.6, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_avs73"]
+resource_name = "ac_tranbg.png_3_2s"
+transparency = 4
+cull_mode = 2
+albedo_color = Color(1, 1, 1, 0)
+metallic_specular = 0.25
+roughness = 0.8
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:res://shared/extra/models/cockpit3d/f16.glb#116"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kg5mn"]
+resource_name = "ac_plain_3"
+albedo_color = Color(0.3, 0, 0, 1)
+metallic_specular = 0.25
+roughness = 0.8
+emission_enabled = true
+emission = Color(1, 0, 0, 1)
+emission_energy_multiplier = 0.0
+emission_operator = 1
+texture_filter = 5
+metadata/model_key = "3:res://shared/extra/models/cockpit3d/f16.glb#16"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tebpf"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+shading_mode = 0
+albedo_color = Color(0.62, 0.62, 0.62, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tjtw4"]
+shader = ExtResource("8_7nwgi")
+shader_parameter/scale = 1.0
+shader_parameter/bcs = Vector3(1, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ljojs"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.55, 0.15, 1)
+billboard_mode = 1
+fixed_size = true
+
+[sub_resource type="Shader" id="Shader_l10uu"]
+code = "
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled, skip_vertex_transform;
+uniform float size_px = 2.4;
+uniform bool moon = false;
+uniform float gain = 1.0;
+uniform float vp_h = 1080.0;
+#include \"res://shared/terrain/clouds_behind.gdshaderinc\"
+varying float fade;
+void vertex() {
+	vec3 dir = normalize((VIEW_MATRIX * vec4(VERTEX, 0.0)).xyz);
+	POSITION = PROJECTION_MATRIX * vec4(dir * 10.0, 1.0);
+	POSITION.z = POSITION.w * 1e-6;
+	float rows = vp_h / 1080.0;
+	POINT_SIZE = (moon ? size_px * abs(PROJECTION_MATRIX[1][1]) : size_px * (0.6 + COLOR.a)) * rows;
+	fade = smoothstep(-0.01, 0.12, normalize(VERTEX).y) * gain;
+}
+void fragment() {
+	vec2 c = POINT_COORD * 2.0 - 1.0;
+	float r = length(c);
+	float a = moon ? smoothstep(0.42, 0.36, r) + exp(-r * r * 6.0) * 0.12 : exp(-r * r * 5.0) * COLOR.a;
+	ALBEDO = COLOR.rgb * a * fade * clouds_through(SCREEN_UV, VIEWPORT_SIZE, 1e9);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sshgq"]
+render_priority = 0
+shader = SubResource("Shader_l10uu")
+shader_parameter/size_px = 2.4
+shader_parameter/moon = false
+shader_parameter/gain = 1.0
+shader_parameter/vp_h = 1080.0
+
+[sub_resource type="Shader" id="Shader_xqi8i"]
+code = "
+shader_type spatial;
+render_mode unshaded, cull_disabled;
+uniform sampler2D tex : source_color, filter_linear_mipmap;
+uniform float now;
+uniform float life;
+uniform vec3 wind = vec3(0.0);
+
+mat3 rot(vec3 a) {
+	vec3 c = cos(a);
+	vec3 s = sin(a);
+	mat3 rx = mat3(vec3(1, 0, 0), vec3(0, c.x, s.x), vec3(0, -s.x, c.x));
+	mat3 ry = mat3(vec3(c.y, 0, -s.y), vec3(0, 1, 0), vec3(s.y, 0, c.y));
+	mat3 rz = mat3(vec3(c.z, s.z, 0), vec3(-s.z, c.z, 0), vec3(0, 0, 1));
+	return rz * ry * rx;
+}
+
+void vertex() {
+	// INSTANCE_CUSTOM: velocity (m/s), start time; COLOR.rgb: spin (rad/s), COLOR.a: phase.
+	float t = now - INSTANCE_CUSTOM.w;
+	if (t < 0.0 || t > life) {
+		VERTEX = vec3(0.0);
+	} else {
+		VERTEX = rot(COLOR.rgb * t + COLOR.a * vec3(1.0, 2.0, 3.0)) * VERTEX
+			+ (INSTANCE_CUSTOM.xyz + wind) * t - vec3(0.0, 15.0 * t * t, 0.0);
+	}
+}
+
+void fragment() {
+	ALBEDO = texture(tex, UV).rgb * (220.0 / 255.0);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pbpxr"]
+render_priority = 0
+shader = SubResource("Shader_xqi8i")
+shader_parameter/now = 0.0
+shader_parameter/life = 0.0
+shader_parameter/wind = Vector3(0, 0, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eguqb"]
+resource_name = "Material__5_1"
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+roughness = 0.85
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:/Users/assafsapir/code/private/iaf-reborn/assets/converted/planes/f16/f16_h.gltf#0"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dhyu1"]
+resource_name = "f16_2side"
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+roughness = 0.85
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:/Users/assafsapir/code/private/iaf-reborn/assets/converted/planes/f16/f16_h.gltf#8"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1ea3d"]
+resource_name = "Material__1_4"
+transparency = 4
+roughness = 0.77
+texture_filter = 5
+metadata/_gltf_primary_texture_coord = 0
+metadata/model_key = "3:/Users/assafsapir/code/private/iaf-reborn/assets/converted/planes/f16/f16_h.gltf#2"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_c73u0"]
+shader = ExtResource("9_7hfx7")
+shader_parameter/radius = 34.0
+shader_parameter/factor = 15.0
+shader_parameter/roll = 0.0
+shader_parameter/pitch = 0.0
+
+[sub_resource type="Shader" id="Shader_445gc"]
+code = "
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, fog_disabled, blend_mix;
+uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform vec2 offset;  // S − C
+uniform float scale;  // 1 / (1.2 · far)
+uniform bool at_far;  // the dome (from below)
+// The texture's alpha mapped from this range to 0..1: (0, 1) = the original's; the atmospheric sky's (0.3, 0.9)
+// separates the clouds with clear sky between them instead of a grey veil over the whole sky.
+uniform vec2 alpha_range = vec2(0.0, 1.0);
+uniform vec3 tint = vec3(1.0);  // the cloud-layer colour (renderer +0x54): 0xFF14143C at night
+// The texture's finest mip level read: 2 = the original's 256 texels (bilinear, as its D3D renderer drew it), not
+// the 4× upscale's sharp steps between the ARGB4444 source's 16 alpha levels; 3 with the atmospheric sky, whose
+// stretched alpha shows those steps as contours. `detail` adds the texture at 4.37× its scale for the edges.
+uniform float min_lod = 2.0;
+uniform float detail = 0.0;
+// Under the rain's overcast (weather.gd grey()) the layer fades out: 1 = as drawn.
+uniform float fade = 1.0;
+// Night lights Detailed at night: the towns' light from below (light pollution, city_glow.gdshaderinc's map read 2 km
+// wide), orange on the cloud's base; 0 = none (the original).
+global uniform float city_glow_k;
+global uniform sampler2D city_glow : filter_linear_mipmap, repeat_disable;
+global uniform vec4 city_glow_rect;
+uniform float glow_gain = 0.0;
+// Lit by the sun (the atmospheric sky by day): sun_dir points to the sun (scene axes).
+uniform bool lit = false;
+uniform vec3 sun_dir = vec3(0.0, 1.0, 0.0);
+// The sunlight's reddening by its air mass (atmosphere.gdshader's sun_depth), thinner at the layer's height.
+const vec3 SUN_DEPTH = vec3(0.08, 0.22, 0.4) * 0.8;
+void vertex() {
+	// The dome at the far plane (reverse Z: depth 0): behind every terrain point, as the original cuts it at
+	// the terrain's far horizon (FUN_0041dc30 → +0x1098, v1.1) and fills the gap up to it at the dome's depth.
+	// The flat layer seen from above stays in front of the ground.
+	POSITION = PROJECTION_MATRIX * (MODELVIEW_MATRIX * vec4(VERTEX, 1.0));
+	if (at_far) {
+		POSITION.z = 0.0;
+	}
+}
+float air_mass(float cos_zenith) {
+	float c = clamp(cos_zenith, 0.0, 1.0);  // acos of a hair over 1 is NaN (atmosphere.gdshader)
+	float z = degrees(acos(c));
+	return 1.0 / (c + 0.50572 * pow(max(96.07995 - z, 0.001), -1.6364));
+}
+void fragment() {
+	vec2 uv = (UV2.x * UV + offset) * scale;
+	vec2 g = max(abs(dFdx(uv)), abs(dFdy(uv))) * float(textureSize(tex, 0).x);
+	// Four bilinear taps half a texel apart (a quadratic B-spline): bilinear alone leaves creases at the texel edges
+	// that the stretched alpha shows as contours.
+	float lod = max(log2(max(max(g.x, g.y), 1e-8)), min_lod);
+	float h = 0.5 * exp2(lod) / float(textureSize(tex, 0).x);
+	vec4 t = 0.25 * (textureLod(tex, uv + vec2(h, h), lod) + textureLod(tex, uv + vec2(-h, h), lod)
+			+ textureLod(tex, uv + vec2(h, -h), lod) + textureLod(tex, uv + vec2(-h, -h), lod));
+	t.a += detail * (texture(tex, uv * 4.37 + vec2(0.31, 0.77)).a - 0.5);
+	float d = clamp((t.a - alpha_range.x) / (alpha_range.y - alpha_range.x), 0.0, 1.0);
+	// With the smoothing, an S-curve keeps the gaps between the clouds clear (no creases: smooth).
+	if (detail > 0.0) {
+		d = smoothstep(0.0, 1.0, d);
+	}
+	// A dither of ± half an 8-bit step against banding in the smooth gradients.
+	float dither = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715)))) - 0.5;
+	ALPHA = clamp(d + dither / 255.0, 0.0, 1.0) * fade;
+	if (!lit) {
+		ALBEDO = COLOR.rgb * t.rgb * tint;
+	} else {
+		// d is the cloud's thickness. The light: the sky's (blue-grey, dimmer with a low sun) on the cloud's base,
+		// thick parts darker; the sun's, reddened by its air mass, through the thin parts (forward scattering
+		// toward the sun) and, with a low sun, on the bases from the side (warm toward the sun, dim away).
+		vec3 s = normalize(sun_dir);
+		vec3 v = normalize((INV_VIEW_MATRIX * vec4(VERTEX, 0.0)).xyz);
+		float mu = dot(v, s);
+		vec3 sun_t = exp(-SUN_DEPTH * min(air_mass(s.y) - 1.0, 12.0));
+		vec3 sun = sun_t / pow(sun_t.r, 0.7) * smoothstep(-0.1, 0.05, s.y);
+		float low = 1.0 - smoothstep(0.05, 0.4, s.y);
+		float fwd = pow(max(mu, 0.0), 6.0);
+		vec3 sky = vec3(0.45, 0.52, 0.7) * mix(1.0, 0.6, low);
+		vec3 c = sky * (1.0 - 0.4 * d);
+		c += sun * (1.0 - low) * (0.85 - 0.3 * d + 1.2 * fwd * (1.0 - d));
+		float side = 0.5 + 0.5 * mu;
+		c += sun * low * (0.1 + 0.9 * side * side + 2.0 * fwd) * (1.0 - 0.85 * d);
+		ALBEDO = c * t.rgb;
+		// Toward the horizon (the lower rings) the clouds thin, so the sky's horizon and a low sun show between them.
+		ALPHA *= 1.0 - 0.6 * smoothstep(0.4, 1.0, (UV2.x * 4.0 - 1.0) / 16.0);
+	}
+	if (glow_gain > 0.0 && city_glow_k > 0.0) {
+		vec3 wp = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+		vec2 g_uv = (wp.xz - city_glow_rect.xy) * city_glow_rect.zw;
+		if (all(greaterThanEqual(g_uv, vec2(0.0))) && all(lessThanEqual(g_uv, vec2(1.0)))) {
+			// The map at the level whose texels are 2 km wide, four taps half a texel apart: a soft ~4 km blur.
+			vec2 n = vec2(textureSize(city_glow, 0));
+			float lod = max(round(log2(2000.0 * city_glow_rect.z * n.x)), 0.0);
+			vec2 h = 0.5 * exp2(lod) / n;
+			float g = 0.25 * (textureLod(city_glow, g_uv + h, lod).r + textureLod(city_glow, g_uv - h, lod).r
+					+ textureLod(city_glow, g_uv + vec2(h.x, -h.y), lod).r
+					+ textureLod(city_glow, g_uv + vec2(-h.x, h.y), lod).r);
+			ALBEDO += vec3(1.0, 0.45, 0.14) * g * g * city_glow_k * glow_gain;
+		}
+	}
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7nwgi"]
+render_priority = 0
+shader = SubResource("Shader_445gc")
+shader_parameter/offset = Vector2(0, 0)
+shader_parameter/scale = 0.0
+shader_parameter/at_far = false
+shader_parameter/alpha_range = Vector2(0, 1)
+shader_parameter/tint = Vector3(1, 1, 1)
+shader_parameter/min_lod = 2.0
+shader_parameter/detail = 0.0
+shader_parameter/fade = 1.0
+shader_parameter/glow_gain = 0.0
+shader_parameter/lit = false
+shader_parameter/sun_dir = Vector3(0, 1, 0)
+
+[sub_resource type="Shader" id="Shader_7hfx7"]
+code = "shader_type spatial;
+render_mode cull_back;
+#include \"res://shared/util/model_detail.gdshaderinc\"
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_eguqb"]
+render_priority = 0
+shader = SubResource("Shader_7hfx7")
+shader_parameter/albedo = Color(1, 1, 1, 1)
+shader_parameter/has_tex = false
+shader_parameter/roughness = 0.85
+shader_parameter/specular = 0.5
+shader_parameter/alpha_scissor = 0.5
+shader_parameter/tile_m = 1.0
+shader_parameter/rough_mean = 0.5
+shader_parameter/rough_mid = 0.6
+shader_parameter/rough_var = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/normal_strength = 0.5
+shader_parameter/tint_strength = 0.1
+shader_parameter/fade_near = 40.0
+shader_parameter/fade_far = 120.0
+shader_parameter/gear = false
+shader_parameter/tile2_m = 0.3
+shader_parameter/rough2_mean = 0.5
+shader_parameter/rough2_mid = 0.9
+shader_parameter/dark_below = 0.16
+
+[resource]
+metadata/materials = [SubResource("ShaderMaterial_lnmv6"), SubResource("ShaderMaterial_kcek1"), SubResource("ShaderMaterial_j64em"), SubResource("ShaderMaterial_2ap83"), SubResource("StandardMaterial3D_ynv8n"), SubResource("StandardMaterial3D_cl0d1"), SubResource("StandardMaterial3D_bno2h"), SubResource("ShaderMaterial_v8u02"), SubResource("ShaderMaterial_tu645"), SubResource("ShaderMaterial_hl2ki"), SubResource("StandardMaterial3D_31lmw"), SubResource("StandardMaterial3D_qr64h"), SubResource("StandardMaterial3D_kruwt"), SubResource("StandardMaterial3D_3lhn3"), SubResource("StandardMaterial3D_kn0e5"), SubResource("StandardMaterial3D_8w7mp"), SubResource("StandardMaterial3D_sjaen"), SubResource("StandardMaterial3D_o2ovh"), SubResource("ShaderMaterial_37wsr"), SubResource("ShaderMaterial_otxrn"), SubResource("StandardMaterial3D_q8y7i"), SubResource("ShaderMaterial_pun2s"), SubResource("StandardMaterial3D_irqts"), SubResource("StandardMaterial3D_a3hsv"), SubResource("ShaderMaterial_vndiw"), SubResource("ShaderMaterial_pmv4x"), SubResource("ShaderMaterial_naqp5"), SubResource("ShaderMaterial_35el1"), SubResource("ShaderMaterial_v88vn"), SubResource("ShaderMaterial_cf523"), SubResource("ShaderMaterial_4n3dx"), SubResource("ShaderMaterial_u4ydp"), SubResource("ShaderMaterial_nlanw"), SubResource("ShaderMaterial_6eugv"), SubResource("StandardMaterial3D_7h24d"), SubResource("StandardMaterial3D_0bmq0"), SubResource("StandardMaterial3D_3f3n4"), SubResource("StandardMaterial3D_n5rqh"), SubResource("StandardMaterial3D_ig641"), SubResource("StandardMaterial3D_2sd8i"), SubResource("StandardMaterial3D_m1jla"), SubResource("StandardMaterial3D_6vqa6"), SubResource("StandardMaterial3D_kkdlh"), SubResource("StandardMaterial3D_avs73"), SubResource("StandardMaterial3D_kg5mn"), SubResource("StandardMaterial3D_tebpf"), SubResource("ShaderMaterial_tjtw4"), SubResource("StandardMaterial3D_ljojs"), SubResource("ShaderMaterial_sshgq"), SubResource("ShaderMaterial_pbpxr"), SubResource("StandardMaterial3D_eguqb"), SubResource("StandardMaterial3D_dhyu1"), SubResource("StandardMaterial3D_1ea3d"), SubResource("ShaderMaterial_c73u0"), SubResource("ShaderMaterial_7nwgi"), SubResource("ShaderMaterial_eguqb")]

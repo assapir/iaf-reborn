@@ -73,6 +73,11 @@ jobs:
           GODOT_TEMPLATES_TPZ: ${{ runner.temp }}/godot-templates.tpz
       - run: godot --headless --path modern-iaf --import
       - run: godot --headless --path iaf-reborn --import
+      # The shader baker needs a rendering device (docs/release.md "Baked shaders"): on Linux Mesa's software Vulkan
+      # under Xvfb; macOS and Windows use the runner's own (Metal; Direct3D 12's software adapter).
+      - name: The shader baker's Vulkan (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -q && sudo apt-get install -yq --no-install-recommends mesa-vulkan-drivers xvfb
       - name: Setup's tools (GDAL, curl)
         run: tools/release/tools_env.sh "$RUNNER_TEMP/tools"
       - name: Bundles

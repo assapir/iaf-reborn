@@ -271,6 +271,7 @@ var _end_worlds := 0
 var crashed := false
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const Gltf := preload("res://shared/util/gltf.gd")
+const ShaderWarmup := preload("res://shared/util/shader_warmup.gd")
 const NightLights := preload("res://shared/terrain/night_lights.gd")
 const AirbaseLights := preload("res://shared/terrain/airbase_lights.gd")
 const CityLights := preload("res://shared/terrain/city_lights.gd")
@@ -561,12 +562,14 @@ var _drawn_after := 0
 ## Modern IAF: the first frames after the loading (on a first start the world's shaders compile while the first is
 ## drawn) are still the flight's start, paused or not: a hang or an error then is a crash (Settings.loading_step
 ## "first frames"). The time the first world frame was drawn (at the second frame's start) and the tenth's start are
-## logged; then the shaders in use are checked (Settings.flight_drawn).
+## logged, the first also as the time since launch (a first start's length, docs/rendering.md §1.6); then the shaders in
+## use are checked (Settings.flight_drawn).
 func _first_frames() -> void:
 	_drawn_after += 1
 	if _drawn_after == 2 or _drawn_after == FIRST_FRAMES:
 		var what := "first world frame drawn" if _drawn_after == 2 else "frame %d" % _drawn_after
-		print("loading: %s at %d ms" % [what, Time.get_ticks_msec() - _build_at])
+		var now := Time.get_ticks_msec()
+		print("loading: %s at %d ms (%.1f s after launch)" % [what, now - _build_at, now / 1000.0])
 	if _drawn_after == FIRST_FRAMES:
 		get_tree().process_frame.disconnect(_first_frames)
 		Settings.loading_step = ""
@@ -4584,6 +4587,7 @@ func _process(delta: float) -> void:
 			for w in _warm_up:
 				w.queue_free()
 			_warm_up.clear()
+			ShaderWarmup.stop()  # the front end's (its shaders are the flight's own now)
 			_spawn_mission_objects()
 		# A fatally hit jet leaves the flight model (frozen by FUN_005a6510) for the destruction
 		# motion, which the mission runtime drives (mission_player_fall).

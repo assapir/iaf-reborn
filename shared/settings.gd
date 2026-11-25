@@ -1684,6 +1684,7 @@ func _exit_tree() -> void:
 		["res://shared/util/model_detail.gd", "finish_packs"],
 		["res://shared/terrain/ground_textures.gd", "finish_preload"],
 		["res://shared/terrain/terrain_preload.gd", "finish_prepare"],
+		["res://shared/util/shader_warmup.gd", "finish"],
 	]:
 		load(f[0]).call(f[1])
 	if timed_log != null:

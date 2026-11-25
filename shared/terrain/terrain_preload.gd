@@ -71,11 +71,13 @@ static func _enter_tree() -> void:
 static var _flight := 0
 
 
-## Both front ends' driver, called each frame while their menus draw: `key` = (mission, flight) the mission screens
-## show, mission -1 when none is open; `last` = the key of the caller's previous call (its own, (-1, -1) at first). A
-## new key re-aims the preload at that flight's start and preloads the models' packs (`ready`, optional, runs first
-## with the mission id and false stops it); -1 stops it. Returns the key to pass back as `last`.
+## Both front ends' driver, called each frame while their menus draw (and the shader warm-up's, ShaderWarmup.poll):
+## `key` = (mission, flight) the mission screens show, mission -1 when none is open; `last` = the key of the caller's
+## previous call (its own, (-1, -1) at first). A new key re-aims the preload at that flight's start and preloads the
+## models' packs (`ready`, optional, runs first with the mission id and false stops it); -1 stops it. Returns the key
+## to pass back as `last`.
 static func follow(tree: SceneTree, last: Vector2i, key: Vector2i, ready := Callable()) -> Vector2i:
+	_script("res://shared/util/shader_warmup.gd").poll(tree)  # the flight's shaders, compiled meanwhile
 	if key.x < 0:
 		key = Vector2i(-1, -1)
 	if key != last:
