@@ -198,6 +198,24 @@ impl IafModes {
         self.modes.over as i64
     }
 
+    /// The MASTER ARM switch (`master::MasterArm`): -1 SIMULATE, 0 OFF, 1 ARM.
+    #[func]
+    fn arm(&self) -> i64 {
+        self.modes.arm as i64
+    }
+
+    /// The MASTER ARM switch to ARM (`on`) or from ARM to OFF (`MasterArm::armed`).
+    #[func]
+    fn set_armed(&mut self, on: bool) {
+        self.modes.arm = self.modes.arm.armed(on);
+    }
+
+    /// The MASTER ARM switch to SIMULATE (`on`) or from SIMULATE to OFF (`MasterArm::simulate`).
+    #[func]
+    fn set_simulate(&mut self, on: bool) {
+        self.modes.arm = self.modes.arm.simulate(on);
+    }
+
     /// The master-mode keys (M, N, '[') act: the DGFT / MSL OVRD switch centred.
     #[func]
     fn mode_keys_free(&self) -> bool {

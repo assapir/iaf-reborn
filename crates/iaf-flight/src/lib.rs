@@ -15,6 +15,7 @@ pub mod fm;
 pub mod instruments;
 pub mod near_ground;
 pub mod params;
+pub mod player_ap;
 pub mod sixdof;
 pub mod spool;
 pub mod units;

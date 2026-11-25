@@ -11,6 +11,8 @@ pub struct IafTraining {
     watch: Option<Watch>,
     /// The live check's fail reason, once it found one.
     failed: Option<&'static str>,
+    /// The run in the game (`training::Run`): its phase, the score's clock, failed scores in a row.
+    run: training::Run,
 }
 
 #[godot_api]
@@ -47,6 +49,73 @@ impl IafTraining {
             self.failed = self.watch.as_mut().and_then(|w| w.check(&n));
         }
         GString::from(self.failed.unwrap_or(""))
+    }
+
+    /// The run's fail reason (`training::Run::why`), "" while none.
+    #[func]
+    fn run_why(&self) -> GString {
+        self.run.why().into()
+    }
+
+    /// The live check found `why` ("" none): the run, not yet failing or scored, ends now (`training::Run::fail`).
+    #[func]
+    fn run_fail(&mut self, why: GString) {
+        self.run.fail(&why.to_string());
+    }
+
+    /// A flying run's frame at `t` (the recording's s), `ready` its end reached or past its budget: true when it is
+    /// scored now (`training::Run::tick`).
+    #[func]
+    fn run_tick(&mut self, t: f64, ready: bool) -> bool {
+        self.run.tick(t, ready)
+    }
+
+    /// An ending run's score is due at `t` (`now`: at once): true when it is scored now (`training::Run::due`).
+    #[func]
+    fn run_due(&mut self, t: f64, now: bool) -> bool {
+        self.run.due(t, now)
+    }
+
+    /// A score came out: the failures in a row start again.
+    #[func]
+    fn run_scored(&mut self) {
+        self.run.scored();
+    }
+
+    /// A score failed: true when the run ends now, failed with "no_score" (`training::SCORE_TRIES` in a row).
+    #[func]
+    fn run_score_failed(&mut self) -> bool {
+        self.run.score_failed()
+    }
+
+    /// The failed scores in a row.
+    #[func]
+    fn run_fails(&self) -> i64 {
+        self.run.fails().into()
+    }
+
+    /// The run scored: passed, or failed with the debrief at `end_at` (sim s; INF none).
+    #[func]
+    fn run_finish(&mut self, pass: bool, end_at: f64) {
+        self.run.finish(pass, end_at);
+    }
+
+    /// Scored (passed or failed).
+    #[func]
+    fn run_finished(&self) -> bool {
+        self.run.finished()
+    }
+
+    /// When a failed run opens the debrief (sim s), INF none.
+    #[func]
+    fn run_end_at(&self) -> f64 {
+        self.run.end_at()
+    }
+
+    /// The debrief opened: no second end.
+    #[func]
+    fn run_ended(&mut self) {
+        self.run.ended();
     }
 
     /// The runway end the jet is lined up on when it is not the mission's ("07L"; `training::Watch::wrong_runway`),

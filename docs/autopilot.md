@@ -398,11 +398,19 @@ origin (`Autopilot::origin`). In f64, P3 and P4 differ by ~4·10⁻⁵ m: the se
 - `crates/iaf-flight/src/autopilot.rs`: `Autopilot::player_mode` (motion 0xf), `player_active`, the `Level` / `Fly`
   loops, `keep_orientation`, the mode-0 rules of Fly2WayPt / LandingCL / StopPlane. `step` returns the posted commands
   (`Out`, with `ap_key`).
-- `crates/iaf-godot/src/flight.rs`: `ap_player_mode`, `ap_stage`. `ap_step` returns the commands.
-- `shared/controls/autopilot.gd`: the mode, the lamp, the A key, stick / rudder break-out, throttle drop and re-sync,
-  damage, waypoint sequencing, and the commands mirrored on the levers. `terrain_view.gd` wires it in.
+- `crates/iaf-flight/src/player_ap.rs`: the switch, `PlayerAp` {Off, Level, Nav} (ctl+0x974) with the AP lamp
+  (indicator 8): the A key, stick / rudder break-out, NAV's throttle drop, damage. The mode, the lamp and the loop
+  disagree in three cases, as the exe does: damage puts the lamp out and stops the loop but keeps the mode (NAV keeps
+  dropping the throttle keys); an ejection stops the loop only; NAV on an empty route flies no loop with the lamp on.
+- `crates/iaf-godot/src/flight.rs`: `ap_engage`, `ap_key`, `ap_stick`, `ap_rudder`, `ap_throttle_allowed`,
+  `ap_damaged`, `ap_player`, `ap_lamp` (the switch); `ap_player_mode` (the loop alone), `ap_stage`. `ap_step` returns
+  the commands.
+- `shared/controls/autopilot.gd`: calls the switch and mirrors its lamp on `cockpit.indicators[8]` (`mode` reads
+  `ap_player`), the throttle re-sync, waypoint sequencing, and the commands mirrored on the levers. `terrain_view.gd`
+  wires it in.
   `hud.gd` draws `AP LVL` / `AP NAV`.
-- Tests: `crates/iaf-flight/tests/autopilot.rs` (`player_level_mode_…`, `player_nav_…`, `player_approach_mission_312`,
+- Tests: `player_ap.rs`'s unit tests (the A key's cycle, the break-outs, damage keeping NAV's throttle gate);
+  `crates/iaf-flight/tests/autopilot.rs` (`player_level_mode_…`, `player_nav_…`, `player_approach_mission_312`,
   `player_circuit_312_from_engage_points`: every step in order, the corners, turn directions and bank limits, the
   gear on the downwind, the touchdown, from six engage points); `tests/godot/test_autopilot.gd` (312: start in level mode, A cycle, stick
   break-out, NAV throttle drop, the circuit with gear and flaps on the levers, touchdown on the centreline,

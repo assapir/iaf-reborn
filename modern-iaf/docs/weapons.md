@@ -93,7 +93,9 @@ Every sim flight starts with the master arm safe (`Settings.starts_safe()`): the
 release (Space) fire nothing. **Master arm** (Shift+A, record 125 of `data/keys.json`, command 202) switches between
 safe and armed; the MASTER ARM switch moves and the stores page shows ARM (no line in the band since 2026-11-19,
 [front-end.md](front-end.md) §8). The original game has no master arm and no key sends
-command 202, so its weapons stay armed.
+command 202, so its weapons stay armed. The switch is one value of three positions, SIMULATE, OFF and ARM
+(`master::MasterArm` in `IafModes`; `player_weapons.gd` `master_arm` / `master_sim` read and set it), so it is never
+armed and at SIMULATE at once; from SIMULATE the key arms.
 
 The original's gear-down rule still holds when armed: with the gear handle down the gun fires only with Safety off
 ([../../docs/weapons.md](../../docs/weapons.md) §3).

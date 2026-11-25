@@ -486,7 +486,10 @@ mission `modern-iaf/data/missions/<id>.json` and the airbase files:
   reason first; nothing shows over the view meanwhile (until 2026-11-25 a banner with "Fail" and the reason; the user
   then: only radio over the flight);
 - a run that cannot be scored (the scorer's error three times in a row, `SCORE_TRIES`) ends the same way, failed; the
-  debrief's remark says the flight could not be scored (`no_score`);
+  debrief's remark says the flight could not be scored (`no_score`). The run's state is one Rust value,
+  `training::Run` (crates/iaf-tools/src/training.rs, kept by `IafTraining`): Flying, Ready (since when), Failing (the
+  live check's reason), Passed, Failed (when the debrief opens), with the score's clock (every `SCORE_EVERY` 3 s, once
+  ready for `RECORDED_S` 0.25 s) and the failed scores in a row;
 - an ejection ends the sortie (`Settings.eject_ends_sortie`, the sim only): every sound and the radio stop at once
   (`flight_sounds.gd silence`, no radio menu), the view stays outside on the seat and the jet at any height (no
   FlyTSD), the recording gets an `eject` event and the mission fails with `ejected` first. The original game's

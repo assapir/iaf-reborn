@@ -67,6 +67,8 @@ pub struct Modes {
     pub hud: Hud,
     /// Ours, Modern IAF's F-16s: the DGFT / MSL OVRD switch's position ([`Modes::throw_override`]).
     pub over: Override,
+    /// Ours: the MASTER ARM switch ([`MasterArm`]).
+    pub arm: MasterArm,
 }
 
 impl Modes {
@@ -256,9 +258,59 @@ impl Override {
     }
 }
 
+/// Ours: the MASTER ARM switch, one of three positions (modern-iaf/docs/weapons.md §3). The original game has none,
+/// so its jets stay at ARM; Modern IAF starts at OFF (safe), and its F-16s have SIMULATE (safe, the HUD's SIM).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum MasterArm {
+    /// SIMULATE: nothing is released or fired, the HUD shows SIM.
+    Sim = -1,
+    /// OFF: safe.
+    Off = 0,
+    /// MASTER ARM: the gun and the stores fire.
+    #[default]
+    Arm = 1,
+}
+
+impl MasterArm {
+    /// The switch set to ARM (`on`), or from ARM to OFF; SIMULATE stays at a move to safe.
+    pub fn armed(self, on: bool) -> Self {
+        match (on, self) {
+            (true, _) => MasterArm::Arm,
+            (false, MasterArm::Arm) => MasterArm::Off,
+            (false, at) => at,
+        }
+    }
+
+    /// The switch set to SIMULATE (`on`), or from SIMULATE to OFF; ARM stays at a move off SIMULATE.
+    pub fn simulate(self, on: bool) -> Self {
+        match (on, self) {
+            (true, _) => MasterArm::Sim,
+            (false, MasterArm::Sim) => MasterArm::Off,
+            (false, at) => at,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn master_arm_has_three_positions() {
+        use MasterArm::*;
+        assert_eq!(MasterArm::default(), Arm, "the original game's jets stay armed");
+        // The master arm key (command 202): safe <-> armed; from SIMULATE it arms.
+        assert_eq!(Off.armed(true), Arm);
+        assert_eq!(Arm.armed(false), Off);
+        assert_eq!(Sim.armed(true), Arm);
+        assert_eq!(Sim.armed(false), Sim, "SIMULATE is already safe");
+        // The 3D switch down: SIMULATE, never armed at the same time; up off it: OFF.
+        assert_eq!(Arm.simulate(true), Sim);
+        assert_eq!(Off.simulate(true), Sim);
+        assert_eq!(Sim.simulate(false), Off);
+        assert_eq!(Arm.simulate(false), Arm);
+        assert_eq!(Off.simulate(false), Off);
+    }
 
     #[test]
     fn dgft_and_msl_override() {

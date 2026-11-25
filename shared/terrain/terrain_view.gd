@@ -3327,10 +3327,9 @@ func _command(cmd: Array) -> bool:
 				flight.start_engine()
 		202:
 			# Modern IAF's "master arm" (its own keys.json; no original record sends it): safe <-> armed
-			# (player_weapons.gd master_arm, modern-iaf/docs/weapons.md §3).
+			# (player_weapons.gd master_arm, modern-iaf/docs/weapons.md §3; from SIMULATE: armed).
 			if weapons != null:
 				weapons.master_arm = not weapons.master_arm
-				weapons.master_sim = false
 				_cockpit_note("Master arm" if weapons.master_arm else "Master safe")
 		210, 211, 212, 213, 214, 215:
 			# Modern IAF's start-up checklist steps (its own keys.json; modern-iaf/docs/training.md §7.1): the flight add-on

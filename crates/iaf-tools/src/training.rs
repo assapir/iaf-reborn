@@ -1676,6 +1676,129 @@ fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -
     }
 }
 
+/// How often the game scores a training run that waits to pass or to end, s (modern-iaf/docs/training.md §4).
+pub const SCORE_EVERY: f64 = 3.0;
+/// A run whose score fails this many times in a row ends, failed: "no_score" in the debrief.
+pub const SCORE_TRIES: u32 = 3;
+/// A ready run is scored once the recorder has written a sample of it (10 a second), s.
+pub const RECORDED_S: f64 = 0.25;
+
+/// Where the game's training run is (sim_flight.gd; the statemachines audit #9).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum Phase {
+    /// Flying, its end not reached (not ready to be scored).
+    #[default]
+    Flying,
+    /// Ready to be scored since `at` (the recording's s): a start-up done, a take-off airborne, or past its budget.
+    Ready { at: f64 },
+    /// The live check's fail `why` (`Watch::check`): the run is scored at once, retried every SCORE_EVERY s.
+    Failing { why: String },
+    /// Scored, passed: the flight goes on.
+    Passed,
+    /// Scored, failed: the debrief at `end_at` (sim s, so a pause or the time compression holds it; INFINITY once
+    /// opened or none set).
+    Failed { end_at: f64 },
+}
+
+/// The game's training run: its phase, when it is scored next and its failed scores in a row.
+#[derive(Clone, Debug, Default)]
+pub struct Run {
+    pub phase: Phase,
+    next_score: f64,
+    fails: u32,
+}
+
+impl Run {
+    /// Scored (passed or failed): nothing more is checked.
+    pub fn finished(&self) -> bool {
+        matches!(self.phase, Phase::Passed | Phase::Failed { .. })
+    }
+
+    /// The live check's fail reason, "" while none.
+    pub fn why(&self) -> &str {
+        match &self.phase {
+            Phase::Failing { why } => why.as_str(),
+            _ => "",
+        }
+    }
+
+    /// The live check found `why` ("" none): a run not yet failing or scored ends now.
+    pub fn fail(&mut self, why: &str) {
+        if !why.is_empty() && matches!(self.phase, Phase::Flying | Phase::Ready { .. }) {
+            self.phase = Phase::Failing { why: why.into() };
+        }
+    }
+
+    /// A flying run's frame at `t` (the recording's s), `ready` its end reached: true when it is scored now (due,
+    /// ready for RECORDED_S); the next score is SCORE_EVERY later.
+    pub fn tick(&mut self, t: f64, ready: bool) -> bool {
+        if t < self.next_score || !matches!(self.phase, Phase::Flying | Phase::Ready { .. }) {
+            return false;
+        }
+        if !ready {
+            self.phase = Phase::Flying;
+            return false;
+        }
+        let at = match self.phase {
+            Phase::Ready { at } => at.min(t),
+            _ => t,
+        };
+        self.phase = Phase::Ready { at };
+        if t - at < RECORDED_S {
+            return false;
+        }
+        self.next_score = t + SCORE_EVERY;
+        true
+    }
+
+    /// An ending run's score is due at `t` (`now`: whenever, the player ending the flight): true when it is scored
+    /// now; the next try SCORE_EVERY later.
+    pub fn due(&mut self, t: f64, now: bool) -> bool {
+        if !now && t < self.next_score {
+            return false;
+        }
+        self.next_score = t + SCORE_EVERY;
+        true
+    }
+
+    /// A score came out: the failures in a row start again.
+    pub fn scored(&mut self) {
+        self.fails = 0;
+    }
+
+    /// A score failed: true when it is the SCORE_TRIES'th in a row of a run not yet scored (it ends, failed with
+    /// "no_score").
+    pub fn score_failed(&mut self) -> bool {
+        self.fails += 1;
+        self.fails >= SCORE_TRIES && !self.finished()
+    }
+
+    /// The failed scores in a row.
+    pub fn fails(&self) -> u32 {
+        self.fails
+    }
+
+    /// Scored: passed, or failed with the debrief at `end_at` (sim s).
+    pub fn finish(&mut self, pass: bool, end_at: f64) {
+        self.phase = if pass { Phase::Passed } else { Phase::Failed { end_at } };
+    }
+
+    /// When a failed run opens the debrief (sim s), INFINITY none.
+    pub fn end_at(&self) -> f64 {
+        match self.phase {
+            Phase::Failed { end_at } => end_at,
+            _ => f64::INFINITY,
+        }
+    }
+
+    /// The debrief opened: no second end.
+    pub fn ended(&mut self) {
+        if let Phase::Failed { end_at } = &mut self.phase {
+            *end_at = f64::INFINITY;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2458,5 +2581,70 @@ mod tests {
         let text = std::fs::read_to_string(&path).unwrap();
         let d = scored(&text, "ramon_takeoff");
         assert!(!d.items.is_empty());
+    }
+
+    #[test]
+    fn run_is_scored_once_ready_and_recorded() {
+        let mut r = Run::default();
+        assert!(!r.tick(0.0, false));
+        assert_eq!(r.phase, Phase::Flying);
+        assert!(!r.tick(1.0, true), "ready: waits for the recorder's sample");
+        assert_eq!(r.phase, Phase::Ready { at: 1.0 });
+        assert!(!r.tick(1.2, true));
+        assert!(r.tick(1.25, true), "scored RECORDED_S after it became ready");
+        assert!(!r.tick(4.0, true), "the next score SCORE_EVERY later");
+        assert!(!r.tick(4.25, false), "not ready again: back to flying");
+        assert_eq!(r.phase, Phase::Flying);
+        assert!(!r.tick(5.0, true));
+        assert!(r.tick(5.25, true));
+        r.scored();
+        r.finish(true, f64::INFINITY);
+        assert!(r.finished() && r.end_at().is_infinite());
+        assert!(!r.tick(100.0, true), "a pass flies on, not scored again");
+        r.fail("crash");
+        assert_eq!(r.phase, Phase::Passed, "a pass stays");
+    }
+
+    #[test]
+    fn a_fail_ends_the_run_and_holds_on_sim_time() {
+        let mut r = Run::default();
+        r.fail("");
+        assert_eq!(r.why(), "");
+        r.fail("off_pavement");
+        assert_eq!(r.why(), "off_pavement");
+        r.fail("crash");
+        assert_eq!(r.why(), "off_pavement", "the first reason stays");
+        assert!(!r.tick(10.0, true), "a failing run is not scored as a flying one");
+        assert!(r.due(10.0, false));
+        assert!(!r.due(12.0, false));
+        assert!(r.due(13.0, false));
+        r.finish(false, 20.0);
+        assert_eq!(r.end_at(), 20.0);
+        r.ended();
+        assert!(r.end_at().is_infinite() && r.finished());
+        // The player ending the flight scores it whenever.
+        let mut r = Run::default();
+        assert!(r.due(0.0, true));
+        assert!(r.due(0.0, true));
+    }
+
+    #[test]
+    fn a_run_that_cannot_be_scored_gives_up_after_score_tries() {
+        let mut r = Run::default();
+        r.fail("off_pavement");
+        for i in 1..SCORE_TRIES {
+            assert!(!r.score_failed(), "try {i}");
+        }
+        assert!(r.score_failed(), "the third failure in a row ends it (no_score)");
+        assert_eq!(r.fails(), SCORE_TRIES);
+        // A score in between starts the count again.
+        let mut r = Run::default();
+        assert!(!r.score_failed() && !r.score_failed());
+        r.scored();
+        assert!(!r.score_failed() && !r.score_failed());
+        assert!(r.score_failed());
+        // A finished run does not end twice.
+        r.finish(true, f64::INFINITY);
+        assert!(!r.score_failed());
     }
 }

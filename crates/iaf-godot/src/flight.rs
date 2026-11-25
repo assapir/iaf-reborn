@@ -7,6 +7,7 @@ use godot::prelude::*;
 use iaf_flight::airbase::Airbase;
 use iaf_flight::autopilot::{self, Autopilot, Host, Leader, Waypoint};
 use iaf_flight::fm::Fm;
+use iaf_flight::player_ap::{self, PlayerAp, Stick};
 use iaf_flight::{Aircraft, Controls, Start, Vec3};
 
 #[derive(GodotClass)]
@@ -26,6 +27,8 @@ pub struct IafFlight {
     turn_slip: iaf_flight::instruments::TurnSlip,
     /// The MiG-29 AoA / g meter's max-g memory (iaf_flight::instruments::g_memory); reset by `start`.
     g_max: f32,
+    /// The player's autopilot switch: its mode and the AP lamp (`iaf_flight::player_ap`); kept by `start`.
+    pap: player_ap::Switch,
 }
 
 /// Logs once per feature that the Modern IAF 6-DoF does not model it (modern-iaf/docs/flight-model.md §9.6).
@@ -770,6 +773,72 @@ impl IafFlight {
         if let (Some(ap), Some(ac)) = (&mut self.ap, &mut self.aircraft) {
             ap.player_mode(ac, mode.clamp(0, 2) as u8, wp.max(0) as usize);
         }
+    }
+
+    /// The player's autopilot switch (`iaf_flight::player_ap`, docs/autopilot.md §2): `mode` (0 off, 1 level, 2 NAV)
+    /// set, the AP lamp lit unless off, and its loop started on route waypoint `wp` (`ap_player_mode`).
+    #[func]
+    fn ap_engage(&mut self, mode: i64, wp: i64) {
+        self.pap.engage(PlayerAp::from_index(mode));
+        self.ap_player_mode(self.pap.mode as i64, wp);
+    }
+
+    /// The A key (GEV 0x10; the caller refuses it while the autopilot is damaged): the next mode (off on the ground)
+    /// and its loop on route waypoint `wp`. True when the throttle re-syncs (the mode went off).
+    #[func]
+    fn ap_key(&mut self, wp: i64) -> bool {
+        let on_ground = self.aircraft.as_ref().is_some_and(|ac| ac.state().on_ground);
+        let (mode, resync) = self.pap.key(on_ground);
+        self.ap_player_mode(mode as i64, wp);
+        resync
+    }
+
+    /// A stick event `v` (±1 = ±100): 0 dropped (the autopilot keeps the stick), 1 it reaches the jet, 2 it reaches
+    /// the jet and the autopilot went off with a throttle re-sync (`player_ap::Stick`).
+    #[func]
+    fn ap_stick(&mut self, v: Vector2) -> i64 {
+        match self.pap.stick(v.x.into(), v.y.into()) {
+            Stick::Drop => 0,
+            Stick::Pass => 1,
+            Stick::Off { resync } => {
+                self.ap_player_mode(0, 0);
+                if resync { 2 } else { 1 }
+            }
+        }
+    }
+
+    /// A rudder event `r` (±1): beyond ±51 with the AP lamp on the autopilot goes off.
+    #[func]
+    fn ap_rudder(&mut self, r: f64) {
+        if self.pap.rudder(r) {
+            self.ap_player_mode(0, 0);
+        }
+    }
+
+    /// The throttle keys reach the jet: not in NAV, also with the lamp out after damage (the exe's gate).
+    #[func]
+    fn ap_throttle_allowed(&self) -> bool {
+        self.pap.throttle_allowed()
+    }
+
+    /// Autopilot damage (system 6): the AP lamp out and the loop stopped; the mode stays.
+    #[func]
+    fn ap_damaged(&mut self) {
+        if self.pap.damaged() {
+            self.ap_player_mode(0, 0);
+        }
+    }
+
+    /// The player's autopilot mode: 0 off, 1 level, 2 NAV (kept after damage and ejection, as the exe's ctl+0x974).
+    #[func]
+    fn ap_player(&self) -> i64 {
+        self.pap.mode as i64
+    }
+
+    /// The AP lamp (indicator 8).
+    #[func]
+    fn ap_lamp(&self) -> bool {
+        self.pap.lamp
     }
 
     /// The control loop the player's autopilot runs, for logs and tests ("none" when off).

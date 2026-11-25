@@ -131,11 +131,20 @@ var _modes = ClassDB.instantiate("IafModes")
 ## ctl+0x970: Safety off (the cheat; firing with the gear handle down).
 var safety_off := false
 ## Ours: the master arm; safe, no gun or store fires (gun_trigger, fire_selected). The original has none, so it stays
-## armed; Modern IAF starts safe (Settings.starts_safe) and the Master arm key (command 202) toggles it.
-var master_arm := true
+## armed; Modern IAF starts safe (Settings.starts_safe) and the Master arm key (command 202) toggles it. One switch
+## with master_sim: IafModes.arm (-1 SIMULATE, 0 OFF, 1 ARM); true sets ARM, false moves ARM to OFF.
+var master_arm: bool:
+	get:
+		return _modes.arm() == 1
+	set(v):
+		_modes.set_armed(v)
 ## Ours, Modern IAF's F-16s: MASTER ARM at SIMULATE (the 3D cockpit's switch down): nothing is released or fired, the
-## HUD shows SIM (modern-iaf/docs/weapons.md §3).
-var master_sim := false
+## HUD shows SIM (modern-iaf/docs/weapons.md §3). True sets SIMULATE, false moves SIMULATE to OFF.
+var master_sim: bool:
+	get:
+		return _modes.arm() == -1
+	set(v):
+		_modes.set_simulate(v)
 ## Ours, Modern IAF's F-16s: the throttle's DGFT / MSL OVRD switch (IafModes keeps it: 0 centred, 1 DGFT, 2 MSL OVRD)
 ## and what it changed: {station, radar} before it was thrown.
 var override: int:
@@ -349,7 +358,9 @@ func rearm(entity: Dictionary, object: Dictionary, bdb: Dictionary, desc: Dictio
 ## The controller's state as a jet's own controller starts (FUN_004a8e70(3) makes the new unit's controller, ctl =
 ## unit+0x34, the player's: its master / HUD mode, safety, jettison and release state are its own, not the old jet's).
 func _reset_for_new_jet() -> void:
+	var sim := master_sim  # the MASTER ARM switch keeps SIMULATE; setup() sets ARM / OFF
 	_modes = ClassDB.instantiate("IafModes")
+	master_sim = sim
 	safety_off = false
 	_override_from = {}
 	releasing = false

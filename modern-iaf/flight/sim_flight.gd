@@ -122,15 +122,14 @@ const BASE_NAMES := {
 	"Hatzerim": ["Hatzerim", "חצרים"],
 	"Nevatim": ["Nevatim", "נבטים"],
 }
-## A take-off is scored once airborne (every SCORE_EVERY s until it passes), a start-up once the
-## engine idles with the avionics up; either this long past its time budget. A pass is kept and the flight goes on.
-# ponytail: each score re-reads the whole recording (O(length)); a scorer fed sample by sample if it shows.
 ## The radio menu closes by itself this long after it opened or after its last key, s (the user, 2026-11-15: "the
 ## radio menu should disappear after few seconds if not in use"; the original game has no such menu: inferred).
 const MENU_S := 6.0
-const SCORE_EVERY := 3.0
-## A run whose score() fails this many times in a row ends, failed: "the flight could not be scored" in the debrief.
-const SCORE_TRIES := 3
+## A take-off is scored once airborne (every 3 s until it passes), a start-up once the engine idles with the avionics
+## up; either this long past its time budget. A pass is kept and the flight goes on. The run's state (when it is
+## scored, its fail, 3 failed scores in a row ending it, the hold before the debrief) is IafTraining's run
+## (crates/iaf-tools/src/training.rs Run).
+# ponytail: each score re-reads the whole recording (O(length)); a scorer fed sample by sample if it shows.
 const PAST_BUDGET := 5.0
 ## A take-off's fail reasons no later flying can mend: the mission ends on them once airborne.
 const FINAL := ["wrong_runway", "excursion", "over_time"]
@@ -161,22 +160,38 @@ var mission_name := ""
 var rules := {}
 ## The jet the mission flies (its readable file's start.unit: f16i, f16d, f35i), stored with the sortie.
 var plane := ""
-## The debrief record once scored ({} before), and its sortie in the records database (0 before).
-var result := {}
+## The debrief record once scored ({} before), and its sortie in the records database (0 before). Set from outside
+## (tests): the run counts as scored, no hold.
+var result: Dictionary:
+	get:
+		return _result
+	set(d):
+		_result = d
+		if trainer != null and not d.is_empty():
+			trainer.run_finish(bool(d.get("pass", false)), INF)
+var _result := {}
 var sortie := 0
 ## Tests: where the records database and (isolated) the recording go; "" = Settings.records_dir().
 var out_dir := ""
-var _next_score := 0.0
-var _ready_at := INF
-## The training run's IafTraining (its live check and scorer), its fail reason ("" while none) and when it passed.
+## The training run's IafTraining (its live check, its run and scorer; null without rules) and the run's fail reason
+## ("" while none).
 var trainer: RefCounted
-var _why := ""
+var _why: String:
+	get:
+		return String(trainer.run_why()) if trainer != null else ""
+	set(v):
+		if trainer != null:
+			trainer.run_fail(v)
 ## The runway ends not the mission's the tower named already.
 var _wrong_said: Array = []
 ## When the flight ends into the debrief (s, sim time: a pause or the time compression holds it), once the mission
-## ended; score() failures in a row.
-var _end_at := INF
-var _score_fails := 0
+## failed; score() failures in a row.
+var _end_at: float:
+	get:
+		return trainer.run_end_at() if trainer != null else INF
+var _score_fails: int:
+	get:
+		return trainer.run_fails() if trainer != null else 0
 ## A start-up lesson's items of the jet's card it asks for (the readable mission's training.checklist: card item ids,
 ## training.md §12), the flight model's start-up steps whose switches are on (ids: IafFlight.start_on, read each
 ## frame), a step's fault waiting for the live check, the last fault shown, the jet's checklist card (card.gd) and
@@ -213,7 +228,6 @@ const THROTTLE_OFF := 0.02
 var _throttle_was := -1.0
 ## The 3D cockpit's start-up switches as last set from the flight model (_sync_switches): step id -> on.
 var _shown := {}
-const RECORDED_S := 0.25
 ## The canopy's travel, open to shut (s): FlightGear's F-16 (Systems/jsb-controls.xml fcs/canopy-control-1, 10 s); the
 ## F-35I's inferred the same.
 const CANOPY_S := 10.0
@@ -761,8 +775,8 @@ func pick(id: String) -> String:
 
 
 func _process(delta: float) -> void:
-	if not result.is_empty() and float(host._sim_time) >= _end_at:
-		_end_at = INF
+	if float(host._sim_time) >= _end_at:
+		trainer.run_ended()
 		host._end_flight(true)  # into the debrief (Settings.flown_sortie)
 	if open and Time.get_ticks_msec() - _menu_at > MENU_S * 1000.0:
 		set_open(false)  # not in use
@@ -776,7 +790,7 @@ func _process(delta: float) -> void:
 	if changed and kneeboard != null:
 		kneeboard.refresh()
 	_canopy(delta)
-	if rules.is_empty() or not result.is_empty() or host.flight == null or host.get("_log") == null:
+	if rules.is_empty() or trainer.run_finished() or host.flight == null or host.get("_log") == null:
 		return
 	var t: float = host._log_t
 	var st: Dictionary = host._log_st  # this frame's flight state (terrain_view.gd _record)
@@ -814,8 +828,6 @@ func _process(delta: float) -> void:
 	if _why != "":
 		_end_now(t)
 		return
-	if t < _next_score:
-		return
 	var budget := float(rules.get("time_budget_s", 900.0))
 	var ready := false
 	if String(rules.get("kind", "")) == "startup":
@@ -823,19 +835,14 @@ func _process(delta: float) -> void:
 		ready = ready and _steps().all(func(id): return card.done.has(id))  # every item the lesson asks for ticked
 	else:
 		ready = not bool(st.on_ground)  # airborne: scored with the gear up or down, so a missing goal shows
-	if not (ready or t > budget + PAST_BUDGET):
-		_ready_at = INF
+	# Scored every 3 s once ready (or past the budget) and the recorder has written a sample of it (10 a second).
+	if not trainer.run_tick(t, ready or t > budget + PAST_BUDGET):
 		return
-	# Scored once the recorder has written a sample of it (10 a second).
-	_ready_at = minf(_ready_at, t)
-	if t - _ready_at < RECORDED_S:
-		return
-	_next_score = t + SCORE_EVERY
 	var d := score()
 	if d.has("error"):
 		_score_failed(d)
 		return
-	_score_fails = 0
+	trainer.run_scored()
 	# A pass holds; a take-off not yet on its heading or with the gear down may still pass: scored again until its
 	# budget (no line over the flight says what is missing: the user, 25 Nov 2026, only radio over the flight; the
 	# debrief does). A roll off the runway or past the budget cannot pass: it ends.
@@ -855,11 +862,10 @@ func _wrong_runway(wrong: String) -> void:
 		host.radio.say("ACFT_WRONG_RUNWAY", [host.radio._tower_callsign()], [wrong, String(trainer.runway())])
 
 
-## The mission ends now: scored and finished (retried every SCORE_EVERY s if it cannot be scored).
-func _end_now(t: float) -> void:
-	if t < _next_score:
+## The mission ends now: scored and finished (retried every 3 s if it cannot be scored; `now`: at once).
+func _end_now(t: float, now := false) -> void:
+	if not trainer.run_due(t, now):
 		return
-	_next_score = t + SCORE_EVERY
 	var d := score()
 	if d.has("error"):
 		_score_failed(d)
@@ -867,12 +873,11 @@ func _end_now(t: float) -> void:
 		_finish(d)
 
 
-## score() failed (`d.error`): after SCORE_TRIES in a row the run ends, failed, its debrief saying it could not be
-## scored (reason "no_score", the front end's string), so a run never flies on with no word.
+## score() failed (`d.error`): after 3 in a row the run ends, failed, its debrief saying it could not be scored
+## (reason "no_score", the front end's string), so a run never flies on with no word.
 func _score_failed(d: Dictionary) -> void:
 	push_warning("training: %s" % d.error)
-	_score_fails += 1
-	if _score_fails >= SCORE_TRIES and result.is_empty():
+	if trainer.run_score_failed():
 		_finish(
 			{"pass": false, "reasons": ["no_score"], "kind": String(rules.get("kind", "")), "error": String(d.error)}
 		)
@@ -880,9 +885,8 @@ func _score_failed(d: Dictionary) -> void:
 
 ## The player ended the flight before the mission's end: scored as it stands.
 func _exit_tree() -> void:
-	if not rules.is_empty() and result.is_empty() and host.get("_log") != null:
-		_next_score = 0.0
-		_end_now(0.0)
+	if not rules.is_empty() and not trainer.run_finished() and host.get("_log") != null:
+		_end_now(0.0, true)
 
 
 func _readable() -> String:
@@ -901,7 +905,8 @@ func score() -> Dictionary:
 
 
 func _finish(d: Dictionary) -> void:
-	result = d
+	_result = d
+	trainer.run_finish(bool(d["pass"]), INF if d["pass"] else float(host._sim_time) + trainer.end_hold_s())
 	d["flight"] = ProjectSettings.globalize_path(host._log.get_path_absolute())
 	d["date"] = Time.get_datetime_string_from_system()
 	d["elapsed_s"] = snappedf(float(host._log_t), 0.1)
@@ -922,7 +927,6 @@ func _finish(d: Dictionary) -> void:
 		else:
 			_accomplished()
 	else:
-		_end_at = float(host._sim_time) + trainer.end_hold_s()
 		set_open(false)
 
 

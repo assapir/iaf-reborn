@@ -1,20 +1,22 @@
 # The player's autopilot (docs/autopilot.md): the controller side of the original (FUN_0044a240 cases 1 / 0xa /
 # 0x10 / throttle, mode ctl+0x974, lamp 8) and the HUD's waypoint sequencing (FUN_00452960). The control loops
-# are the AI's (crates/iaf-flight/src/autopilot.rs, one control law for AI and player), run through IafFlight.
+# are the AI's (crates/iaf-flight/src/autopilot.rs, one control law for AI and player), run through IafFlight. The
+# mode, the AP lamp and their rules are Rust's (crates/iaf-flight/src/player_ap.rs, IafFlight.ap_*); the lamp is
+# mirrored on cockpit.indicators[8].
 extends RefCounted
 
 ## The flight scene (terrain_view.gd): flight, cockpit, route, stick / throttle / lever state.
 var host: Node
-## ctl+0x974: 0 off, 1 level (HUD "AP LVL"), 2 navigation ("AP NAV"); 1 → 2 → 0 on the A key.
-var mode := 0
+## ctl+0x974: 0 off, 1 level (HUD "AP LVL"), 2 navigation ("AP NAV"); 1 → 2 → 0 on the A key (IafFlight.ap_player).
+var mode: int:
+	get:
+		return host.flight.ap_player()
 ## The last keyboard stick event (DAT_008338f0 / f4, ±1): the keys rewrite roll / pitch into one GEV 1 (x, y).
 var kb_stick := Vector2.ZERO
 ## FUN_00452960 waypoint box state: +0x48 inside once, +0x40 the closest distance so far.
 var nav_inside := false
 var nav_min := NAV_MIN_INIT
 
-## The stick / rudder events at or beyond ±51 (of ±100) disengage the autopilot (@44bd0e, case 0xa).
-const BREAK_OUT := 0.51
 ## The waypoint box half size (2 · 1854 · 0.5 m, 0x600de0 / 0x600df8) and the "near" radius of an action-5
 ## waypoint (0x600df0); the reset of the closest distance (0x600de4).
 const NAV_BOX := 1854.0
@@ -38,17 +40,10 @@ func start(airborne: bool) -> void:
 func key() -> void:
 	if host.player_damage.flags[6]:
 		return
-	var old := mode
-	if host.flight.state().on_ground:
-		old = 2
-	match old:
-		0:
-			_engage(1)
-		1:
-			_engage(2)
-		2:
-			_engage(0)
-			_resync_throttle()
+	var resync: bool = host.flight.ap_key(host.cockpit.current_waypoint)
+	_lamp()
+	if resync:
+		_resync_throttle()
 
 
 ## A stick event (GEV 1 from the roll / pitch keys, FUN_004e0b80, or the joystick, FUN_004df560; only the keys'
@@ -58,33 +53,28 @@ func key() -> void:
 func stick_event(v: Vector2, from_keys := true) -> bool:
 	if from_keys:
 		kb_stick = v
-	if not host.cockpit.indicators[8]:
-		return true
-	if absf(v.x) < BREAK_OUT and absf(v.y) < BREAK_OUT:
-		return false
-	var old := mode
-	_engage(0)
-	if old != 1:
+	var o: int = host.flight.ap_stick(v)
+	_lamp()
+	if o == 2:
 		_resync_throttle()
-	return true
+	return o != 0
 
 
 ## GEV 10 (rudder keys): always posted; beyond ±51 it also turns the autopilot off (no throttle re-sync).
 func rudder_event(r: float) -> void:
-	if host.cockpit.indicators[8] and absf(r) >= BREAK_OUT:
-		_engage(0)
+	host.flight.ap_rudder(r)
+	_lamp()
 
 
 ## Throttle commands (GEV 4 / 9, RPM ± 5 %) are dropped in NAV (the autopilot holds the throttle).
 func throttle_allowed() -> bool:
-	return mode != 2
+	return host.flight.ap_throttle_allowed()
 
 
 ## Damage 6 (FUN_0044d760 case 6): lamp off and the loop stopped; ctl+0x974 keeps its value (as coded).
 func damaged() -> void:
-	if host.cockpit.indicators[8]:
-		host.cockpit.indicators[8] = false
-		host.flight.ap_player_mode(0, 0)
+	host.flight.ap_damaged()
+	_lamp()
 
 
 ## One frame before the flight model steps: the loop's tick, its commands mirrored on the levers (they reach
@@ -156,9 +146,13 @@ func _nav_update(p: Vector2) -> void:
 
 
 func _engage(m: int) -> void:
-	mode = m
-	host.cockpit.indicators[8] = m != 0
-	host.flight.ap_player_mode(m, host.cockpit.current_waypoint)
+	host.flight.ap_engage(m, host.cockpit.current_waypoint)
+	_lamp()
+
+
+## The AP lamp (indicator 8) as the Rust switch has it.
+func _lamp() -> void:
+	host.cockpit.indicators[8] = host.flight.ap_lamp()
 
 
 ## FUN_005a29d0 (leaving NAV; UNCERTAIN: gated on a vehicle getter == 0x1e): the throttle goes back to the
