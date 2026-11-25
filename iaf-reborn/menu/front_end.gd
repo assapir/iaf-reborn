@@ -273,7 +273,13 @@ const EXTRAS := [
 	# Ours: the CD's autorun launcher before the main menu (menu/startup.gd, docs/front-end.md §18).
 	["cd_launcher", "CD launcher", [["Off", false], ["On", true]]],
 	# Ours: a newer nightly and setup steps to run again, looked for on start (shared/util/updater.gd, release.md §7).
-	["update_mode", "Updates on start", [["Ask", "ask"], ["Always download", "always"], ["Never", "never"]]],
+	# Its 4th field: the choices' column widths (the long middle one wider), else the 3-choice default.
+	[
+		"update_mode",
+		"Updates on start",
+		[["Ask", "ask"], ["Always download", "always"], ["Never", "never"]],
+		[54, 126, 70]
+	],
 	# Ours: the wheel / trackpad scroll direction (Settings.wheel_steps; the original has no wheel).
 	["wheel_scroll", "Mouse wheel", [["Regular", "regular"], ["Natural", "natural"]]],
 	# Ours: the cockpit improvements (Settings.BETTER_COCKPIT: the turning compass / HSI, the engine, fuel and clock
@@ -1708,7 +1714,12 @@ func _extras_items() -> Array:
 		for j in choices.size():
 			# Two choices in the Gameplay page's columns (x 164 / 285); three or four narrower; all left of the scrollbar.
 			var r := Rect2(164.0 + 121.0 * j, y, 111.0 if j == 0 else 129.0, EXTRAS_ROW)
-			if choices.size() == 3:
+			if opt.size() > 3:  # the row's own widths, 2 px apart
+				var x := 164.0
+				for w in opt[3].slice(0, j):
+					x += w + 2.0
+				r = Rect2(x, y, opt[3][j], EXTRAS_ROW)
+			elif choices.size() == 3:
 				r = Rect2([164.0, 240.0, 314.0][j], y, [74.0, 72.0, 100.0][j], EXTRAS_ROW)
 			elif choices.size() == 4:
 				r = Rect2([164.0, 238.0, 304.0, 350.0][j], y, [74.0, 66.0, 46.0, 64.0][j], EXTRAS_ROW)
