@@ -2424,6 +2424,13 @@ start; the area is drawn, the skill is the Pilot screen's. Every distance and ti
     start hears it at once, a ground start after take-off) and every 60 s after, about the task's target nearest the
     jet, until every one of them is down. The AWACS's contact calls (docs/radio.md §4) go on beside it. The words of
     the four tasks and the Hebrew lines are ours (modern-iaf/docs/research/radio-terms.md).
+  - The start time (the user, 25 November 2026: "do a specific military time to choose", "And random"): minutes
+    after local midnight on the five-minute grid (`time_valid`, `time_step`: an hour or five minutes, round the
+    clock), shown HHMM (`clock`); `start_time(seed, random, min)` flies the set time, or with Random one drawn from
+    the Scramble's seed, alike over the day's 288 five-minute steps (its own draw, apart from the area's and the
+    roll's). The flight starts at it on today's date (`day_of_year`) with Israel's clock of the day (`utc_offset`: 3
+    hours ahead of UTC from the Friday before March's last Sunday to October's last Sunday, Israel's Time
+    Determination Law of 2013, else 2): modern-iaf/docs/front-end.md §2.1.
 - **In flight** (`modern-iaf/flight/free_combat.gd`, a child of `sim_flight.gd` on a Scramble start): once the ground
   under the jet is loaded it rolls the enemy at the pilot's enemy skill and places the plan in order (the sites, the
   network, the fighters vectored by it, the convoy, the drones), all at that skill (§17). A based pair stands in the
@@ -2436,12 +2443,14 @@ start; the area is drawn, the skill is the Pilot screen's. Every distance and ti
   request, the Eitam flying in the sky: ai-plan.md C1, Q12), a call when the task is done, the task's choice by the
   player.
 - **Tests:** `cargo test -p iaf-ai --lib free_combat` (the area: never home, in reach, every base in reach drawn;
-  the runway start's places; the roll: a seed draws the same enemy, the task's
+  the runway start's places; the start time: HHMM, the steps round the clock, Random by seed over every hour, the day
+  of the year, Israel's summer time; the roll: a seed draws the same enemy, the task's
   target always there, alert pairs with the network, the threats by skill, every task drawn; the air start clear of
   the bases, the wingmen's places; the call's words and timing; the layout faces the player, the order, the second
   alert pair's shelters); `modern-iaf/tests/test_free_combat.gd` (the screen en + he; Ramon's start in the air round
   Hatzerim with the roll placed and the task call said before the flight's calls; the area drawn from Ramon; the
-  runway start lined up with both engines running; the same start on the ground, cold at Ramon).
+  runway start lined up with both engines running; the same start on the ground, cold at Ramon; the Time row en + he:
+  0800 first, the steps, Random kept; a 2200 start at night on today's date, the notebook's time).
 
 ## UNCERTAIN
 Open questions in this document:

@@ -282,6 +282,62 @@ pub fn task_call(task: Task, callsign: &str, player: Vec3, target: Vec3) -> (&'s
     ("AWX_TASK", args)
 }
 
+/// The start time's steps (min: an hour, five minutes) and a day's minutes; a start time is minutes after local
+/// midnight, Israel time (the Scramble screen's first default 0800: free_combat_page.gd DEFAULT).
+pub const HOUR_STEP: i64 = 60;
+pub const MINUTE_STEP: i64 = 5;
+const DAY_MIN: i64 = 24 * 60;
+
+/// A stored start time `min` (minutes after midnight) on the five-minute grid, in the day: wrapped, rounded down to
+/// [`MINUTE_STEP`].
+pub fn time_valid(min: i64) -> i64 {
+    let m = min.rem_euclid(DAY_MIN);
+    m - m % MINUTE_STEP
+}
+
+/// `min` stepped by `delta` minutes (an hour or [`MINUTE_STEP`] either way), round the clock.
+pub fn time_step(min: i64, delta: i64) -> i64 {
+    time_valid(time_valid(min) + delta)
+}
+
+/// The start time as the player sets it, 24-hour military time HHMM ("0630", "2200").
+pub fn clock(min: i64) -> String {
+    let m = min.rem_euclid(DAY_MIN);
+    format!("{:02}{:02}", m / 60, m % 60)
+}
+
+/// The flight's start time (minutes after local midnight): the set `min`, or with `random` one drawn from the
+/// Scramble's `seed` alike over the day's five-minute steps (its own draw: the area's and the roll's draws differ).
+pub fn start_time(seed: u64, random: bool, min: i64) -> i64 {
+    if !random {
+        return time_valid(min);
+    }
+    (mix(seed ^ mix(0x7173)) % (DAY_MIN / MINUTE_STEP) as u64) as i64 * MINUTE_STEP
+}
+
+/// The day of the year (1 for 1 January) of `year`-`month`-`day` (Gregorian), for the sun on today's date.
+pub fn day_of_year(year: i64, month: i64, day: i64) -> i64 {
+    const BEFORE: [i64; 12] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    BEFORE[(month.clamp(1, 12) - 1) as usize] + day + i64::from(leap && month > 2)
+}
+
+/// Israel's clock on `year`-`month`-`day`, hours ahead of UTC: 3 on summer time (Israel Daylight Time, from the
+/// Friday before March's last Sunday to October's last Sunday: Israel's Time Determination Law, 2013), else 2.
+pub fn utc_offset(year: i64, month: i64, day: i64) -> f64 {
+    // The weekday (0 Sunday; Sakamoto's method) and the month's last Sunday.
+    let weekday = |y: i64, m: i64, d: i64| {
+        const T: [i64; 12] = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
+        let y = if m < 3 { y - 1 } else { y };
+        (y + y / 4 - y / 100 + y / 400 + T[(m - 1) as usize] + d).rem_euclid(7)
+    };
+    let last_sunday = |m: i64| 31 - weekday(year, m, 31);
+    let today = day_of_year(year, month, day);
+    let from = day_of_year(year, 3, last_sunday(3)) - 2;
+    let to = day_of_year(year, 10, last_sunday(10));
+    if (from..to).contains(&today) { 3.0 } else { 2.0 }
+}
+
 fn flat_dist(a: Vec3, b: Vec3) -> f64 {
     ((a.x - b.x).powi(2) + (a.y - b.y).powi(2)).sqrt()
 }
@@ -427,6 +483,40 @@ mod tests {
             task_call(Task::Convoy, "Alpha", Vec3::new(0.0, 0.0, 6000.0), Vec3::new(30_000.0, 30_000.0, 0.0));
         assert_eq!(t, "AWX_TASK");
         assert_eq!(args, ["Alpha_r", "TASK_CONVOY", "BEARING040", "MILES20"]);
+    }
+
+    #[test]
+    fn the_start_time() {
+        assert_eq!(clock(8 * 60), "0800");
+        assert_eq!(
+            [clock(6 * 60 + 30), clock(14 * 60 + 15), clock(22 * 60), clock(0)],
+            ["0630", "1415", "2200", "0000"]
+        );
+        assert_eq!(time_step(23 * 60 + 30, HOUR_STEP), 30, "an hour past 2330: 0030");
+        assert_eq!(time_step(0, -MINUTE_STEP), 23 * 60 + 55, "five minutes before 0000: 2355");
+        assert_eq!(time_valid(-1), 23 * 60 + 55);
+        assert_eq!(time_valid(487), 485);
+        assert_eq!(start_time(9, false, 6 * 60 + 30), 390, "a set time flies as set");
+        let mut got = std::collections::HashSet::new();
+        for seed in 0..2000 {
+            let t = start_time(seed, true, 0);
+            assert_eq!(start_time(seed, true, 0), t, "a seed draws the same time");
+            assert!((0..DAY_MIN).contains(&t) && t % MINUTE_STEP == 0, "{t}");
+            got.insert(t / 60);
+        }
+        assert_eq!(got.len(), 24, "every hour is drawn");
+        assert_eq!([day_of_year(2026, 1, 1), day_of_year(2026, 3, 20), day_of_year(2026, 11, 25)], [1, 79, 329]);
+        assert_eq!([day_of_year(2024, 3, 1), day_of_year(2024, 12, 31), day_of_year(2100, 3, 1)], [61, 366, 60]);
+        // 2026: summer time from Friday 27 March to Sunday 25 October; 2025: 28 March to 26 October.
+        let o = |y, m, d| utc_offset(y, m, d);
+        assert_eq!(
+            [o(2026, 3, 26), o(2026, 3, 27), o(2026, 7, 1), o(2026, 10, 24), o(2026, 10, 25)],
+            [2.0, 3.0, 3.0, 3.0, 2.0]
+        );
+        assert_eq!(
+            [o(2025, 3, 27), o(2025, 3, 28), o(2025, 10, 25), o(2025, 10, 26), o(2026, 11, 25)],
+            [2.0, 3.0, 3.0, 2.0, 2.0]
+        );
     }
 
     #[test]

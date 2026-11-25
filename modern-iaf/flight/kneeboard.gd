@@ -2,7 +2,8 @@
 # - the notebook (notebook.gd) with CHECKLIST (the jet's checklist card, card.gd, in every flight: its sections, the
 #   items ticked, the current one marked, a fault in red; a start-up lesson's tower call above it), TAXI / T-O (the
 #   base's take-off mission's steps), RADIO (the base's frequencies, the calls and the tower's answers), LANDING,
-#   WEAPONS (with each step's key), EMERGENCY (data/notebook.json) and DATA (the mission's figures);
+#   WEAPONS (with each step's key), EMERGENCY (data/notebook.json) and DATA (the mission's figures, its start time
+#   the flight's: a Scramble's set or drawn time);
 # - stowed: a board on the pilot's right thigh in the 3D cockpit (the notebook drawn into a texture when it changes);
 #   raised by the Checklist notebook key (H, keys.json record 118): a panel at the screen's lower right (in Hebrew
 #   too: the thigh's side), never its centre; a start-up mission starts with it raised;
@@ -373,7 +374,7 @@ func _sections() -> Array:
 	rows = []
 	rows.append([s("nb_mission"), _esc(String(m.get("title", {}).get(l, "")))])
 	rows.append([s("nb_base"), "%s (%s)" % [_base_name(), _ltr(String(rwy.get("icao", "")))]])
-	rows.append([s("nb_time"), _ltr(String(m.get("time", "")))])
+	rows.append([s("nb_time"), _ltr(_start_time(String(m.get("time", ""))))])
 	var wind := int(m.get("wind_kt", 0))
 	rows.append([s("nb_wind"), s("nb_calm") if wind == 0 else _ltr(Look.wind(m) + " kt")])
 	rows.append([s("nb_jet"), _ltr(_jet())])
@@ -385,6 +386,15 @@ func _sections() -> Array:
 		rows.append([s("nb_route"), _ltr("%s · %d ft" % [_latlon(p.lat, p.lon), int(float(p.alt_m) / 0.3048)])])
 	secs.append(_sec("data", "nb_data", s("nb_data"), [table(rows, 2)]))
 	return secs
+
+
+## The flight's start time, HH:MM: the runtime's (misc 0x460: a Scramble's set or drawn time), else the file's `time`.
+func _start_time(fallback: String) -> String:
+	var rt = flight.host.get("runtime")
+	if rt == null or not rt.misc.has("0x460"):
+		return fallback
+	var m := int(float(rt.misc["0x460"]) / 60.0)
+	return "%02d:%02d" % [m / 60 % 24, m % 60]
 
 
 func _sec(id: String, tab_key: String, title: String, blocks: Array) -> Dictionary:

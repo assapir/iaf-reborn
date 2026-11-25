@@ -626,19 +626,21 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   and focused; a row opens its briefing (no mission tabs on it any more), whose Back returns to the list; Arming
   returns to the briefing; the debrief has Next mission, Fly again and Back to missions. The list's progression logic
   is shared with reborn (`shared/mission/mission_list.gd`). Campaign and Single missions wait for their missions.
-- **Scramble (2026-11-24, [front-end.md](front-end.md) §2.1, [../../docs/ai.md](../../docs/ai.md) §23):** the
-  Scramble card (הזנקה) opens a screen of one panel: the flight (alone, pair, four-ship) and the start (in the air, the
-  default; on the runway, engines running, lined up in pairs; cold at parking), the home base named, a line naming the
-  Pilot screen's enemy skill; Arming and Fly. Fly draws the fight's area (another base within 180 km of the home base,
-  `iaf_ai::free_combat::area`) and the enemy round it (`roll`: the task, its target and one to three more threats by
-  the skill, from MiG-29 pairs on CAP and on alert, the S-300 network, short-range air defence, Shahed-136 drones and a
+- **Scramble (2026-11-24, [front-end.md](front-end.md) §2.1, [../../docs/ai.md](../../docs/ai.md) §23):** the Scramble
+  card (הזנקה) opens a screen of one panel: the flight (alone, pair, four-ship) and the start (in the air, the default;
+  on the runway, engines running, lined up in pairs; cold at parking), the home base named, a line naming the Pilot
+  screen's enemy skill; Arming and Fly. The Time row (25 November): the start time in 24-hour military time (HHMM, an
+  hour and five-minute steps) or Random (drawn at Fly from the seed, shown on the notebook's DATA page); the flight
+  starts then on today's date, Israel time. Fly draws the fight's area (another base within 180 km of the home base,
+  `iaf_ai::free_combat::area`) and the enemy round it (`roll`: the task, its target and one to three more threats by the
+  skill, from MiG-29 pairs on CAP and on alert, the S-300 network, short-range air defence, Shahed-136 drones and a
   convoy); the air start puts the flight 60 km from the area at 6,000 m. The Area and Enemy skill rows went on the
-  user's round-3 word (24 November). The AWACS gives the task by radio once the jet is in the air, in English and Hebrew ("Kidon 1, attack the
-  convoy, bearing 040, 25 miles, free to engage"), and every minute while the target lives. Not scored. The first
-  version (A81, 23 November: "Fly now", the enemy picked row by row, a ground start only) was renamed and cut down on
-  the user's word of 24 November; its picture of a "cold start at home base" showed the jet in the air because the
-  picture's script had put it there, not the start. Waiting on the user's approval (a new screen). Not started: the
-  full AWACS (picture, bogey dope, the Eitam in the sky). The combat logbook is its own job.
+  user's round-3 word (24 November). The AWACS gives the task by radio once the jet is in the air, in English and Hebrew
+  ("Kidon 1, attack the convoy, bearing 040, 25 miles, free to engage"), and every minute while the target lives. Not
+  scored. The first version (A81, 23 November: "Fly now", the enemy picked row by row, a ground start only) was renamed
+  and cut down on the user's word of 24 November; its picture of a "cold start at home base" showed the jet in the air
+  because the picture's script had put it there, not the start. Waiting on the user's approval (a new screen). Not
+  started: the full AWACS (picture, bogey dope, the Eitam in the sky). The combat logbook is its own job.
 - **The Loadout screen (2026-11-14, the front-end finish list's F3, [front-end.md](front-end.md) §10.1):** Arming on
   the briefing opens a screen of its own: the jet seen from beneath (the Hangar's live model, the camera under it, the
   F-35I's bays open) with a callout per station (number, place on the wing, store, weight; an empty one dashed) and

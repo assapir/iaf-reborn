@@ -756,9 +756,10 @@ The sim lights its world by the sun's real place over Israel and its own sky col
 game keeps its colour table (docs/rendering.md §4). `Settings.real_sun()` switches it on; the code is in
 `shared/terrain/time_of_day.gd`.
 
-- **The sun**: NOAA's general solar position equations[^noaa] at 31.5° N, 34.9° E on Israel Standard Time
-  (UTC+2), on the March equinox (day 79). A mission has an hour (its `time`) and no date, so every mission flies that
-  day: the sun rises about 05:45, stands 58° up in the south at about 11:48 and sets about 17:48.
+- **The sun**: NOAA's general solar position equations[^noaa] at 31.5° N, 34.9° E on Israel Standard Time (UTC+2), on
+  the March equinox (day 79). A mission has an hour (its `time`) and no date, so every mission flies that day (a
+  Scramble flies on today's date with Israel's clock of the day, summer time included: front-end.md §2.1): the sun rises
+  about 05:45, stands 58° up in the south at about 11:48 and sets about 17:48.
 - **Day** (the sun above the horizon): the Atmospheric sky, as before. The sun's light follows its height: white
   above 30°, warmer below (255, 228, 195 at 15°; 255, 185, 135 at 5°; 255, 135, 75 on the horizon; inferred from
   sunset photographs). Shadows above 5°.

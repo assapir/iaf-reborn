@@ -5,6 +5,7 @@
 extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
+const TimeOfDay := preload("res://shared/terrain/time_of_day.gd")
 
 
 func _ready() -> void:
@@ -46,6 +47,8 @@ static func prepare(id: int) -> bool:
 		Settings.save()
 	arm(m, Settings.load_json("res://data/missions/%s.json" % name))
 	Settings.mission_files_override = [{"name": name, "data": m}]
+	TimeOfDay.day = TimeOfDay.DAY  # a mission has an hour, no date (Scramble's start sets today's)
+	TimeOfDay.utc_offset = TimeOfDay.UTC_OFFSET
 	Settings.mission_id = id
 	Settings.flown_sortie = 0
 	return true
@@ -116,10 +119,11 @@ static func set_jet(m: Dictionary) -> void:
 
 ## Scramble (front-end.md §2.1): sets up the jet's Scramble start, mission `id` (category fly_now: a flight of four
 ## parked cold at the jet's base), with the picks `fc` (FreeCombatPage.picks and fly_free's area: flight 1, 2 or 4,
-## home, area, start): the flight cut to its first `flight` jets; for start "air" put in the air round the area
-## (IafFreeCombat air_start: each jet's place, its route one point over the area), for "runway" lined up in pairs on
-## the home base's runway with the engines running (IafFreeCombat runway_start, the start rule's 100 m of the lineup
-## point); false as prepare. The enemy comes in flight (free_combat.gd).
+## home, area, start, start_min: the start time set or drawn at Fly, IafFreeCombat.start_time): the flight cut to its
+## first `flight` jets; for start "air" put in the air round the area (IafFreeCombat air_start: each jet's place, its
+## route one point over the area), for "runway" lined up in pairs on the home base's runway with the engines running
+## (IafFreeCombat runway_start, the start rule's 100 m of the lineup point); the start time (misc 0x460) on today's
+## date; false as prepare. The enemy comes in flight (free_combat.gd).
 static func prepare_free(id: int, fc: Dictionary) -> bool:
 	if not prepare(id):
 		return false
@@ -134,6 +138,12 @@ static func prepare_free(id: int, fc: Dictionary) -> bool:
 	var start := String(fc.get("start", "air"))
 	if start in ["air", "runway"]:
 		m = _free_start(m, start, String(fc.get("home", "")), String(fc.get("area", "")), count)
+	# The start time (misc 0x460, s after local midnight) on today's date (the sun's day: time_of_day.gd).
+	if fc.has("start_min") and not m.get("misc", {}).get("items", []).is_empty():
+		m.misc.items[0]["0x460"] = float(fc.start_min) * 60.0
+		var d := Time.get_date_dict_from_system()
+		TimeOfDay.day = IafFreeCombat.day_of_year(d.year, d.month, d.day)
+		TimeOfDay.utc_offset = IafFreeCombat.utc_offset(d.year, d.month, d.day)
 	Settings.mission_files_override = [{"name": Settings.mission_files_override[0].name, "data": m}]
 	return true
 

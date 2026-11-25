@@ -1,15 +1,15 @@
 # Real-render pictures of Modern IAF's front end, every screen in English and Hebrew (modern-iaf/docs/front-end.md):
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/fe -- --log-file /tmp/fe.log --path modern-iaf \
 #     -s ../modern-iaf/tests/_front_end_shot.gd
-# Writes SHOT_DIR/<screen>_<lang>.png (free: the Scramble screen; the Settings: prefs_<section>_*, prefs_about_* (the
-# pane on Buildings and trees), prefs_search_*; the Pilot screens: _pilot) at 1920×1080 (the front end in a viewport of
-# that size, whatever the window's) with the sample pilot log and debrief of test_front_end.gd (debrief: the sample
-# flight; debrief_fail: a record from before the goals and the recording, its take-off with the gear never raised;
-# fly_again: the debrief's Fly again; log_filtered: the Pilot log filtered to one mission; hangar_<lang>.json: the boxes
-# of MARKS, the manual's numbers). SHOT_ONLY=<screens> takes those alone (comma-separated, e.g.
-# SHOT_ONLY=missions,section; SHOT_ONLY=pilot the Pilot screens); SHOT_SIZE=1280x720 renders at that size (the 1920 ×
-# 1080 canvas scaled to it). nodata_hangar / nodata_missions: a fresh install (IAF_ASSETS_DIR an empty folder for those
-# two).
+# Writes SHOT_DIR/<screen>_<lang>.png (free: the Scramble screen; free_time, free_random: its Time row at 2215 and
+# Random; the Settings: prefs_<section>_*, prefs_about_* (the pane on Buildings and trees), prefs_search_*; the Pilot
+# screens: _pilot) at 1920×1080 (the front end in a viewport of that size, whatever the window's) with the sample pilot
+# log and debrief of test_front_end.gd (debrief: the sample flight; debrief_fail: a record from before the goals and the
+# recording, its take-off with the gear never raised; fly_again: the debrief's Fly again; log_filtered: the Pilot log
+# filtered to one mission; hangar_<lang>.json: the boxes of MARKS, the manual's numbers). SHOT_ONLY=<screens> takes
+# those alone (comma-separated, e.g. SHOT_ONLY=missions,section; SHOT_ONLY=pilot the Pilot screens); SHOT_SIZE=1280x720
+# renders at that size (the 1920 × 1080 canvas scaled to it). nodata_hangar / nodata_missions: a fresh install
+# (IAF_ASSETS_DIR an empty folder for those two).
 # SHOT_JET=<unit> picks that jet in the Hangar (the Sufa, f16i, if unset).
 extends "res://../tests/godot/base.gd"
 
@@ -17,6 +17,8 @@ const SCREENS := [
 	"hangar",
 	"missions",
 	"free",
+	"free_time",
+	"free_random",
 	"section",
 	"mission",
 	"debrief",
@@ -81,6 +83,9 @@ func run() -> void:
 				fe.find_child("FlyAgain", true, false).pressed.emit()
 			elif p == "free":
 				s.free_combat = {}
+				fe.show_page("free")
+			elif p in ["free_time", "free_random"]:  # the Time row set to 2215, then with Random
+				s.free_combat = {"time": 22 * 60 + 15, "time_random": p == "free_random"}
 				fe.show_page("free")
 			elif p == "log_filtered":  # the Pilot log filtered to the last flight's mission
 				var att: Array = fe.sorties()

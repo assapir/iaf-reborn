@@ -10,11 +10,16 @@ const TCS := "defcolorset.tcs"
 const NIGHT_LIGHT := Color(20 / 255.0, 20 / 255.0, 60 / 255.0)
 
 ## Modern IAF's place and day: the middle of the country (31.5° N, 34.9° E) on Israel Standard Time (UTC+2), at the
-## March equinox (day 79: the sun rises about 05:45 and sets about 17:50; a mission has an hour, no date).
+## March equinox (day 79: the sun rises about 05:45 and sets about 17:50; a mission has an hour, no date; a Scramble
+## flies on today's date: `day`).
 const LAT := 31.5
 const LON := 34.9
 const UTC_OFFSET := 2.0
 const DAY := 79
+## The sun's day of the year and Israel's clock (hours ahead of UTC) now: DAY and UTC_OFFSET, today's on a Scramble
+## start (modern-iaf/flight/fly.gd prepare_free: summer time included).
+static var day := DAY
+static var utc_offset := UTC_OFFSET
 ## Modern IAF: night (the gradient sky in OWN_ROWS' twilight colours, the moon, the stars, the lights, the cockpit's
 ## night) once the sun is below the horizon (°): the Atmospheric sky's own twilight is one flat brown.
 const NIGHT_ELEV := 0.0
@@ -164,11 +169,11 @@ static func cockpit_night(t: float) -> bool:
 	return h >= 20.0 or h <= 5.0
 
 
-## Modern IAF: the sun's azimuth (x, ° from north, clockwise) and elevation (y, °) at LAT / LON on DAY, `t` s after
+## Modern IAF: the sun's azimuth (x, ° from north, clockwise) and elevation (y, °) at LAT / LON on `day`, `t` s after
 ## local midnight (NOAA's general solar position equations[^noaa] in modern-iaf/docs/terrain.md §17).
 static func real_sun_at(t: float) -> Vector2:
 	var h := fposmod(t, 86400.0) / 3600.0
-	var g := TAU / 365.0 * (DAY - 1 + (h - 12.0) / 24.0)
+	var g := TAU / 365.0 * (day - 1 + (h - 12.0) / 24.0)
 	var decl := (
 		0.006918
 		- 0.399912 * cos(g)
@@ -181,7 +186,7 @@ static func real_sun_at(t: float) -> Vector2:
 	var eqt := (
 		229.18 * (0.000075 + 0.001868 * cos(g) - 0.032077 * sin(g) - 0.014615 * cos(2.0 * g) - 0.040849 * sin(2.0 * g))
 	)
-	var ha := deg_to_rad((h * 60.0 + eqt + 4.0 * LON - 60.0 * UTC_OFFSET) / 4.0 - 180.0)
+	var ha := deg_to_rad((h * 60.0 + eqt + 4.0 * LON - 60.0 * utc_offset) / 4.0 - 180.0)
 	var lat := deg_to_rad(LAT)
 	var el := asin(clampf(sin(lat) * sin(decl) + cos(lat) * cos(decl) * cos(ha), -1.0, 1.0))
 	var az := atan2(sin(ha), cos(ha) * sin(lat) - tan(decl) * cos(lat)) + PI

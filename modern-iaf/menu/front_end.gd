@@ -1146,6 +1146,7 @@ func fly_free() -> void:
 	var fc: Dictionary = FreeCombatPage.picks(self)
 	fc.seed = randi()
 	fc.area = Fly.free_area(fc.home, fc.seed)
+	fc.start_min = IafFreeCombat.start_time(fc.seed, fc.time_random, fc.time)
 	Settings.free_combat = fc.duplicate()
 	Settings.free_combat.erase("home")
 	Settings.save()

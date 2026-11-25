@@ -920,6 +920,42 @@ impl IafFreeCombat {
             .collect()
     }
 
+    /// The start time `min` (minutes after local midnight) on the five-minute grid, in the day.
+    #[func]
+    fn time_valid(min: i64) -> i64 {
+        free_combat::time_valid(min)
+    }
+
+    /// `min` stepped by `hours` hours and `steps` five-minute steps, round the clock.
+    #[func]
+    fn time_step(min: i64, hours: i64, steps: i64) -> i64 {
+        free_combat::time_step(min, hours * free_combat::HOUR_STEP + steps * free_combat::MINUTE_STEP)
+    }
+
+    /// The start time as 24-hour military time HHMM ("0630").
+    #[func]
+    fn clock(min: i64) -> GString {
+        GString::from(&free_combat::clock(min))
+    }
+
+    /// The flight's start time (minutes after local midnight): the set `min`, or drawn from `seed` with `random`.
+    #[func]
+    fn start_time(seed: i64, random: bool, min: i64) -> i64 {
+        free_combat::start_time(seed as u64, random, min)
+    }
+
+    /// Israel's clock on `year`-`month`-`day`, hours ahead of UTC (3 on summer time, else 2).
+    #[func]
+    fn utc_offset(year: i64, month: i64, day: i64) -> f64 {
+        free_combat::utc_offset(year, month, day)
+    }
+
+    /// The day of the year of `year`-`month`-`day` (1 for 1 January).
+    #[func]
+    fn day_of_year(year: i64, month: i64, day: i64) -> i64 {
+        free_combat::day_of_year(year, month, day)
+    }
+
     /// The AWACS's task call is due `airborne_s` after the player's jet left the ground, `since_s` after the last.
     #[func]
     fn task_due(airborne_s: f64, since_s: f64) -> bool {
