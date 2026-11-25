@@ -1383,7 +1383,7 @@ and is unchanged.
 | part | the MiG-29A | source |
 |---|---|---|
 | wing | 38 m², span 11.36 m (TP-1538's tables on it; inertia and chord scaled as §9.9) | sourced[^w-mig29]; inferred: the scaling |
-| masses | empty 11,000 kg, internal fuel 3,500 kg (reference 14,500 kg), maximum take-off 18,000 kg | sourced[^w-mig29] |
+| masses | empty 11,000 kg, internal fuel 3,500 kg (reference 14,500 kg), maximum take-off 18,000 kg; with its record's 2 R-27R and 4 R-73 (926 kg, in kg by the stores weight fix) 15,426 kg on the runway, against a published gross 14,900 kg | sourced[^w-mig29]; the missiles' masses their records' |
 | engines | two RD-33: 49.4 kN dry, 81.3 kN with afterburner; 75 / 188.1 kg/(kN·h); idle → military 3.0 s | sourced: thrust[^w-mig29], fuel use[^w-rd33]; inferred: the spool (the F100's); open: the lapse with Mach and altitude, TP-1538's F100 shape (§9.7) |
 | g limits | +9 / −3 | sourced: +9[^w-mig29]; inferred: −3 (the F-16's) |
 | α limit | 26° | second-hand: 24–28° by variant and the limiter's setting, a lift coefficient of 1.5 at 26° (forum posts quoting manuals, [research/enemies.md](research/enemies.md) §4.2); open until a manual gives it |
@@ -1407,7 +1407,7 @@ and is unchanged.
 | service ceiling (0.5 m/s of excess power) | at least 20,000 m (the atmosphere's top, atmosphere.rs) | 18,000 m |
 | 1 g stall, sea level | 120 kt | landing 127 kt / 1.1 |
 | fuel flow, military / full afterburner | 16,270 / 71,950 lb/h | about 17,100 / 67,400 lb/h |
-| touchdown (the AI's landing with 2 t of stores) | 150 kt at 5° pitch | 235–260 km/h (127–140 kt) clean, second-hand |
+| touchdown (the AI's landing in `four_ship.rs`'s `mig29_ground_run_at_ramon`, its stores set to 2 t: heavier than its record's 926 kg) | 150 kt at 5° pitch | 235–260 km/h (127–140 kt) clean, second-hand |
 
 Open: the ceiling runs high, as every 6-DoF jet's does by the same measure (the Sufa about 19,000 m against its
 15,240 m: the thrust and drag at altitude, TP-1538's thrust held above Mach 2); the neutral-stick hold at 10,000 ft on
@@ -1556,8 +1556,8 @@ the load factor limits defined in the flight manuals"), https://patents.google.c
 load", https://www.ecfr.gov/current/title-14/section-25.303
 [^cfr25-305]: 14 CFR 25.305, "Strength and deformation": "The structure must be able to support limit loads without
 detrimental permanent deformation", https://www.ecfr.gov/current/title-14/section-25.305
-[^w-mig29]: Wikipedia, "Mikoyan MiG-29" (span 11.36 m, wing 38 m²; empty 11,000 kg, internal fuel 3,500 kg, maximum
-    take-off 18,000 kg; 2 × RD-33, 49.4 kN dry, 81.3 kN with afterburner; Mach 2.3+ at altitude, 1,500 km/h at low
+[^w-mig29]: Wikipedia, "Mikoyan MiG-29" (span 11.36 m, wing 38 m²; empty 11,000 kg, gross 14,900 kg, internal fuel 3,500 kg,
+    maximum take-off 18,000 kg; 2 × RD-33, 49.4 kN dry, 81.3 kN with afterburner; Mach 2.3+ at altitude, 1,500 km/h at low
     altitude; ceiling 18,000 m; climb 330 m/s; +9 g): https://en.wikipedia.org/wiki/Mikoyan_MiG-29
 [^w-rd33]: Wikipedia, "Klimov RD-33" (specific fuel consumption 75 kg/(kN·h) dry, 188.1 with afterburner):
     https://en.wikipedia.org/wiki/Klimov_RD-33

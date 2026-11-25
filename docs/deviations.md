@@ -138,7 +138,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   vanished, so the jet can die on an invisible obstacle. Ours, with the switch: those colliders are skipped —
   damage.md §7.
 - **"Stores weight fix"**. Original: one store per station, pounds in the kg field, tank fuel = the pounds number as
-  kg. Ours, with the switch: every store counts in the stores weight, in kg, and the fuel tanks' fuel in kg —
+  kg. Ours, with the switch: every store counts in the stores weight, in kg, and the fuel tanks' fuel in kg, on the
+  player's and the AI jets —
   weapons.md §2.5–2.6.
 - **Flight model (modern jets) (Original / 6-DoF (TP-1538))** (the page's top row, `Settings.flight_model`; Modern
   IAF's item C2, [modern-iaf/docs/shared.md](../modern-iaf/docs/shared.md)). Original: every jet flies the 1998 flight

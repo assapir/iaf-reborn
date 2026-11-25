@@ -248,6 +248,7 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float, given: Ar
 	# The stores on the jet (FUN_0053b580; the Arming loads: FUN_004541d0 + FUN_00459410 redo the weight / drag).
 	u.stores = Stores.new()
 	u.stores.player = false
+	u.stores.weight_fix = bool(Settings.better.get("fix_stores_weight", false))  # as the player's (docs/weapons.md §2.5)
 	u.stores.setup(
 		load, db, AircraftModel.load_descriptor(String(ent.pilot.plane)), PlayerWeapons._pilon_of, int(ent.type_code)
 	)

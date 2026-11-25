@@ -43,8 +43,9 @@ func run() -> void:
 	var st: Dictionary = p.flight.state()
 	check(p.plane == "mig29a" and ent.type_code == 1020, "its plane and type: %s, %d" % [p.plane, ent.type_code])
 	check(bool(st.engine_on) and bool(st.on_ground), "on the runway, its engine running (start rule)")
-	# The 6-DoF's state has the flaps' droop; its mass is the MiG-29A's (11,000 kg empty + 3,500 kg fuel).
-	check(st.has("tef") and absf(float(st.mass_kg) - 14500.0) < 50.0, "on its 6-DoF set (%.0f kg)" % st.mass_kg)
+	# The 6-DoF's state has the flaps' droop; its mass is the MiG-29A's 11,000 kg empty + 3,500 kg fuel and its
+	# record's 2 R-27R (253 kg) + 4 R-73 (105 kg) in kg (the stores weight fix): 15,426 kg (flight-model.md §9.21).
+	check(st.has("tef") and absf(float(st.mass_kg) - 15426.0) < 50.0, "on its 6-DoF set (%.0f kg)" % st.mass_kg)
 	var model: Node3D = ent.node
 	check(model != null and model.find_child("LdgL", true, false) != null, "drawn with its model, gear and all")
 	check(int(ent.side) != int(tv.runtime.player_entity().get("side", 2)), "on the player's enemy side")

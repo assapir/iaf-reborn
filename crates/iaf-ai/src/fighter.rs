@@ -155,7 +155,9 @@ fn bearing(from: Vec3, to: Vec3) -> f64 {
 }
 
 /// The point where a jet at `p` flying `speed` m/s meets `b` flying on straight (the collision course): `b` itself when
-/// it cannot be caught, never more than [`LEAD_MAX_S`] ahead.
+/// it cannot be caught, never more than [`LEAD_MAX_S`] ahead; at `b`'s present height. Led in height too, two fighters
+/// on each other's collision course fed each other's climb or descent: the MiG-29A pair and the Sufas ran away to
+/// 15,000 m or down to 800 m with the range barely closing (tried 2026-11-25, dropped; docs/ai.md §18.1).
 pub fn collision(p: Vec3, speed: f64, b: &Bogey) -> Vec3 {
     // |d + v·t| = s·t: (v·v − s²)·t² + 2·d·v·t + d·d = 0, the least positive root.
     let d = b.pos - p;
@@ -169,7 +171,8 @@ pub fn collision(p: Vec3, speed: f64, b: &Bogey) -> Vec3 {
         let r = [(-qb - disc.sqrt()) / (2.0 * qa), (-qb + disc.sqrt()) / (2.0 * qa)];
         r.into_iter().filter(|t| *t > 0.0).fold(f64::INFINITY, f64::min)
     };
-    b.pos + b.vel * if t.is_finite() { t.min(LEAD_MAX_S) } else { 0.0 }
+    let c = b.pos + b.vel * if t.is_finite() { t.min(LEAD_MAX_S) } else { 0.0 };
+    Vec3::new(c[0], c[1], b.pos[2])
 }
 
 /// The CAP orbit's steer point for a jet at `p` round `station`: on the circle [`CAP_AHEAD_DEG`] ahead of it,
@@ -417,6 +420,9 @@ mod tests {
         // Far ahead: capped.
         let slow = Bogey { pos: Vec3::new(0.0, 200_000.0, 0.0), vel: Vec3::new(100.0, 0.0, 0.0) };
         assert!((collision(p, 101.0, &slow)[0] - 100.0 * LEAD_MAX_S).abs() < 1e-6);
+        // Climbing: met at its present height, not its climb's.
+        let up = Bogey { pos: Vec3::new(0.0, 10_000.0, 6_000.0), vel: Vec3::new(200.0, 0.0, 30.0) };
+        assert_eq!(collision(p, 300.0, &up)[2], 6_000.0);
     }
 
     #[test]

@@ -241,7 +241,8 @@ Original bugs (kept by default):
   record's `empty_lb` (Modern IAF's tanks) counts as stores weight until the tank is jettisoned.
 
 The Physics option **"Stores weight fix"** counts every store, in kg (the updates then stay consistent), and the tank
-fuel in kg (§2.6).
+fuel in kg (§2.6), on the player's jet and every AI jet with stores (`combat.gd`; the AI's were left in pounds until
+2026-11-25, so Modern IAF's MiG-29A weighed 16,540 kg instead of 15,426 kg).
 
 ### 2.6 Fuel tanks (stores whose name contains "LB", type 660)
 - **Start**:

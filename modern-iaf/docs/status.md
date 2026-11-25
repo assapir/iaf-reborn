@@ -234,6 +234,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   37 km of the lead); a jet attacking a wingman is fought uncommanded. Calls: engaged, Fox 1 / 2 / 3, guns, splash, winchester (voices from `iaf-sim voices`). Tests:
   `crates/iaf-ai/tests/wing_battle.rs`, `modern-iaf/tests/test_wing_battle.gd` (the four-ship put in the air by the
   dev hook `ai_flights.gd flight_in_air` against a MiG-29A pair). No mission places the enemy.
+- **AI jets' stores weight in kg (fixed 2026-11-25):** an AI jet's stores now weigh in kg as the player's (the stores
+  weight fix, [../../docs/weapons.md](../../docs/weapons.md) §2.5); they were pounds read as kg, so the MiG-29A with 2
+  R-27R and 4 R-73 weighed 16,540 kg instead of 15,426 kg ([flight-model.md](flight-model.md) §9.21). The
+  intercept's collision course now aims at the bogey's present height: led in height, the MiG pair and the Sufas fed
+  each other's climb ([../../docs/ai.md](../../docs/ai.md) §18.1). Tests: `modern-iaf/tests/test_mig29.gd`,
+  `modern-iaf/tests/test_wing_battle.gd`.
 - **Countermeasures and jamming (2026-11-22, the user: "Yes start whatever you didn't finished"; [ai-plan.md](ai-plan.md)
   K8, K9; [../../docs/real-weapons.md](../../docs/real-weapons.md) §2.3, [../../docs/ai.md](../../docs/ai.md)
   §15.6):** flares and chaff act on each missile's own seeker (its record's rejection, the beam for chaff, the time to
