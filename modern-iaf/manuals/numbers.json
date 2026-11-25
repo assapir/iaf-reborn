@@ -9,7 +9,7 @@
  "jfs":{"JFS":1,"lamp_jfs_run_0":2,"SW_MAX_POWER":3,"SW_STARTING_FUEL":4,"SW_MPO":5},
  "audio":{"COMM1_KNOB":1,"COMM2_KNOB":2,"msl-vol-knob":3,"threat-vol-knob":4,"intercom-knob":5,"tacan-vol-knob":6,"ils-vol-knob":7},
  "throttle":{"THROTTLE":1},
- "cmds":{"RWR_50_switch":1,"JMR_50_switch":2,"MWS_50_switch":3,"JETT_50_switch":4,"01_50_switch":5,"02_50_switch":6,"CH_50_switch":7,"FL_50_switch":8,"MODE_50_knob":9,"HMCS_SYM_INT_KNOB":10,"alt-gear":11},
+ "cmds":{"RWR_50_switch":1,"JMR_50_switch":2,"MWS_50_switch":3,"JETT_50_switch":4,"01_50_switch":5,"02_50_switch":6,"CH_50_switch":7,"FL_50_switch":8,"MODE_50_knob":9,"HMCS_SYM_INT_KNOB":10,"alt-gear":11,"PRGM_50_knob":12},
  "gear":{"GEAR_LEVER":1,"lamp_gear_transit_0":2,"lamp_gear_nose_0":3,"lamp_gear_left_0":4,"lamp_gear_right_0":5,"SW_HOOK":6,"SW_PARKING_BRAKE":7,"light-land-switch":8,"horn_silencer":9,"SW_STORES_CONFIG":10,"SW_GND_JETT":11,"EMER_JETT":12},
  "misc":{"master-arm-switch":1,"laser-arm-switch":2,"alt-rel-button":3,"quiet-switch":4,"lamp_ecm_enbl_0":5,"roll-hold-switch":6,"pitch-hold-switch":7,"adv-mode-button":8},
  "eyebrow_left":{"master_reset":1,"lamp_tf_fail_0":2,"lamp_eyebrow_blank_1":3,"EYEBROW_LEFT_iff":4,"f-ack":5},

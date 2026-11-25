@@ -107,3 +107,6 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
 20. Ours (2026-11-18, `canopy_controls`): the canopy switch (`CANOPY_SWITCH`) and the yellow canopy lock lever
     (`CANOPY_SPIDER`) with their fittings on the left side wall under the sill, our own geometry after photos of the
     real jet (modern-iaf/docs/cockpit.md §5.6); no FlightGear data.
+21. The CMDS panel's knobs (2026-11-25, `tools/f16d/cmds_knobs.py`, after each build): the PRGM knob
+    (`PRGM_50_knob`), FlightGear's MODE knob mesh placed over the PRGM knob its Block 50 panel sheet paints, turning
+    to the sheet's marks; the MODE knob's turn 30° a step over all six positions (modern-iaf/docs/cockpit.md §5.13).

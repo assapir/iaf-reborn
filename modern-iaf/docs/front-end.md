@@ -586,8 +586,8 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   | "A/P OFF: …" (a PITCH switch that will not stay engaged) | removed (2026-11-25) | the switch springs back; the manual lists the conditions |
   | "TRIM/AP DISC …" (294), "FLCS RESET" (295) | removed (2026-11-25) | the MANUAL TRIM panel's TRIM/AP DISC switch; the FLT CONTROL panel's FLCS RESET switch and the fault list ([cockpit.md](cockpit.md) §5.10) |
   | "Manual TF fly-up …" (242 p1 1) | removed (2026-11-25) | the TFR page's MAN FLYUP OFF (`f16_mfd.gd`); the switch itself is not in the cockpit model |
-  | "CMDS …" mode (262) | removed (2026-11-25) | the MODE knob (OFF / STBY / MAN) and the DED's EWS CONTROLS page (every mode) |
-  | "CMDS program …" (263) | removed (2026-11-25) | open: the real cue is the CMDS panel's PRGM knob, which the cockpit model (`f16.glb`) does not have |
+  | "CMDS …" mode (262) | removed (2026-11-25) | the MODE knob (every mode) and the DED's EWS CONTROLS page |
+  | "CMDS program …" (263) | removed (2026-11-25) | the CMDS panel's PRGM knob ([cockpit.md](cockpit.md) §5.13) |
   | "Seeker uncaged" / "caged" (280 p1 0) | removed (2026-11-25) | the HUD's diamond grows with a track |
   | "PRE n/m" (234) | removed (2026-11-25) | the F-16 SMS page's STA n PP n/N; the F-35I WPN-S page's target per bomb |
   | "FLC: no layers on this format" (302) | removed (2026-11-25) | nothing changes on the format |

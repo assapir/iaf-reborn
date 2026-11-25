@@ -45,6 +45,7 @@ f16:
   CH_50_switch: {name: CMDS CH switch, where: "CMDS panel, left console"}
   FL_50_switch: {name: CMDS FL switch, where: "CMDS panel, left console"}
   MODE_50_knob: {name: CMDS MODE knob, where: "CMDS panel, left console"}
+  PRGM_50_knob: {name: CMDS PRGM knob, where: "CMDS panel, left console"}
 f35i:
   BATT: {name: BATT switch, where: "start panel, left console"}
   IPP: {name: IPP switch, where: "start panel, left console"}

@@ -612,7 +612,8 @@ Parts:
 - Found while writing chapter 6, the game's and listed, not changed here:
   - A GPS bomb's PRE target cannot be set in Modern IAF (avionics-plan.md G4): PRE has a target only when the route
     has a target steerpoint.
-  - The CMDS MODE knob of the cockpit has three positions; SEMI, AUTO and BYP are on the key alone.
+  - The CMDS MODE knob of the cockpit had three positions; SEMI, AUTO and BYP were on the key alone. Fixed
+    25 November 2026, with the PRGM knob added (cockpit.md §5.13).
   - IFF IDENT, HANDOFF and SYS TEST have no button in the cockpit. DED DATA and DEPR RET got their switches on
     19 November 2026 (cockpit.md §5.11).
   - The Adir: `systems.json` says EMER_JETT "drops the external stores" while the code drops the bays' too; JETT_SEL

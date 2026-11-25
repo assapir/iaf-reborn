@@ -494,9 +494,12 @@ static func _system_state(tv: Object, name: String, now: float) -> float:
 		"twd_open", "twd_unknowns", "twd_sep":  # the threat warning prime panel's MODE, UNKNOWN, TGT SEP (ews.gd)
 			if tv.weapons.ews != null:
 				return 1.0 if bool(tv.weapons.ews.twd_state()[name.trim_prefix("twd_")]) else 0.0
-		"cmds_mode":  # the model's knob has OFF / STBY / MAN; SEMI, AUTO and BYP (the key) leave it at MAN
+		"cmds_mode":  # OFF … BYP (tools/f16d/cmds_knobs.py)
 			if tv.weapons.ews != null:
-				return minf(float(tv.weapons.ews.cmds_state().mode), 2.0)
+				return float(tv.weapons.ews.cmds_state().mode)
+		"cmds_prgm":  # the PRGM knob: the program, 1-4
+			if tv.weapons.ews != null:
+				return float(tv.weapons.ews.cmds_state().program)
 		"cmds_ch", "cmds_fl", "cmds_o1", "cmds_o2", "cmds_rwr", "cmds_jmr", "cmds_mws", "cmds_jett":
 			if tv.weapons.ews != null:
 				return 1.0 if bool(tv.weapons.ews.cmds_state()[name.trim_prefix("cmds_")]) else 0.0
@@ -631,6 +634,9 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 		"cmds_mode":
 			if tv.weapons.ews != null:
 				tv.weapons.ews.cmds_mode(roundi(v))
+		"cmds_prgm":
+			if tv.weapons.ews != null:
+				tv.weapons.ews.cmds_set_program(roundi(v))
 		"cmds_ch", "cmds_fl", "cmds_o1", "cmds_o2", "cmds_rwr", "cmds_jmr", "cmds_mws", "cmds_jett":
 			if tv.weapons.ews != null:
 				tv.weapons.ews.cmds_switch(name.trim_prefix("cmds_"), on)

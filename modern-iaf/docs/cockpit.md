@@ -529,7 +529,8 @@ The controls of a system the game has work it (2026-11-16; `f16_controls.json` `
 | MAL & IND LTS (held; a spring, inferred) | every lamp of the cockpit lit while there is power | - |
 | MASTER CAUTION | the lamp out until the next caution | - |
 | Threat warning MODE / UNKNOWN / TGT SEP (held) | the threat display's PRI / OPEN, unknowns, wider separation ([ews.md](ews.md) §2) | Alt+I / Alt+O / Alt+J |
-| CMDS MODE (OFF / STBY / MAN on the model) | the countermeasures' mode ([ews.md](ews.md) §4) | Shift+Y |
+| CMDS MODE (OFF / STBY / MAN / SEMI / AUTO / BYP) | the countermeasures' mode ([ews.md](ews.md) §4) | Shift+Y |
+| CMDS PRGM (1-4; §5.13) | the manual program the CMS runs ([ews.md](ews.md) §4) | Ctrl+Y |
 | CMDS CH, FL, O1, O2, RWR, JMR, MWS, JETT | the dispensers' power, the inputs that start SEMI / AUTO, JETT's flares ([ews.md](ews.md) §4) | - |
 | DL (AVIONIC POWER) | the data link's tracks on the HSD and the FCR ([ews.md](ews.md) §6) | - |
 | THREAT / MSL volume | the new-threat and launch tones' volume | - |
@@ -1120,6 +1121,31 @@ These stay as they are, each with its reason in the status data:
 
 Test: `modern-iaf/tests/test_gap_controls.gd`.
 
+### 5.13 The CMDS panel's PRGM knob (2026-11-25)
+
+The real CMDS panel has two rotary knobs side by side under its switches: PRGM (BIT, 1, 2, 3, 4) and MODE (OFF, STBY,
+MAN, SEMI, AUTO, BYP) (FlightGear's panel art; inferred to follow the real panel). The PRGM knob selects the program, 1 to 4, that MAN, SEMI and AUTO run[^cms-guide]. FlightGear's
+Block 50 panel paints both knobs on its sheet, but models only the MODE knob; its MODE knob also turned 60° a step
+over marks 30° apart, so it pointed one mark off and stopped at MAN. After a build `tools/f16d/cmds_knobs.py` (its
+header has the command and the measurements) fixes both:
+
+- PRGM: the node `PRGM_50_knob` of `f16.glb`, the MODE knob's mesh placed over the painted PRGM knob. It turns to the
+  painted marks 1 to 4 (`f16.json` `animations`, a table), and it shows program 1 when no program is set.
+- MODE: 30° a step, all six positions.
+
+| Control (node) | Key | What it does |
+| --- | --- | --- |
+| PRGM (`PRGM_50_knob`: 1, 2, 3, 4) | Ctrl + Y (the next program, round) | the program that MAN, SEMI and AUTO run ([ews.md](ews.md) §4) |
+| MODE (`MODE_50_knob`: OFF … BYP) | Shift + Y (the next position, round) | the dispenser's mode ([ews.md](ews.md) §4) |
+
+Both are rows of `f16_controls.json` with a `system` (`cmds_prgm`, `cmds_mode`): a click turns the knob a position on
+(4 goes round to 1), the wheel and a drag a position either way, and each frame the knob shows the CMDS's state, so
+the key turns it too. Its stops are 1 to 4; BIT is a painted mark, as the sim's CMDS has no built-in test.
+The original game's optional 3D F-16 cockpit shows the PRGM knob at 1 and the MODE knob at its modelled position.
+
+Test: `modern-iaf/tests/test_sim_ews.gd` `_cmds` (the knob shows the key's program; turned to 4 and back, the program
+follows).
+
 ### 5.4 The AoA probe (2026-11-11, from the user's Mac)
 
 On the ground the AoA gauge and the indexer jumped about: the 6-DoF's α is the angle of the body's velocity, which
@@ -1490,3 +1516,6 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^fm-134]: T.O. GR1F-16CJ-1, figure 1-51, sheet 2, page 1-134 (the FLT CONTROL panel's FLCS RESET switch: "spring-loaded to OFF"; RESET "Resets FLCS warning light, CADC, FLCS FAULT, and MASTER CAUTION lights and clears PFL's if fault is cleared").
 [^fm-135]: T.O. GR1F-16CJ-1, page 1-135 ("AUTOPILOT": the PITCH switch's solenoid and the conditions that release it; no light or tone named).
 [^fm-3112]: T.O. GR1F-16CJ-1, section III, "Autopilot Malfunctions", pages 3-112 and 3-113 (FLCS A/P FAIL: FLCS FAULT and the fault list).
+[^cms-guide]: "TMS, DMS and CMS usage guide" (a flight simulator community guide, weak), chapter 5 "CMS – Countermeasures Management Switch": the program "is
+    selected via the PRGM knob on the CMDS panel"; "Only Programs 1–4 are selectable"; "The PRGM knob has no effect in
+    BYP or STBY", https://tms-dms-cms-usage-guide.readthedocs.io/en/latest/c5-cms/. Checked 25 November 2026.

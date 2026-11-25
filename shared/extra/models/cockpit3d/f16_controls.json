@@ -85,6 +85,7 @@
 "unk": {"system": "twd_unknowns", "lamp": "twd_unk"},
 "sep": {"system": "twd_sep", "lamp": "twd_sep"},
 "MODE_50_knob": {"system": "cmds_mode"},
+"PRGM_50_knob": {"system": "cmds_prgm"},
 "CH_50_switch": {"system": "cmds_ch"},
 "FL_50_switch": {"system": "cmds_fl"},
 "01_50_switch": {"system": "cmds_o1"},

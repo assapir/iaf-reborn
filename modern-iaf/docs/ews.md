@@ -35,7 +35,7 @@ The user has no HOTAS ([avionics-plan.md](avionics-plan.md) §8, decision 3), so
 | Shift + P | 261, 1 | CMS aft: stop dispensing; AUTO's enable and SEMI's request dropped |
 | Y | 261, 2 | CMS right: consent in SEMI, enable AUTO |
 | Shift + Y | 262 | the CMDS MODE knob, one position on (OFF, STBY, MAN, SEMI, AUTO, BYP, round) |
-| Ctrl + Y | 263 | the next manual program (1–4) |
+| Ctrl + Y | 263 | the next manual program (1–4, round): the PRGM knob turns with it |
 | Alt + Y | 264, 0 | TWP HANDOFF: the diamond to the next threat |
 | Alt + I | 264, 1 | TWP MODE: PRI (the 5 highest-priority threats) or OPEN (up to 16) |
 | Alt + O | 264, 2 | TWP UNKNOWN: the unknown emitters shown |
@@ -45,12 +45,12 @@ The user has no HOTAS ([avionics-plan.md](avionics-plan.md) §8, decision 3), so
 | — | — | the DL switch: a click on the 3D cockpit's DL switch only (ews.gd `link_power`) |
 
 Clickable (`shared/extra/models/cockpit3d/f16_controls.json`, each row's `system` in `cockpit3d_controls.gd`): the
-TWP's `pri`, `unk` and `sep` buttons; the CMDS panel's `MODE_50_knob`, `CH_50_switch`, `FL_50_switch`,
+TWP's `pri`, `unk` and `sep` buttons; the CMDS panel's `MODE_50_knob`, `PRGM_50_knob`, `CH_50_switch`, `FL_50_switch`,
 `01_50_switch`, `02_50_switch`, `RWR_50_switch`, `JMR_50_switch`, `MWS_50_switch` and `JETT_50_switch`; the AVIONIC
 POWER panel's `dl-switch`; the THREAT and MSL volume knobs (`threat-vol-knob`, `msl-vol-knob`). A key moves its
-switch too (the switch shows the system's state each frame). The model has no HANDOFF, LAUNCH or SYS TEST button and no
-PRGM knob: those are keys only. Its MODE knob has three positions (OFF, STBY, MAN; the FlightGear model's); SEMI, AUTO
-and BYP are on Shift + Y only and leave the knob at MAN.
+switch too (the switch shows the system's state each frame). The model has no HANDOFF, LAUNCH or SYS TEST button:
+those are keys only. The MODE knob has all six positions and the PRGM knob stops at the programs 1 to 4 (BIT is a
+painted mark); both were fixed or added after FlightGear's model ([cockpit.md](cockpit.md) §5.13).
 
 ## 2. The threat display (E1)
 

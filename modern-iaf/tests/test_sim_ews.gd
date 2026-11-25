@@ -241,6 +241,15 @@ func _cmds() -> void:
 	w.rwr.missile_end(String(drone.key), {"id": 9002, "m": m})
 	_tap(KEY_Y, "c")
 	check(int(e.cmds_state().program) == 2, "E4: Ctrl + Y: program 2")
+	# The 3D cockpit's PRGM knob shows the program and turns it (cockpit3d_controls.gd cmds_prgm).
+	var c3d = tv.get("cockpit_3d")
+	check(c3d != null and c3d.clickable != null, "E4: the 3D cockpit's controls")
+	if c3d != null and c3d.clickable != null:
+		check(c3d.clickable._system_state(tv, "cmds_prgm", 0.0) == 2.0, "E4: the PRGM knob at 2")
+		c3d.clickable._system_put("cmds_prgm", 4.0)
+		check(int(e.cmds_state().program) == 4, "E4: the PRGM knob to 4: program 4")
+		c3d.clickable._system_put("cmds_prgm", 2.0)
+		check(int(e.cmds_state().program) == 2, "E4: the PRGM knob back to 2 (round): program 2")
 	_tap(KEY_P, "s")
 	e.cmds_switch("ch", false)
 	check(not bool(e.cmds_state().ch), "E4: CH off")

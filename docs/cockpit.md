@@ -721,7 +721,8 @@ occlusion, 2.0 MB; built by
   reads the cockpit's table `<model>_controls.json` (node -> `click` / `turn` key command): the pointer over a
   control lights it, a click, the wheel or a drag sends its command through the key path. The F-16's: the SYM wheel,
   the HUD's DAY / AUTO BRT / NIGHT switch (node `HUD_MODE`, cut out of the console body by
-  `tools/f16d/split_control.py` after each build) and the start-up switches (modern-iaf/docs/cockpit.md §5.1, §5.2).
+  `tools/f16d/split_control.py` after each build), the CMDS panel's PRGM knob (added by `tools/f16d/cmds_knobs.py` after
+  each build) and the start-up switches (modern-iaf/docs/cockpit.md §5.1, §5.2, §5.13).
 * **HUD mask, tried and dropped (2026-10-30):** a `clip_children` parent drawing the glass's outline. Its canvas
   group showed a stale copy of the 3D view in a rectangle over the screen while the DASH drew; the shader mask
   replaced it.

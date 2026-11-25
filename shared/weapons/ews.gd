@@ -87,6 +87,14 @@ func cmds_next_program() -> void:
 	_e.cmds_next_program()
 
 
+## The PRGM knob to program `p` (1-4).
+func cmds_set_program(p: int) -> void:
+	for i in 4:
+		if int(_e.cmds_state().program) == p:
+			return
+		_e.cmds_next_program()
+
+
 func cmds_state() -> Dictionary:
 	return _e.cmds_state()
 

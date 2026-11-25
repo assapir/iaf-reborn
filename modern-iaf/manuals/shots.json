@@ -19,7 +19,7 @@
 "air_source": ["AirSource_knob"],
 "sym": ["SYM"],
 "ext_lights": ["SW_MASTER_50", "SW_ANTI_COLLISION_50", "SW_WING-TAIL_50"],
-"cmds": ["RWR_50_switch", "JMR_50_switch", "MWS_50_switch", "01_50_switch", "02_50_switch", "CH_50_switch", "FL_50_switch", "MODE_50_knob"]
+"cmds": ["RWR_50_switch", "JMR_50_switch", "MWS_50_switch", "01_50_switch", "02_50_switch", "CH_50_switch", "FL_50_switch", "MODE_50_knob", "PRGM_50_knob"]
 },
 "f35i": {
 "start_panel": ["BATT", "IPP", "ENG"],

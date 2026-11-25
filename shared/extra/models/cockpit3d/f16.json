@@ -1371,7 +1371,7 @@
   "MODE_50_knob": [
    {
     "prop": "f16/ews/ew-mode-knob",
-    "factor": 60.0,
+    "factor": 30.0,
     "offset": -120.0,
     "centre": [
      0.0,
@@ -4189,6 +4189,39 @@
      1.0
     ]
    }
+  ],
+  "PRGM_50_knob": [
+   {
+    "prop": "f16/ews/prgm-knob",
+    "table": [
+     [
+      1.0,
+      0.0
+     ],
+     [
+      2.0,
+      35.0
+     ],
+     [
+      3.0,
+      82.0
+     ],
+     [
+      4.0,
+      115.0
+     ]
+    ],
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.21149,
+     -0.69636,
+     -0.68582
+    ]
+   }
   ]
  },
  "buttons": {
@@ -6059,10 +6092,10 @@
    "prop": "f16/ews/ew-mode-knob",
    "mode": "cycle",
    "min": 0.0,
-   "max": 2.0,
+   "max": 5.0,
    "step": 1.0,
    "wrap": true,
-   "modelled": 2.0
+   "modelled": 4.0
   },
   "HMCS_SYM_INT_KNOB": {
    "prop": "f16/avionics/hmd-sym-int-knob",
@@ -6974,6 +7007,15 @@
    "wrap": true,
    "rest": 0.0,
    "modelled": 0.0
+  },
+  "PRGM_50_knob": {
+   "prop": "f16/ews/prgm-knob",
+   "mode": "cycle",
+   "min": 1.0,
+   "max": 4.0,
+   "step": 1.0,
+   "wrap": true,
+   "modelled": 1.0
   }
  }
 }

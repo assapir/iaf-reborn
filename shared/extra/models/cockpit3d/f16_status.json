@@ -61,6 +61,7 @@
 "CH_50_switch": {"status": "works"},
 "FL_50_switch": {"status": "works"},
 "MODE_50_knob": {"status": "works"},
+"PRGM_50_knob": {"status": "works", "note": "Its stops are 1 to 4; BIT, the built-in test, is a painted mark."},
 "HMCS_SYM_INT_KNOB": {"status": "partly", "note": "Only the OFF position does anything: the helmet display is off."},
 "alt-rel-button": {"status": "works"},
 "laser-arm-switch": {"status": "works"},

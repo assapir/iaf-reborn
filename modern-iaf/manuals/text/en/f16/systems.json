@@ -184,6 +184,7 @@
   "WARN": "Warning",
   "WX": "Weather",
   "PRI": "Primary",
+  "PRGM": "Program",
   "CHAN": "Channel",
   "BRK": "Brake"
  },
@@ -1145,6 +1146,19 @@
      "label": "MODE",
      "name": "Dispenser mode",
      "does": "Sets how the dispenser releases: held ready (STBY), by the pilot's switch (MAN), or with the sensors' consent or by itself (inferred)."
+    },
+    {
+     "node": "PRGM_50_knob",
+     "label": "PRGM",
+     "name": "Dispenser program",
+     "positions": [
+      "1",
+      "2",
+      "3",
+      "4"
+     ],
+     "does": "Selects the program, 1 to 4, that MAN, SEMI and AUTO run; BIT starts the dispenser's built-in test (inferred).",
+     "sim": "Its stops are 1 to 4; BIT is a painted mark."
     },
     {
      "node": "HMCS_SYM_INT_KNOB",

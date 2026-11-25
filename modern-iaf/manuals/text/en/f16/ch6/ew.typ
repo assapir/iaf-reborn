@@ -50,12 +50,12 @@ The #jet.short has no missile approach warning: a heat-seeking missile fired at 
 
 The #term("CMDS") releases chaff and flares. Its panel is on the left console.
 
-#picture("cmds", ("CH_50_switch": "1", "FL_50_switch": "1", "MODE_50_knob": "2", "RWR_50_switch": "3", "MWS_50_switch": "3"), width: 70%)
+#picture("cmds", ("CH_50_switch": "1", "FL_50_switch": "1", "MODE_50_knob": "2", "RWR_50_switch": "3", "MWS_50_switch": "3", "PRGM_50_knob": "4"), width: 70%)
 
 + #row("CH_50_switch") and #row("FL_50_switch") on: each powers its dispenser.
 + #row("MODE_50_knob") to the mode: #key("CMDS mode knob") steps it.
 + #row("RWR_50_switch") and #row("MWS_50_switch") on: a launch that the threat warning or the missile warning reports reaches the dispenser.
-+ Choose the program, 1 to 4: #key("CMDS program (1-4)").
++ #row("PRGM_50_knob") to the program, 1 to 4: #key("CMDS program (1-4)") steps it.
 + Dispense: #key("CMS forward: run the CMDS program"). Stop: #key("CMS aft: stop dispensing").
 
 #table(columns: (auto, 1fr), table.header[*Mode*][*What the dispenser does*],
@@ -86,7 +86,7 @@ With the jammer on, an enemy radar sees the jet only inside its burn-through ran
 ]
 
 #in-sim[
-  - The cockpit's MODE knob has three positions; SEMI, AUTO and BYP are on the key, with the knob left at MAN.
+  - #row("PRGM_50_knob") has its stops at 1 to 4; BIT, the dispenser's built-in test, is a painted mark.
   - The programs' starting values are the sim's own.
   - #row("01_50_switch"), #row("02_50_switch") and #row("JMR_50_switch") move only.
   - #row("IFF_button") #then[dims the threat warning display turned down and brightens it turned up.]

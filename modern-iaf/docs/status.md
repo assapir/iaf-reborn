@@ -17,8 +17,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   A101; [front-end.md](front-end.md) §8, §14):** every in-flight line that is not a radio call (switch states,
   refusals, damage, cheats, the training's "To complete" and wrong-runway lines and its fail banner) is gone from the screen and kept in
   the recorded flight; the AWACS page dims a request it cannot take without a reason line; Settings → Updates shows no
-  explanation pane. The game manual (English and Hebrew) explains each. Open: the CMDS manual program has no cockpit
-  sign: its real one, the CMDS panel's PRGM knob, is not in the F-16 cockpit model.
+  explanation pane. The game manual (English and Hebrew) explains each. The CMDS manual program shows on the CMDS
+  panel's PRGM knob, added to the F-16 cockpit model on 2026-11-25 with the MODE knob's six positions
+  ([cockpit.md](cockpit.md) §5.13).
 - **The enemy's dogfight moves and the air-defence network's shared tracks (2026-11-25, the user: "no loose corners";
   the enemy-AI list's "IADS network, enemy-fighter BFM"; [ai-plan.md](ai-plan.md) K4–K6, X4;
   [../../docs/ai.md](../../docs/ai.md) §15.1, §15.5, §17, §18.2):** a MiG-29A in the dogfight also flies the reversal
