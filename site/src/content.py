@@ -118,8 +118,6 @@ SECTIONS = [
         "figs": [
             ("mig29", "A MiG-29 over the Negev.", "מיג-29 מעל הנגב."),
             ("eitam", "The Eitam on its station.", "עיטם בעמדת הסיור שלו."),
-            ("scramble*", "The Scramble screen: the flight, the start, the date and the time.",
-             "מסך ההזנקה: המבנה, ההתחלה, התאריך והשעה."),
         ],
     },
     {
@@ -169,6 +167,8 @@ SECTIONS = [
             ("hangar_f16i*", "The Hangar: pick the jet.", "הדת\"ק: בחירת המטוס."),
             ("missions*", "The Missions screen: Scramble and each jet's training missions.",
              "מסך המשימות: הזנקה ומשימות האימון של כל מטוס."),
+            ("scramble*", "The Scramble screen: the flight, the start, the date and the time.",
+             "מסך ההזנקה: המבנה, ההתחלה, התאריך והשעה."),
             ("map*", "The briefing: the map, what the mission teaches and how to fly it.",
              "התדריך: המפה, מה לומדים במשימה ואיך מטיסים אותה."),
             ("rack*", "The Loadout screen.", "מסך החימוש."),
