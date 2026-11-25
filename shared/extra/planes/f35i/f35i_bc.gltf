@@ -95,8 +95,14 @@
 				"baseColorTexture":{
 					"index":0
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":15
+				}
+			},
+			"normalTexture":{
+				"index":14
 			}
 		},
 		{
@@ -106,8 +112,14 @@
 				"baseColorTexture":{
 					"index":1
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":17
+				}
+			},
+			"normalTexture":{
+				"index":16
 			}
 		},
 		{
@@ -117,8 +129,14 @@
 				"baseColorTexture":{
 					"index":2
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":19
+				}
+			},
+			"normalTexture":{
+				"index":18
 			}
 		},
 		{
@@ -128,8 +146,14 @@
 				"baseColorTexture":{
 					"index":3
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":21
+				}
+			},
+			"normalTexture":{
+				"index":20
 			}
 		},
 		{
@@ -139,8 +163,14 @@
 				"baseColorTexture":{
 					"index":4
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":23
+				}
+			},
+			"normalTexture":{
+				"index":22
 			}
 		},
 		{
@@ -150,8 +180,14 @@
 				"baseColorTexture":{
 					"index":5
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":25
+				}
+			},
+			"normalTexture":{
+				"index":24
 			}
 		},
 		{
@@ -161,8 +197,14 @@
 				"baseColorTexture":{
 					"index":6
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":27
+				}
+			},
+			"normalTexture":{
+				"index":26
 			}
 		},
 		{
@@ -172,8 +214,14 @@
 				"baseColorTexture":{
 					"index":7
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":29
+				}
+			},
+			"normalTexture":{
+				"index":28
 			}
 		},
 		{
@@ -183,8 +231,14 @@
 				"baseColorTexture":{
 					"index":8
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":31
+				}
+			},
+			"normalTexture":{
+				"index":30
 			}
 		},
 		{
@@ -194,8 +248,14 @@
 				"baseColorTexture":{
 					"index":9
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":33
+				}
+			},
+			"normalTexture":{
+				"index":32
 			}
 		},
 		{
@@ -205,8 +265,14 @@
 				"baseColorTexture":{
 					"index":10
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":35
+				}
+			},
+			"normalTexture":{
+				"index":34
 			}
 		},
 		{
@@ -216,8 +282,14 @@
 				"baseColorTexture":{
 					"index":11
 				},
-				"metallicFactor":0.15000000596046448,
-				"roughnessFactor":0.550000011920929
+				"metallicFactor":1.0,
+				"roughnessFactor":1.0,
+				"metallicRoughnessTexture":{
+					"index":37
+				}
+			},
+			"normalTexture":{
+				"index":36
 			}
 		},
 		{
@@ -759,6 +831,102 @@
 		{
 			"sampler":0,
 			"source":13
+		},
+		{
+			"sampler":0,
+			"source":14
+		},
+		{
+			"sampler":0,
+			"source":15
+		},
+		{
+			"sampler":0,
+			"source":16
+		},
+		{
+			"sampler":0,
+			"source":17
+		},
+		{
+			"sampler":0,
+			"source":18
+		},
+		{
+			"sampler":0,
+			"source":19
+		},
+		{
+			"sampler":0,
+			"source":20
+		},
+		{
+			"sampler":0,
+			"source":21
+		},
+		{
+			"sampler":0,
+			"source":22
+		},
+		{
+			"sampler":0,
+			"source":23
+		},
+		{
+			"sampler":0,
+			"source":24
+		},
+		{
+			"sampler":0,
+			"source":25
+		},
+		{
+			"sampler":0,
+			"source":26
+		},
+		{
+			"sampler":0,
+			"source":27
+		},
+		{
+			"sampler":0,
+			"source":28
+		},
+		{
+			"sampler":0,
+			"source":29
+		},
+		{
+			"sampler":0,
+			"source":30
+		},
+		{
+			"sampler":0,
+			"source":31
+		},
+		{
+			"sampler":0,
+			"source":32
+		},
+		{
+			"sampler":0,
+			"source":33
+		},
+		{
+			"sampler":0,
+			"source":34
+		},
+		{
+			"sampler":0,
+			"source":35
+		},
+		{
+			"sampler":0,
+			"source":36
+		},
+		{
+			"sampler":0,
+			"source":37
 		}
 	],
 	"images":[
@@ -831,6 +999,126 @@
 			"mimeType":"image/png",
 			"name":"sqn116_lowvis",
 			"uri":"textures/sqn116_lowvis.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_29_n",
+			"uri":"textures/skin_29_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_29_mr",
+			"uri":"textures/skin_29_mr.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_30_n",
+			"uri":"textures/skin_30_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_30_mr",
+			"uri":"textures/skin_30_mr.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_36_n",
+			"uri":"textures/skin_36_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_36_mr",
+			"uri":"textures/skin_36_mr.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_37_n",
+			"uri":"textures/skin_37_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_37_mr",
+			"uri":"textures/skin_37_mr.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_38_n",
+			"uri":"textures/skin_38_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_38_mr",
+			"uri":"textures/skin_38_mr.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_40_n",
+			"uri":"textures/skin_40_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_40_mr",
+			"uri":"textures/skin_40_mr.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_41_n",
+			"uri":"textures/skin_41_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_41_mr",
+			"uri":"textures/skin_41_mr.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_42_n",
+			"uri":"textures/skin_42_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_42_mr",
+			"uri":"textures/skin_42_mr.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_43_n",
+			"uri":"textures/skin_43_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_43_mr",
+			"uri":"textures/skin_43_mr.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_45_n",
+			"uri":"textures/skin_45_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_45_mr",
+			"uri":"textures/skin_45_mr.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_48_n",
+			"uri":"textures/skin_48_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_48_mr",
+			"uri":"textures/skin_48_mr.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_49_n",
+			"uri":"textures/skin_49_n.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"skin_49_mr",
+			"uri":"textures/skin_49_mr.png"
 		}
 	],
 	"accessors":[

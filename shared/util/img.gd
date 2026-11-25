@@ -19,10 +19,11 @@ static func soft_dot() -> Texture2D:
 ## docs/release.md) has no encoder behind Image.compress: there an opaque image becomes BC1 by IafImage.bc1 (the
 ## texpresso encoder setup's .dds use), and an image with alpha stays uncompressed. The extension is callable from the
 ## main thread only, so on a worker thread the image is only marked (meta "s3tc") and its caller compresses it again
-## on the main thread (terrain.gd _finish_jobs, gltf.gd open).
-static func compress_s3tc(img: Image) -> void:
+## on the main thread (terrain.gd _finish_jobs, gltf.gd open). A `normal` map becomes RGTC (BC5, its two channels)
+## where the encoder is there, BC1 in a release bundle.
+static func compress_s3tc(img: Image, normal := false) -> void:
 	if not OS.has_feature("template"):
-		img.compress(Image.COMPRESS_S3TC)
+		img.compress(Image.COMPRESS_S3TC, Image.COMPRESS_SOURCE_NORMAL if normal else Image.COMPRESS_SOURCE_GENERIC)
 		return
 	if img.is_compressed() or img.detect_alpha() != Image.ALPHA_NONE:
 		return

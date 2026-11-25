@@ -109,42 +109,67 @@ static func _set_materials(state: GLTFState, path: String) -> void:
 
 
 ## Gives each material its base colour texture from its image (a file beside the model, or embedded in the .glb),
-## mipmapped (marked "mipmapped" for _set_materials).
+## mipmapped (marked "mipmapped" for _set_materials); a .gltf's normal and metallic / roughness maps (images beside
+## it, discarded by the parse) the same way (the F-35I's skin, docs/f35i.md §5.1).
 static func _own_textures(state: GLTFState, dir: String) -> void:
-	var images: Array = state.json.get("images", [])
-	var textures: Array = state.json.get("textures", [])
 	var json_mats: Array = state.json.get("materials", [])
 	var made := {}
 	var mats := state.get_materials()
 	for i in mini(mats.size(), json_mats.size()):
 		var bm := mats[i] as BaseMaterial3D
-		var ti = json_mats[i].get("pbrMetallicRoughness", {}).get("baseColorTexture", {}).get("index")
-		if bm == null or ti == null or int(ti) >= textures.size():
+		if bm == null:
 			continue
-		var tex: Dictionary = textures[int(ti)]
-		var src := int(tex.get("extensions", {}).get("KHR_texture_basisu", tex).get("source", -1))
-		if not made.has(src):
-			made[src] = bm.albedo_texture  # as parsed (null with the textures discarded) unless decoded here
-			var img := _image(state, images[src], dir) if src >= 0 and src < images.size() else null
-			if img != null:
-				if not img.has_mipmaps() and not img.is_compressed():
-					img.generate_mipmaps()
-				if (
-					(
-						dir + "/" in [STORES_DIR, MIG29_DIR, COCKPIT3D_DIR]
-						or _made_by_setup(dir + "/")
-						or UNITS.values().any(func(u): return u.get_base_dir() == dir)
-					)
-					and RenderingServer.has_os_feature("s3tc")
-				):
-					Img.compress_s3tc(img)  # the CPU encoder (rendering.md §1.5), ≈ 3 ms a 512² image
-				made[src] = ImageTexture.create_from_image(img)
-				made[src].set_meta("mipmapped", true)
-				if img.has_meta("s3tc"):  # a release bundle on a worker: compressed in open(), on the main thread
-					var later: Array = state.get_meta("s3tc", [])
-					later.append([made[src], img])
-					state.set_meta("s3tc", later)
-		bm.albedo_texture = made[src]
+		var pbr: Dictionary = json_mats[i].get("pbrMetallicRoughness", {})
+		var t = _own_texture(state, pbr.get("baseColorTexture", {}).get("index"), dir, made, bm.albedo_texture)
+		if t != null:
+			bm.albedo_texture = t
+		if bm.normal_texture == null:
+			t = _own_texture(state, json_mats[i].get("normalTexture", {}).get("index"), dir, made, null, true)
+			if t != null:
+				bm.normal_enabled = true
+				bm.normal_texture = t
+		if bm.roughness_texture == null:
+			t = _own_texture(state, pbr.get("metallicRoughnessTexture", {}).get("index"), dir, made, null)
+			if t != null:
+				bm.roughness_texture = t
+				bm.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+				bm.metallic_texture = t
+				bm.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_BLUE
+
+
+## The texture of glTF texture index `ti` (null for none), made once per image (`made`): its image decoded and
+## mipmapped, compressed for the folders that are; `parsed` when the image does not decode.
+static func _own_texture(state: GLTFState, ti, dir: String, made: Dictionary, parsed: Texture2D, normal := false):
+	var textures: Array = state.json.get("textures", [])
+	var images: Array = state.json.get("images", [])
+	if ti == null or int(ti) >= textures.size():
+		return null
+	var tex: Dictionary = textures[int(ti)]
+	var src := int(tex.get("extensions", {}).get("KHR_texture_basisu", tex).get("source", -1))
+	if made.has(src):
+		return made[src]
+	made[src] = parsed  # as parsed (null with the textures discarded) unless decoded here
+	var img := _image(state, images[src], dir) if src >= 0 and src < images.size() else null
+	if img == null:
+		return parsed
+	if not img.has_mipmaps() and not img.is_compressed():
+		img.generate_mipmaps(normal)
+	if (
+		(
+			dir + "/" in [STORES_DIR, MIG29_DIR, COCKPIT3D_DIR, F35I_DIR]
+			or _made_by_setup(dir + "/")
+			or UNITS.values().any(func(u): return u.get_base_dir() == dir)
+		)
+		and RenderingServer.has_os_feature("s3tc")
+	):
+		Img.compress_s3tc(img, normal)  # the CPU encoder (rendering.md §1.5), ≈ 3 ms a 512² image
+	made[src] = ImageTexture.create_from_image(img)
+	made[src].set_meta("mipmapped", true)
+	if img.has_meta("s3tc"):  # a release bundle on a worker: compressed in open(), on the main thread
+		var later: Array = state.get_meta("s3tc", [])
+		later.append([made[src], img])
+		state.set_meta("s3tc", later)
+	return made[src]
 
 
 ## A glTF image: its file in `dir`, or its buffer view (PNG, JPEG, KTX2); null when unreadable.
@@ -334,6 +359,8 @@ const MIG29_DIR := "res://shared/extra/models/mig29/"
 const STORES_DIR := "res://shared/extra/models/stores/"
 ## The F-16's 3D cockpit (cockpit/cockpit3d.gd): its textures compressed (BC1 / BC3) at the parse too.
 const COCKPIT3D_DIR := "res://shared/extra/models/cockpit3d/"
+## The F-35I (its skin's colour, normal and metallic / roughness maps, docs/f35i.md §5.1): compressed the same way.
+const F35I_DIR := "res://shared/extra/planes/f35i/"
 ## Modern IAF's enemy units (CC BY 4.0, docs/credits.md; tools/enemy_models/convert.py; the S-300's truck radars
 ## ours, tools/enemy_models/radars.py: true size, nose along −Z, on the ground at the footprint's middle): a site
 ## part's or drone's placed name -> its model (air_defence.gd, drones.gd; a name without one keeps its stand-in shape).
