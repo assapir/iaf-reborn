@@ -78,7 +78,7 @@ are never committed. From the checkout, by hand: `target/release/iaf-setup guide
    in a 3840×2160 frame whatever the screen's size. No window reaches the screen: on macOS the game runs as a hidden
    app (`open -g -j`); on Linux under `xvfb-run` with the desktop's `WAYLAND_DISPLAY` taken away (it renders on the
    GPU inside Xvfb, [rendering.md](../rendering.md) §1.5); Linux without `xvfb-run` fails the step and says to install
-   it. Windows opens the game's windows on the desktop (not tested here: no Windows machine).
+   it. The guides render on macOS; Windows opens the game's windows on the desktop and is not tested.
    - An entry sets the settings, the mission (`mc` builds a Mission Creator mission, 666: the MiGs fly only there),
      the start (mission, airborne, dive, final approach, the briefing TSD with its GPS targets panel, or the Arming screen), a placed
      target, actions (a radar lock, a store, the MFDs' pages, a camera on the target, a radar-designated point, the GPS bombs' PRE

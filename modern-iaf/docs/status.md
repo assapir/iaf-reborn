@@ -258,8 +258,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   guidance when taken ([../../docs/real-weapons.md](../../docs/real-weapons.md) §2.6;
   `modern-iaf/tests/test_threat_missiles.gd`). Built 25 Nov (the user: "Is the F-35I's jammer real?" "IDK, check
   it"): the Adir's jammer, as the real jet's AN/ASQ-239 and Elbit EW jam ([../../docs/f35i.md](../../docs/f35i.md)
-  §7.1): its definition's `jammer` (the Sufa's 0.3, inferred) on J, ECM ON on the ICAWS (`test_sim_pcd.gd`); before,
-  J did nothing on the Adir. The
+  §7.1): its definition's `jammer` (the Sufa's 0.3, inferred) on J, ECM ON on the ICAWS (`test_sim_pcd.gd`). The
   Barak's jammer is not built. The Adir's radar EA mode is out of the plan (25 November, the user: "don't do it").
 - **Shoulder-fired SAMs (2026-11-23, the user, 22 Nov: "Ok follow your suggested order"; [ai-plan.md](ai-plan.md) K16;
   [../../docs/ai.md](../../docs/ai.md) §15.8):** a Strela-2M or an Igla team (`air_defence.gd spawn("strela" |
@@ -1489,8 +1488,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The missile warning, not started (outside the user's words):** an active radar missile's own seeker as an "M" on
   the threat display (the F-15C's ALR-56C shows one, a simulator manual; the dash-34's F-16 list has none;
   [research/missile-warning.md](research/missile-warning.md) §2, §6).
-- **The manuals** ([manuals.md](manuals.md)): the Typst build, the page design, each manual's outline and one written
-  section per jet (Cold start to take-off) are built and match what the player sees (manuals audit 2, 54f0bc538); every other section is planned in the outlines. The Hangar's Manuals entry opens the PDFs.
+- **The manuals** ([manuals.md](manuals.md)): the Typst build and the four manuals; the three jet manuals' chapters 1 to 6 and the game manual are written whole (manuals.md §1); the game manual's Hebrew edition waits for the user's reading. The Hangar's Manuals entry opens the PDFs.
 - **Avionics, missiles and bombs (2026-11-17):** the inventory per jet, the gap list and the build order are in
   [avionics-plan.md](avionics-plan.md); the 15 November bugs (radar standby, break X and the HUD against reborn,
   SPICE / GPS targets, the gun flash) are its first slice; the range is slice 1. The briefing's PRE target pick for the
