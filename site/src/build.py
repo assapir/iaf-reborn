@@ -16,7 +16,7 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO = os.path.dirname(HERE)
 OUT = os.path.join(HERE, "_site")
 RAW = sys.argv[1] if len(sys.argv) > 1 else ""
-MAX_KB = {"full": 1024, "thumb": 320, "audio": 400}  # a file over this is re-encoded smaller before it is committed
+MAX_KB = {"full": 1024, "thumb": 320, "small": 120, "audio": 400}  # a file over this is re-encoded smaller before it is committed
 # Served path -> the repo file it is copied from (the game's own logo and font, not a second copy).
 COPIES = {
     "logo/icon_small.svg": "modern-iaf/branding/icon_small.svg",
@@ -54,6 +54,16 @@ def jpg(name):
         if os.path.getsize(out) > MAX_KB[sub] * 1024:
             sys.exit(f"{out} is over {MAX_KB[sub]} KB")
         USED.add(f"{sub}/{name}.jpg")
+    # small/<name>.webp: 640 wide, what a phone or a half-width figure loads (srcset); made from the thumb.
+    small, thumb = os.path.join(HERE, "small", name + ".webp"), os.path.join(HERE, "thumb", name + ".jpg")
+    if shutil.which("magick") and (not os.path.exists(small) or os.path.getmtime(small) < os.path.getmtime(thumb)):
+        os.makedirs(os.path.dirname(small), exist_ok=True)
+        subprocess.run(["magick", thumb, "-resize", "640x>", "-strip", "-quality", "78", small], check=True)
+    if not os.path.exists(small):
+        sys.exit("missing " + small)
+    if os.path.getsize(small) > MAX_KB["small"] * 1024:
+        sys.exit(f"{small} is over {MAX_KB['small']} KB")
+    USED.add(f"small/{name}.webp")
 
 
 def both(en, he, tag="span", cls=""):
@@ -61,13 +71,17 @@ def both(en, he, tag="span", cls=""):
     return f'<{tag}{c} lang="en">{en}</{tag}><{tag}{c} lang="he" dir="rtl">{he}</{tag}>'
 
 
-def img(name, alt_en, alt_he, lang=None):
+def img(name, alt_en, alt_he, lang=None, hero=False):
     jpg(name)
     la = f' lang="{lang}"' if lang else ""
     alt = html.escape(alt_he if lang == "he" else alt_en, quote=True)
     w, h = jpeg_size(os.path.join(HERE, "thumb", name + ".jpg"))
+    # The hero is the largest paint: fetched first, full width; the rest load lazily at half width (one column on a phone).
+    load = 'fetchpriority="high"' if hero else 'loading="lazy"'
+    sizes = "(max-width:1240px) 100vw, 1192px" if hero else "(max-width:800px) 100vw, 600px"
     return (f'<a{la} class="pic" href="full/{name}.jpg">'
-            f'<img src="thumb/{name}.jpg" alt="{alt}" loading="lazy" width="{w}" height="{h}"></a>')
+            f'<img src="thumb/{name}.jpg" srcset="small/{name}.webp 640w, thumb/{name}.jpg {w}w" sizes="{sizes}" '
+            f'alt="{alt}" {load} width="{w}" height="{h}"></a>')
 
 
 def figure(f):
@@ -77,7 +91,7 @@ def figure(f):
         n = name[:-1]
         pics = img(n + "_en", en, he, "en") + img(n + "_he", en, he, "he")
     else:
-        pics = img(name, en, he)
+        pics = img(name, en, he, hero=wide)
     cls = "fig wide" if wide else "fig"
     return f'<figure class="{cls}">{pics}<figcaption>{both(en, he)}</figcaption></figure>'
 
@@ -227,7 +241,8 @@ def page():
     return f"""<!DOCTYPE html>
 <html lang="en" data-lang="en" dir="ltr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{TITLE}</title><style>{CSS}</style></head><body>
+<title>{TITLE}</title>
+<link rel="preload" href="fonts/Heebo.ttf" as="font" type="font/ttf" crossorigin><style>{CSS}</style></head><body>
 <header><div class="bar"><div class="brand"><img src="logo/icon_small.svg" alt="">{both("Modern IAF", "הזרוע הארוכה")}</div><nav>{nav}</nav>
 <div class="switch"><button data-l="he">עברית</button><button data-l="en">English</button></div></div></header>
 <main>{hero}
