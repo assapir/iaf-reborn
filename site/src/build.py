@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
-"""Builds Modern IAF's public showcase page (GitHub Pages, .github/workflows/pages.yml) into site/_site: index.html from
-content.py, the pictures it names from site/full and site/thumb, the logo and the font from the game's own files.
+"""Builds Modern IAF's public showcase page (GitHub Pages, .github/workflows/pages.yml) into site/_site: index.html and
+he.html (the Hebrew page) from content.py with sitemap.xml and robots.txt, the pictures it names from site/full and
+site/thumb, the logo and the font from the game's own files.
 python3 site/src/build.py [RAW_DIR]   RAW_DIR (local only, needs ImageMagick): <name>.png renders, made into
 full/<name>.jpg (at most 2560 wide) and thumb/<name>.jpg; a per-language picture is <name>_en.png / <name>_he.png."""
 import html
+import json
 import os
 import shutil
 import struct
 import subprocess
 import sys
 
-from content import HERO, SECTIONS, CREDITS, AUTHOR, TITLE, MANUALS, PUBLISH_MANUALS, RADIO, DOWNLOADS
+from content import HERO, SECTIONS, CREDITS, AUTHOR, META, MANUALS, PUBLISH_MANUALS, RADIO, DOWNLOADS
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO = os.path.dirname(HERE)
 OUT = os.path.join(HERE, "_site")
+SITE = "https://moderniaf.fly/"
+PAGES = {"en": "", "he": "he.html"}  # each language's page, under SITE
 RAW = sys.argv[1] if len(sys.argv) > 1 else ""
 MAX_KB = {"full": 1024, "thumb": 320, "small": 120, "audio": 400}  # a file over this is re-encoded smaller before it is committed
 # Served path -> the repo file it is copied from (the game's own logo and font, not a second copy).
@@ -109,7 +113,7 @@ def section(s):
         def card(x, c, en, he, ne, nh, lg=""):
             USED.add(f"thumb/{c}.jpg")
             la = f' lang="{lg}"' if lg else ""
-            return (f'<a{la} class="doc" href="{x}" target="_blank" rel="noopener"><img class="cov" src="thumb/{c}.jpg" alt="" '
+            return (f'<a{la} class="doc" href="{x}" target="_blank" rel="noopener"><img class="cov" src="thumb/{c}.jpg" alt="" loading="lazy" '
                     f'width="160" height="226"><b>{both(en, he)}</b>{both(ne, nh)}</a>')
         out += '<div class="links">' + "".join(
             card(u, c, en, he, ne, nh) if isinstance(u, str) else card(u[0], c[0], en, he, ne, nh, "en") + card(u[1], c[1], en, he, ne, nh, "he")
@@ -164,7 +168,7 @@ nav{display:flex;gap:16px;flex-wrap:wrap;flex:1;font-size:14px}
 nav a{color:var(--dim);text-decoration:none}nav a:hover{color:var(--text)}
 .switch{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .switch button{background:none;border:0;color:var(--dim);font:inherit;font-size:14px;padding:6px 14px;cursor:pointer}
-.switch button.on{background:var(--accent);color:#fff}
+.switch button.on{background:#3d6fe0;color:#fff}
 main{max-width:1240px;margin:auto;padding:0 24px 60px}
 .hero{padding:44px 0 12px}
 .hero h1{font-size:54px;line-height:1.1;margin:0 0 6px}.hero h1 img{display:block;width:auto;max-width:100%;margin:0 auto 8px}.hero h1 img[lang=en]{height:min(176px,calc((100vw - 48px)*326/609))}.hero h1 img[lang=he]{height:min(176px,calc((100vw - 48px)*326/743))}
@@ -205,12 +209,13 @@ html[dir=rtl] .hero h1{font-size:58px}
 """
 
 JS = """
-(function(){var h=document.documentElement;
+(function(){var h=document.documentElement,T=TITLES;
 function set(l){h.dataset.lang=l;h.lang=l;h.dir=l==='he'?'rtl':'ltr';
 document.querySelectorAll('.switch button').forEach(function(b){b.classList.toggle('on',b.dataset.l===l)});
-document.title=l==='he'?'הזרוע הארוכה':'Modern IAF';
+document.title=T[l];
 try{localStorage.setItem('miaf-lang',l)}catch(e){}}
 var l=location.hash==='#he'?'he':location.hash==='#en'?'en':null;
+if(!l&&h.lang==='he')l='he';
 if(!l){try{l=localStorage.getItem('miaf-lang')}catch(e){}}
 set(l==='he'?'he':'en');
 document.querySelectorAll('.switch button').forEach(function(b){b.addEventListener('click',function(){set(b.dataset.l)})});
@@ -227,7 +232,35 @@ window.addEventListener('hashchange',function(){if(location.hash==='#he'||locati
 ANALYTICS = """<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "8b94e3b455cf413b818a0aed5eccfeee"}'></script><!-- End Cloudflare Web Analytics -->"""
 
 
-def page():
+def head(lang):
+    """The page's <head> extras: description, canonical, the other language, the share card, the game's JSON-LD."""
+    title, desc = META[lang]
+    url, e = SITE + PAGES[lang], lambda t: html.escape(t, quote=True)
+    alts = "".join(f'<link rel="alternate" hreflang="{lg}" href="{SITE + p}">' for lg, p in PAGES.items())
+    hero = f'{SITE}thumb/{HERO["fig"][0]}.jpg'
+    w, h = jpeg_size(os.path.join(HERE, "thumb", HERO["fig"][0] + ".jpg"))
+    other = "he_IL" if lang == "en" else "en_US"
+    ld = {"@context": "https://schema.org", "@type": "VideoGame", "name": "Modern IAF", "alternateName": "הזרוע הארוכה",
+          "description": META["en"][1], "url": SITE, "image": hero, "inLanguage": ["en", "he"],
+          "author": {"@type": "Person", "name": "Assaf Sapir", "url": "https://github.com/assapir"},
+          "applicationCategory": "Game", "genre": "Flight simulator", "operatingSystem": "Linux, macOS, Windows",
+          "downloadUrl": DOWNLOADS["all"][0],
+          "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}
+    return (f'<title>{e(title)}</title><meta name="description" content="{e(desc)}">'
+            f'<link rel="canonical" href="{url}">{alts}<link rel="alternate" hreflang="x-default" href="{SITE}">'
+            '<link rel="icon" href="logo/icon_small.svg" type="image/svg+xml"><link rel="preload" href="fonts/Heebo.ttf" as="font" type="font/ttf" crossorigin><meta name="theme-color" content="#15181d">'
+            f'<meta property="og:type" content="website"><meta property="og:site_name" content="Modern IAF">'
+            f'<meta property="og:title" content="{e(title)}"><meta property="og:description" content="{e(desc)}">'
+            f'<meta property="og:url" content="{url}"><meta property="og:image" content="{hero}">'
+            f'<meta property="og:image:width" content="{w}"><meta property="og:image:height" content="{h}">'
+            f'<meta property="og:image:alt" content="{e(HERO["fig"][1 if lang == "en" else 2])}">'
+            f'<meta property="og:locale" content="{"en_US" if lang == "en" else "he_IL"}">'
+            f'<meta property="og:locale:alternate" content="{other}">'
+            '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:creator" content="@meijin007">'
+            f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>')
+
+
+def page(lang):
     hero = ('<div class="hero"><h1><img lang="en" src="logo/lockup_en_dark.svg" alt="Modern IAF" width="609" height="326">'
             '<img lang="he" src="logo/lockup_he_dark.svg" alt="הזרוע הארוכה" width="743" height="326"></h1>'
             f'<p class="sub">{both(HERO["sub_en"], HERO["sub_he"])}</p>'
@@ -237,21 +270,22 @@ def page():
     secs = list(SECTIONS) + [DOWNLOADS] + ([MANUALS] if PUBLISH_MANUALS else [])
     nav = "".join(f'<a href="#{s["id"]}">{both(s["nav_en"], s["nav_he"])}</a>' for s in secs)
     body = "\n".join(section(s) for s in secs)
+    js = JS.replace("TITLES", json.dumps({lg: META[lg][0] for lg in META}, ensure_ascii=False))
     foot = f'<footer>{both(AUTHOR[0], AUTHOR[1], "p")}{both(CREDITS[0], CREDITS[1], "p")}</footer>'
     return f"""<!DOCTYPE html>
-<html lang="en" data-lang="en" dir="ltr"><head><meta charset="utf-8">
+<html lang="{lang}" data-lang="{lang}" dir="{"rtl" if lang == "he" else "ltr"}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{TITLE}</title><style>{CSS}</style></head><body>
+{head(lang)}<style>{CSS}</style></head><body>
 <header><div class="bar"><div class="brand"><img src="logo/icon_small.svg" alt="">{both("Modern IAF", "הזרוע הארוכה")}</div><nav>{nav}</nav>
 <div class="switch"><button data-l="he">עברית</button><button data-l="en">English</button></div></div></header>
 <main>{hero}
 {body}
-{foot}</main><script>{JS}</script>{ANALYTICS}</body></html>
+{foot}</main><script>{js}</script>{ANALYTICS}</body></html>
 """
 
 
 if __name__ == "__main__":
-    text = page()
+    texts = {lg: page(lg) for lg in PAGES}
     shutil.rmtree(OUT, ignore_errors=True)
     for rel in USED:
         os.makedirs(os.path.dirname(os.path.join(OUT, rel)), exist_ok=True)
@@ -262,6 +296,14 @@ if __name__ == "__main__":
     unused = {f"{d}/{n}" for d in MAX_KB for n in os.listdir(os.path.join(HERE, d))} - USED
     if unused:
         sys.exit("pictures no figure uses (delete them): " + " ".join(sorted(unused)))
-    with open(os.path.join(OUT, "index.html"), "w") as f:
-        f.write(text)
-    print(f"{OUT}: index.html and {len(USED)} pictures")
+    for lg, p in PAGES.items():
+        with open(os.path.join(OUT, p or "index.html"), "w") as f:
+            f.write(texts[lg])
+    alts = "".join(f'<xhtml:link rel="alternate" hreflang="{lg}" href="{SITE + p}"/>' for lg, p in PAGES.items())
+    with open(os.path.join(OUT, "sitemap.xml"), "w") as f:
+        f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+                'xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
+                + "".join(f"<url><loc>{SITE + p}</loc>{alts}</url>\n" for p in PAGES.values()) + "</urlset>\n")
+    with open(os.path.join(OUT, "robots.txt"), "w") as f:
+        f.write(f"User-agent: *\nAllow: /\nSitemap: {SITE}sitemap.xml\n")
+    print(f"{OUT}: index.html, he.html and {len(USED)} pictures")

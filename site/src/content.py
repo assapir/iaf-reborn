@@ -1,7 +1,15 @@
 # The showcase page's words, English and Hebrew (formal, gender-neutral). A figure: (picture, caption_en,
 # caption_he[, "wide"]); "name*" = name_en / name_he (the screen in the page's language).
 
-TITLE = "Modern IAF"
+# Each language's page: its <title> and its search / share description (he.html is the Hebrew page).
+META = {
+    "en": ("Modern IAF: a flight sim of today's Israeli Air Force",
+           "Fly the F-16I Sufa, the F-16D Barak and the F-35I Adir in 3D cockpits over a full-scale Israel built from "
+           "open data. Free and open source, for Linux, macOS and Windows."),
+    "he": ("הזרוע הארוכה: סימולטור טיסה של חיל האוויר של היום",
+           "טסים בסופה (F-16I), בברק (F-16D) ובאדיר (F-35I) בתאי טייס תלת־ממדיים מעל ישראל בקנה מידה מלא. "
+           "חינמי ובקוד פתוח, ל־Linux, ל־macOS ול־Windows."),
+}
 
 HERO = {
     "sub_en": "A flight sim of today's Israeli Air Force",
