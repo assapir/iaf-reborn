@@ -158,6 +158,11 @@ SECTIONS = [
             ("haifa_ext", "Haifa and the Carmel from over the bay.", "חיפה והכרמל מעל המפרץ."),
             ("jerusalem_ext", "Jerusalem.", "ירושלים.", "wide"),
             ("rishon", "Above Rishon LeZion.", "מעל ראשון לציון.", "wide"),
+            ("moon_jerusalem", "Jerusalem at night under a half moon, from the cockpit: the night is as dark as the moon's "
+             "real phase on the date.", "ירושלים בלילה תחת חצי ירח, מתא הטייס: חשכת הלילה לפי מופע הירח האמיתי בתאריך.",
+             "wide"),
+            ("moon_telaviv", "A full moon over Tel Aviv.", "ירח מלא מעל תל אביב."),
+            ("moon_dusk", "A crescent moon at dusk over the coast.", "ירח חרמש בשעת דמדומים מעל החוף."),
         ],
     },
     {
