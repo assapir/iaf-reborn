@@ -5,7 +5,8 @@
 # radio menu's Tanker page (English and Hebrew), then the request, the door, the jet held on the tanker's stations
 # (tanker.gd `test_player_state`, as test_air_refuel.gd; the jet's model posed there too, its flight model stopped)
 # until the boom is latched: the tanker and the jet from outside (VIEWS, each matched to a photograph's camera), the
-# boom and the tanker from the cockpit. Files <SHOT_JET>_<view>.png in SHOT_DIR. A real render:
+# boom and the tanker from the cockpit. Files <SHOT_JET>_<view>.png in SHOT_DIR. SHOT_BENCH=1: also the mean frame
+# time over 600 frames at the boom_close view (the tanker's model close). A real render:
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> SHOT_JET=f35i -- \
 #     --log-file <temp> --resolution 1600x900 --path modern-iaf -s ../modern-iaf/tests/_refuel_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -23,7 +24,8 @@ const VIEWS := [
 	["tanker_front_below", Vector3(55.0, 38.0, -24.0), "centre", "centre", 40.0],  # kc46_q34_1
 	["tanker_below_behind", Vector3(-75.0, 0.0, -45.0), "centre", "centre", 45.0],  # boom_stowed_1
 	["receiver_front_left", Vector3(25.0, -60.0, -2.0), "nozzle", "mid", 40.0],  # boom_outside_2
-	["boom_close", Vector3(-1.0, 4.0, -4.0), "mid", "mid", 60.0],  # boom_outside_3
+	["boom_close", Vector3(-5.0, -4.5, -2.0), "mid", "mid", 50.0],  # boom_outside_3
+	["receptacle_close", Vector3(-2.5, 1.2, 1.6), "nozzle", "nozzle", 35.0],  # the open door at the nozzle
 ]
 ## The receiver's head in the cockpit for the boom (boom_from_receiver_1): yaw, pitch (deg).
 const HEAD_BOOM := Vector2(-12.0, 58.0)
@@ -128,6 +130,13 @@ func _refuel() -> void:
 	for v in VIEWS:
 		_view = v
 		await _shot(String(v[0]))
+	if OS.get_environment("SHOT_BENCH") != "":  # the frame's cost with the tanker close (boom_close): 600 frames
+		_view = VIEWS[6]
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+		await frames(60)
+		var b0 := Time.get_ticks_usec()
+		await frames(600)
+		print("bench: %.2f ms a frame (boom_close)" % ((Time.get_ticks_usec() - b0) / 600000.0))
 	RenderingServer.frame_pre_draw.disconnect(_pre_draw)
 	tv.views.set_cockpit(tv.views.COCKPIT)  # the 3D cockpit, whatever the HUD-only preference
 	tv._apply_view()

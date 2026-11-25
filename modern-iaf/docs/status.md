@@ -61,7 +61,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   boom operator's clearances; the door (Shift + F1: the F-16's AIR REFUEL switch, the F-35I's door on the PCD's FUEL
   portal), the boom flown into a receptacle held at the contact position, the pilot director lights, the fuel at
   3,000 lb a minute (Re'em 2,000), disconnects on the envelope's limits, A/R DISC (Shift + F2) or full, breakaway;
-  the F-16's RDY, AR/NWS and DISC lamps; the external tanks hold their fuel with the door open. The wingmen's
+  the F-16's RDY, AR/NWS and DISC lamps; the external tanks hold their fuel with the door open, and the door is drawn
+  open on the jet's model (the F-16s' slipway, the F-35I's door up; research §8.2). The wingmen's
   command "Refuel": each refuels in turn and they rejoin. The AWACS's "Vector to tanker" answers with a tanker in
   the air. The notebook's AIR REFUEL tab (only with a tanker; the user: "the notebook should have air-refuling part
   for checklitst of it"): the jet's refuelling checklist, ticked in flight, the same steps in the jets' manuals

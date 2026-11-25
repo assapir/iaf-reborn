@@ -11,6 +11,7 @@ extends Node3D
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const Gltf := preload("res://shared/util/gltf.gd")
 const DamageModel := preload("res://shared/mission/damage_model.gd")
+const ArDoor := preload("res://shared/aircraft/ar_door.gd")
 const CLASS_AIRCRAFT := 0x1c
 ## Each kind's model and the callsign the radio uses (radio.gd TANKERS).
 const MODELS := {
@@ -51,6 +52,7 @@ var said: Array = []
 var _now := 0.0
 ## The receivers that have come within LEAVE_M.
 var _reached := {}
+var _doors := {}  # the AI receivers' models with their doors open -> their aircraft definitions
 ## Tests: the player's jet held where a test puts it: a Callable(delta) giving {position, velocity, forward, right, up}
 ## (scene) at this frame's end; null: its flight model's state.
 var test_player_state = null
@@ -149,7 +151,9 @@ func frame(delta: float) -> void:
 	var fa = ai.get("flight_ai") if ai != null else null
 	if fa != null:
 		_ai_requests(ai, fa)
-	var out: Dictionary = tk.step(delta, _receivers(ai, delta))
+	var rx := _receivers(ai, delta)
+	_ai_doors(ai, rx)
+	var out: Dictionary = tk.step(delta, rx)
 	var fuel: Array = out.get("fuel", [])
 	if not fuel.is_empty():
 		var f = _flight_of(int(fuel[0]), ai)
@@ -235,6 +239,22 @@ func _receiver(id: int, ai, delta: float) -> Dictionary:
 	if rc == Vector3.INF:
 		return {}
 	return _rx(id, p.state(), rc, true, p.flight.fuel_room(), false)  # an AI jet opens its door as it goes in
+
+
+## The AI receivers' doors drawn open while the tanker knows them (an AI jet opens its door as it goes in: _receiver),
+## shut once they leave.
+func _ai_doors(ai, rx: Array) -> void:
+	var open := {}
+	for r in rx:
+		var m = _member(int(r.id), ai)
+		if m != null and m[1].get("node") is Node3D:
+			open[m[1].node] = Settings.airframe(int(m[1].get("type_code", 0)))
+	for n in _doors:
+		if not open.has(n) and is_instance_valid(n):
+			ArDoor.set_open(n, _doors[n], false)
+	for n in open:
+		ArDoor.set_open(n, open[n], true)
+	_doors = open
 
 
 func _rx(id: int, st: Dictionary, rc: Vector3, door: bool, room: float, disc: bool) -> Dictionary:

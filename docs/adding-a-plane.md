@@ -107,6 +107,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `rcs` (`front_m2`, `side_m2`, `rear_m2`, `bays_open_m2`, `store_m2`) | `iaf_ai::site` (via `air_defence.gd`) | the radar cross-section (m²) Modern IAF's enemy radars see: from ahead, the side and behind, what the open bays add, what each loaded external station adds; without it an untreated fighter's (ai.md §15.2) |
 | `jammer` (`burn_through`) | `iaf_avionics::ecm` (via `air_defence.gd`, `radar.gd`, `ai_flights.gd`) | Modern IAF's self-protection jammer: the share of an enemy radar's reach against 5 m² inside which it still sees the jet while the jammer is on (the player's J key, an AI jet's tree); without it the jet jams no radar (ai.md §15.6) |
 | `receptacle` | `shared/ai/tanker.gd` | the air refuelling receptacle, `[forward, right, up]` m from the model's centre: a jet with one takes fuel from a tanker's boom (its door, the boom's contact); without it the jet does not refuel (modern-iaf/docs/research/air-refuelling.md §8.2) |
+| `receptacle_door` | `shared/aircraft/ar_door.gd` | how the receptacle's door is drawn open on the model: `slipway` (the F-16's: its aft end down into the fuselage; the default) or `up` (the F-35's: up about its aft edge) |
 | `ews` | `shared/weapons/ews.gd` | the modern F-16s' AIFF (`aiff`) and missile approach warning (`maw`), [modern-iaf/docs/ews.md](../modern-iaf/docs/ews.md) |
 | `mfd` | `settings.gd` `real_mfd` | the F-16's real MFD formats |
 | `guide` | `reference.gd` `guide_name` | the pilot guide (`docs/guides/<guide>.md`) |

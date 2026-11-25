@@ -72,6 +72,9 @@ pub struct Airframe {
     /// The air refuelling receptacle, (forward, right, up) m from the model's centre: a jet with one refuels from a
     /// tanker's boom (shared/ai/tanker.gd, modern-iaf/docs/research/air-refuelling.md §8.2).
     pub receptacle: Option<[f32; 3]>,
+    /// How the receptacle's door opens, as drawn on the model (shared/aircraft/ar_door.gd): `slipway` (the F-16's: its
+    /// aft end down into the fuselage) or `up` (the F-35's: up about its aft edge); none: `slipway`.
+    pub receptacle_door: Option<String>,
     pub guide: Option<String>,
     /// Each value's source, by field (`"radar.km"`); read by no code.
     pub notes: Option<BTreeMap<String, String>>,

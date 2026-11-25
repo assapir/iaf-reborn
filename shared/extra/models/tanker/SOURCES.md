@@ -19,11 +19,22 @@ the front left[^p-f16], from below behind[^p-below], the boom close up[^p-boom] 
 cockpit[^p-cockpit]. They show one medium blue-grey all over (sRGB 156, 165, 177 in the model, matched under the sim's
 light, a shade darker toward the belly), faint panel lines, door outlines and antennas (an image the build draws on
 the fuselage), the radome a shade darker, the dark flight deck windows, bare-metal inlet lips, bronze exhaust cones, a
-yellow line on the belly up to the boom operator's camera fairing; the boom's faired root, its grey tube, the darker V
-ruddevators near its end, the pale yellow-green telescope with red, orange and yellow bands next to the tube, and the
-bare-metal nozzle assembly. Inferred: the IAF roundels (`tools/eitam/markings.png`, ours) where the USAF star sits and
-on the wings (no photograph of an IAF KC-46A was found), the bands' places along the telescope, the panel lines' and
-doors' places. The Re'em has the same details in its own grey.
+yellow line on the belly up to the boom operator's camera fairing (a grey pod with a dark window band), blade
+antennas on the spine and the belly, access panels and the hinge opening's dark seal on the tail cone, the APU's
+exhaust at its tip. The boom (round 3, 25 November 2026, from the boom close-up[^p-boom]): a rounded square tube with
+its joints, seams and access panels, a wider box at the hinge and a wider open shroud at its end, dark inside; the
+dark grey swept ruddevators on the shroud; the dark telescope with its range bands on each side (from the nozzle:
+pale yellow-green, orange, red, orange with black ticks, yellow and green ticks) and a dark rail along each side; the
+nozzle assembly: a pale green housing with its fitting and light, a dark blue-grey ring, the machined aluminium nozzle
+stepping down to its tip with its latches. Inferred: the IAF roundels (`tools/eitam/markings.png`, ours) where the
+USAF star sits and on the wings (no photograph of an IAF KC-46A was found), the bands' lengths, the panel lines',
+antennas' and doors' places, the nozzle's light.
+
+The Re'em's paint was matched to photographs of IAF 707s No. 275 in flight with its boom down[^r-275] and No. 272
+on approach[^r-272] (reference only, none shipped): white all over, the belly a shade greyer in shade, the radome
+white, a row of cabin windows a side, the doors outlined in yellow, a small blue star aft above the windows and on the
+nose, the black tail number on the fin (275), bare-metal exhausts, a dark grey boom with red and yellow rings by the
+nozzle. Its boom has the KC-46A's shape (inferred; its own is a KC-135-type boom).
 
 [^boeing46]: <https://www.boeing.com/defense/tankers-and-transports/kc-46-pegasus>
 [^w707]: <https://en.wikipedia.org/wiki/Boeing_707>
@@ -39,3 +50,7 @@ doors' places. The Re'em has the same details in its own grey.
   <https://commons.wikimedia.org/wiki/File:USAF_KC-46A_Pegasus_Refuels_RAAF_F-35_Lightning_(7951709).jpg>
 [^p-cockpit]: "KC-46 refuels 480th EFS F-16s during NATO air policing operations", US Air Force, public domain:
   <https://commons.wikimedia.org/wiki/File:KC-46_refuels_480th_EFS_F-16s_during_NATO_air_policing_operations_(7178389).jpg>
+[^r-275]: "Boeing 707-3P1C (KC) No.275 Re'em of the Israeli Air Force", Amit Agronov, CC BY-SA 3.0:
+  <https://commons.wikimedia.org/wiki/File:Boeing_707-3P1C_(KC)_No.275_Re%27em_of_the_Israeli_Air_Force.jpg>
+[^r-272]: "Boeing KC-707 Re'em '272'", Alan Wilson, CC BY-SA 2.0:
+  <https://commons.wikimedia.org/wiki/File:Boeing_KC-707_Re%E2%80%99em_%E2%80%98272%E2%80%99_(48644154358).jpg>

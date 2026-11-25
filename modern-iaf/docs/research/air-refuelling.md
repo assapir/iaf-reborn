@@ -156,6 +156,12 @@ No iaf.org.il page came up for these (open). The radio calls' Hebrew (§8.4) is 
 - **The receptacle's place:** each jet's aircraft definition (`airframe.json` `receptacle`: forward, right, up metres
   from the model's centre), read off the models (inferred).
 - **Fuel:** the offload fills the jet's tanks from the engine out, at most to their capacity.
+- **The door seen from outside** (`shared/aircraft/ar_door.gd`): open, a dark opening on the spine at the receptacle
+  and the door's leaf, by the aircraft definition's `receptacle_door`. The F-16s: the slipway, the leaf ahead of the
+  receptacle (§5). The F-35I: one leaf up about its aft edge (§6: "its doors open upward"; the leaf's hinge inferred).
+  The models have no cut there, so the opening is drawn flush on the spine; the sizes (0.34 m by 0.62 m) are
+  inferred. The player's door follows the AIR REFUEL switch (or the F-35I's door key); an AI jet's is open while the
+  tanker has it as a receiver.
 
 ### 8.3 The radio (the user's words: "in coms, if available … ask and get approval to start")
 

@@ -282,6 +282,7 @@ const UNDERLAY_MAX_HEIGHT := 0.05
 const DamageModel := preload("res://shared/mission/damage_model.gd")
 const PlayerAircraft := preload("res://shared/aircraft/player_aircraft.gd")
 const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
+const ArDoor := preload("res://shared/aircraft/ar_door.gd")
 const Cockpit3d := preload("res://shared/cockpit/cockpit3d.gd")
 const TownLabels := preload("res://shared/terrain/town_labels.gd")
 const Hud := preload("res://shared/cockpit/hud.gd")
@@ -2395,6 +2396,7 @@ func _spawn_player() -> void:
 	aircraft.scale = Vector3.ONE * Settings.model_scale(_player_model_scale())  # true size in Real 1:1
 	# Your own jet rides on the rig; converted models face -Z like Godot, so no rotation needed.
 	rig.add_child(aircraft)
+	ArDoor.set_open(aircraft, Settings.airframe(player.get("type", 0)), refuel_door)  # a new jet: the door as it was
 
 
 ## The cockpit seen from inside the player's jet (_spawn_player's aircraft): the cockpit-view model, the 3D cockpit.
@@ -3478,6 +3480,7 @@ func _command(cmd: Array) -> bool:
 			# close, 0 the other way.
 			if receptacle() != Vector3.INF:
 				refuel_door = p1 > 0 or (p1 == 0 and not refuel_door)
+				ArDoor.set_open(aircraft, Settings.airframe(player.get("type", 0)), refuel_door)
 				_cockpit_note("Air refuel door " + ("open" if refuel_door else "closed"))
 		297:
 			# Ours, Modern IAF's jets: the stick's A/R disconnect (the F-16's NWS A/R DISC MSL STEP button; record 260):
