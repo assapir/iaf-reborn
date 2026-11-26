@@ -1317,6 +1317,34 @@ pub const ROADS: &[Download] = &[
     },
 ];
 
+/// Sources the server publishes again as other bytes with the same content: (file, the SHA-256 it is served with now).
+/// A download with this checksum passes its pin's check and is kept under the pin (its `.ok` records the pin), so the
+/// scenery's release and the files kept before stay as they are. JRC's GHS-BUILT-H tiles: the same R2023A V1-0
+/// tiles (grid, projection, every height), the no-data value -1 in place of 255 (docs/scenery.md §1.1).
+const REPUBLISHED: &[(&str, &str)] = &[
+    (
+        "GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100_V1_0_R5_C22.zip",
+        "8fb7929d02803a2915dbf25ff3472f36ed0f18e3d8d29dfb6244e721dfd51c08",
+    ),
+    (
+        "GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100_V1_0_R6_C22.zip",
+        "38317f8552ef5fa7fb8d456baae3c62070c0305d98cf1a95e73eb292ae128cd2",
+    ),
+    (
+        "GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100_V1_0_R5_C21.zip",
+        "0a73510429d43f68192267bd65a04a6606d3b77bf0ceef2591fe7cf5af8d3397",
+    ),
+    (
+        "GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100_V1_0_R6_C21.zip",
+        "3f9dca17cccb85c2ffe74e777de0154606249e332ab63f82f7afa4f05688f372",
+    ),
+];
+
+/// True when `sum` is the checksum `file` is pinned to (`sha256`) or the one it is published again with.
+fn pinned(file: &str, sha256: &str, sum: &str) -> bool {
+    sum == sha256 || REPUBLISHED.contains(&(file, sum))
+}
+
 /// True when `<dir>/<file>.ok` records the pinned checksum (downloaded and checked before) and the file is there.
 pub fn file_done(dir: &Path, d: &Download) -> bool {
     kept(dir, d.file, d.sha256)
@@ -1477,7 +1505,7 @@ fn fetch_file(
     }
     let (p, part) = (dir.join(file), dir.join(format!("{file}.part")));
     // A file already there (copied in by hand) only needs its check.
-    let got = !(p.is_file() && sha256_file(&p)? == sha256);
+    let got = !(p.is_file() && pinned(file, sha256, &sha256_file(&p)?));
     if got {
         let child = Command::new("curl")
             .args(["-fsSL", "-C", "-"])
@@ -1494,7 +1522,7 @@ fn fetch_file(
             bail!("{file}: download failed ({}); run setup again to resume it", curl_error(status));
         }
         let sum = sha256_file(&part)?;
-        if sum != sha256 {
+        if !pinned(file, sha256, &sum) {
             let _ = std::fs::remove_file(&part);
             bail!("{file}: checksum mismatch (got {sum}, pinned {sha256}): the file at {url} changed");
         }
@@ -1771,6 +1799,19 @@ mod tests {
         std::fs::remove_file(&zp).unwrap();
         assert_eq!(fetch("test", &good, &base, &kept, &out, &Stdout, &no).unwrap(), 0);
         std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// GHS-BUILT-H's tiles as the server sends them now pass their pins' check; any other bytes still fail it.
+    #[test]
+    fn a_republished_source_passes_its_pin() {
+        for (file, sum) in REPUBLISHED {
+            let d = SCENERY.iter().chain(SCENERY_THEATRE).find(|d| d.file == *file).expect("a scenery source");
+            assert!(pinned(d.file, d.sha256, sum) && pinned(d.file, d.sha256, d.sha256) && d.sha256 != *sum);
+            assert!(!pinned(d.file, d.sha256, "00"));
+        }
+        // Only for its own file.
+        let (other, sum) = (SCENERY[0], REPUBLISHED[0].1);
+        assert!(!pinned(other.file, other.sha256, sum));
     }
 
     /// New packing code (another `PACK`) packs the material again from its kept zip: no download, no connection

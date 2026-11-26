@@ -41,6 +41,12 @@ Setup downloads every source into `assets/source/scenery/` and checks it against
 | The rest of the theatre (§1.7): Microsoft's footprints of Lebanon, Syria, Jordan, Egypt and Cyprus; GHS-BUILT-H; ETH's canopy | the same, beyond the Survey layer | 141 quadkey files of the 2026-02-03 release (1507 MB: Egypt 904, Syria 323, Jordan 111, Lebanon 94, Cyprus 74); GHS-BUILT-H R5_C21 and R6_C21 (15 MB); ETH N30E027, N27E030, N30E030, N33E030, N27E036, N30E036, N33E036 (294 MB); each optional | as above |
 
 Geofabrik keeps the extract of 1 January of each year for good, so the pinned file stays downloadable[^geofabrik].
+Two forms of the four GHS-BUILT-H tiles pass the check: the pinned zips, whose rasters mark "no data" as 255, and
+the zips JRC's server sends as of 2026-11-26, the same R2023A V1-0 tiles whose rasters mark it as -1. The two have
+the same grid, projection, data type (Float32) and height in every cell (compared 2026-11-26), and the scenery reads both no-data values
+as "no buildings". The second form's checksums are listed in `thirdparty.rs` (`REPUBLISHED`): such a file passes its
+pin's check and is kept under the pin, so the scenery is the same with either form and a file kept before is never
+downloaded again.
 The road extracts are `ROADS` in `thirdparty.rs`; the rest of the theatre's files `SCENERY_THEATRE`. Microsoft's
 README gives the footprints' licence as CDLA Permissive 2.0 (checked 2026-10-30)[^ms]. The theatre (lon 29.65°–38.29° E, lat 27.04°–36.62° N through the
 georeference) also reaches into Turkey's Hatay strip and Saudi Arabia's north-west corner; their extracts (Turkey

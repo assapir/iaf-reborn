@@ -288,7 +288,10 @@ Each game's first screen calls `Updater.start` (Modern IAF `menu/front_end.gd`, 
    (`IafSetup.cancel_jobs`): the check ends, `tar` or `ditto` is stopped and the unpack's folder is removed.
 5. The game starts the unpacked copy with `--update-apply <game folder> --update-pid <its pid>` and quits. Every
    program the update starts runs in the game's folder's parent (`update::launch`), never inside the game's folder:
-   on Windows a program's working folder cannot be moved. The copy waits in Rust for the old game's process to end
+   on Windows a program's working folder cannot be moved. Such a program holds none of the game's open files
+   (`update::spawn_alone`: on Windows `CreateProcessW` without inherited handles; on Linux and macOS every file but
+   standard input and output closed at its start): a started program holding the copy's `.pck` would keep the
+   unpacked download from being removed on Windows. The copy waits in Rust for the old game's process to end
    (`update::wait_exit`, 60 s at most: `ps` on Linux and macOS, where an ended process not yet reaped counts as
    ended; `tasklist` on Windows); when it still runs, the
    copy starts it again with `--update-failed`. Then `update::swap`: the game's folder becomes `.<folder>.old/`
@@ -336,7 +339,8 @@ sources stay under `assets/source` by name.
 ### 7.3 Checks
 
 - `cargo test -p iaf-setup update`: the version compare, the manifest's pick, the size and SHA-256 check, the swap
-  (refused over an old folder), rollback and cleanup, a process waited for and one started in another folder, a
+  (refused over an old folder), rollback and cleanup, a process waited for and one started in another folder holding
+  none of the starter's open files, Windows command-line quoting, a
   Linux bundle unpacked, on macOS a disk image unpacked, and setup's check finding nothing in a data folder never
   set up.
 - `modern-iaf/tests/test_update.gd` (headless, offline): an older nightly against a local release folder finds the

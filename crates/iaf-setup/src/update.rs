@@ -252,19 +252,17 @@ pub enum Start {
 /// Starts `exe` with `args` in `cwd` ([`launch`]'s rules) and waits for it to write `started`, end, or run past `secs`
 /// (then it is stopped). A start that is slow but alive is waited for to the end of `secs`.
 pub fn start_and_wait(exe: &Path, args: &[String], cwd: &Path, started: &Path, secs: f64) -> Result<Start> {
-    let mut child =
-        Command::new(exe).args(args).current_dir(cwd).spawn().with_context(|| format!("{}", exe.display()))?;
+    let mut child = spawn_alone(exe, args, cwd)?;
     let end = std::time::Instant::now() + std::time::Duration::from_secs_f64(secs);
     loop {
         if started.exists() {
             return Ok(Start::Started);
         }
-        if child.try_wait()?.is_some() {
+        if child.ended()? {
             return Ok(if started.exists() { Start::Started } else { Start::Ended });
         }
         if std::time::Instant::now() >= end {
-            let _ = child.kill();
-            let _ = child.wait();
+            child.stop();
             return Ok(Start::Stopped);
         }
         std::thread::sleep(std::time::Duration::from_millis(300));
@@ -342,7 +340,151 @@ pub fn wait_exit(pid: u32, secs: f64) -> bool {
 /// Starts `exe` with `args` in the folder `cwd` (never the game's own folder: on Windows a program's working folder
 /// cannot be moved) and returns its process id.
 pub fn launch(exe: &Path, args: &[String], cwd: &Path) -> Result<u32> {
-    Ok(Command::new(exe).args(args).current_dir(cwd).spawn().with_context(|| format!("{}", exe.display()))?.id())
+    Ok(spawn_alone(exe, args, cwd)?.id())
+}
+
+/// A program the update started ([`spawn_alone`]).
+struct Proc {
+    #[cfg(unix)]
+    child: std::process::Child,
+    #[cfg(windows)]
+    handle: std::os::windows::io::OwnedHandle,
+    #[cfg(windows)]
+    pid: u32,
+}
+
+/// Starts `exe` with `args` in `cwd`, holding none of this program's open files (on Linux and macOS its standard input
+/// and output still pass on). The game keeps its own `.pck` open while it reads it; a program it starts that held that
+/// file would keep the folder it is in from being moved or removed (Windows) until that program ends.
+#[cfg(unix)]
+fn spawn_alone(exe: &Path, args: &[String], cwd: &Path) -> Result<Proc> {
+    use std::os::unix::process::CommandExt;
+    let mut c = Command::new(exe);
+    c.args(args).current_dir(cwd);
+    // SAFETY: sysconf is not async-signal-safe, so it runs here, before the fork.
+    let max = unsafe { libc::sysconf(libc::_SC_OPEN_MAX) }.clamp(256, 65_536) as libc::c_int;
+    // SAFETY: between fork and exec only fcntl, which is async-signal-safe, and no allocation.
+    unsafe {
+        c.pre_exec(move || {
+            for fd in 3..max {
+                let flags = libc::fcntl(fd, libc::F_GETFD);
+                if flags >= 0 && flags & libc::FD_CLOEXEC == 0 {
+                    libc::fcntl(fd, libc::F_SETFD, flags | libc::FD_CLOEXEC);
+                }
+            }
+            Ok(())
+        });
+    }
+    Ok(Proc { child: c.spawn().with_context(|| format!("{}", exe.display()))? })
+}
+
+#[cfg(unix)]
+impl Proc {
+    fn id(&self) -> u32 {
+        self.child.id()
+    }
+
+    fn ended(&mut self) -> Result<bool> {
+        Ok(self.child.try_wait()?.is_some())
+    }
+
+    fn stop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+/// Windows: `CreateProcessW` with handle inheritance off (the standard library always passes every inheritable handle
+/// on, and the C runtime's files, Godot's among them, are inheritable).
+#[cfg(windows)]
+fn spawn_alone(exe: &Path, args: &[String], cwd: &Path) -> Result<Proc> {
+    use std::os::windows::ffi::OsStrExt;
+    use std::os::windows::io::FromRawHandle;
+    use windows_sys::Win32::Foundation::CloseHandle;
+    use windows_sys::Win32::System::Threading::{
+        CREATE_UNICODE_ENVIRONMENT, CreateProcessW, PROCESS_INFORMATION, STARTUPINFOW,
+    };
+    let mut line: Vec<u16> = std::iter::once(exe.as_os_str().to_string_lossy().into_owned())
+        .chain(args.iter().cloned())
+        .map(|a| quote_arg(&a))
+        .collect::<Vec<_>>()
+        .join(" ")
+        .encode_utf16()
+        .chain([0])
+        .collect();
+    let dir: Vec<u16> = cwd.as_os_str().encode_wide().chain([0]).collect();
+    // SAFETY: plain C structs, zeroed as the API expects, with their size set.
+    let mut si: STARTUPINFOW = unsafe { std::mem::zeroed() };
+    si.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
+    let mut pi: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
+    // SAFETY: `line` and `dir` are NUL-terminated and outlive the call; `line` is writable as the API needs.
+    let ok = unsafe {
+        CreateProcessW(
+            std::ptr::null(),
+            line.as_mut_ptr(),
+            std::ptr::null(),
+            std::ptr::null(),
+            0,
+            CREATE_UNICODE_ENVIRONMENT,
+            std::ptr::null(),
+            dir.as_ptr(),
+            &si,
+            &mut pi,
+        )
+    };
+    if ok == 0 {
+        return Err(std::io::Error::last_os_error()).with_context(|| format!("{}", exe.display()));
+    }
+    // SAFETY: both handles are ours, from the call above; the thread's is not needed.
+    unsafe { CloseHandle(pi.hThread) };
+    Ok(Proc { handle: unsafe { std::os::windows::io::OwnedHandle::from_raw_handle(pi.hProcess) }, pid: pi.dwProcessId })
+}
+
+#[cfg(windows)]
+impl Proc {
+    fn id(&self) -> u32 {
+        self.pid
+    }
+
+    fn ended(&mut self) -> Result<bool> {
+        use std::os::windows::io::AsRawHandle;
+        use windows_sys::Win32::Foundation::WAIT_OBJECT_0;
+        use windows_sys::Win32::System::Threading::WaitForSingleObject;
+        // SAFETY: the handle is ours and open.
+        Ok(unsafe { WaitForSingleObject(self.handle.as_raw_handle(), 0) } == WAIT_OBJECT_0)
+    }
+
+    fn stop(&mut self) {
+        use std::os::windows::io::AsRawHandle;
+        use windows_sys::Win32::System::Threading::{TerminateProcess, WaitForSingleObject};
+        // SAFETY: the handle is ours and open.
+        unsafe {
+            TerminateProcess(self.handle.as_raw_handle(), 1);
+            WaitForSingleObject(self.handle.as_raw_handle(), 5_000);
+        }
+    }
+}
+
+/// One argument of a Windows command line, quoted as the C runtime's parser reads it back.
+#[cfg(any(windows, test))]
+fn quote_arg(a: &str) -> String {
+    if !a.is_empty() && !a.contains([' ', '\t', '"']) {
+        return a.into();
+    }
+    let (mut out, mut slashes) = (String::from('"'), 0);
+    for ch in a.chars() {
+        if ch == '\\' {
+            slashes += 1;
+            continue;
+        }
+        // Backslashes count only before a quote: doubled there, and the quote escaped.
+        out.extend(std::iter::repeat_n('\\', if ch == '"' { slashes * 2 + 1 } else { slashes }));
+        out.push(ch);
+        slashes = 0;
+    }
+    out.extend(std::iter::repeat_n('\\', slashes * 2));
+    out.push('"');
+    out
 }
 
 /// `from` copied to `to`, links as links (a macOS app's frameworks), the files' permissions kept.
@@ -572,6 +714,55 @@ mod tests {
         std::fs::remove_file(&started).unwrap();
         assert_eq!(go("exit 1", 10.0), Start::Ended);
         assert_eq!(go("sleep 5", 0.5), Start::Stopped);
+        std::fs::remove_dir_all(d).unwrap();
+    }
+
+    #[test]
+    fn windows_arguments_are_quoted_as_the_c_runtime_reads_them() {
+        assert_eq!(quote_arg("--update-done"), "--update-done");
+        assert_eq!(quote_arg(r"D:\iaf\modern\Modern IAF"), r#""D:\iaf\modern\Modern IAF""#);
+        assert_eq!(quote_arg(""), r#""""#);
+        assert_eq!(quote_arg(r#"a "b" c"#), r#""a \"b\" c""#);
+        assert_eq!(quote_arg(r"a dir\"), r#""a dir\\""#);
+        assert_eq!(quote_arg(r#"x\"y"#), r#""x\\\"y""#);
+    }
+
+    /// The program the update starts holds none of this one's open files: the copy's `.pck` in the unpacked download
+    /// kept that folder from being removed on Windows.
+    #[test]
+    fn a_started_program_holds_none_of_our_files() {
+        let d = tmp("inherit");
+        let held = d.join("held.pck");
+        std::fs::write(&held, "x").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::fd::AsRawFd;
+            // As the C runtime opens it (Godot's files): without close-on-exec.
+            let f = std::fs::File::open(&held).unwrap();
+            // SAFETY: the descriptor is open for the whole block.
+            unsafe { libc::fcntl(f.as_raw_fd(), libc::F_SETFD, 0) };
+            let fd = f.as_raw_fd();
+            let c = format!("if [ -e /dev/fd/{fd} ]; then echo held > out.txt; else echo free > out.txt; fi");
+            let pid = launch(Path::new("sh"), &["-c".into(), c], &d).unwrap();
+            assert!(wait_exit(pid, 10.0));
+            assert_eq!(std::fs::read_to_string(d.join("out.txt")).unwrap().trim(), "free");
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::OpenOptionsExt;
+            use std::os::windows::io::AsRawHandle;
+            use windows_sys::Win32::Foundation::{HANDLE_FLAG_INHERIT, SetHandleInformation};
+            // As the C runtime opens it (Godot's files): inheritable, shared for reading and writing only.
+            let f = std::fs::OpenOptions::new().read(true).share_mode(0x1 | 0x2).open(&held).unwrap();
+            // SAFETY: the handle is open for the whole block.
+            assert!(unsafe { SetHandleInformation(f.as_raw_handle(), HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) } != 0);
+            let args = ["-n", "4", "127.0.0.1"].map(String::from);
+            let pid = launch(Path::new("ping"), &args, &d).unwrap();
+            drop(f);
+            let removed = std::fs::remove_file(&held);
+            assert!(wait_exit(pid, 20.0));
+            removed.expect("the started program does not hold the file");
+        }
         std::fs::remove_dir_all(d).unwrap();
     }
 
