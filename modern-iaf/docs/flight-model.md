@@ -217,7 +217,7 @@ OFF there. Picture: the same tables as an HTML page (the C1 section of the "IAF 
 | 1 g ceiling (envelope) | 60,800 ft | above 50,000 ft | OFF |
 | max roll rate | 308 deg/s | 180–240 deg/s (docs/real-aircraft.md §8.2) | OFF |
 | max level speed, SL / 40,000 ft | Mach 2.34 / Mach 3.41 | Mach 1.2 / Mach 2.0 | OFF / OFF |
-| roll 0→90° | 0.52 s | ~0.55 s (inferred) | ok |
+| roll 0→90° | 0.52 s | ≤1.0 s (MIL-STD-1797 Level 1)[^tp-f16xl] | ok |
 | instantaneous turn, 420 kt, 10,000 ft | 24.6 deg/s at 9.0 g | ~20–26 deg/s at 9 g | ok |
 | climb (Ps), SL, 350 kt, full AB | 49,408 ft/min | ~50,000 ft/min | ok |
 | fuel flow military / full AB | 10,989 / 59,399 lb/h | 9,000–12,000 / 50,000–65,000 lb/h | ok / ok |
@@ -228,7 +228,7 @@ OFF there. Picture: the same tables as an HTML page (the C1 section of the "IAF 
 |---|---|---|---|
 | thrust SL static, military / full AB | 17,941 / 28,996 lbf | ~17,000 / 28,900 lbf | close / ok |
 | 1 g stall speed / ceiling | 125 kt / 50,000 ft | ~120–130 kt / above 50,000 ft | ok / ok |
-| max roll rate, roll 0→90° | 240 deg/s, 0.63 s (280, 0.55 s before 2026-11-14) | 180–240 deg/s, ~0.55 s (§8.2 of docs/real-aircraft.md) | close / ok |
+| max roll rate, roll 0→90° | 240 deg/s, 0.63 s | 180–240 deg/s (§8.2 of docs/real-aircraft.md), ≤1.0 s (MIL-STD-1797 Level 1)[^tp-f16xl] | close / ok |
 | max level speed, SL / 40,000 ft | Mach 1.63 / Mach 2.36 | Mach 1.2 / Mach 2.0 | OFF / OFF |
 | instantaneous turn | 24.3 deg/s at 8.0 g | ~20–26 deg/s | ok |
 | climb (Ps), SL | 49,397 ft/min | ~50,000 ft/min | ok |
@@ -241,7 +241,7 @@ OFF there. Picture: the same tables as an HTML page (the C1 section of the "IAF 
 | empty weight / internal fuel | 20,500 / 8,850 lb | 19,420–19,840 + 900 / 5,800 + 3,050 lb | ok / ok |
 | thrust SL static, military / full AB | 18,332 / 29,160 lbf | 17,800 / 29,160 lbf (F100-PW-229) | close / ok |
 | 1 g stall speed / ceiling | 128 kt / 50,000 ft | ~128 kt (inferred) / above 50,000 ft | ok / ok |
-| max roll rate, roll 0→90° | 240 deg/s, 0.63 s (280, 0.55 s before 2026-11-14) | 180–240 deg/s, ~0.55 s (§8.2 of docs/real-aircraft.md) | close / ok |
+| max roll rate, roll 0→90° | 240 deg/s, 0.63 s | 180–240 deg/s (§8.2 of docs/real-aircraft.md), ≤1.0 s (MIL-STD-1797 Level 1)[^tp-f16xl] | close / ok |
 | max level speed, SL | Mach 1.17 | ~Mach 1.2 | ok |
 | max level speed, 40,000 ft | Mach 1.69 | Mach 1.89 sustained .. 2.05 | OFF |
 | instantaneous turn | 20.4 deg/s at 6.7 g | ~20.9 deg/s at 7.8 g (uncertain) | ok |
@@ -1098,7 +1098,8 @@ about 0.3 s, so the onset is 420–470 deg/s² at 350 kt and 730–800 at 480 kt
 time to 90°: MIL-STD-1797's Level 1 for this class of jet is 1.0 s up to about 550 KCAS, as NASA's F-16XL report plots it
 (second-hand: the standard itself was not read), and the F-16XL (a modified F-16A with a digital flight control
 system, in CAT III) took 0.84–1.0 s at 10,000 ft between 330 and 515 KCAS (read from its figure 10)[^tp-f16xl]. The
-Barak and the Sufa meet that level with margin. No public figure for the production F-16's time to 90° was found.
+Barak and the Sufa meet that level with margin. No public figure for the production F-16's time to 90° was found, so
+the validation table's F-16 rows (reborn's and the 6-DoF's) take this Level 1 as their reference: at most 1.0 s.
 The 0.55 s of the command is not reachable on TP-1538's roll power (inferred): at 350 kt and 10,000 ft the full 21.5°
 aileron rolls the Barak at about 660 deg/s² from rest against a roll damping of about 2.2 /s, so with the flaperons
 at 62 deg/s the fastest 90° is about 0.81 s. With the flaperons' rate limit removed (a one-off run of

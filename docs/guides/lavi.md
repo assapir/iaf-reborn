@@ -120,7 +120,7 @@ What changes in the cockpit:
 - **Fuel**: about 9 minutes at full afterburner, about 33 minutes at military power at sea level: longer legs than the
   F-16 on less thrust.
 - **Climb**: 37,400 ft/min against the published 50,000+: the thrust and drag fit the published top speeds first.
-- **Roll**: 220°/s, slower than the F-16's 280°/s: start rolls a little earlier.
+- **Roll**: 220°/s, slower than the F-16's 240°/s: start rolls a little earlier.
 - **Flight-path hold** (Physics): with the stick centred the fly-by-wire jet holds its flight path.
 - **Deep stall** (Physics: Realistic spins, Fly-by-wire deep stall): the Lavi takes the F-16's departure, a stand-in
   from the closest public data. Zoom 30° or more nose-high until the speed is gone and it hangs at about 60° AoA, the

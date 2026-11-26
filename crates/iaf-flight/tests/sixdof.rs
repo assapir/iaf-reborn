@@ -1004,7 +1004,9 @@ fn f16s_roll_at_the_shared_figure() {
     // 23° up. Full right stick from wings level at 10,000 ft, military, 2 s: the steady rate (1.5–2 s) and the peak
     // within 5 % of the figure; the time to 90° (2026-11-16, the command ramped at 688 deg/s² as reborn's roll channel:
     // 0.80 / 0.85 s at 350 kt, 0.65 / 0.68 s at 480 kt; the flaperons' 62 deg/s and TP-1538's roll power hold the
-    // jet's onset to 420–800 deg/s², so it lags the command's 0.55 s).
+    // jet's onset to 420–800 deg/s², so it lags the command's 0.55 s). The real jet's reference is MIL-STD-1797's Level 1,
+    // 90° in at most 1.0 s (NASA/TP-2004-212046 figure 10; modern-iaf/docs/flight-model.md §9.13): every bound below
+    // is inside it.
     let fig = iaf_flight::data_set::F16_ROLL;
     // The Adir (2) flies the same figure (`data_set::F35I.roll`, inferred: finish list F23); its 90° times are bounds
     // for its larger inertia (inferred, not a source).

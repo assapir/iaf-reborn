@@ -89,7 +89,7 @@ const REFS: &[Ref] = &[
         roll_rate: Some((180.0, 240.0, "180-240 deg/s, 240 clean (F16_ROLL)")),
         vmax_sl: Some((780.0, 800.0, "~795 kt (Mach 1.2)")),
         vmax_hi: Some((1100.0, 1180.0, "~1,150 kt (Mach 2.0)")),
-        roll90: Some((0.5, 0.65, "~0.55 s (240 deg/s at 688 deg/s², inferred)")),
+        roll90: Some((0.0, 1.0, "≤1.0 s (MIL-STD-1797 Level 1, NASA/TP-2004-212046)")),
         turn: Some((18.0, 26.0, "~20-26 deg/s at 9 g")),
         climb: Some((45000.0, 55000.0, "~50,000 ft/min")),
         ff_mil: Some((9000.0, 12000.0, "~9,000-12,000 lb/h")),
@@ -108,7 +108,7 @@ const REFS: &[Ref] = &[
         roll_rate: Some((180.0, 240.0, "180-240 deg/s, 240 clean (F16_ROLL)")),
         vmax_sl: Some((760.0, 800.0, "~Mach 1.2 (as the F-16D, inferred)")),
         vmax_hi: Some((1084.0, 1176.0, "Mach 1.89 sustained .. 2.05 (Block 50/52 clean)")),
-        roll90: Some((0.5, 0.65, "~0.55 s (240 deg/s at 688 deg/s², inferred)")),
+        roll90: Some((0.0, 1.0, "≤1.0 s (MIL-STD-1797 Level 1, NASA/TP-2004-212046)")),
         turn: Some((19.0, 23.0, "~20.9 deg/s at 7.8 g (Block 50, 22,000 lb; uncertain)")),
         ff_mil: Some((12500.0, 14500.0, "~13,500 lb/h (TSFC 0.76, inferred)")),
         ff_ab: Some((52000.0, 61000.0, "~56,600 lb/h (TSFC 1.94, inferred)")),
@@ -458,7 +458,7 @@ struct Row {
 
 fn verdict(value: f32, r: R) -> &'static str {
     let Some((lo, hi, _)) = r else { return "-" };
-    if value < lo * 0.9 || value > hi * 1.1 {
+    if value.is_nan() || value < lo * 0.9 || value > hi * 1.1 {
         "OFF"
     } else if value < lo || value > hi {
         "close"

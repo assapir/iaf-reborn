@@ -410,9 +410,11 @@ The aileron is half the flaperons' difference: (20° + 23°) / 2 = 21.5°, the t
 are unverified (a forum, not a manual); no manual or test report with an F-16 roll rate was found.
 
 Results (test `real_f16_rolls_at_the_shared_figure` in `crates/iaf-flight/tests/validation.rs`, full stick at 480 kt,
-10,000 ft): Real F-16 and F-16I 240 deg/s, 90° in 0.55 s (before: 280 deg/s at 900 deg/s², 0.48 s).
+10,000 ft): Real F-16 and F-16I 240 deg/s, 90° in 0.55 s.
 At 350 kt the original's roll channel scales the rate by 0.76 (docs/flight-model.md §4 step 5): 183 deg/s,
-90° in 0.63 s (before 0.55 s). Pitch and yaw do not change (the validation's turn and rudder rows are the same).
+90° in 0.63 s. Pitch and yaw do not change (the validation's turn and rudder rows are the same).
+The validation table's reference for the time to 90° is MIL-STD-1797's Level 1, at most 1.0 s, as NASA's F-16XL
+report plots it[^tp-f16xl]; both speeds meet it.
 
 ## 9. AI types
 
@@ -755,6 +757,9 @@ Fit: CD0 0.0834, no wave drag.
 [^pprune]: PPRuNe forum (F-4 chute).
 [^springer]: Journal of The Institution of Engineers (India), Springer, 2022 (ring-slot brake chute CD).
 [^sovetarmy]: sovetarmy forum (MiG-23 drag chute).
+[^tp-f16xl]: S. J. Stachowiak, J. T. Bosworth, *Flight Test Results for the F-16XL With a Digital Flight Control
+    System*, NASA/TP-2004-212046, March 2004, p. 11–12, figure 10 (MIL-STD-1797 Level 1: 90° of bank in 1.0 s):
+    https://ntrs.nasa.gov/citations/20040040334
 [^wp-specs]: en.wikipedia and ru.wikipedia spec tables and their cited books: Green & Swanborough; Wilson 2000;
     Frawley 2002; Jane's 1992-93 (MiG-21bis); Brassey's 1996/97 (MiG-23); Burdin & Dawes 2006 (Tu-22); Francillon
     1988 (A-4); also the 707 ceiling.

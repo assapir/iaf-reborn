@@ -1394,10 +1394,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Since 2026-11-14 (finish list F2) the Barak and the Sufa roll at the F-16's sourced 240 deg/s with 62 deg/s
   flaperons, the figure reborn's Real F-16 rows read ([flight-model.md](flight-model.md) §9.11, §9.13). Their 0 → 90°
   time, 0.80 / 0.85 s at 350 kt and 0.65 / 0.68 s at 480 kt, meets MIL-STD-1797's Level 1 for air combat (1.0 s) and
-  the F-16XL's measured 0.84–1.0 s at 10,000 ft (§9.13). Open, waiting on the user's word: the validation table's
-  ~0.55 s reference is inferred (240 deg/s reached at 688 deg/s² from the first instant) and lies below what
-  TP-1538's roll power reaches with the sourced 62 deg/s flaperons (about 0.81 s at 350 kt, inferred); replacing it
-  with the sourced 1.0 s is his decision.
+  the F-16XL's measured 0.84–1.0 s at 10,000 ft (§9.13). The validation table's F-16 rows (reborn's Real F-16 and
+  F-16I, and the 6-DoF's) take that Level 1 as their roll 0 → 90° reference: at most 1.0 s (NASA/TP-2004-212046).
 - **The 6-DoF's control laws (2026-11-15, finish list F3, F7, F15):** 9 g in about 2 s below the α limiter, the
   STORES CONFIG switch (CAT III α limit and roll), the MANUAL PITCH override with deep
   stall recovery by rocking, `stalled` / `spinning` from the motion ([flight-model.md](flight-model.md) §9.11, §9.13).

@@ -930,8 +930,8 @@ launch option.
   * a fit of CD0 / transonic wave drag (ΔCD Mach 0.9–1.2) / 20 km thrust to the published max speeds.
 
   Values, sources and the original-vs-real verdicts: docs/real-aircraft.md. The F-16 row is the earlier F-16 set
-  unchanged (empty 19,000 lb, thrust ×1.5, stall floor 118 kt, roll 280 deg/s at 900 deg/s², fuel 16.5 lb/s, wave
-  drag 0.02, NWS ±32°).
+  unchanged (empty 19,000 lb, thrust ×1.5, stall floor 118 kt, fuel 16.5 lb/s, wave drag 0.02, NWS ±32°); its roll
+  is the F-16's sourced 240 deg/s at 688 deg/s² (docs/real-aircraft.md §8.2).
 * The AI types have rows too, one per type (the shared sections are split): docs/real-aircraft.md §9.
 
 ## 12. Gear lever rules (player controller `FUN_0044a240`, case GEV 0xe)

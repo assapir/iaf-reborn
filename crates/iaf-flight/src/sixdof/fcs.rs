@@ -315,8 +315,9 @@ impl Fcs {
         let full = ROLL_GRADIENT[ROLL_GRADIENT.len() - 1].1;
         // The production F-16 (`data_set::F16_ROLL`): figure 64(b)'s stick shape scaled to its full-stick rate and
         // reached at its onset as reborn's Real roll is: its roll channel (`channels::Angle`, the original's
-        // `FUN_005adc70`) ramps the commanded rate at `accel` (a full-stick command reaches 90° in 0.55 s; the jet
-        // lags it by its flaperons' rate, modern-iaf/docs/flight-model.md §9.13). Then the flaperons' rate and travel
+        // `FUN_005adc70`) ramps the commanded rate at `accel` (the full-stick command alone reaches 90° in 0.55 s; the
+        // jet lags it by its flaperons' rate and reaches 90° within MIL-STD-1797 Level 1's 1.0 s, the real jet's
+        // reference, modern-iaf/docs/flight-model.md §9.13). Then the flaperons' rate and travel
         // (the aileron is half their difference: (20° down + 23° up) / 2 = 21.5°, as TP-1538's). The stick's command
         // also goes forward as the aileron that rolls the jet steadily at that rate (the roll damping met by the roll
         // control: δa = Clp·(p·b/2V) / Cl_δa, TP-1538's derivatives,
