@@ -231,7 +231,7 @@ RADIO = {
 }
 
 # The Download section, before the manuals: Modern IAF's nightly build per system (the release's assets, docs/release.md),
-# with its size on 25 Nov 2026.
+# a table row per system.
 _DL = "https://github.com/assapir/iaf-reborn/releases/download/nightly/"
 DOWNLOADS = {
     "id": "download", "nav_en": "Download", "nav_he": "הורדה", "en": "Download", "he": "הורדה",
@@ -243,33 +243,27 @@ DOWNLOADS = {
             "Run anyway.",
             "חינמי ו<a href=\"https://github.com/assapir/iaf-reborn\">בקוד פתוח</a>. הגרסה הלילית ל־Linux, ל־macOS 13 "
             "ומעלה על מעבדי Apple ול־Windows: מחלצים את הקובץ ומפעילים את המשחק; אשף ההתקנה בונה את הנתונים בהפעלה "
-            "הראשונה ומוריד את נתוני המפה הפתוחים, כ־27 GB. התוכנות אינן חתומות: "
+            "הראשונה ומוריד את נתוני המפה הפתוחים, כ־\u206627 GB\u2069. התוכנות אינן חתומות: "
             "ב־macOS לוחצים על היישום בכפתור הימני ובוחרים Open; ב־Windows בוחרים More info ואז Run anyway.",
         ),
-        (
-            "<b>Tested on</b>. It draws with Vulkan, Direct3D 12 or Metal and runs on these computers. Disk: 32 GB "
-            "free.",
-            "<b>נבדק על</b>. המשחק משתמש ב־Vulkan, ב־Direct3D 12 או ב־Metal, והוא פועל במחשבים האלה. דיסק: 32 GB פנויים.",
-        ),
     ],
-    "list": [
-        (
-            "Windows 11 Pro: Intel Core i5-6600K, 16 GB of memory, NVIDIA GeForce GTX 1070.",
-            "Windows 11 Pro: Intel Core i5-6600K, זיכרון 16 GB, NVIDIA GeForce GTX 1070.",
-        ),
-        (
-            "Linux (Arch): a laptop with Intel Core i7-1185G7 and Intel Iris Xe graphics, 32 GB of memory.",
-            "Linux (Arch): מחשב נייד עם Intel Core i7-1185G7 וגרפיקה Intel Iris Xe, זיכרון 32 GB.",
-        ),
-        (
-            "macOS 27: Apple M4 Pro, 48 GB of memory.",
-            "macOS 27: Apple M4 Pro, זיכרון 48 GB.",
-        ),
+    # The table: per system its build (the release's asset, size on 25 Nov 2026) and the machine it is tested on
+    # (docs/release.md "Tested on"), each machine as parts (CPU, graphics, memory, OS) in en and he.
+    "head": (("System", "Download", "Tested on"), ("מערכת הפעלה", "הורדה", "מערכת הבדיקה")),
+    "stem": "modern-iaf",
+    "systems": [
+        ("Linux", "linux-x86_64.tar.gz", "205 MB",
+         ("A laptop: Intel Core i7-1185G7", "Intel Iris Xe graphics", "32 GB of memory", "Arch Linux"),
+         ("מחשב נייד: Intel Core i7-1185G7", "גרפיקה Intel Iris Xe", "זיכרון \u206632 GB\u2069", "Arch Linux")),
+        ("macOS", "macos-arm64.dmg", "246 MB",
+         ("Apple M4 Pro", "48 GB of memory", "macOS 27"),
+         ("Apple M4 Pro", "זיכרון \u206648 GB\u2069", "macOS 27")),
+        ("Windows", "windows-x86_64.zip", "203 MB",
+         ("Intel Core i5-6600K", "NVIDIA GeForce GTX 1070", "16 GB of memory", "Windows 11 Pro"),
+         ("Intel Core i5-6600K", "NVIDIA GeForce GTX 1070", "זיכרון \u206616 GB\u2069", "Windows 11 Pro")),
     ],
-    "games": [
-        ("Modern IAF", "הזרוע הארוכה", "modern-iaf", ("205 MB", "246 MB", "203 MB")),
-    ],
-    "systems": [("Linux", "linux-x86_64.tar.gz"), ("macOS", "macos-arm64.dmg"), ("Windows", "windows-x86_64.zip")],
+    "after": ("It draws with Vulkan, Direct3D 12 or Metal. Disk: 32 GB free.",
+              "המשחק משתמש ב־Vulkan, ב־Direct3D 12 או ב־Metal. דיסק: \u206632 GB\u2069 פנויים."),
     "url": _DL,
     "all": ("https://github.com/assapir/iaf-reborn/releases/tag/nightly", "The release page and its notes",
             "דף הגרסה וההערות שלה"),

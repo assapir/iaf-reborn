@@ -122,7 +122,7 @@ def section(s):
         out += both(s["note"][0], s["note"][1], "p", "notyet")
     if s.get("radio"):
         out += radio()
-    if s.get("games"):
+    if s.get("systems"):
         out += downloads(s)
     if s.get("figs"):
         out += '<div class="grid">' + "".join(figure(f) for f in s["figs"]) + "</div>"
@@ -144,14 +144,19 @@ def radio():
 
 
 def downloads(s):
-    """DOWNLOADS: a card per game with a direct link per system and its size."""
-    out = '<div class="links dl">'
-    for en, he, stem, sizes in s["games"]:
-        out += f'<div class="doc"><b>{both(en, he)}</b>' + "".join(
-            f'<p><a href="{s["url"]}{stem}-nightly-{suffix}">{system}</a> <span>{size}</span></p>'
-            for (system, suffix), size in zip(s["systems"], sizes)) + "</div>"
+    """DOWNLOADS: a table per language, a row per system: the system, its build's link and size, the machine tested on."""
+    out = ""
+    for lang, i in (("en", 0), ("he", 1)):
+        d = ' dir="rtl"' if lang == "he" else ""
+        out += (f'<table class="dl" lang="{lang}"{d}><thead><tr>' + "".join(f"<th>{h}</th>" for h in s["head"][i])
+                + "</tr></thead><tbody>")
+        for system, suffix, size, *machine in s["systems"]:
+            parts = ", ".join(f"<bdi>{p}</bdi>" for p in machine[i])
+            out += (f'<tr><td>{system}</td><td><a href="{s["url"]}{s["stem"]}-nightly-{suffix}">'
+                    f'{s["head"][i][1]}</a> <span dir="ltr">{size}</span></td><td>{parts}</td></tr>')
+        out += "</tbody></table>"
     url, en, he = s["all"]
-    return out + f'</div><p><a href="{url}" target="_blank" rel="noopener">{both(en, he)}</a></p>'
+    return out + both(*s["after"], "p") + f'<p><a href="{url}" target="_blank" rel="noopener">{both(en, he)}</a></p>'
 
 
 CSS = """
@@ -197,7 +202,11 @@ figcaption{color:var(--dim);font-size:14.5px;margin-top:6px}
 footer{border-top:1px solid var(--line);color:var(--dim);font-size:13.5px;padding:22px 0 0;margin-top:40px}
 footer p{max-width:none}footer a{color:var(--accent)}
 .links{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
-.links.dl{grid-template-columns:repeat(2,1fr)}.dl .doc p{margin:6px 0}.dl .doc a{color:var(--accent);font-size:17px}
+table.dl{width:100%;border-collapse:separate;border-spacing:0;margin:18px 0 6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.dl th,.dl td{padding:12px 16px;text-align:start;vertical-align:top;border-top:1px solid var(--line)}
+.dl th{border-top:0;color:var(--dim);font-size:14px;font-weight:400}
+.dl td:first-child{font-weight:700;white-space:nowrap}.dl td:nth-child(2){white-space:nowrap}
+.dl a{color:var(--accent);font-weight:700}.dl span{color:var(--dim);font-size:14px}
 .radio{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 18px 10px;margin:18px 0}
 .radio h3{margin:10px 0 0}.radio audio{width:100%;max-width:560px}.radio ol{padding-inline-start:22px}.radio li b{color:var(--accent)}
 .doc{display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;color:var(--text);text-decoration:none}
@@ -205,7 +214,7 @@ footer p{max-width:none}footer a{color:var(--accent)}
 .doc:hover,.doc:focus-visible{border-color:var(--accent)}
 .doc b{display:block;font-size:18px;color:var(--accent)}.doc span{color:var(--dim);font-size:14px}.doc b span{color:inherit;font-size:inherit}
 html[dir=rtl] .hero h1{font-size:58px}
-@media (max-width:800px){.grid{grid-template-columns:1fr}.facts{grid-template-columns:repeat(2,1fr)}.links,.links.dl{grid-template-columns:1fr 1fr}nav{display:none}.hero h1{font-size:40px}}
+@media (max-width:800px){.grid{grid-template-columns:1fr}.facts{grid-template-columns:repeat(2,1fr)}.links{grid-template-columns:1fr 1fr}.dl thead{display:none}table.dl,.dl tbody,.dl tr,.dl td{display:block}.dl tr+tr{border-top:1px solid var(--line)}.dl td{border:0;padding:2px 16px}.dl td:first-child{padding-top:12px}.dl td:last-child{padding-bottom:12px;color:var(--dim);font-size:15px}nav{display:none}.hero h1{font-size:40px}}
 """
 
 JS = """
