@@ -14,7 +14,16 @@ of the menu redesign the user approved then (A25).
 ./start-modern-iaf -- --mission 2011   # flies that mission at once, then shows its debrief
 ```
 
-The window opens plain in the front end's background colour (#00163C, no Godot splash image) until the Hangar draws.
+The window opens on the start's splash (approved by the user on 26 November 2026, A128), the same in every language: on
+the front end's background colour (#00163C), the logo's English horizontal lockup with "Modern IAF — loading…" under it
+in the normal text, then the Hebrew lockup with "הזרוע הארוכה — בטעינה…", centred (each lockup 112 px tall on the
+1080-high canvas). Godot shows it as the boot splash from the window's first frame (`project.godot`
+`application/boot_splash/image`, `branding/splash.png`, scaled to the window keeping its shape). The front end then
+draws the same splash (`front_end.gd splash`, `_loading_line`) before it builds the first screen, so the window keeps
+showing it while the build and the first screen's shader compiles hold the main loop (about 3.5 s on the laptop's first
+start; a Mac compiles shaders about ten times slower, §7); the Hangar then takes its place.
+`modern-iaf/tests/_splash_shot.gd` draws `branding/splash.png` from the front end's splash: run it again when the logo,
+the line or the theme changes.
 
 ## 1. The screens
 
@@ -335,12 +344,13 @@ centreline in the roll.
   credits in docs/credits.md "Modern IAF's logo"). The screens show its horizontal lockup (`bar_<lang>_dark`, the
   layout fix of 2026-11-19: the stacked one was too small to read in the bar): the mark (the four-ship over the faint
   disc, as in the app icon) on the inline start of the name in one line, MODERN IAF in English, הזרוע הארוכה in
-  Hebrew. It is at the inline start of every screen's top bar, 64 px tall, and at the top of the pause menu and the
-  Mission accomplished panel (`front_end.gd` `_mark`, the wizard's `Wizard.logo`); its accessible name is the sim's
-  name. The stacked lockup (`lockup_<lang>_<mode>`: in English MODERN IAF big with הזרוע הארוכה under it, in Hebrew
-  the other way round) is on the manuals' title pages and the READMEs. The logo replaced the name in letters
-  (`Mark`, Heebo 800 at 28 px). The project's icon is the four-ship and the disc on the navy tile (`icon_256.png`: the
-  window's and the Dock's icon). The start shows no splash image (the user, 2026-11-10: "remove the Godot flash").
+  Hebrew. It is at the inline start of every screen's top bar, 64 px tall, at the top of the pause menu and the
+  Mission accomplished panel (`front_end.gd` `_mark`), and in both languages on the start's splash
+  (`front_end.gd splash`; the wizard's `Wizard.logo` draws it); its accessible name is the sim's name. The stacked
+  lockup (`lockup_<lang>_<mode>`: in English MODERN IAF big with הזרוע הארוכה under it, in Hebrew the other way
+  round) is on the manuals' title pages and the READMEs. The logo replaced the name in letters (`Mark`, Heebo 800 at
+  28 px). The project's icon is the four-ship and the disc on the navy tile (`icon_256.png`: the window's and the Dock's
+  icon). The start shows the sim's own splash, never Godot's logo (the intro).
 - **A list that picks one** (the Hangar's jets): the picked row filled in the accent's tint, the focus a 2 px accent
   ring; no bar at the row's side (the user, 2026-11-13).
 - **Sizes:** every screen lays out on a 1920 × 1080 canvas that the window shows scaled to its height (stretch mode

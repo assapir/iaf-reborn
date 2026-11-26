@@ -42,6 +42,8 @@ const LIST_W := 820
 const FORM_W := 520
 ## The logo's height in the top bar (canvas px; the bar is 97 tall).
 const MARK_H := 64.0
+## The logo's height on the start's splash (canvas px).
+const SPLASH_H := 112.0
 ## The Devices rows a joystick works (keyboard = 0): Keyboard with none connected (_pref_row).
 const JOY_ROWS := ["flight_controls", "rudder", "throttle"]
 ## The start-up steps' switches cropped from each jet's 3D cockpit: <unit>/<step>.webp (tests/_switch_crops.gd).
@@ -242,6 +244,7 @@ func _ready() -> void:
 	win.content_scale_size = CANVAS
 	if not _args_done:
 		_args_done = true
+		await _loading_line()
 		if start_args(OS.get_cmdline_user_args()):
 			return
 	if Settings.flown_sortie > 0:
@@ -250,6 +253,51 @@ func _ready() -> void:
 		if open_debrief(id):
 			return
 	show_page("hangar")
+
+
+## The start's splash (modern-iaf/docs/front-end.md, the intro): the logo and "Modern IAF — loading…" in English and
+## in Hebrew. A frame of it is drawn before the first screen is built, and the window keeps showing it while that
+## build and its first frame's shader compiles hold the main loop. Show_page clears it. None in a headless run.
+func _loading_line() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	if _theme == null:
+		_theme = Look.make()
+	theme = _theme
+	splash(self)
+	await get_tree().process_frame  # the next frame draws the splash
+	await get_tree().process_frame  # it has been drawn and presented
+	await get_tree().process_frame  # one more: a margin for a renderer that presents a frame late
+
+
+## The splash on `parent` (full rect, the front end's theme), the same in every language: on the navy, the English
+## horizontal lockup (Wizard.logo, SPLASH_H canvas px tall) with its line under it, then the Hebrew pair, centred.
+## The boot splash image (project.godot application/boot_splash/image, branding/splash.png) is this picture, drawn by
+## tests/_splash_shot.gd.
+static func splash(parent: Control) -> void:
+	var bg := ColorRect.new()
+	bg.color = Look.BG
+	parent.add_child(bg)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var box := VBoxContainer.new()
+	box.name = "Splash"
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 56)
+	parent.add_child(box)
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for lang in ["en", "he"]:
+		var pair := VBoxContainer.new()
+		pair.add_theme_constant_override("separation", 18)
+		box.add_child(pair)
+		var name_of := str(Settings.strings("res://setup/strings", lang).get("name", ""))
+		var logo := Wizard.logo(lang, SPLASH_H, name_of)
+		logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		pair.add_child(logo)
+		var line := Label.new()
+		line.name = "LoadingLine_" + lang
+		line.text = "%s — %s" % [name_of, Settings.strings("res://menu/strings", lang).get("loading_line", "")]
+		line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		pair.add_child(line)
 
 
 ## `-- --mission <id>`: flies that mission at once (true when it starts).

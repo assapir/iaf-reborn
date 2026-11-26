@@ -168,7 +168,8 @@ end-to-end test, §7.3: `gh workflow run nightly.yml --ref <branch> -f publish=t
 
 The exports are each project's `export_presets.cfg` (Linux, Windows, macOS): every resource and `*.json`, without
 `tests/` and `tools/`. Jane's IAF reborn's boot splash is the CD's art in the checkout; in a bundle it shows none
-(`boot_splash/show_image.template=false`).
+(`boot_splash/show_image.template=false`). Modern IAF's is its start's splash, both languages' logos and loading lines
+(`modern-iaf/branding/splash.png`, [front-end.md](../modern-iaf/docs/front-end.md)), in the checkout and the bundles.
 
 ### Baked shaders
 

@@ -349,6 +349,7 @@
 	"loading_jet_cockpit": "The cockpit",
 	"loading_jet_weapons": "The weapons and the views",
 	"loading_terrain": "The ground around the base",
+	"loading_line": "loading…",
 	"loading_models": "The mission's models",
 	"loading_slow": "A first start after an update prepares the graphics for this computer once: it takes longer.",
 	"loading_views": "The views",
