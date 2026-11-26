@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # CI only (docs/ci.md): runs the given Godot tests (default: every tests/godot/test_*.gd and modern-iaf/tests/test_*.gd)
 # headless without game data, several at once, 60 s each, each in its own project (modern-iaf/tests/ in modern-iaf),
-# prints each result as it comes, and writes a pass / fail / needs-data / timeout table to $GITHUB_STEP_SUMMARY
-# (or stdout). Exit 1 unless all pass.
+# prints each result as it comes (a failure or timeout with its FAIL lines and its output's last 40 lines), and writes
+# a pass / fail / needs-data / timeout table to $GITHUB_STEP_SUMMARY (or stdout). Exit 1 unless all pass.
 # "needs-data" is a guess: a failing run whose errors name assets/ (the boot splash's missing image aside).
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -38,7 +38,11 @@ one() {
 		r=fail
 	fi
 	echo "$r" >"$out/$n.r"
-	echo "$r $n ($((SECONDS - s)) s) $(grep -E "^NEEDS DATA|^FAIL|SCRIPT ERROR|ERROR" "$f" | grep -v "boot splash\|back0.png" | head -1 | cut -c1-160)"
+	local line
+	line="$r $n ($((SECONDS - s)) s) $(grep -E "^NEEDS DATA|^FAIL|SCRIPT ERROR|ERROR" "$f" | grep -v "boot splash\|back0.png" | head -1 | cut -c1-160)"
+	# A failure or timeout: its FAIL lines and the output's tail, in one write so parallel tests seldom interleave.
+	[[ $r == fail || $r == timeout ]] && line+=$'\n'"$(grep -E "^FAIL|SCRIPT ERROR" "$f" | head -20; echo "--- $n: last 40 lines"; tail -n 40 "$f")"
+	echo "$line"
 }
 export -f one
 printf '%s\n' "${tests[@]}" | xargs -P "${JOBS:-6}" -I{} bash -c 'one {}'

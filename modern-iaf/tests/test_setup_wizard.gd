@@ -266,10 +266,10 @@ func _survey(w: Control, assets: String) -> void:
 	check(IafSetup.survey_missing(assets, w.SURVEY_ID) == 69, "some sheets on disk: only the missing ones download")
 	w._show_sizes("mapi2015-fetch")
 	check(sizes.text == w.s("dl") % w._gb(69 * w.SURVEY_ALL_GB / 79), "the missing sheets' download: %s" % sizes.text)
-	# Every sheet of tools/imagery/mapi2015_sheets.tsv on disk: nothing to download.
+	# Every sheet of tools/imagery/mapi2015_sheets.tsv on disk: nothing to download (strip_edges: a CRLF checkout).
 	var tsv := FileAccess.get_file_as_string(w.repo.path_join("tools/imagery/mapi2015_sheets.tsv"))
 	for line in tsv.split("\n", false):
-		FileAccess.open(dir.path_join(line.get_file()), FileAccess.WRITE).store_string("z")
+		FileAccess.open(dir.path_join(line.strip_edges().get_file()), FileAccess.WRITE).store_string("z")
 	check(IafSetup.survey_missing(assets, w.SURVEY_ID) == 0, "all 79 sheets on disk: none missing")
 	w._show_sizes("mapi2015-fetch")
 	check(sizes.text == w.s("dl_none"), "all sheets on disk: nothing to download")

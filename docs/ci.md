@@ -33,7 +33,7 @@ and SHA-256 are `TYPST_VERSION` and `TYPST_SHA256` at its top.
 `tools/ci_godot_tests.sh [tests…]` runs the given tests (default: every `tests/godot/test_*.gd` and
 `modern-iaf/tests/test_*.gd`) headless, each in its own project (`modern-iaf/tests/` in `modern-iaf`, named `sim_<test>`
 in the results): six at a time, 60 seconds each, with `IAF_DEFAULT_SETTINGS=1` and the log in the runner's temp folder. The job log shows each
-result as it comes. The run's summary page shows the counts and a table: pass, fail, needs-data or timeout per test.
+result as it comes; a failed or timed-out test adds its FAIL lines and its output's last 40 lines. The run's summary page shows the counts and a table: pass, fail, needs-data or timeout per test.
 It exits 1 unless every test passes.
 
 - The godot job runs the tests that pass without data: `test_console`, `test_f35i_model`, `test_g_effects`,
