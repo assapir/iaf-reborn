@@ -24,6 +24,8 @@ const WAIT_QUIT := 60
 ## start, e.g. macOS's first-launch check, is waited for while its program runs).
 const WAIT_START := 600
 const FLIGHT := "res://shared/terrain/terrain_view.tscn"
+## Modern IAF's front end's look (menu/look.gd: its theme and its 1080-high canvas); the 1998 game has none.
+const LOOK := "res://menu/look.gd"
 
 static var _started := false
 
@@ -46,6 +48,8 @@ var bar: PanelContainer
 ## Over the screen while the dialog shows: a click on it is Later (while asking, or after a failure); while the update
 ## downloads and installs the game waits.
 var block: ColorRect
+## The dialog's centring box over the screen (Modern IAF: fitted to the front end's canvas, _fit).
+var center: CenterContainer
 var line: Label
 var dont_ask: CheckBox
 var dont_ask_note: Label
@@ -102,6 +106,8 @@ func _init() -> void:
 func _ready() -> void:
 	strings = Settings.strings("res://shared/util/update_strings")
 	_build()
+	if Settings.project_folder() == "modern-iaf":
+		get_viewport().size_changed.connect(_fit)
 	if state == "failed":
 		_show(s("failed"), false)
 		return
@@ -121,7 +127,7 @@ func _build() -> void:
 	block.visible = false
 	block.gui_input.connect(_on_outside)
 	add_child(block)
-	var center := CenterContainer.new()
+	center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	block.add_child(center)
 	bar = PanelContainer.new()
@@ -173,9 +179,15 @@ func _build() -> void:
 
 ## The dialog with `text`; `ask`: with Update / Later and "Don't ask me again" (else Later alone, as Close).
 func _show(text: String, ask := true) -> void:
-	# The screen's normal text: its theme (Modern IAF), else the size its text has at this window's height.
+	# The screen's normal text. Modern IAF: its front end's look over every screen (its setup wizard's theme has no
+	# panel or check box), laid out on the front end's 1080-high canvas scaled to this window. The 1998 game: its
+	# screen's theme, else the size its text has at this window's height.
 	var sc := get_tree().current_scene
-	if sc is Control and sc.theme != null:
+	if Settings.project_folder() == "modern-iaf":
+		bar.theme = load(LOOK).make()
+		bar.custom_minimum_size.x = 760
+		_fit()
+	elif sc is Control and sc.theme != null:
 		bar.theme = sc.theme
 		bar.custom_minimum_size.x = 760
 	else:
@@ -191,11 +203,14 @@ func _show(text: String, ask := true) -> void:
 	bar.visible = true
 
 
+## Modern IAF: the dialog on the front end's 1080-high canvas, scaled to this window (as the front end's pages).
+func _fit() -> void:
+	load(LOOK).fit(center, get_viewport().get_visible_rect().size)
+
+
 ## The 1998 game's front end has no theme: its setup wizard's (the menus' greys and green, its check box), the text
-## sized for this window (k: its height / 1080). Modern IAF over a screen without a theme (a flight): its front end's.
+## sized for this window (k: its height / 1080).
 func _menu_theme(k: float) -> Theme:
-	if Settings.project_folder() == "modern-iaf":
-		return load("res://menu/look.gd").make()
 	var t: Theme = load("res://setup/wizard.gd").menu_theme()
 	t.default_font_size = roundi(22 * k)
 	return t

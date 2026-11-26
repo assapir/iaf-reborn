@@ -239,7 +239,8 @@ func run() -> void:
 
 ## The Imagery page (no choice): the Survey of Israel always, with the pass guidance and the sheet link, and no
 ## scope pick or choice button; its download step comes first on Install with the missing sheets' size, fewer with
-## 10 on disk, and with all 79 on disk (fake, removed after) nothing to download. Nothing runs.
+## 10 on disk, and with all 79 on disk (fake, removed after) nothing to download, read again each time Install
+## shows. Nothing runs.
 func _survey(w: Control, assets: String) -> void:
 	check(w.sheets == 0 and w.SURVEY_ID == "mapi2015", "no sheets: the Survey over all of Israel is set up")
 	check(w.find_child("CopySheetLink", true, false) != null, "the Survey's sheet link")
@@ -264,14 +265,17 @@ func _survey(w: Control, assets: String) -> void:
 	for n in ["nzr", "gdr", "rsh", "bsv", "zlm", "tmt", "hmr", "mzr", "sdb", "svt"]:
 		FileAccess.open(dir.path_join(n + ".zip"), FileAccess.WRITE).store_string("z")
 	check(IafSetup.survey_missing(assets, w.SURVEY_ID) == 69, "some sheets on disk: only the missing ones download")
-	w._show_sizes("mapi2015-fetch")
+	# Back to Imagery and Install again: the row reads the sheets on disk anew.
+	w.show_page(1)
+	w.show_page(2)
 	check(sizes.text == w.s("dl") % w._gb(69 * w.SURVEY_ALL_GB / 79), "the missing sheets' download: %s" % sizes.text)
 	# Every sheet of tools/imagery/mapi2015_sheets.tsv on disk: nothing to download (strip_edges: a CRLF checkout).
 	var tsv := FileAccess.get_file_as_string(w.repo.path_join("tools/imagery/mapi2015_sheets.tsv"))
 	for line in tsv.split("\n", false):
 		FileAccess.open(dir.path_join(line.strip_edges().get_file()), FileAccess.WRITE).store_string("z")
 	check(IafSetup.survey_missing(assets, w.SURVEY_ID) == 0, "all 79 sheets on disk: none missing")
-	w._show_sizes("mapi2015-fetch")
+	w.show_page(1)
+	w.show_page(2)
 	check(sizes.text == w.s("dl_none"), "all sheets on disk: nothing to download")
 	for n in DirAccess.get_files_at(dir):
 		DirAccess.remove_absolute(dir.path_join(n))

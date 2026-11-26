@@ -1,8 +1,9 @@
 # The update on start (docs/release.md §7) against a local fake release, offline: an older nightly finds the newer
-# one in the release's nightly.json, shows its dialog (a click outside is Later; Don't ask me again stores the choice;
-# Always download asks nothing), downloads, checks and unpacks it beside a scratch game folder, and the swap puts it
-# in place (the old one kept until cleanup); then setup's check on a scratch data folder finds nothing before a run
-# finished a step there (Always download starts none), and the steps to run again after. Linux and macOS (tar).
+# one in the release's nightly.json, shows its dialog (the front end's look, also over the setup wizard; a click
+# outside is Later; Don't ask me again stores the choice; Always download asks nothing), downloads, checks and unpacks
+# it beside a scratch game folder, and the swap puts it in place (the old one kept until cleanup); then setup's check
+# on a scratch data folder finds nothing before a run finished a step there (Always download starts none), and the
+# steps to run again after. Linux and macOS (tar).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_update.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -31,9 +32,21 @@ func run() -> void:
 	)
 	OS.set_environment("IAF_UPDATE_NO_RESTART", "1")
 
+	# Over the setup wizard (--setup after an update), whose theme has no panel or check box: the front end's look.
+	var wizard := Control.new()
+	wizard.theme = load("res://setup/wizard_theme.gd").make()
+	root.add_child(wizard)
+	current_scene = wizard
 	var u := _updater(updater, app, release, tmp)
 	await frames(2)
 	check(u.offer.get("version", "") == NEW and u.bar.visible, "the newer nightly is offered: " + u.line.text)
+	check(
+		u.bar.theme != wizard.theme and u.bar.theme.has_stylebox("panel", "PanelContainer"),
+		"over the setup wizard: the front end's look, its panel"
+	)
+	check(u.bar.theme.has_stylebox("focus", "CheckBox"), "over the setup wizard: the front end's check box")
+	current_scene = null
+	wizard.queue_free()
 	check(u.line.text.contains(NEW) and u.update_button.visible, "its dialog names the version, with Update")
 	check(u.dont_ask.visible and u.block.visible, "with Don't ask me again, over the screen")
 	u._on_update()

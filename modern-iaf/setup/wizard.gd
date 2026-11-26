@@ -612,7 +612,8 @@ func _fill_rows(steps: Array) -> void:
 		r.bar.modulate.a = 1.0 if name in ["running", "done", "up_to_date"] else 0.35
 
 
-## The step rows for the plan, made anew when the plan changed.
+## The step rows for the plan, made anew when the plan changed; every row's sizes line read again (the sheets and
+## tiles on disk may have changed since the page last showed).
 func _plan_rows() -> void:
 	var plan: Array = IafSetup.sim_plan(SURVEY_ID)
 	if plan.map(func(st): return st.id) != rows.keys():
@@ -621,6 +622,8 @@ func _plan_rows() -> void:
 			rows[id].box.queue_free()
 		rows.clear()
 	_fill_rows(plan)
+	for id in rows:
+		_show_sizes(id)
 
 
 ## Which steps are up to date already, checked in the background; the rows show it until Install.

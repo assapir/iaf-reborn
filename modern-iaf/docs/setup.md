@@ -61,8 +61,8 @@ large screen by its UI scale (the containers stretch; nothing has a fixed page s
    sheets still to download), the page says so in Welcome's free-space line and Next waits.
 3. **Install**: one row per step with its progress bar and state. The first row is
    `mapi2015-fetch`, the Survey's sheets: its row gives the download still to do (the missing sheets
-   by their mean size), or "Nothing to download". It runs before every other step and downloads only the missing
-   sheets, as the original game's step of the same id does; with them all there it is up to date at once. A failure
+   by their mean size), or "Nothing to download", read again each time the page shows. It runs before every other
+   step and downloads only the missing sheets, as the original game's step of the same id does; with them all there it is up to date at once. A failure
    naming a data.gov.il link (the pass expired) shows "Copy the data.gov.il link above" under its reason.
    Before a run the rows say which steps are up to date (a background check; the Survey's download row is up to
    date with all 79 sheets on disk, and the terrain row says it runs while some are missing); during a run the page shows two estimates (see "Time left" below). Back becomes Cancel: the running steps
