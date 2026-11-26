@@ -179,8 +179,8 @@ helmet"). Left:
   limit, SHOOT and LOAL cues are built, inferred: real-hud.md "DASH helmet"); the RWR symbols and declutter levels. The Lavi / Kurnass 2000 / Kfir keep the original helmet display (their helmets are not
   documented).
 
-## Setup wizard: the user's review
-Built (`./setup`, `iaf-reborn/setup/`, setup.md); the pages wait for the user's review. Running setup again is the way to
+## Setup wizard
+Built (`./setup`, `iaf-reborn/setup/`, setup.md); its pages are approved. Running setup again is the way to
 add an extra or redo a step; there is no setup button in the game (user decision).
 
 ## Exported build (with the setup wizard)
