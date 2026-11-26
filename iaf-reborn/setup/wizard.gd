@@ -1182,10 +1182,11 @@ func _fill_rows(steps: Array, keep: bool) -> void:
 			var title := Label.new()
 			title.text = step.title
 			title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			title.clip_text = true
+			title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # a long name wraps, the row grows
 			h.add_child(title)
 			var bar := ProgressBar.new()
 			bar.custom_minimum_size = Vector2(180, 12)
+			bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			bar.max_value = 1.0
 			bar.show_percentage = false
 			bar.modulate.a = 0.0
