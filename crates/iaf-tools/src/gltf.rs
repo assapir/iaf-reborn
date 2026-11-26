@@ -94,6 +94,32 @@ pub fn load_texture_keyed(path: &Path, keys: &[[u8; 3]]) -> Result<(RgbaImage, b
     Ok((rgba, transparent))
 }
 
+/// A mesh as a triangle soup in glTF space (Z mirrored, winding reversed), with the stored per-corner normals.
+pub(crate) fn mesh_tris(mesh: &Mesh) -> Vec<Tri> {
+    let mut tris = Vec::new();
+    for (fi, face) in mesh.faces.iter().enumerate() {
+        let fnorm = mesh.face_normals.get(fi);
+        let corner = |k: usize| {
+            let v = face[k] as usize;
+            let [x, y, z] = mesh.positions[v];
+            let n = fnorm.and_then(|f| f.get(k)).and_then(|&n| mesh.normals.get(n as usize));
+            let [nx, ny, nz] = n.copied().unwrap_or([0.0, 1.0, 0.0]);
+            ([x, y, -z], [nx, ny, -nz], mesh.uvs.get(v).copied().unwrap_or([0.0, 0.0]))
+        };
+        // Fan-triangulate polygons.
+        for k in 1..face.len().saturating_sub(1) {
+            let (a, b, c) = (corner(0), corner(k + 1), corner(k));
+            tris.push(Tri {
+                p: [a.0, b.0, c.0],
+                n: [a.1, b.1, c.1],
+                uv: [a.2, b.2, c.2],
+                material: mesh.face_materials.get(fi).copied().unwrap_or(0),
+            });
+        }
+    }
+    tris
+}
+
 #[derive(Default)]
 struct Builder {
     /// Resample textures 4× (see [`upscale`]).
@@ -238,28 +264,7 @@ impl Builder {
     }
 
     fn mesh(&mut self, mesh: &Mesh, dirs: &[PathBuf], out_dir: &Path) -> Option<usize> {
-        // Triangle soup in glTF space (Z mirrored, winding reversed), per-corner normals.
-        let mut tris = Vec::new();
-        for (fi, face) in mesh.faces.iter().enumerate() {
-            let fnorm = mesh.face_normals.get(fi);
-            let corner = |k: usize| {
-                let v = face[k] as usize;
-                let [x, y, z] = mesh.positions[v];
-                let n = fnorm.and_then(|f| f.get(k)).and_then(|&n| mesh.normals.get(n as usize));
-                let [nx, ny, nz] = n.copied().unwrap_or([0.0, 1.0, 0.0]);
-                ([x, y, -z], [nx, ny, -nz], mesh.uvs.get(v).copied().unwrap_or([0.0, 0.0]))
-            };
-            // Fan-triangulate polygons.
-            for k in 1..face.len().saturating_sub(1) {
-                let (a, b, c) = (corner(0), corner(k + 1), corner(k));
-                tris.push(Tri {
-                    p: [a.0, b.0, c.0],
-                    n: [a.1, b.1, c.1],
-                    uv: [a.2, b.2, c.2],
-                    material: mesh.face_materials.get(fi).copied().unwrap_or(0),
-                });
-            }
-        }
+        let mut tris = mesh_tris(mesh);
         if self.smooth {
             tris = smooth::refine(&tris);
         }

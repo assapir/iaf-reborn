@@ -38,6 +38,20 @@ Direct3D is left-handed and glTF is right-handed. The converter does three thing
 3. It splits vertices per (position, normal). Normals are stored per face corner: `MeshNormals` has its own face
    index list.
 
+## Smoothing (`--smooth`)
+Setup converts the aircraft and objects with `--smooth` (`crates/iaf-tools/src/smooth.rs`): smooth normals and Phong
+tessellation round the low-poly silhouettes, and bodies built from rings (tanks, bombs, wheels) get round
+cross-sections. The original's stored normals decide what is rounded:
+- **Hard edges.** Where faces meet at one position with different stored normals (the original draws a hard edge
+  there), their normals stay apart and the edge stays straight. A face the original draws flat-shaded keeps its
+  shape: every flat-shaded mesh of the 327 models moves by under 1 mm (`stadum_h.x`, the stadium, by 0.01 mm).
+- **Smooth surfaces.** Faces that share a stored normal are smoothed together, up to a 65° crease.
+- **Rings.** A ring body is made round when most of its side faces are smooth-shaded in the original. Its side faces
+  are then smoothed together across the original's split normals too: the original's exporter splits a smooth body
+  along its texture seam (`ftank1_h.x`, the fuel tank). A body whose sides the original draws flat-shaded (a
+  hexagonal chimney, a faceted tower) keeps its flat sides.
+- A mesh without stored normals is smoothed by the 65° crease alone.
+
 ## Texture coordinates and textures
 - **UV origin.** `MeshTextureCoords` holds one (u, v) per **vertex**; the count equals the vertex count in every
   shipped model. The origin is top left, the same convention as glTF, so the converter copies the values unchanged

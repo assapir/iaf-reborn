@@ -4,7 +4,9 @@
 //! Original vertices stay where they are; new vertices are pushed onto the
 //! curved surface implied by the normals, which rounds silhouettes without
 //! shrinking the model. Edges across a crease (or open edges) are kept
-//! straight so neighbouring triangles never crack apart.
+//! straight so neighbouring triangles never crack apart. The original's own
+//! normals mark its hard edges: faces it draws flat-shaded (split normals)
+//! keep their shape, and only what it shades smooth is rounded.
 
 use std::collections::HashMap;
 
@@ -18,6 +20,8 @@ pub struct Tri {
 
 /// Faces meeting at more than this angle keep a hard edge.
 pub const CREASE_DEGREES: f32 = 65.0;
+/// Two stored normals closer than this (cosine, ≈ 0.8°) are one smooth surface in the original model.
+const SAME_NORMAL: f32 = 0.9999;
 /// How strongly new vertices follow the curved surface (0 = flat, 1 = full).
 pub const SHAPE_FACTOR: f32 = 0.75;
 /// Each triangle becomes `LEVEL * LEVEL` triangles.
@@ -53,28 +57,36 @@ fn key(p: V3) -> Key {
     p.map(|c| (c * 1e4).round() as i32)
 }
 
-/// Recomputes per-corner normals: area-weighted average of the faces around
-/// each (welded) position whose normal is within [`CREASE_DEGREES`].
-pub fn smooth_normals(tris: &mut [Tri]) {
+/// Recomputes per-corner normals: area-weighted average of the faces around each (welded) position that the
+/// original shades as one smooth surface there (the same stored normal at that corner) and whose normal is within
+/// [`CREASE_DEGREES`]. Where the original splits the normals (a flat-shaded face, a hard edge), the faces stay apart,
+/// unless both are side faces of a round body (`body`: a texture seam of the original's exporter).
+fn smooth_normals(tris: &mut [Tri], body: &[bool]) {
     let face_n: Vec<V3> = tris.iter().map(|t| cross(sub(t.p[1], t.p[0]), sub(t.p[2], t.p[0]))).collect();
-    let mut around: HashMap<[i32; 3], Vec<usize>> = HashMap::new();
+    // Position → (triangle, its stored normal there).
+    let mut around: HashMap<Key, Vec<(usize, V3)>> = HashMap::new();
     for (i, t) in tris.iter().enumerate() {
-        for p in t.p {
-            around.entry(key(p)).or_default().push(i);
+        for c in 0..3 {
+            around.entry(key(t.p[c])).or_default().push((i, normalize(t.n[c])));
         }
     }
     let cos_limit = CREASE_DEGREES.to_radians().cos();
     let unit: Vec<V3> = face_n.iter().map(|&n| normalize(n)).collect();
-    for i in 0..tris.len() {
+    let mut out = vec![[[0.0; 3]; 3]; tris.len()];
+    for (i, t) in tris.iter().enumerate() {
         for c in 0..3 {
+            let stored = normalize(t.n[c]);
             let mut sum = [0.0; 3];
-            for &j in &around[&key(tris[i].p[c])] {
-                if dot(unit[i], unit[j]) >= cos_limit {
+            for &(j, nj) in &around[&key(t.p[c])] {
+                if (dot(stored, nj) > SAME_NORMAL || body[i] && body[j]) && dot(unit[i], unit[j]) >= cos_limit {
                     sum = add(sum, face_n[j]);
                 }
             }
-            tris[i].n[c] = normalize(sum);
+            out[i][c] = normalize(sum);
         }
+    }
+    for (t, n) in tris.iter_mut().zip(out) {
+        t.n = n;
     }
 }
 
@@ -94,7 +106,7 @@ fn smooth_edges(tris: &[Tri]) -> Vec<[bool; 3]> {
         }
     }
     let normal_at = |t: &Tri, p: V3| t.n[(0..3).find(|&c| key(t.p[c]) == key(p)).unwrap()];
-    let same = |a: V3, b: V3| dot(a, b) > 0.9999;
+    let same = |a: V3, b: V3| dot(a, b) > SAME_NORMAL;
     tris.iter()
         .map(|t| {
             let mut flags = [false; 3];
@@ -125,8 +137,8 @@ fn phong(t: &Tri, w: [f32; 3]) -> V3 {
 /// Smooth normals, then tessellate every triangle into `LEVEL²` curved ones.
 pub fn refine(tris: &[Tri]) -> Vec<Tri> {
     let mut tris = tris.to_vec();
-    let caps = find_caps(&tris);
-    smooth_normals(&mut tris);
+    let (caps, body) = find_caps(&tris);
+    smooth_normals(&mut tris, &body);
     let smooth = smooth_edges(&tris);
     let l = LEVEL as f32;
     let mut out = Vec::with_capacity(tris.len() * LEVEL * LEVEL);
@@ -293,8 +305,9 @@ fn axes(tris: &[Tri]) -> Vec<V3> {
 }
 
 /// Rings of 5–16 vertices in planes perpendicular to x, y, z or a tilted flat polygon's normal (concentric rings in one plane are separated
-/// by radius), joined into lofts of ≥ 2 coaxial rings with the same side count.
-fn find_caps(tris: &[Tri]) -> Vec<Loft> {
+/// by radius), joined into lofts of ≥ 2 coaxial rings with the same side count; with them, which triangles are their
+/// side faces.
+fn find_caps(tris: &[Tri]) -> (Vec<Loft>, Vec<bool>) {
     let mut pts: Vec<V3> = Vec::new();
     for t in tris {
         for p in t.p {
@@ -305,7 +318,16 @@ fn find_caps(tris: &[Tri]) -> Vec<Loft> {
     }
     let size = pts.iter().fold(0f32, |m, p| m.max(p[0].abs()).max(p[1].abs()).max(p[2].abs())).max(1e-3);
     let tol = 2e-3 * size;
+    // Triangles the original shades smooth (a stored normal that is not the face's).
+    let smooth_face: Vec<bool> = tris
+        .iter()
+        .map(|t| {
+            let f = normalize(cross(sub(t.p[1], t.p[0]), sub(t.p[2], t.p[0])));
+            t.n.iter().any(|n| dot(normalize(*n), f).abs() < SAME_NORMAL)
+        })
+        .collect();
     let mut lofts = Vec::new();
+    let mut body = vec![false; tris.len()];
     let pieces = flat_pieces(tris);
     for axis in axes(tris) {
         let (bu, bv) = basis(axis);
@@ -403,13 +425,30 @@ fn find_caps(tris: &[Tri]) -> Vec<Loft> {
                     used[j] = true;
                 }
             }
-            if members.len() >= 2 {
+            // A loft the original draws faceted keeps its flat sides: most of its side faces (corners on two of its
+            // rings) decide, as the original's exporter may split a smooth body's normals along a texture seam
+            // (`ftank1_h.x`). Rings with no side faces between them (coaxial parts) are rounded.
+            let ring_of = |p: V3| {
+                let tk = dot(p, axis);
+                members.iter().position(|r| {
+                    let (dx, dy) = (dot(p, bu) - r.c[0], dot(p, bv) - r.c[1]);
+                    (r.t - tk).abs() < tol && ((dx * dx + dy * dy).sqrt() - r.r).abs() < 0.08 * r.r
+                })
+            };
+            let sides: Vec<usize> = (0..tris.len())
+                .filter(|&i| matches!(tris[i].p.map(ring_of), [Some(a), Some(b), Some(c)] if !(a == b && b == c)))
+                .collect();
+            let smooth = sides.iter().filter(|&&i| smooth_face[i]).count();
+            if members.len() >= 2 && (sides.is_empty() || 2 * smooth > sides.len()) {
+                for &i in &sides {
+                    body[i] = true;
+                }
                 members.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap());
                 lofts.push(Loft { axis, u: bu, v: bv, n, rings: members });
             }
         }
     }
-    lofts
+    (lofts, body)
 }
 
 /// Moves every point on a loft's surface (between its end rings, within its polygonal cross-section) out to the
@@ -456,5 +495,188 @@ fn round_caps(tris: &mut [Tri], lofts: &[Loft]) {
                 *p = np;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    type D3 = [f64; 3];
+
+    fn d(a: V3) -> D3 {
+        a.map(f64::from)
+    }
+    fn dsub(a: D3, b: D3) -> D3 {
+        [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+    }
+    fn ddot(a: D3, b: D3) -> f64 {
+        a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+    }
+    fn dlerp(a: D3, b: D3, t: f64) -> D3 {
+        [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
+    }
+
+    /// Distance from `p` to triangle `t` (Ericson, Real-Time Collision Detection §5.1.5), in f64: the 1998
+    /// models have slivers over 100 m long.
+    fn distance(p: V3, t: [V3; 3]) -> f64 {
+        let (p, [a, b, c]) = (d(p), t.map(d));
+        let (ab, ac, ap) = (dsub(b, a), dsub(c, a), dsub(p, a));
+        let (d1, d2) = (ddot(ab, ap), ddot(ac, ap));
+        let bp = dsub(p, b);
+        let (d3, d4) = (ddot(ab, bp), ddot(ac, bp));
+        let cp = dsub(p, c);
+        let (d5, d6) = (ddot(ab, cp), ddot(ac, cp));
+        let (va, vb, vc) = (d3 * d6 - d5 * d4, d5 * d2 - d1 * d6, d1 * d4 - d3 * d2);
+        let q = if d1 <= 0.0 && d2 <= 0.0 {
+            a
+        } else if d3 >= 0.0 && d4 <= d3 {
+            b
+        } else if d6 >= 0.0 && d5 <= d6 {
+            c
+        } else if vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0 {
+            dlerp(a, b, d1 / (d1 - d3))
+        } else if vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0 {
+            dlerp(a, c, d2 / (d2 - d6))
+        } else if va <= 0.0 && d4 >= d3 && d5 >= d6 {
+            dlerp(b, c, (d4 - d3) / ((d4 - d3) + (d5 - d6)))
+        } else {
+            let den = 1.0 / (va + vb + vc);
+            let (v, w) = (vb * den, vc * den);
+            [a[0] + ab[0] * v + ac[0] * w, a[1] + ab[1] * v + ac[1] * w, a[2] + ab[2] * v + ac[2] * w]
+        };
+        ddot(dsub(p, q), dsub(p, q)).sqrt()
+    }
+
+    /// How far [`refine`] moves the surface: the largest distance of a refined vertex from its own source triangle.
+    fn max_offset(input: &[Tri]) -> f64 {
+        let out = refine(input);
+        let per = LEVEL * LEVEL;
+        out.iter().enumerate().flat_map(|(k, t)| t.p.map(|p| distance(p, input[k / per].p))).fold(0.0, f64::max)
+    }
+
+    /// Every stored normal is its own face's: the original draws the mesh flat-shaded.
+    fn flat_shaded(tris: &[Tri]) -> bool {
+        tris.iter().all(|t| {
+            let f = normalize(cross(sub(t.p[1], t.p[0]), sub(t.p[2], t.p[0])));
+            t.n.iter().all(|n| dot(normalize(*n), f).abs() >= SAME_NORMAL)
+        })
+    }
+
+    /// A stadium-like ring: a 12-sided wall (radius 60 m, 20 m high, facets 30° apart) with a flat top and
+    /// bottom, normals stored per face (flat-shaded) or radial on the wall (smooth-shaded) but split along one
+    /// seam, as the original's exporter splits a texture seam (`ftank1_h.x`).
+    fn ring_wall(smooth: bool) -> Vec<Tri> {
+        let n = 12;
+        let (r, h) = (60.0f32, 20.0f32);
+        let at = |i: usize, y: f32| {
+            let a = std::f32::consts::TAU * (i % n) as f32 / n as f32;
+            [r * a.cos(), y, r * a.sin()]
+        };
+        let radial = |p: V3| normalize([p[0], 0.0, p[2]]);
+        let mut tris = Vec::new();
+        let mut push = |p: [V3; 3], n: Option<[V3; 3]>| {
+            let f = normalize(cross(sub(p[1], p[0]), sub(p[2], p[0])));
+            tris.push(Tri { p, n: n.unwrap_or([f; 3]), uv: [[0.0; 2]; 3], material: 0 });
+        };
+        for i in 0..n {
+            let (a, b, c, e) = (at(i, 0.0), at(i + 1, 0.0), at(i + 1, h), at(i, h));
+            let f = normalize(cross(sub(c, a), sub(b, a)));
+            let seam = |q: V3| q[2].abs() < 1e-3 && q[0] > 0.0;
+            let wall = |p: [V3; 3]| smooth.then(|| p.map(|q| if seam(q) { f } else { radial(q) }));
+            push([a, c, b], wall([a, c, b]));
+            push([a, e, c], wall([a, e, c]));
+            push([[0.0, h, 0.0], c, e], None);
+            push([[0.0, 0.0, 0.0], a, b], None);
+        }
+        tris
+    }
+
+    /// The original's split normals are hard edges: a flat-shaded ring keeps every face where it is (the stadium,
+    /// `stationary/stdum_h/stadum_h.x`, is such a ring).
+    #[test]
+    fn flat_shaded_ring_keeps_its_faces() {
+        let tris = ring_wall(false);
+        assert!(flat_shaded(&tris));
+        let off = max_offset(&tris);
+        assert!(off < 1e-4, "a flat-shaded face moved {off} m");
+    }
+
+    /// A ring the original shades smooth still rounds, its seam included: every point of its bottom rim lies on
+    /// the circle (the facets' middles 2.04 m out from the flat facet), and the seam shades as smooth as the rest.
+    #[test]
+    fn smooth_shaded_ring_still_rounds() {
+        let out = refine(&ring_wall(true));
+        let rim: Vec<f32> = out
+            .iter()
+            .flat_map(|t| t.p)
+            .filter(|p| p[1].abs() < 1e-4 && p[0].hypot(p[2]) > 50.0)
+            .map(|p| p[0].hypot(p[2]))
+            .collect();
+        assert!(rim.len() > 2 * 12);
+        assert!(rim.iter().all(|r| (r - 60.0).abs() < 0.01), "rim radii {rim:?}");
+        // The seam is shaded like the rest of the wall: one normal per wall position (cap faces left out).
+        let per = LEVEL * LEVEL;
+        let mut at: HashMap<Key, V3> = HashMap::new();
+        for (_, t) in out.iter().enumerate().filter(|(k, _)| k / per % 4 < 2) {
+            for (p, n) in t.p.iter().zip(t.n) {
+                let first = *at.entry(key(*p)).or_insert(n);
+                assert!(dot(first, n) > 0.9999, "two normals at {p:?}: {first:?}, {n:?}");
+            }
+        }
+    }
+
+    /// Every original model the bdbs can draw: each mesh the original draws flat-shaded keeps its faces under
+    /// `--smooth` (needs `assets/install`).
+    #[test]
+    fn original_flat_shaded_meshes_keep_their_faces() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/install/resource/3dobjects");
+        if !root.is_dir() {
+            eprintln!("skipped: no assets/install/resource/3dobjects");
+            return;
+        }
+        let mut files = Vec::new();
+        let mut stack = vec![root];
+        while let Some(dir) = stack.pop() {
+            for e in std::fs::read_dir(dir).unwrap().flatten() {
+                let p = e.path();
+                if p.is_dir() {
+                    stack.push(p);
+                } else if p.extension().is_some_and(|x| x.eq_ignore_ascii_case("x")) {
+                    files.push(p);
+                }
+            }
+        }
+        let (mut meshes, mut stadium, mut worst) = (0, None, (0.0, std::path::PathBuf::new()));
+        for f in &files {
+            let Ok(m) = iaf_formats::model::Model::parse(&std::fs::read(f).unwrap()) else { continue };
+            let mut frames: Vec<&iaf_formats::model::Frame> = m.frames.iter().collect();
+            while let Some(fr) = frames.pop() {
+                frames.extend(fr.children.iter());
+                for mesh in &fr.meshes {
+                    let tris = crate::gltf::mesh_tris(mesh);
+                    if tris.is_empty() || mesh.normals.is_empty() || !flat_shaded(&tris) {
+                        continue;
+                    }
+                    let off = max_offset(&tris);
+                    // A non-planar quad of the original (one stored normal on both its triangles) bends by < 1 mm.
+                    assert!(off < 1e-3, "{}: a flat-shaded face moved {off} m", f.display());
+                    if off > worst.0 {
+                        worst = (off, f.clone());
+                    }
+                    meshes += 1;
+                    if f.ends_with("stationary/stdum_h/stadum_h.x") {
+                        stadium = Some(off);
+                    }
+                }
+            }
+        }
+        println!(
+            "{meshes} flat-shaded meshes in {} models; the stadium's largest move {stadium:?} m; the largest {} m ({})",
+            files.len(),
+            worst.0,
+            worst.1.display()
+        );
+        assert!(stadium.is_some(), "stadum_h.x is flat-shaded in the original");
     }
 }

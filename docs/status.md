@@ -88,8 +88,6 @@ modern aircraft / weapons, the Pi 5 profile.
 - **Lavi skin** (user report: "wrong"): checked — the texture is the original's `lavi_h.bmp`, and every model's UVs
   match the `.x` / `.xfr` exactly (formats/x.md). The plain brown nose top and the white-tinted glass are the
   original's.
-- **`--smooth` bows the stadium** (`stationary/stdum_h/stadum_h`): its straight walls curve and the seats show. Seen in
-  the UV check; open.
 - **Tests hang under load:** in a full `tools/test.sh` run while other Godot runs are busy, a test (test_ui_smoke,
   test_damage, test_arming) sometimes hangs until the 300 s timeout with no output. Alone they pass every time (8/8 on
   2026-10-01). test.sh prints "FAIL timeout" and the last output lines: use them next time to find the cause.
