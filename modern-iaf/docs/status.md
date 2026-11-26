@@ -1505,8 +1505,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   ([../../docs/rendering.md](../../docs/rendering.md) §1.6 "The first start"). Cold, mission 2012 after 20 s on the
   mission page, Fly to the first world frame: on the Mac 19.1 s without the warm-up, 7.0 s with it (all its materials
   at once); on the Linux laptop 22.1–23.9 s without, 16.0–23.1 s with (warm: 4.6–4.9 s). The laptop's worst menu frame
-  meanwhile is 0.13–0.40 s, the menus' own (the warm-up's frames stay under 0.1 s). The macOS bundles need macOS 13
-  (the baker's Metal profile; with Godot's default 11 a baked material's shader failed on the Mac,
+  meanwhile is 0.13–0.40 s, the menus' own (the warm-up's frames stay under 0.1 s). The macOS bundles need macOS 14
+  (the baker's Metal profile: below 14 the scene shader is not baked, below 13 a baked material's shader fails,
   [../../docs/release.md](../../docs/release.md) "Baked shaders"). Open: the Mac's numbers with one material at a time
   and a timed front-end start of the baked macOS bundle; both need the Mac's screen unlocked (locked, a hidden Godot
   window draws no frame).

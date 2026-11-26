@@ -238,10 +238,10 @@ DOWNLOADS = {
     "text": [
         (
             "Free and <a href=\"https://github.com/assapir/iaf-reborn\">open source</a> (GPL-3.0-or-later). The nightly build for Linux, "
-            "macOS 13 or later on Apple silicon and Windows: unpack it and start the game; its setup wizard builds the "
+            "macOS 14 or later on Apple silicon and Windows: unpack it and start the game; its setup wizard builds the "
             "data on the first start and downloads the open map data, about 27 GB. The programs are unsigned: on macOS right-click the app and choose Open; on Windows choose More info, then "
             "Run anyway.",
-            "חינמי ו<a href=\"https://github.com/assapir/iaf-reborn\">בקוד פתוח</a> (\u2066GPL-3.0-or-later\u2069). הגרסה הלילית ל־Linux, ל־macOS 13 "
+            "חינמי ו<a href=\"https://github.com/assapir/iaf-reborn\">בקוד פתוח</a> (\u2066GPL-3.0-or-later\u2069). הגרסה הלילית ל־Linux, ל־macOS 14 "
             "ומעלה על מעבדי Apple ול־Windows: מחלצים את הקובץ ומפעילים את המשחק; אשף ההתקנה בונה את הנתונים בהפעלה "
             "הראשונה ומוריד את נתוני המפה הפתוחים, כ־\u206627 GB\u2069. התוכנות אינן חתומות: "
             "ב־macOS לוחצים על היישום בכפתור הימני ובוחרים Open; ב־Windows בוחרים More info ואז Run anyway.",

@@ -23,7 +23,7 @@ game (`IafSetup`), so no separate setup program ships.
 - **macOS**: a disk image with the app (Godot's universal program, our library for Apple silicon only), a link to
   Applications and "Read me first.txt". The app has an ad-hoc signature only (Apple silicon runs no code without one)
   and is not notarised, so macOS stops its first start. Right-click the app, choose Open, then Open again; or run once
-  `xattr -dr com.apple.quarantine "/Applications/Modern IAF.app"`. It needs macOS 13 or later (the baked shaders,
+  `xattr -dr com.apple.quarantine "/Applications/Modern IAF.app"`. It needs macOS 14 or later (the baked shaders,
   "Baked shaders" below). Intel Macs are not built for.
 
 ### Tested on
@@ -182,16 +182,22 @@ The bake includes the flight's material list that the front end warms up ([rende
 first start", `shared/util/flight_materials.tres`), so the built-in materials' shaders the flight draws are baked
 too (1646 bake steps for Modern IAF).
 
-The macOS presets set the minimum macOS to 13 (`application/min_macos_version_arm64`). The baker picks its Metal profile
-from that version, and only from macOS 13 does it compile with argument buffers, as Godot does at run time on Apple
-silicon. With Godot's default 11.00 it baked the shaders with one Metal slot per texture and sampler; a material's
-sampler then got slot 17 (Metal allows 0–15), its shader failed ("'sampler' attribute parameter is out of bounds"), and
-the bundle stopped at the flight's start (found 2026-11-25 in Godot 4.7.2's
-`shader_baker_export_plugin_platform_metal.cpp` and `metal_device_profile.cpp`). The earlier bake without the list
-worked only because Godot's own shaders use few samplers (inferred). So the macOS bundles need macOS 13 or later.
+The macOS presets set the minimum macOS to 14 (`application/min_macos_version_arm64`). The baker picks its Metal
+profile from that version (Godot 4.7.2's `shader_baker_export_plugin_platform_metal.cpp` and
+`metal_device_profile.cpp`), for an Apple7 GPU (M1):
 
-A baked macOS bundle prints three `ERROR` lines at launch ("Not enough bytes for uniform in shader container"): Godot
-then compiles that one shader itself, and the game runs on.
+- From macOS 13 it compiles with argument buffers, as Godot does at run time on Apple silicon. With 11.00 the shaders
+  get one Metal slot per texture and sampler; a material's sampler then gets slot 17 (Metal allows 0–15), its shader
+  fails ("'sampler' attribute parameter is out of bounds") and the bundle stops at the flight's start.
+- From macOS 14 it compiles for Metal Shading Language 3.1, which the image atomics in Godot's scene shader
+  (`SceneForwardClusteredShaderRD`), volumetric fog and FSR 2 need. For a lower version the baker prints "Shader '…'
+  requires Apple6 / MSL 3.1 but target is Apple7 / MSL 3.0" and stores the shader empty, marked invalid. Godot 4.7.2
+  then cannot read that entry back ("Not enough bytes for uniform in shader container", "Failed to parse shader
+  container from binary"): it compiles the whole shader group at the first start. With 13.00 that is 102 of Modern
+  IAF's 1670 baked shader variants, the scene shader's among them.
+
+`bundle.sh` turns that baker message into a `::warning::` in the run's log. Vulkan (Linux, Windows) and Direct3D 12
+have no such limit: their baker stores every shader.
 
 The baker needs a rendering device, so `bundle.sh` exports without `--headless` (stopped after 30 minutes): on Linux
 under `xvfb-run` (the workflow installs Mesa's software Vulkan, `mesa-vulkan-drivers`, and Xvfb), on macOS with the

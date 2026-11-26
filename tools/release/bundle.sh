@@ -53,7 +53,13 @@ export_game() {
 		# A hung windowed export falls through to the headless one after 30 minutes.
 		to=$(command -v timeout || command -v gtimeout || true)
 		[[ -n $to ]] && run=("$to" 1800 "${run[@]}")
-		"${run[@]}" --audio-driver Dummy --path "$project" --export-release "$preset" "$1" || true
+		local log
+		log=$(mktemp)
+		"${run[@]}" --audio-driver Dummy --path "$project" --export-release "$preset" "$1" 2>&1 | tee "$log" || true
+		# Shaders the baker's target cannot hold are left to the first start (docs/release.md "Baked shaders").
+		grep -q "will be compiled at runtime on the device" "$log" &&
+			echo "::warning::$project ($os): the shader baker left shaders unbaked; the first start compiles them"
+		rm -f "$log"
 		local pck=${1%.*}.pck ok=0
 		[[ $os == macos && -s $1 ]] && unzip -p "$1" '*.pck' >"$pck" || true
 		[[ -s $1 ]] && baked "$pck" && ok=1
