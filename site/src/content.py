@@ -5,10 +5,10 @@
 META = {
     "en": ("Modern IAF: a flight sim of today's Israeli Air Force",
            "Fly the F-16I Sufa, the F-16D Barak and the F-35I Adir in 3D cockpits over a full-scale Israel built from "
-           "open data. Free and open source, for Linux, macOS and Windows."),
+           "open data. Free and open source (GPL-3.0-or-later), for Linux, macOS and Windows."),
     "he": ("הזרוע הארוכה: סימולטור טיסה של חיל האוויר של היום",
            "טסים בסופה (F-16I), בברק (F-16D) ובאדיר (F-35I) בתאי טייס תלת־ממדיים מעל ישראל בקנה מידה מלא. "
-           "חינמי ובקוד פתוח, ל־Linux, ל־macOS ול־Windows."),
+           "חינמי ובקוד פתוח (\u2066GPL-3.0-or-later\u2069), ל־Linux, ל־macOS ול־Windows."),
 }
 
 HERO = {
@@ -237,11 +237,11 @@ DOWNLOADS = {
     "id": "download", "nav_en": "Download", "nav_he": "הורדה", "en": "Download", "he": "הורדה",
     "text": [
         (
-            "Free and <a href=\"https://github.com/assapir/iaf-reborn\">open source</a>. The nightly build for Linux, "
+            "Free and <a href=\"https://github.com/assapir/iaf-reborn\">open source</a> (GPL-3.0-or-later). The nightly build for Linux, "
             "macOS 13 or later on Apple silicon and Windows: unpack it and start the game; its setup wizard builds the "
             "data on the first start and downloads the open map data, about 27 GB. The programs are unsigned: on macOS right-click the app and choose Open; on Windows choose More info, then "
             "Run anyway.",
-            "חינמי ו<a href=\"https://github.com/assapir/iaf-reborn\">בקוד פתוח</a>. הגרסה הלילית ל־Linux, ל־macOS 13 "
+            "חינמי ו<a href=\"https://github.com/assapir/iaf-reborn\">בקוד פתוח</a> (\u2066GPL-3.0-or-later\u2069). הגרסה הלילית ל־Linux, ל־macOS 13 "
             "ומעלה על מעבדי Apple ול־Windows: מחלצים את הקובץ ומפעילים את המשחק; אשף ההתקנה בונה את הנתונים בהפעלה "
             "הראשונה ומוריד את נתוני המפה הפתוחים, כ־\u206627 GB\u2069. התוכנות אינן חתומות: "
             "ב־macOS לוחצים על היישום בכפתור הימני ובוחרים Open; ב־Windows בוחרים More info ואז Run anyway.",
@@ -249,7 +249,7 @@ DOWNLOADS = {
     ],
     # The table: per system its build (the release's asset, size on 25 Nov 2026) and the machine it is tested on
     # (docs/release.md "Tested on"), each machine as parts (CPU, graphics, memory, OS) in en and he.
-    "head": (("System", "Download", "Tested on"), ("מערכת הפעלה", "הורדה", "מערכת הבדיקה")),
+    "head": (("System", "Download", "Tested on"), ("מערכת הפעלה", "הורדה", "נבדק על")),
     "stem": "modern-iaf",
     "systems": [
         ("Linux", "linux-x86_64.tar.gz", "205 MB",
