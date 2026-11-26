@@ -41,16 +41,13 @@ When the step fails again in the same way, report it with the run's log file (@s
 
 === Too little disk space <setup-faults-disk>
 
-#idx("Disk space, too little")The first page compares the free space with what the build needs for the imagery you chose.
+#idx("Disk space, too little")The first page compares the free space with what the build needs.
 
 + Free space on the disk that holds the game's folder. The sizes are in @requirements-disk.
 + Open setup again (@setup-start).
   #then[The first page shows the new free space, and #stp("next") is alive.]
 
-Two choices lower what setup needs:
-
-- On the #stp("page_imagery") page, #stp("s2") takes about 3 GB less than the choice with the Survey of Israel photo.
-- On the #stp("page_install") page, untick the optional steps (@setup-leave-out).
+To lower what setup needs, untick the optional steps on the #stp("page_install") page (@setup-leave-out).
 
 When only the downloaded imagery files do not fit, the first page says how much of them setup reads online straight into the build, and #stp("next") does not wait.
 

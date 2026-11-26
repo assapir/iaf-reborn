@@ -55,7 +55,7 @@ The wizard's last page adds the game's entries to the system's menu (@setup-menu
 
 === The wizard's pages <setup-pages>
 
-#screen("setup_welcome", [The first page of setup: what it downloads and builds, and what it needs. Here the disk has too little free space for every imagery tile, so the page shows smaller figures and reads the rest online during the build.], width: 70%)
+#screen("setup_welcome", [The first page of setup: what it downloads and builds, and what it needs.], width: 70%)
 
 The wizard has four pages. #stp("next") goes to the next page and #stp("back") to the page before.
 
@@ -63,35 +63,28 @@ The wizard has four pages. #stp("next") goes to the next page and #stp("back") t
   (auto, 1fr),
   ([Page], [What it holds]),
   [#stp("page_welcome")], [#stp("language"): English or Hebrew, for the wizard and the game. What setup downloads and builds. #stp("download"), #stp("disk") and #stp("time"). #stp("needs"): GDAL and curl, each #stp("found") or #stp("missing") (the downloaded game carries both and does not list them), and the free disk space. The #stp("credits") button opens the list of every source with its licence; #stp("close") or #keycap("Esc") closes it. #stp("next") waits until GDAL, curl and the disk space are there. In the downloaded game, the data folder and #stp("change").],
-  [#stp("page_imagery")], [The choice of the ground's picture (@setup-imagery).],
+  [#stp("page_imagery")], [What setup downloads for the ground's picture (@setup-imagery).],
   [#stp("page_install")], [One row for each #term("setup step"), with its progress bar and its state (@setup-steps). The #stp("install") button starts the run.],
   [#stp("page_done")], [Whether the game is set up. The tick that adds the game to the system's menu (@setup-menu); the downloaded game has none, as it is an app of its own. #stp("start_game") opens the game's first screen. #stp("close") ends the wizard.],
 )
 
-=== The imagery choice <setup-imagery>
+=== The imagery <setup-imagery>
 
 #screen("setup_imagery", [The Imagery page.], width: 70%)
 
-#idx("Imagery")#idx("Survey of Israel photo")The imagery is the picture of the ground that the terrain wears. The #stp("page_imagery") page offers two choices, each with its disk use and its time.
+#idx("Imagery")#idx("Survey of Israel photo")The imagery is the picture of the ground that the terrain wears. The #stp("page_imagery") page shows what setup downloads for it, with its disk use and its time: the Survey of Israel's aerial photo at 2 m a pixel over Israel, and Sentinel-2 satellite imagery beyond it (8 m a pixel near Israel, 32 m farther out). The photo comes in 79 sheet files from data.gov.il, 17 GB in all. The terrain takes about 3.57 GB on the disk, and its build about 1 hour 42 minutes.
 
-#grid-table(
-  (1fr, 1.6fr),
-  ([Choice], [What it gives]),
-  [#stp("s2")], [Satellite imagery at 8 m a pixel over Israel and 32 m beyond. About 469 MB of terrain on the disk.],
-  [#stp("survey")], [The same, with the Survey of Israel's aerial photo at 2 m a pixel over Israel. About 3.57 GB of terrain on the disk, and a build of about 1 hour 42 minutes.],
-)
-
-Under the second choice, pick the photo's area: #stp("survey_all") (79 sheet files from data.gov.il, 17 GB) or #stp("survey_bases") (the 10 sheets around the air bases, 2.4 GB). Setup downloads the Survey of Israel 2015 sheet files that are not on the disk yet and keeps them. When some are there already, the page counts them and names their folder. The download is faster with data.gov.il's pass from Firefox: before #stp("install"), select #stp("survey_copy"), paste the link into Firefox's address bar and cancel the download. Without the pass, setup opens the sheets in the web browser a few at a time; let them finish.
+Setup downloads the Survey of Israel 2015 sheet files that are not on the disk yet and keeps them. When some are there already, the page counts them and names their folder. The download is faster with data.gov.il's pass from Firefox: before #stp("install"), select #stp("survey_copy"), paste the link into Firefox's address bar and cancel the download. Without the pass, setup opens the sheets in the web browser a few at a time; let them finish.
 
 === The steps <setup-steps>
 
-#idx("Setup steps")The #stp("page_install") page lists eight steps. Six are required: the game cannot start or fly a mission without them. Two are optional and are on by default. With the Survey of Israel photo, a ninth required step comes first.
+#idx("Setup steps")The #stp("page_install") page lists nine steps. Seven are required: the game cannot start or fly a mission without them. Two are optional and are on by default.
 
 #grid-table(
   (1.1fr, 1.5fr, 1.5fr),
   ([Step], [What it builds], [What it downloads, its size and time]),
-  [#stp("step_mapi2015-fetch")], [The Survey of Israel's sheet files, with the Survey of Israel photo only. Required. It runs before the other steps.], [The sheets that are not on the disk yet, up to 17 GB. Under its name the row shows the download, or #stp("dl_none") when the sheets are on the disk.],
-  [#stp("step_sim-terrain")], [The ground: its heights and its imagery. Required.], [The Copernicus GLO-30 heights (627 MB) and the Sentinel-2 imagery (11.4 GB), once. About 17 minutes the first time, the download included; about 1 hour 42 minutes with the Survey of Israel photo. Under its name the row says #stp("dl_none") when every file is on the disk already.],
+  [#stp("step_mapi2015-fetch")], [The Survey of Israel's sheet files. Required. It runs before the other steps.], [The sheets that are not on the disk yet, up to 17 GB. Under its name the row shows the download, or #stp("dl_none") when the sheets are on the disk.],
+  [#stp("step_sim-terrain")], [The ground: its heights and its imagery. Required.], [The Copernicus GLO-30 heights (627 MB) and the Sentinel-2 imagery (8.3 GB), once. About 1 hour 42 minutes the first time. Under its name the row says #stp("dl_none") when every file is on the disk already.],
   [#stp("step_sim-db")], [The aircraft, the ground units and the weapons. Required.], [Nothing. Seconds.],
   [#stp("step_sim-fm")], [The jets' flight models. Required.], [Nothing. Seconds.],
   [#stp("step_sim-own")], [The sounds, the radio voices and the key table. Required.], [Nothing. Seconds.],

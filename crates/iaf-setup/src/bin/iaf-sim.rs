@@ -121,12 +121,11 @@ fn main() -> Result<()> {
     if !repo.join("modern-iaf/data").is_dir() {
         bail!("run iaf-sim from the repo root (modern-iaf/data not found)");
     }
-    // The wizard's choices: the built theatre's imagery (else the Survey photo when its sheets are there), the
-    // optional steps it left out.
-    let survey = iaf_setup::sim_survey(&assets, &repo);
     let excluded = iaf_setup::sim_excluded(&assets);
     let excluded: Vec<&str> = excluded.iter().map(String::as_str).collect();
-    let inputs = SimInputs { survey, ..SimInputs::default() }.without(&excluded);
+    // The wizard's choices: the Survey photo (from the sheets on disk; iaf-sim downloads none), the optional steps it
+    // left out.
+    let inputs = SimInputs { survey: true, ..SimInputs::default() }.without(&excluded);
     let plan = iaf_setup::sim_plan(&inputs);
     let ctx = SimCtx { assets, repo, inputs };
     if cmd == "adopt" {

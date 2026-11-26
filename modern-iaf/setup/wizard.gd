@@ -19,22 +19,18 @@ const DEM_GB := 0.627
 const S2_GB := 8.28
 ## The free space the tiles' download leaves (iaf_tools::imagery_run::S2_KEEP_FREE): a tile past it is read online.
 const KEEP_FREE_GB := 5.0
-const THEATRE_S2_GB := 0.47
 const THEATRE_SURVEY_GB := 3.57
 ## The rest: the compiled data (0.02) and the OpenStreetMap extracts the coastline and the inland water are cut from
 ## (0.45: Israel and Palestine, Lebanon, Syria, Jordan, Egypt; iaf_tools::sim_coast::water_extracts), downloaded once.
 const OTHER_GB := 0.47
-const TIME_S2_MIN := 17
 const TIME_SURVEY_MIN := 102
 ## The Survey of Israel's sheet ZIPs (tools/imagery/mapi2015_sheets.tsv; kept in assets/source/imagery/mapi2015): all
-## of Israel, and those around the sim's airbases (iaf_tools::mapi2015_fetch::SIM_BASES), sizes from data.gov.il.
+## of Israel, sizes from data.gov.il. Setup always downloads the missing ones (step mapi2015-fetch).
 const SURVEY_SHEETS := 79
 const SURVEY_ALL_GB := 17.27
-const SURVEY_BASE_SHEETS := 10
-const SURVEY_BASES_GB := 2.38
+## The imagery as Rust takes it (SimInputs::with_survey): the Survey over all of Israel, with Sentinel-2 elsewhere.
+const SURVEY_ID := "mapi2015"
 var strings := {}
-## The Survey of Israel 2 m photo over Israel is chosen (else Sentinel-2 everywhere), over `survey_scope`.
-var survey := false
 var sheets := 0
 ## The GB of the sim's Sentinel-2 tiles already in the cache (IafSetup.sim_s2_cached).
 var s2_cached := 0.0
@@ -54,14 +50,9 @@ var page_label: Label
 var close_button: Button
 var lang_pick: OptionButton
 var req_ok := false
-var s2_check: CheckBox
-var survey_check: CheckBox
-## The Survey's scope (SURVEY_SCOPES: all of Israel, around the airbases), kept when the pages are built anew.
-var survey_scope: OptionButton
-## The Imagery page's free-space line, and whether the choice fits (Next waits while it does not).
+## The Imagery page's free-space line, and whether the imagery fits (Next waits while it does not).
 var space_note: Label
 var space_ok := true
-var scope := 0
 ## The whole run's time left, under the status line while it runs ("all steps", or the step count unmeasured).
 var total_label: Label
 ## The Attributions, a modal dialog opened from Welcome (Esc or Close closes it).
@@ -80,9 +71,6 @@ func _ready() -> void:
 	log_name = "modern-iaf-setup"
 	sheets = IafSetup.survey_sheets(assets)
 	s2_cached = IafSetup.sim_s2_cached(assets) / 1e9
-	survey = sheets > 0
-	# Sheets found, but not all of them: around the airbases, so Install downloads only those still missing there.
-	scope = 1 if sheets > 0 and sheets < SURVEY_SHEETS else 0
 	excluded = Array(IafSetup.sim_excluded(assets))
 	_load_optional()
 	_build()
@@ -235,11 +223,10 @@ func _page_welcome() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	v.add_child(row)
-	var dl := _gb(DEM_GB + S2_GB)
-	var kept := DEM_GB + S2_GB + OTHER_GB
-	var disk := "%s – %s" % [_gb(kept + THEATRE_S2_GB), _gb(kept + THEATRE_SURVEY_GB + SURVEY_ALL_GB)]
-	var time := "%s – %s" % [_duration(TIME_S2_MIN * 60), _duration(TIME_SURVEY_MIN * 60)]
-	var dl_note := s("download_note") % [_gb(DEM_GB), _gb(S2_GB)]
+	var dl := _gb(DEM_GB + S2_GB + SURVEY_ALL_GB)
+	var disk := _gb(DEM_GB + S2_GB + OTHER_GB + THEATRE_SURVEY_GB + SURVEY_ALL_GB)
+	var time := _duration(TIME_SURVEY_MIN * 60)
+	var dl_note := s("download_note") % [_gb(DEM_GB), _gb(S2_GB), _gb(SURVEY_ALL_GB)]
 	for box in [[s("download"), dl, dl_note], [s("disk"), disk, s("disk_note")], [s("time"), time, s("time_note")]]:
 		var c := _vbox(4)
 		_label(c, box[0], "Muted")
@@ -260,8 +247,8 @@ func _page_welcome() -> Control:
 	if not req_ok:
 		_text(req, hint, "Note")
 	var free := free_gb(assets)
-	# The space the imagery choice needs (the Survey is chosen at the start when its sheets are there), and the
-	# Sentinel-2 tiles still to download; tiles with no room are read online (docs/imagery.md §2).
+	# The space the build needs (with the Survey's sheets still to download), and the Sentinel-2 tiles still to
+	# download; tiles with no room are read online (docs/imagery.md §2).
 	var need := need_gb()
 	var tiles := maxf(S2_GB - s2_cached, 0.0)
 	var credits_row := HBoxContainer.new()
@@ -281,45 +268,26 @@ func _page_welcome() -> Control:
 	return v
 
 
+## What setup downloads for the imagery, in a card: the Survey of Israel over Israel, Sentinel-2 elsewhere, its sizes,
+## the sheets already there, the data.gov.il pass guidance and "Copy a sheet's link" (_survey_pass).
 func _page_imagery() -> Control:
 	var v := _vbox(8)
-	var group := ButtonGroup.new()
-	s2_check = _choice(v, group, s("s2"), s("s2_note") % [_gb(THEATRE_S2_GB), _duration(TIME_S2_MIN * 60)], true)
+	var box := _vbox(2)
+	_text(box, s("survey"))
 	var note: String = (
-		s("survey_note")
-		% [
-			_gb(SURVEY_ALL_GB),
-			_gb(SURVEY_ALL_GB + THEATRE_SURVEY_GB),
-			SURVEY_BASE_SHEETS,
-			_gb(SURVEY_BASES_GB),
-			_duration(TIME_SURVEY_MIN * 60)
-		]
+		s("survey_note") % [_gb(SURVEY_ALL_GB), _gb(SURVEY_ALL_GB + THEATRE_SURVEY_GB), _duration(TIME_SURVEY_MIN * 60)]
 	)
 	if sheets > 0:
 		# The real data folder (a release bundle's is not assets/), left to right in a Hebrew line.
 		var dir := "\u2066" + assets.path_join("source/imagery/mapi2015") + "\u2069"
 		note += " " + s("survey_found") % [sheets, dir]
-	survey_check = _choice(v, group, s("survey"), note, true)
-	survey_scope = _survey_controls(survey_check.get_parent(), false)
-	survey_scope.selected = scope
-	survey_scope.item_selected.connect(
-		func(i):
-			scope = i
-			_on_choice()
-	)
-	survey_check.button_pressed = survey
-	s2_check.button_pressed = not survey
-	for c in [s2_check, survey_check]:
-		c.toggled.connect(func(_on): _on_choice())
+	_text(box, note, "Note")
+	_survey_pass(box)
+	_card(v, box)
 	space_note = _text(v, "", "Note")
 	space_note.name = "SpaceNote"
 	space_note.visible = false
 	return v
-
-
-## The imagery choice as Rust takes it (SimInputs::with_survey): the Survey's scope id, "" for Sentinel-2 alone.
-func survey_id() -> String:
-	return SURVEY_SCOPES[scope] if survey else ""
 
 
 ## A note line in the theme's Note look (the Survey's pass guidance).
@@ -327,30 +295,15 @@ func _hint(parent: Control, t: String) -> Label:
 	return _text(parent, t, "Note")
 
 
-## An imagery choice: a radio button in a card with its note.
-func _choice(parent: Control, group: ButtonGroup, label: String, note: String, available: bool) -> CheckBox:
-	var v := _vbox(2)
-	var c := CheckBox.new()
-	c.text = label
-	c.button_group = group
-	c.disabled = not available
-	c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(c)
-	_text(v, note, "Note")
-	_card(parent, v)
-	return c
-
-
-## The space the imagery choice needs (GB): the heights, the theatre, the rest, and with the Survey its sheets still to
-## download for the scope (by the sheets' mean size).
+## The space the build needs (GB): the heights, the theatre, the rest, and the Survey's sheets still to download (by
+## the sheets' mean size).
 func need_gb() -> float:
-	var need := DEM_GB + (THEATRE_SURVEY_GB if survey else THEATRE_S2_GB) + OTHER_GB
-	return need + IafSetup.survey_missing(assets, survey_id()) * SURVEY_ALL_GB / SURVEY_SHEETS
+	var need := DEM_GB + THEATRE_SURVEY_GB + OTHER_GB
+	return need + IafSetup.survey_missing(assets, SURVEY_ID) * SURVEY_ALL_GB / SURVEY_SHEETS
 
 
-## A choice changed: the Imagery page checks the free space again (Welcome's free_low line; Next waits while short).
-func _on_choice() -> void:
-	survey = survey_check.button_pressed and not survey_check.disabled
+## The Imagery page checks the free space (Welcome's free_low line; Next waits while short).
+func _check_space() -> void:
 	var free := free_gb(assets)
 	space_ok = free < 0 or free >= need_gb()
 	space_note.text = "" if space_ok else s("free_low") % [_gb(free), _gb(need_gb())]
@@ -457,7 +410,7 @@ func _on_page(id: String) -> void:
 	page_label.text = "%d / %d" % [page + 1, PAGES.size()]
 	lang_pick.get_parent().visible = page == 0
 	if id == "imagery":
-		_on_choice()
+		_check_space()
 	if id == "install" and not running and not finished:
 		_plan_rows()
 		_note("")
@@ -659,9 +612,9 @@ func _fill_rows(steps: Array) -> void:
 		r.bar.modulate.a = 1.0 if name in ["running", "done", "up_to_date"] else 0.35
 
 
-## The step rows for the current choices, made anew when the choices changed the plan (the Survey's download row).
+## The step rows for the plan, made anew when the plan changed.
 func _plan_rows() -> void:
-	var plan: Array = IafSetup.sim_plan(survey_id())
+	var plan: Array = IafSetup.sim_plan(SURVEY_ID)
 	if plan.map(func(st): return st.id) != rows.keys():
 		for id in rows:
 			rows_box.remove_child(rows[id].box)
@@ -674,7 +627,7 @@ func _plan_rows() -> void:
 func _preview_sim() -> void:
 	_preview(
 		"sim_preview",
-		[assets, repo, survey_id()] + excluded,
+		[assets, repo, SURVEY_ID] + excluded,
 		func(up: Dictionary):
 			for id in rows:
 				var u: bool = up.get(id, false)
@@ -698,12 +651,12 @@ func _show_sizes(id: String) -> void:
 	var o: Dictionary = optional.get(id, {})
 	if id == "sim-terrain":
 		# A built theatre rebuilt for a code change reads only the caches: said on its row (the user, 2026-11-13).
-		r.sizes.visible = IafSetup.sim_terrain_fetch(assets, repo, survey).is_empty()
+		r.sizes.visible = IafSetup.sim_terrain_fetch(assets, repo, true).is_empty()
 		r.sizes.text = s("dl_none")
 		return
 	if id == "mapi2015-fetch":
-		# The sheets still missing for the scope (an estimate from the sheets' mean size).
-		var n: int = IafSetup.survey_missing(assets, survey_id())
+		# The sheets still missing (an estimate from the sheets' mean size).
+		var n: int = IafSetup.survey_missing(assets, SURVEY_ID)
 		r.sizes.text = s("dl_none") if n == 0 else s("dl") % _gb(n * SURVEY_ALL_GB / SURVEY_SHEETS)
 		return
 	r.sizes.visible = not o.is_empty()
@@ -798,7 +751,7 @@ func retry_step(id: String) -> void:
 
 
 func _run(redo: PackedStringArray) -> String:
-	return setup.sim_start(assets, repo, survey_id(), redo, PackedStringArray(excluded), log_file)
+	return setup.sim_start(assets, repo, SURVEY_ID, redo, PackedStringArray(excluded), log_file)
 
 
 func _polled(p: Dictionary) -> void:

@@ -239,39 +239,31 @@ DOWNLOADS = {
         (
             "Free and <a href=\"https://github.com/assapir/iaf-reborn\">open source</a>. The nightly build for Linux, "
             "macOS 13 or later on Apple silicon and Windows: unpack it and start the game; its setup wizard builds the "
-            "data on the first start and downloads the open map data, about 12 GB. The programs are unsigned: on macOS right-click the app and choose Open; on Windows choose More info, then "
+            "data on the first start and downloads the open map data, about 27 GB. The programs are unsigned: on macOS right-click the app and choose Open; on Windows choose More info, then "
             "Run anyway.",
             "חינמי ו<a href=\"https://github.com/assapir/iaf-reborn\">בקוד פתוח</a>. הגרסה הלילית ל־Linux, ל־macOS 13 "
             "ומעלה על מעבדי Apple ול־Windows: מחלצים את הקובץ ומפעילים את המשחק; אשף ההתקנה בונה את הנתונים בהפעלה "
-            "הראשונה ומוריד את נתוני המפה הפתוחים, כ־12 GB. התוכנות אינן חתומות: "
+            "הראשונה ומוריד את נתוני המפה הפתוחים, כ־27 GB. התוכנות אינן חתומות: "
             "ב־macOS לוחצים על היישום בכפתור הימני ובוחרים Open; ב־Windows בוחרים More info ואז Run anyway.",
         ),
         (
-            "<b>System requirements</b>. Minimum: 30 to 40 frames a second at "
-            "1920 × 1080. Recommended: 60 frames a second with room for the graphics extras. Disk: 14 GB free.",
-            "<b>דרישות מערכת</b>. מינימום: 30 עד 40 פריימים לשנייה ב־1920 × 1080. מומלץ: 60 פריימים לשנייה עם מקום לתוספות הגרפיקה. "
-            "דיסק: 14 GB פנויים.",
+            "<b>Tested on</b>. It draws with Vulkan, Direct3D 12 or Metal and runs on these computers. Disk: 32 GB "
+            "free.",
+            "<b>נבדק על</b>. המשחק משתמש ב־Vulkan, ב־Direct3D 12 או ב־Metal, והוא פועל במחשבים האלה. דיסק: 32 GB פנויים.",
         ),
     ],
     "list": [
         (
-            "Windows: minimum Windows 10 64-bit, a 4-core processor, 8 GB of memory, graphics with Vulkan or Direct3D 12 "
-            "and 2 GB (Intel Iris Xe); recommended Windows 11, a Core i5-6600K or faster, 16 GB, a GeForce GTX 1070 or "
-            "faster.",
-            "Windows: מינימום Windows 10 ב־64 ביט, מעבד 4 ליבות, זיכרון 8 GB, כרטיס מסך עם Vulkan או Direct3D 12 "
-            "ו־2 GB (Intel Iris Xe); מומלץ Windows 11, מעבד Core i5-6600K ומעלה, זיכרון 16 GB, כרטיס מסך GeForce GTX "
-            "1070 ומעלה.",
+            "Windows 11 Pro: Intel Core i5-6600K, 16 GB of memory, NVIDIA GeForce GTX 1070.",
+            "Windows 11 Pro: Intel Core i5-6600K, זיכרון 16 GB, NVIDIA GeForce GTX 1070.",
         ),
         (
-            "Linux: a 64-bit distribution from 2020 or later with the GPU's Vulkan driver; the same processor, memory "
-            "and graphics as on Windows.",
-            "Linux: הפצה ב־64 ביט משנת 2020 ואילך עם מנהל ההתקן של Vulkan לכרטיס המסך; מעבד, זיכרון וכרטיס מסך כמו "
-            "ב־Windows.",
+            "Linux (Arch): a laptop with Intel Core i7-1185G7 and Intel Iris Xe graphics, 32 GB of memory.",
+            "Linux (Arch): מחשב נייד עם Intel Core i7-1185G7 וגרפיקה Intel Iris Xe, זיכרון 32 GB.",
         ),
         (
-            "macOS: minimum macOS 13 on an Apple M1 with 8 GB of memory; recommended macOS 14 or later, an M-series Pro "
-            "or Max, 16 GB.",
-            "macOS: מינימום macOS 13 על Apple M1 עם זיכרון 8 GB; מומלץ macOS 14 ומעלה, M Pro או M Max, זיכרון 16 GB.",
+            "macOS 27: Apple M4 Pro, 48 GB of memory.",
+            "macOS 27: Apple M4 Pro, זיכרון 48 GB.",
         ),
     ],
     "games": [

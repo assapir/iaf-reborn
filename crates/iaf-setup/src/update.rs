@@ -384,9 +384,10 @@ pub struct Stale {
 }
 
 /// The steps of the last run's choices in `assets` that a run would do again, for Jane's IAF reborn (`sim` false:
-/// setup.json's inputs) or Modern IAF (`sim` true: the steps left out and the Survey's choice). Empty before the first
-/// run. Steps that keep no stamp (imagery, the scenery's fetch, the guides) decide for themselves when they run and
-/// are left out, as is the launcher in a release bundle (it has none).
+/// setup.json's inputs) or Modern IAF (`sim` true: the steps left out, with the Survey photo and its missing
+/// sheets). Empty before the first run. Steps that keep no stamp (imagery, the scenery's fetch, the guides) decide
+/// for themselves when they run and are left out, as is the launcher in a release bundle (it has none); the Survey's
+/// sheet download is listed while sheets are missing.
 pub fn setup_stale(assets: &Path, repo: &Path, sim: bool) -> Vec<Stale> {
     // Only the steps with a stamp that no longer holds (None: no stamp).
     let with_bytes = |v: Vec<(&'static str, Option<bool>)>, steps: &[Step], bytes: &dyn Fn(&str) -> i64| {
@@ -404,7 +405,9 @@ pub fn setup_stale(assets: &Path, repo: &Path, sim: bool) -> Vec<Stale> {
         }
         let out = crate::sim_excluded(assets);
         let out: Vec<&str> = out.iter().map(String::as_str).collect();
-        let inputs = SimInputs { survey: crate::sim_survey(assets, repo), ..Default::default() }.without(&out);
+        // The Survey photo always (the wizard's SURVEY_ID): a theatre built without it is stale. Its sheets' download
+        // keeps no stamp: the run Update starts fetches the missing ones.
+        let inputs = SimInputs { survey: true, ..Default::default() }.without(&out);
         let steps = crate::sim_plan(&inputs);
         if !steps.iter().any(|s| crate::stamp::sim_stamp_path(assets, s.id).is_file()) {
             return vec![];
@@ -419,7 +422,19 @@ pub fn setup_stale(assets: &Path, repo: &Path, sim: bool) -> Vec<Stale> {
             },
             _ => optional.iter().find(|o| o.id == id).map_or(0, |o| o.download as i64),
         };
-        with_bytes(stamped, &steps, &bytes)
+        let mut stale: Vec<Stale> = with_bytes(stamped, &steps, &bytes);
+        // The Survey's sheets keep no stamp: still missing ones (an install from before every sheet was fetched) make
+        // the download step stale, by the sheets' mean size (17.27 GB for 79, data.gov.il).
+        let all = SimInputs::default().with_survey("mapi2015");
+        let missing = all.survey_missing(assets);
+        if missing > 0 {
+            let title = crate::sim_plan(&all)[0].title;
+            stale.insert(
+                0,
+                Stale { id: crate::sim::SURVEY_FETCH, title, download: missing as i64 * 17_270_000_000 / 79 },
+            );
+        }
+        stale
     } else {
         let Ok(Some(inputs)) = crate::load_inputs(assets) else { return vec![] };
         let steps = crate::plan(&inputs);

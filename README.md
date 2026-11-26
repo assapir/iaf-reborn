@@ -9,8 +9,9 @@ game: its setup wizard builds the data with the GDAL and curl it carries. The pr
 `xattr -dr com.apple.quarantine "/Applications/Modern IAF.app"`); on Windows choose More info, then Run anyway.
 On start, the game offers each newer nightly and the setup steps a new version changed (a dialog with Update / Later;
 the setting "Updates on start" chooses Ask, Always download or Never).
-It needs a 4-core processor, 8 GB of memory and graphics with Vulkan, Direct3D 12 or Metal (Intel Iris Xe or
-better; recommended: a GeForce GTX 1070): [System requirements](docs/release.md#system-requirements), per system.
+It draws with Vulkan, Direct3D 12 or Metal. Tested on Windows 11 Pro (Core i5-6600K, 16 GB, GeForce GTX 1070),
+Arch Linux (a laptop with Intel Iris Xe graphics) and macOS on an Apple M4 Pro (48 GB):
+[Tested on](docs/release.md#tested-on).
 Details: [docs/release.md](docs/release.md). The commands below run the games from this checkout.
 
 ## Jane's IAF reborn: the 1998 game
@@ -40,8 +41,8 @@ Modern IAF (in Hebrew: הזרוע הארוכה) is a flight sim of today's Israe
 Barak, F-35I Adir), 3D cockpits, Israel at full scale, training missions, in Hebrew and English. Pictures from the sim: the
 [showcase page](https://moderniaf.fly/) (its source: `site/`, built by `python3 site/src/build.py`).
 
-**It needs no data from the original game.** Setup downloads open data once (0.6 GB of heights and 11.4 GB of
-satellite colour tiles) and builds the sim's data into `assets/`.
+**It needs no data from the original game.** Setup downloads open data once (0.6 GB of heights, 8.3 GB of
+satellite colour tiles and the Survey of Israel's 17.3 GB of aerial photo sheets) and builds the sim's data into `assets/`.
 
 ```sh
 ./modern-iaf-setup     # the setup wizard: downloads the open data and builds the sim's data

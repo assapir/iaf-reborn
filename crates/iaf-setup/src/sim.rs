@@ -32,8 +32,9 @@ impl Default for SimInputs {
 }
 
 impl SimInputs {
-    /// These inputs with the wizard's imagery choice by its id (the original game's `setup.json` ids): "mapi2015" the
-    /// Survey over all of Israel, "mapi2015-bases" around the airbases, anything else Sentinel-2 alone.
+    /// These inputs with the imagery by its id (the original game's `setup.json` ids): "mapi2015" the Survey over all
+    /// of Israel (Modern IAF's wizard always passes it), "mapi2015-bases" around the airbases, anything else
+    /// Sentinel-2 alone.
     pub fn with_survey(self, id: &str) -> Self {
         let fetch = match id {
             "mapi2015" => Some(&[][..]),
@@ -346,17 +347,6 @@ fn terrain_built(ctx: &SimCtx) -> bool {
     let meta: serde_json::Value =
         std::fs::read(run.out.join("meta.json")).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
     meta["built_from"] == sim_terrain::stamp(&run)
-}
-
-/// The Survey choice of a run without the wizard (`iaf-sim`): the built theatre's (built with or without the sheets),
-/// else the Survey when its sheets are there (the wizard's default).
-pub fn sim_survey(assets: &Path, repo: &Path) -> bool {
-    let sheets = survey_sheets(assets) > 0;
-    let built = |survey| {
-        let inputs = SimInputs { survey, ..SimInputs::default() };
-        terrain_built(&SimCtx { assets: assets.into(), repo: repo.into(), inputs })
-    };
-    sheets && !(built(false) && !built(true))
 }
 
 /// The newest modification time of `p` or of any file under it; None when it does not exist.

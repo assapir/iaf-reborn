@@ -30,11 +30,11 @@ On Windows, Rust also needs the C++ workload of Microsoft's Visual Studio Build 
 #idx("Disk space")#idx("Download sizes")Setup downloads the data once and keeps the downloaded files, so a later setup run uses them again. The first page of the setup wizard shows the free disk space and what the build needs.
 
 #grid-table(
-  (auto, 1fr, 1fr),
-  ([], [#stp("s2")], [With the Survey of Israel photo]),
-  [Download, once], [Terrain heights: 627 MB. Satellite imagery: 11.4 GB.], [The same, and the Survey of Israel's sheets not on the disk yet: 17 GB for all of Israel, 2.4 GB around the air bases (@setup-imagery).],
-  [Disk use in all], [About 12.5 GB], [About 15.6 GB, and the sheets: up to 17 GB],
-  [Time of the first setup], [About 17 minutes, of which the download is about 14 minutes at 14 MB a second], [About 1 hour 42 minutes],
+  (auto, 1fr),
+  ([], [Size or time]),
+  [Download, once], [Terrain heights: 627 MB. Satellite imagery: 8.3 GB. The Survey of Israel's sheets not on the disk yet: up to 17 GB (@setup-imagery).],
+  [Disk use in all], [About 30 GB: 12.6 GB, and the sheets' 17 GB],
+  [Time of the first setup], [About 1 hour 42 minutes],
 )
 
 The times were measured on a laptop with 8 processor threads. Before the first setup, the game's program is built once; that took about 6.5 minutes on the same laptop.

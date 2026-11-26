@@ -229,7 +229,8 @@ missing tool opens a message box. `tools\windows\setup-cli.ps1` runs the steps f
 Both games' wizards are built on one frame, `shared/util/setup_wizard.gd`: Back / Next / Cancel, the pages scrolling
 in the body, the run through IafSetup (start, poll, cancel, the log, the up-to-date preview, Redo), a step's time
 left, the Attributions dialog and the Survey of Israel choice's own controls (the scope, the data.gov.il pass
-guidance, "Copy a sheet's link": `_survey_controls`; Modern IAF's Imagery page shows the same). Each wizard adds its
+guidance, "Copy a sheet's link": `_survey_controls`; Modern IAF's Imagery page shows the pass guidance and the link
+alone, `_survey_pass`, as it always builds all of Israel). Each wizard adds its
 own pages, look and texts. The wizard uses the original
 menus' colours. Pages:
 

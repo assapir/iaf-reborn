@@ -263,7 +263,7 @@ impl IafSetup {
     /// Starts a background job (gdext objects can only be called on the main thread, so the slow checks run here);
     /// `result(job)` gives its answer. `job` is a kind, optionally with `#<anything>` after it:
     /// - "preview" [assets, repo, inputs JSON]: {step id: true when a run would find it up to date} (reads the inputs);
-    /// - "sim_preview" [assets, repo, survey ("mapi2015", "mapi2015-bases" or "": `SimInputs::with_survey`), left-out
+    /// - "sim_preview" [assets, repo, survey ("mapi2015": `SimInputs::with_survey`), left-out
     ///   step ids…]: the same for Modern IAF's steps;
     /// - "scan" [folder]: {"english" | "hebrew" | "patch" | "brief" | "menu": path} found in it (`iaf_setup::scan`);
     /// - "stale" [assets, layer ids…]: the imagery units older rules made, -1 when it cannot tell (e.g. offline).
@@ -421,7 +421,7 @@ impl IafSetup {
         GString::new()
     }
 
-    /// Modern IAF's plan (`iaf_setup::sim_plan`) with every optional step, for the imagery choice `survey`
+    /// Modern IAF's plan (`iaf_setup::sim_plan`) with every optional step, for the imagery `survey`
     /// (`SimInputs::with_survey`): [{id, title, required}].
     #[func]
     fn sim_plan(survey: GString) -> VarArray {
@@ -493,7 +493,7 @@ impl IafSetup {
         iaf_setup::survey_sheets(&PathBuf::from(assets.to_string())) as i64
     }
 
-    /// The Survey sheets the imagery choice `survey` still has to download (`SimInputs::survey_missing`).
+    /// The Survey sheets the imagery `survey` still has to download (`SimInputs::survey_missing`).
     #[func]
     fn survey_missing(assets: GString, survey: GString) -> i64 {
         let inputs = SimInputs::default().with_survey(&survey.to_string());

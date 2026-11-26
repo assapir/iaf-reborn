@@ -1,8 +1,9 @@
 # Modern IAF's setup wizard (modern-iaf/setup/wizard.gd, modern-iaf/docs/setup.md) on an empty scratch assets folder:
 #   IAF_ASSETS_DIR=<empty dir> IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_setup_wizard.gd --log-file <temp>
-# The four pages in order, in English and in Hebrew (mirrored); the Survey choice off without sheets, free with its
-# two scopes, its download step first with the missing sheets' size, none with them on disk (fake sheets); the
+# The four pages in order, in English and in Hebrew (mirrored); the Imagery page with no choice (the Survey of Israel
+# always, its pass guidance and sheet link), its download step first with the missing sheets' size, the sheets on
+# disk counted and not downloaded again (fake sheets); the
 # Attributions dialog from Welcome (opens, mirrored, the exact Copernicus lines, closes with Esc and with Close); the
 # Install page's rows from the sim's plan and their preview; no other game named on any page; abandoned preview
 # checks are fetched; a finished run survives a language change, and Back from Install forgets it; the time left's two
@@ -38,7 +39,8 @@ func run() -> void:
 	check(w != null and w.PAGES[w.page] == "welcome", "the wizard opens on Welcome")
 	check(get_root().title == "Modern IAF — Setup", "the window title")
 	var tools: Dictionary = IafSetup.tools()
-	check(w.req_ok == (tools.gdal and tools.curl), "Next waits for GDAL and curl (%s)" % tools)
+	var room: bool = w.free_gb(assets) < 0 or w.free_gb(assets) >= w.need_gb()
+	check(w.req_ok == (tools.gdal and tools.curl and room), "Next waits for GDAL, curl and the space (%s)" % tools)
 	check(w.next_button.disabled != w.req_ok, "Next follows the requirements")
 	check(w.find_child("Requirements", true, false) != null, "the requirements box")
 	for lang in ["en", "he"]:
@@ -114,11 +116,6 @@ func run() -> void:
 				check(word in all_text, "he: the approved wording %s" % word)
 	check((w.theme.default_font as FontVariation).base_font.get_font_name() == "Heebo", "the Heebo font is loaded")
 	w.show_page(1)
-	check(
-		w.sheets == 0 and not w.survey_check.disabled and not w.survey,
-		"no Survey sheets: the Survey choice is free and off"
-	)
-	check(w.s2_check.button_pressed, "Sentinel-2 everywhere is chosen")
 	await _survey(w, assets)
 	w._on_back()
 	check(w.page == 0, "Back goes to Welcome")
@@ -128,6 +125,7 @@ func run() -> void:
 		(
 			w.rows.keys()
 			== [
+				"mapi2015-fetch",
 				"sim-terrain",
 				"sim-db",
 				"sim-fm",
@@ -155,7 +153,7 @@ func run() -> void:
 	# A finished run (as IafSetup.poll ends one), then the language changes: Install and Done still show it.
 	w.finished = true
 	w.failed = ""
-	w.last_steps = IafSetup.sim_plan("").map(
+	w.last_steps = IafSetup.sim_plan(w.SURVEY_ID).map(
 		func(st): return {"id": st.id, "title": st.title, "state": "done", "fraction": 1.0}
 	)
 	w._show_result()
@@ -167,7 +165,7 @@ func run() -> void:
 	check(w.done_label.text == "Modern IAF is set up.", "Done says so")
 	# A skipped optional step: its reason and Retry under it, the note counts it; a ticked Run again brings Install.
 	var why := "GDAL is needed (gdalwarp, ogr2ogr)"
-	w.last_steps = IafSetup.sim_plan("").map(
+	w.last_steps = IafSetup.sim_plan(w.SURVEY_ID).map(
 		func(st):
 			var sk: bool = st.id == "sim-scenery"
 			return {
@@ -239,50 +237,48 @@ func run() -> void:
 	)
 
 
-## The Survey choice (the remake's: shared/util/setup_wizard.gd _survey_controls): two scopes, the pass guidance and
-## the sheet link; chosen, its download step comes first on Install with the missing sheets' size, and with the scope's
-## sheets on disk (fake, removed after) nothing to download. Back on Sentinel-2 the step goes. Nothing runs.
+## The Imagery page (no choice): the Survey of Israel always, with the pass guidance and the sheet link, and no
+## scope pick or choice button; its download step comes first on Install with the missing sheets' size, fewer with
+## 10 on disk, and with all 79 on disk (fake, removed after) nothing to download. Nothing runs.
 func _survey(w: Control, assets: String) -> void:
-	var scope: OptionButton = w.survey_scope
-	check(
-		scope.item_count == 2 and scope.get_item_text(1) == w.s("survey_bases") and scope.selected == 0,
-		"the Survey's two scopes, all of Israel first"
-	)
+	check(w.sheets == 0 and w.SURVEY_ID == "mapi2015", "no sheets: the Survey over all of Israel is set up")
 	check(w.find_child("CopySheetLink", true, false) != null, "the Survey's sheet link")
-	w.survey_check.button_pressed = true
-	scope.select(1)
-	scope.item_selected.emit(1)
-	check(w.survey and w.survey_id() == "mapi2015-bases", "the Survey around the airbases is chosen")
+	check(w.find_child("SurveyScope", true, false) == null, "no scope pick")
+	check(w.pages[1].find_children("*", "BaseButton", true, false).size() == 1, "no choice: the sheet link alone")
 	var free: float = w.free_gb(assets)
 	check(
 		w.space_ok == (free < 0 or free >= w.need_gb()) and w.space_note.visible != w.space_ok,
-		"the Imagery page checks the free space for the choice (%.1f GB free, %.1f needed)" % [free, w.need_gb()]
+		"the Imagery page checks the free space (%.1f GB free, %.1f needed)" % [free, w.need_gb()]
 	)
+	check(w.need_gb() > w.SURVEY_ALL_GB, "the space counts the whole Survey")
 	w.space_ok = false
 	w._update()
-	check(w.next_button.disabled, "Next waits while the choice does not fit")
-	w._on_choice()
+	check(w.next_button.disabled, "Next waits while the build does not fit")
+	w._check_space()
 	w.show_page(2)
 	check(w.rows.keys()[0] == "mapi2015-fetch", "the Survey's download step comes first")
 	var sizes: Label = w.rows["mapi2015-fetch"].sizes
-	check(sizes.visible and sizes.text == w.s("dl") % w._gb(10 * w.SURVEY_ALL_GB / 79), "its download: %s" % sizes.text)
+	check(sizes.visible and sizes.text == w.s("dl") % w._gb(w.SURVEY_ALL_GB), "its download: %s" % sizes.text)
 	var dir := assets.path_join("source/imagery/mapi2015")
 	DirAccess.make_dir_recursive_absolute(dir)
 	for n in ["nzr", "gdr", "rsh", "bsv", "zlm", "tmt", "hmr", "mzr", "sdb", "svt"]:
 		FileAccess.open(dir.path_join(n + ".zip"), FileAccess.WRITE).store_string("z")
-	check(IafSetup.survey_missing(assets, "mapi2015") == 69, "all of Israel: only the missing sheets")
+	check(IafSetup.survey_missing(assets, w.SURVEY_ID) == 69, "some sheets on disk: only the missing ones download")
 	w._show_sizes("mapi2015-fetch")
-	check(sizes.text == w.s("dl_none"), "the scope's sheets on disk: nothing to download")
+	check(sizes.text == w.s("dl") % w._gb(69 * w.SURVEY_ALL_GB / 79), "the missing sheets' download: %s" % sizes.text)
+	# Every sheet of tools/imagery/mapi2015_sheets.tsv on disk: nothing to download.
+	var tsv := FileAccess.get_file_as_string(w.repo.path_join("tools/imagery/mapi2015_sheets.tsv"))
+	for line in tsv.split("\n", false):
+		FileAccess.open(dir.path_join(line.get_file()), FileAccess.WRITE).store_string("z")
+	check(IafSetup.survey_missing(assets, w.SURVEY_ID) == 0, "all 79 sheets on disk: none missing")
+	w._show_sizes("mapi2015-fetch")
+	check(sizes.text == w.s("dl_none"), "all sheets on disk: nothing to download")
 	for n in DirAccess.get_files_at(dir):
 		DirAccess.remove_absolute(dir.path_join(n))
 	var t := Time.get_ticks_msec()
 	while not w.jobs.is_empty() and Time.get_ticks_msec() - t < 30000:
 		await process_frame
 	w.show_page(1)
-	w.s2_check.button_pressed = true
-	scope.select(0)
-	scope.item_selected.emit(0)
-	check(not w.survey and w.survey_id() == "", "back on Sentinel-2 everywhere")
 
 
 ## The Include ticks: a required row has none (an empty slot keeps the names in line), optional ones are on by default
@@ -298,10 +294,10 @@ func _include(w: Control, assets: String) -> void:
 			check(r.include.button_pressed and not r.include.disabled, "%s: Include free" % id)
 		else:
 			check(r.include == null and r.bar.get_parent().get_node_or_null("Include") == null, "%s: no tick" % id)
-		check(r.sizes.visible == opt, "%s: sizes only on an optional row" % id)
+		check(r.sizes.visible == (opt or id == "mapi2015-fetch"), "%s: sizes on an optional row and the Survey's" % id)
 		var x: float = r.sizes.get_parent().global_position.x
 		check(is_equal_approx(x, name_x), "%s: the name in line with the ticked rows (%.1f, %.1f)" % [id, x, name_x])
-	var fetch: PackedStringArray = IafSetup.sim_terrain_fetch(assets, w.repo, false)
+	var fetch: PackedStringArray = IafSetup.sim_terrain_fetch(assets, w.repo, true)
 	check(not fetch.has("?") and fetch.has("sentinel-2"), "an empty root: the terrain lists its downloads (%s)" % fetch)
 	IafSetup.sim_save_excluded(assets, PackedStringArray(["sim-missions", "sim-terrain", "sim-textures"]))
 	check(Array(IafSetup.sim_excluded(assets)) == ["sim-textures"], "a required step cannot be left out: it runs")

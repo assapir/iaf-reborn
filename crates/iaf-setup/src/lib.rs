@@ -27,7 +27,7 @@ pub use guides::{Game, Options as GuideOptions, make as make_guides};
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
 pub use sim::{
     Optional, SimCtx, SimInputs, save_sim_excluded, sim_adopt, sim_excluded, sim_expected, sim_optional, sim_plan,
-    sim_preview, sim_remove, sim_run, sim_survey, sim_terrain_fetch, survey_sheets,
+    sim_preview, sim_remove, sim_run, sim_terrain_fetch, survey_sheets,
 };
 pub use steps::{COCKPITS, KEPT, OUTPUTS, disk_bytes, imagery_stale, uninstall};
 

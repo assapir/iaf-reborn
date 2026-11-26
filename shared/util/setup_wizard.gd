@@ -2,12 +2,12 @@
 # modern-iaf/docs/setup.md): the page machine (Back / Next / Cancel, every page scrolling in the body), the run
 # through IafSetup (start, poll, cancel, the log, the background jobs, the up-to-date preview, Redo), a step's time
 # left, the Attributions dialog, the free disk space, the durations the setup logs write and the window's size, and
-# the Survey of Israel choice's own controls (_survey_controls).
+# the Survey of Israel choice's own controls (_survey_controls; its pass guidance alone: _survey_pass).
 # Each game's wizard extends it with its pages, its look and its texts: `s(key)` gives the texts used here (next,
 # back, cancel, cancelling, not_started, installing, log_file, show_log, hide_log, state_checking, credits; the
-# Survey's survey_all, survey_bases, survey_how, survey_copy, survey_copied), and it overrides _on_page, _update
-# (calling super), _run, _polled, _finished and _finish, and _link and _hint for its look. A release bundle's first
-# page also shows the data folder (_data_folder_row; texts data_folder, change).
+# Survey's survey_how, survey_copy, survey_copied, and for _survey_controls survey_all, survey_bases), and it
+# overrides _on_page, _update (calling super), _run, _polled, _finished and _finish, and _link and _hint for its
+# look. A release bundle's first page also shows the data folder (_data_folder_row; texts data_folder, change).
 extends Control
 
 ## One Survey sheet's link (tools/imagery/mapi2015_sheets.tsv): opened once in Firefox, it earns data.gov.il's pass.
@@ -15,8 +15,9 @@ const SURVEY_SHEET := (
 	"https://data.gov.il/dataset/73aae9b9-65ba-4fcf-a51b-feebc3da9f8d"
 	+ "/resource/52287708-9fa5-4f5a-9e4e-cc414270c257/download/hzr.zip"
 )
-## The Survey of Israel's scopes by their imagery ids (iaf_setup's setup.json; Modern IAF's SimInputs::with_survey),
-## in the scope pick's order: all of Israel, around the airbases. Step mapi2015-fetch downloads only missing sheets.
+## The Survey of Israel's scopes by their imagery ids (iaf_setup's setup.json; Modern IAF's SimInputs::with_survey
+## takes the first), in the scope pick's order: all of Israel, around the airbases. Step mapi2015-fetch downloads
+## only missing sheets.
 const SURVEY_SCOPES := ["mapi2015", "mapi2015-bases"]
 
 var setup := IafSetup.new()
@@ -179,13 +180,19 @@ func _survey_controls(box: Control, disabled: bool) -> OptionButton:
 	scope.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	scope.disabled = disabled
 	box.add_child(scope)
+	_survey_pass(box)
+	return scope
+
+
+## The Survey's data.gov.il pass guidance and "Copy a sheet's link" in `box` (Modern IAF's Imagery page shows them
+## without a scope: it always downloads all of Israel).
+func _survey_pass(box: Control) -> void:
 	_hint(box, s("survey_how"))
 	var copy := _link(s("survey_copy"), SURVEY_SHEET)
 	copy.name = "CopySheetLink"
 	copy.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_copy_on_press(copy, SURVEY_SHEET, s("survey_copied"))
 	box.add_child(copy)
-	return scope
 
 
 ## The data.gov.il link a step's failure names (the Survey's pass expired), "" when it names none.
