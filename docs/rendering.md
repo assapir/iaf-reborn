@@ -755,15 +755,19 @@ log ("loading: first world frame drawn at … (… s after launch)").
 | Fly to the first world frame | 19.1 s | 7.0 s |
 | launch to the first world frame | 44.5 s | 32.9 s |
 
-The bundle started straight into the mission (`--mission 2012`, no front end; a second start, warm, for comparison):
+The bundle started straight into the mission (`--mission 2012`, no front end; a window, its own `HOME` for `user://`,
+its own bundle id for macOS's Metal cache, `IAF_ASSETS_DIR` for the data; warm: a second start with the same folders):
 
-| the macOS bundle | unbaked | baked |
-|---|---|---|
-| launch to the first world frame, cold | 41.5 s | 34.8–39.6 s (two builds) |
+| the macOS bundle | unbaked | baked for macOS 13 (102 of 1670 shaders stored empty) | baked for macOS 14 (all 1670) |
+|---|---|---|---|
+| launch to the first world frame, cold | 41.5 s | 34.8–39.6 s (two builds) | 22.2 s |
+| launch to the first world frame, warm | not measured | not measured | 14.6 s |
+| the longest `stall:` frame in the loading, cold / warm | not measured | not measured | 2.35 s / 1.05 s |
 
-Baking saves the launch's share (Godot's own shaders); the flight's materials are the rest, and the warm-up takes
-those (above). The bundle runs the same probe (`-s <path to fe_probe.gd>`, with its own `HOME` for `user://` and
-`IAF_ASSETS_DIR` for the data). Open on the Mac: the bundle's front-end start and the checkout's numbers with one
+The macOS 14 bundle (2026-11-26, CI run 45804097359) logs no "Failed to parse shader container" line. Baking saves
+the launch's share (Godot's own shaders); the flight's materials are the rest, and the warm-up takes those (above).
+An exported bundle runs no `-s` script (release.md §5), so the front-end probe runs only in the checkout. Open on the
+Mac: the bundle's front-end start and the checkout's numbers with one
 material at a time. With the Mac's screen locked, a bundle started by `open -g -j` waits in `CAMetalLayer
 nextDrawable` and draws no frame (2026-11-26).
 
