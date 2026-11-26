@@ -119,7 +119,8 @@ are never committed. From the checkout, by hand: `target/release/iaf-setup guide
    - Borders print 0.5 pt (1 px) and 1.5 pt (2.5 px); table columns are CSS's automatic widths, header cells centred
      vertically; a picture keeps its ratio inside its border.
    - Page breaks: a line, a table row or a figure that does not fit starts the next page; a heading and a table's
-     header row go to the next page with what follows them; a table's header row repeats.
+     header row go to the next page with what follows them; a table's header row repeats; a break inside a
+     paragraph, list item or table leaves at least two of its lines or rows on each page.
    It warns when a legend's length differs from the picture's callouts. A PDF newer than its Markdown, shots list
    and pictures, and made by the current layout (its producer's version, `PRODUCER` in guide_pdf.rs: an older PDF is
    made again), is kept unless `--force` (the wizard's "redo" on the Pilot guides step, and `iaf-setup --redo-all`,

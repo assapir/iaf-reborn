@@ -22,8 +22,8 @@
 # mission's flight of type `arm_type` (default 110), `loadout`'s weapon ids on its stations, the list's tab `arm_tab`),
 # place ({"unit_prefix": "mig23" | "ground_unit": true, "ahead_m": N} puts that unit N m ahead (`bearing_deg` right of
 # the nose, `elevation_deg` above it; an air unit flying away at `vel_ms`, negative toward the jet, and facing that
-# way), in the air at the jet's height / on the ground), actions (in order; the
-# frozen starts advance a scripted sim time, the others real time: "lock" radar lock on the placed unit, "on_impact"
+# way), in the air at the jet's height / on the ground), actions (in order; the frozen starts advance a scripted sim
+# time, the others real time: "lock" radar lock on the placed unit (the radar brought into A-A first), "on_impact"
 # the placed unit onto the bomb's predicted impact, "station:N" the A-A store / gun on station N, "ag:N" the A-G store
 # on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser), "emitter" the placed unit's radar
 # locks the jet, "fire" Space held, "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key,
@@ -450,7 +450,10 @@ func _action(a: String) -> void:
 			tv.views._pan_from = v
 			tv.views._pan_rate = Vector2.ZERO
 		"lock":
-			w.radar_event(0x2b)
+			# R (event 0x2b) only to bring the radar into A-A: the F-35I's (radar.auto) already searches A-A
+			# once airborne, and R would take it to A-G.
+			if w.radar.off or not w.radar.aa:
+				w.radar_event(0x2b)
 			w.update(t)
 			if not target.is_empty():
 				w.radar_event(0x2a, target.key)

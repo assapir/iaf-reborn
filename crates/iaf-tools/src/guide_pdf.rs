@@ -646,7 +646,8 @@ struct Flow {
 }
 
 impl Flow {
-    /// A paragraph's lines, each a slice; the block's margins on its first and last.
+    /// A paragraph's lines, each a slice; the block's margins on its first and last. A page break leaves at least
+    /// two of its lines on each page (no lone first or last line).
     fn para(&mut self, runs: &[Run], p: &Para, x: f32, width: f32, mt: f32, mb: f32) {
         let ls = wrap(runs, p, width);
         let n = ls.len();
@@ -656,6 +657,7 @@ impl Flow {
                 mt: if i == 0 { mt } else { 0.0 },
                 mb: if i + 1 == n { mb } else { 0.0 },
                 ops: shift(l, x, 0.0),
+                keep: two_each_side(i, n),
                 ..Default::default()
             });
         }
@@ -1047,14 +1049,22 @@ fn table(flow: &mut Flow, rows: &[Vec<String>]) {
             mb: if ri == last { mm(5.0) } else { 0.0 },
             ops,
             header: Some(hi),
+            keep: two_each_side(ri - 1, last),
             ..Default::default()
         });
     }
 }
 
+/// Whether item `i` of `n` (a paragraph's lines, a table's rows) stays on the page of the next one: the first and the
+/// last but one do, so a page break leaves at least two on each page.
+fn two_each_side(i: usize, n: usize) -> bool {
+    i + 1 < n && (i == 0 || i + 2 == n)
+}
+
 /// The flow on pages after the ones in `doc`: a slice that does not fit starts the next page;
 /// margins collapse between slices and vanish at a page's top; a table row that starts a page brings its table's
-/// header; a heading moves to the next page with the slice after it.
+/// header; a heading moves to the next page with the slice after it, and a paragraph or table leaves at least two
+/// lines or rows on each page.
 fn paginate(doc: &mut Doc, flow: Flow) {
     let bottom = PAGE.1 - BOTTOM;
     let mut page: Vec<Op> = vec![];
@@ -1208,8 +1218,9 @@ pub fn all(docs: &Path) -> Vec<String> {
     v
 }
 
-/// The PDFs' producer: its version names the layout (2: Heebo, krilla), so an older PDF is made again.
-const PRODUCER: &str = "iaf-tools guide_pdf 2";
+/// The PDFs' producer: its version names the layout (2: Heebo, krilla; 3: two lines or rows on each side of a page
+/// break), so an older PDF is made again.
+const PRODUCER: &str = "iaf-tools guide_pdf 3";
 
 /// Whether the PDF at `p` was made by this layout: its producer, in the document information near the file's end.
 fn made_by_this(p: &Path) -> bool {
@@ -1300,6 +1311,15 @@ mod tests {
         assert!(h("a note[^1]", &Para::new(BODY)) > au(1.5 * BODY), "a superscript raises the line");
         let pieces = segments(&chars(&inline("F-16 target-aspect 1/2 AN/APG"), &p)).len();
         assert_eq!(pieces, 6, "F-16 | target- aspect | 1/2 | AN/ APG");
+    }
+
+    #[test]
+    fn two_lines_or_rows_on_each_side_of_a_break() {
+        let kept = |n| (0..n).filter(|&i| two_each_side(i, n)).collect::<Vec<_>>();
+        assert_eq!(kept(1), Vec::<usize>::new());
+        assert_eq!(kept(2), vec![0]);
+        assert_eq!(kept(3), vec![0, 1]);
+        assert_eq!(kept(6), vec![0, 4]);
     }
 
     #[test]

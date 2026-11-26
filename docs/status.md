@@ -146,11 +146,8 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   the game lacks (radios, HMD video, the standby display's knobs, lights, seat) move with no system behind them.
 - **Controls**: one joypad (the first connected), as the original's one DirectInput device; no force feedback; chat
   is unhandled (multiplayer only; records 104–107, controls.md §3).
-- **Pilot guide shots (F-35I)**: `head_set`, `hud_srm`, `hud_mrm` and `hud_gun` find no radar lock on the placed
-  MiG-23 (`lock_m=-` in the shot's GUIDE_INFO, run of 2026-11-26), so their callouts fail and the guides step stops
-  before the PDFs; the F-16's same shots pass.
-- **Pilot guide PDFs** (not urgent): some pictures land at the top of the next page above the following heading; one
-  nearly empty page (F-16 "Not drawn"); the MFD pictures are the ~128 px original art scaled (blocky; Better cockpit's
+- **Pilot guide PDFs** (not urgent): some pictures land at the top of the next page above the following heading; the
+  MFD pictures are the ~128 px original art scaled (blocky; Better cockpit's
   crisp MFD pages draw them sharp, mfd.md §8).
 - **F-15I Ra'am** (Extras "F-15 version", f15i.md §11): built: the flight row (F-15E figures where the F-15I has
   none), the APG-70I's 104 km and the AI's 30.8 NM, the F-15E's 500 rounds, the Python 5, seven GBU-31 (Mk 84) or GBU-31(V)3 (named
