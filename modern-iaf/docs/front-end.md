@@ -259,10 +259,12 @@ Missions screen's cards and the section list's rows and side panel (Approvals A1
   inline end: Pass or Marginal in the pass chip, Unsatisfactory in the fail chip, else "Not flown yet". Beside the list
   a panel on the lesson under the focus or the pointer: "Lesson p.l", the title, "What you will learn" (the line) and
   "Last result" (the best grade and its day, else "Not flown yet"). The focus starts on the first lesson not yet
-  passed (all passed: the first). A lesson row opens nothing yet: its briefing
-  (A132) comes next. Back (Esc) goes to the phases.
+  passed (all passed: the first). Enter or a click opens the lesson's briefing (§10.3), when its phase has missions;
+  Back (Esc) goes to the phases.
 - **Checks:** `modern-iaf/tests/test_training_phases.gd` (English and Hebrew: the phases' names and counts, each
-  jet's own count, the rows' numbers, lines and chips, the side panel following the focus, Back and Esc).
+  jet's own count, the rows' numbers, lines and chips, the side panel following the focus, Back and Esc);
+  `modern-iaf/tests/test_training_lesson.gd` (a lesson's briefing, debrief, logbook box and the notebook's picture
+  pages, §10.3, §13.1).
 
 ## 3. The data it reads
 
@@ -314,6 +316,10 @@ cropped to fill the frame.
   Its **Pilot log** button opens the Pilot log, every attempt with its debrief: the one way there since Home's
   Pilot log entry went (the user, 2026-11-11). A jet's line counts its flights, passes and fails in the singular for
   one ("1 flight", "טיסה אחת", "כישלון אחד"; `counted`, a string's `_1` form).
+- **The training course box** (Approvals A135, approved 28 November 2026): under a jet's counts, once a lesson of its
+  course was flown, a box titled Training course: the phase the pilot is in (the first not yet passed) of all, the
+  lessons passed of all with their bar, and "Last:" the lesson last flown, its best grade and day (`_course_box`, per
+  jet from `IafPilotLog.course_logbook`). The Hangar's jet card shows none.
 - **The combat logbook** (2026-11-24, `combat_page.gd`, the approved mock wt/logbook-mock c6c14055; the records'
   `combat`, [storage.md](storage.md) §5): once the pilot has flown combat, the logbook's list starts with "Combat" /
   "קרב" and four totals of every flight, each a tile with its figure, its name and a line under it: **Air kills** /
@@ -969,8 +975,8 @@ How the flight reads it:
 A row of a section's list opens its mission's briefing (the user, 2026-11-09: "briefing, with map, when selecting a
 mission"), map first since 2026-11-14 (the approved mock r3_briefing, the user's A25 round 3: "the briefing is
 amazing"). The crumb reads "Hangar · F-16I Sufa · Training · Take-off". This section's examples and pictures are
-the tests' training missions, which no front-end section lists (§2); a course lesson's briefing (Approvals A132)
-opens here once built. The map fills the screen under the bars;
+the tests' training missions, which no front-end section lists (§2); a course lesson's briefing is §10.3. The map
+fills the screen under the bars;
 over it sit two cards and the map's chips (`menu/briefing_page.gd` lays them out):
 
 **The mission card** at the inline start (the left in English, the right in Hebrew), 600 px wide:
@@ -1325,6 +1331,26 @@ pick the rule refuses is not made and the panel says so in one line; a pick that
 station's store changed on the Loadout screen) is left out everywhere: the panel, the flight and the next save. As the
 flight starts, `flight/fly.gd` `pre_targets` hands the picks to `Settings.gps_targets` (docs/weapons.md §13.2).
 
+### 10.3 A course lesson's briefing
+
+A lesson of a phase's list (§2.2) opens its mission's briefing in the IDF order ([training-plan.md](training-plan.md)
+§2.2; Approvals A132, approved 28 November 2026), on the same page: the map, the chips, the Arming summary, Back,
+Arming and Fly stay as above. The texts are the lesson file's, for the jet ([training.md](training.md) §16):
+
+- **The crumbs** Hangar · the jet · Phase N · Lesson N.L; Back (Esc) goes to the lesson list.
+- **The mission card:** the lesson's title (wrapping to two lines), under it "Phase N, lesson L · the jet"; the
+  facts; then MISSION (who flies what, where and when) and TARGET (what the pilot can do after it, in the accent's
+  text colour) in place of the objectives.
+- **The text card**, one scrolled list (scrolled as the mission's text): SITUATION: ENEMY, SITUATION: OUR FORCES,
+  SITUATION: WEATHER AND AREA; EXECUTION, its paragraphs numbered as the map's pins with their switch pictures, a
+  paragraph's diagram (`menu/diagram.gd`, [training.md](training.md) §16.5) drawn above it: the top view with its
+  numbered points and their legend, the side view under it; GRADED ITEMS, each of the lesson's course items with its
+  standard ("Highest taxi speed: max 25 kt") beside an empty box; COORDINATION AND SAFETY; COMMAND AND SIGNAL.
+
+| screen | English | Hebrew |
+|---|---|---|
+| lesson 1.3's briefing | ![A lesson's briefing](pictures/front-end/lesson_brief_en.webp) | ![A lesson's briefing, Hebrew](pictures/front-end/lesson_brief_he.webp) |
+
 ## 11. The crash page
 
 Every failure the sim cannot go on from ends on one page, never in an empty world or a loading screen that never ends
@@ -1409,7 +1435,7 @@ round 3 of the menu ideas (`r3_hangar_en.png`, `r3_hangar_he.png`, outside the r
 | the top bar | the logo (§4) and the Hangar crumb; Settings (the gear and the word; "הגדרות") and the pilot (the nickname, the name under it, the picture or initials: one button to the Pilot screen) at the inline end |
 | the jets | at the inline start under "Aircraft" / "מטוסים": the full name ("F-16I Sufa"), the squadron's number and the base; the Ra'am and the Baz greyed (§2). A click, or Enter on the focused row, picks the jet; the arrows move between the rows and on to the card |
 | the jet | in the middle, standing still in its start view; the player looks at it from any side (below); its full name in large faint letters behind it; no help line (the user: "it should be obvious you can use the mouse") |
-| the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then Fly (focused on entry; opens the Missions screen, §2). The card shows no training progress: the course's progress belongs in the Pilot screen's logbook (Approvals A135, not built yet). Without missions (the sim's data not built) the box says so with the command `./modern-iaf-setup` on a line of its own (Windows: `.\modern-iaf-setup.ps1`) and Fly is greyed, out of the focus |
+| the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then Fly (focused on entry; opens the Missions screen, §2). The card shows no training progress: the course's progress is in the Pilot screen's logbook (Approvals A135). Without missions (the sim's data not built) the box says so with the command `./modern-iaf-setup` on a line of its own (Windows: `.\modern-iaf-setup.ps1`) and Fly is greyed, out of the focus |
 | the foot | Attributions at the inline start: the models' credits live there (`docs/credits.md`; the FlightGear F-16 is GPL, the F-35I CC BY 4.0, neither asks for a line on the screen) |
 
 **The jet's view** is `shared/aircraft/turntable.gd`: the flight's own model through `AircraftModel.create` (the same
@@ -1503,6 +1529,29 @@ built by `menu/debrief_page.gd`:
 |---|---|---|
 | the debrief of the sample flight | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
 | at 1280 × 720 | ![Debrief at 1280 × 720](pictures/front-end/debrief_1280_en.webp) | ![Debrief at 1280 × 720, Hebrew](pictures/front-end/debrief_1280_he.webp) |
+
+### 13.1 A course lesson's debrief
+
+A lesson's record (its `graded` items, [training.md](training.md) §4) is debriefed in the IDF's order
+([training-plan.md](training-plan.md) §2.4; Approvals A133, approved 28 November 2026), on the same page:
+
+- **The crumbs** Hangar · the jet · Training · Debrief. The Result stamp is the lesson's grade: PASS, MARGINAL in the
+  PASS stamp's look, or FAIL.
+- **1 · WHAT HAPPENED: THE WHOLE FLIGHT ON THE MAP:** the map as above; each fault a numbered pin, the briefing map's
+  disc without a name plate: first each item graded Below average or Unsatisfactory where it was flown, then each of
+  the flight's faults where it happened (`DebriefPage.faults`).
+- **2 · EACH ITEM:** a row per graded item: its mark (✓ Average or better, ! Below average, ✗ Unsatisfactory; a pinned
+  item its pin's number in the same disc), its label with the instructor's comment under it, and the columns Standard,
+  Flown, Gap (Below average and Unsatisfactory only) and Grade, amber Below average and red Unsatisfactory.
+- **3 · CONCLUSIONS AND LESSONS**, the Remarks box: the lesson's grade in a line ("The lesson: Marginal. It counts as
+  passed; one item below average."), why a failed flight failed (a fault's pin number beside it), then "Next time:"
+  with each weak item's tip and the scorer's own tip. Nothing is spoken (the user, A136).
+- **The footer** as above: Back to missions goes to the lesson's phase list, Fly again to the lesson's briefing, Next
+  mission to the course's next lesson that has a mission.
+
+| screen | English | Hebrew |
+|---|---|---|
+| a lesson's debrief | ![A lesson's debrief](pictures/front-end/lesson_debrief_en.webp) | ![A lesson's debrief, Hebrew](pictures/front-end/lesson_debrief_he.webp) |
 
 ## 14. The Settings
 

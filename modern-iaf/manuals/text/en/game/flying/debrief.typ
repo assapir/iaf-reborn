@@ -78,6 +78,16 @@ A touchdown, a crash, a hit or an ejection shows as a line down all three graphs
   [#scr("export_flight")], [#idx("Export flight data")Saves the flight's recording as a file where you choose: every moment of the flight with its position, speed, height and events, as the game recorded them.],
 )
 
+=== A lesson's debrief <debrief-lesson>
+
+#idx("Lesson debrief")A #term("lesson") is debriefed in three numbered parts, the order of a military debrief:
+
++ *#scr("db_happened")*: the map as above. Each fault is a numbered disc where it happened: first each item graded #scr("grade_below") or #scr("grade_unsat"), then each fault of the flight.
++ *#scr("db_items")*: a row for each graded item: its mark (a pinned item its disc's number), the item with the instructor's comment under it, #scr("col_standard"), #scr("col_flown"), #scr("col_gap") and #scr("col_grade"). The grades are #scr("grade_above"), #scr("grade_average"), #scr("grade_below") (amber) and #scr("grade_unsat") (red).
++ *#scr("db_conclusions")*: the lesson's grade in a line, why a failed flight failed, and #scr("next_time") with a tip for each weak item.
+
+The lesson's grade is #scr("pass"), #scr("grade_marginal") (passed, with an item below average; the stamp reads #scr("stamp_marginal")) or #scr("grade_unsat"). #scr("back_missions") goes to the phase's lessons, #scr("fly_again") to the lesson's briefing and #scr("next_mission") to the next lesson of the course.
+
 === Where the debrief is kept <debrief-kept>
 
 Every flight of a mission goes into the pilot log of the pilot who flew it, with its whole debrief. Open a flight in the log to see its debrief again (@pilots).

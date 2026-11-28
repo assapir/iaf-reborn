@@ -288,10 +288,11 @@ user's yes. The route is Hangar → Missions → Training → a phase → the br
   look ([front-end.md](front-end.md) §2.2): each card has the phase's number, its title and the pilot's progress in it.
 - **A phase's lessons (built, Approvals A131):** a card opens its lessons in the section-list look: the day lessons,
   the night lesson and the check ride, each with what it trains and its best result (Pass, Marginal, Unsatisfactory
-  or not flown yet). A lesson opens nothing yet: its briefing (A132) comes next.
-- **Changes to existing screens:** the briefing's sections and diagrams (§2.2, A132), the debrief's grades and fault
-  markers (§2.4, A133), the notebook's Lesson tab (A134), and the course's progress in the Pilot screen's logbook
-  (A135; the Hangar's jet card shows none).
+  or not flown yet). A lesson opens its briefing.
+- **Changes to existing screens (built, Approvals A132–A135):** the briefing's sections and diagrams (§2.2,
+  [front-end.md](front-end.md) §10.3), the debrief's grades and fault markers (§2.4, [front-end.md](front-end.md)
+  §13.1), the notebook's Lesson tab ([training.md](training.md) §11), and the course's progress in the Pilot screen's
+  logbook ([front-end.md](front-end.md) §3; the Hangar's jet card shows none).
 
 Each of these is a visible change: a mock-up made from the existing screens' parts goes to the Approvals page before
 it is built. The briefing's diagrams use the look of the sim's existing drawings and the notebook's approved look
@@ -306,7 +307,7 @@ capabilities. A builder checks each against [status.md](status.md) before a phas
 - the briefing in the IDF order, with a drawn diagram for every manoeuvre; a Lesson tab in the notebook with the
   same diagrams;
 - a grade for each item and fault markers on the debrief's track (the record holds both, [training.md](training.md)
-  §13; the debrief page shows them once its mock-up is approved);
+  §13; the debrief page shows them: [front-end.md](front-end.md) §13.1);
 - the instructor's "what's next" calls, paced by the player's actions, and their script;
 - the overhead-break demonstration: the instructor flies the player's jet (built, started by dev hooks:
   [training.md](training.md) §14);

@@ -564,6 +564,7 @@ edge, the text right to left.
 
 | tab (English / Hebrew) | the page | from |
 |---|---|---|
+| LESSON / שיעור (a course lesson only, its first tab; Approvals A134) | "LESSON 1.2 · F-16I": the lesson's steps in order, each with what to wait for in grey; each diagram a step names drawn in the notebook's ink (`menu/diagram.gd`, §16.5) with its points' table; then the lesson's graded items with their standards. No current-step band; the flight opens on this tab | the lesson file's `lesson_tab` and `diagrams` (§16), the course's items (§13), through `IafTraining.course` |
 | CHECKLIST / בד"ח (START-UP / התנעה until 2026-11-17) | the jet's checklist card (§12), section by section: each item's line, how to do it (`how`: the clicks, the waits), its switch and place (`where`); the items whose check holds ticked (a switch back off unticks its item, [cockpit.md](cockpit.md) "Both ways"), ○ on an item read and acknowledged, the item to do now on a yellow band with ▶ (◀ in Hebrew), a refused step's fault in red under it | the jet's card, `data/checklists` (§12); a start-up lesson's tower call above it |
 | TAXI / T-O / הסעה / המראה | the radio calls, the taxi and the take-off as numbered steps, the runway's designator, heading, length and elevation | the take-off mission's `training.steps` (§8) of the flight's base (else its jet); the base's airbase file |
 | RADIO / קשר | the callsign, the base's frequencies (name, MHz, VHF / UHF), the five calls with the frequency to call on and the tower's answer | `data/notebook.json` `radio` and `calls`; the call names are the radio menu's (`sim_flight.gd` `ITEMS`) |
@@ -802,7 +803,9 @@ replaces them"): their files stay for the automated tests and `--mission <id>` r
   teaches) and `missions` (`{jet: readable mission id}`, the mission that flies it). A check ride has `night: true`
   when it is flown at night (check rides 3, 5 and 8). A phase with `own_check_only` (the formation phase) keeps its
   skills to its own check ride. A lesson's key is `<phase>.<lesson>` (`pattern.overhead`).
-- `items`: each graded item's `label` and `standard` (§13.2).
+- `items`: each graded item's `label` and `standard` (§13.2); `comments` (`above`, `below`, each `{"en", "he"}`) and
+  `tip` (`{"en", "he"}`), the debrief's comment and "Next time" line (§16.2), written by the phase that measures the
+  item.
 - `emergencies`: each emergency's `label`, `at` (the moment its time counts from: `roll`, the take-off roll's start,
   or `airborne`, the lift-off), `window_s` (from, to after that moment) and `jets` (the jets it is taught in; none:
   every jet). The systems lesson teaches every jet an electrical failure and a flight control fault, the F-16s a
@@ -1044,15 +1047,18 @@ A lesson's mission is a mission file ([data-formats.md](data-formats.md) §5) wi
 (`lesson_not_done`) until the budget. The scorer reads the end from the recording (`training::end_at`); the
 recorder's version 2 has the `power` column for `power_off` (0 none, 1 the battery, 2 the displays up). The record's
 `graded` holds each of the lesson's course items (§13: a check ride's all) with its standard, what was flown, the gap
-and the grade, and the lesson's grade counts them. What each item reads (`training::measure`):
+and the grade, and the lesson's grade counts them; `at`, where it was flown (the engine frame, the sample its value
+comes from; null for an item of the whole flight), the debrief's pin; `comment`, the instructor's comment (the item's
+`comments.above` when Above average, `comments.below` when Below average or Unsatisfactory, none when Average) and
+`tip`, what to do next time (Below average and Unsatisfactory only). What each item reads (`training::measure`):
 
 | Item | Flown value |
 |------|-------------|
 | `checklist_items` | the % of the mission's `checklist` items ticked |
 | `tower_calls` | the % of the mission's `calls` made (the recording's `radio` events) |
-| `startup_time` | the time from the start to idle (60 % RPM) with the avionics up, s |
+| `startup_time` | the time from the start to idle (60 % RPM) with the avionics up, s; placed where the later of the two came |
 | `ins_aligned` | 1 when the INS step reached NAV aligned before the taxi (moving 10 m), else 0; a jet whose lesson asks for no `ins` item (the F-35I): its self test's end |
-| `taxi_speed` | the highest ground speed on the ground, kt |
+| `taxi_speed` | the highest ground speed on the ground, kt; placed at it |
 | `night_lighting` | 1 when the night items the mission asks for (`interior_lights`, `hmd_night`) are ticked, else 0 |
 
 An item without its measure here reads as not flown (Unsatisfactory): a phase adds its items' measures with its

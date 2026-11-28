@@ -41,7 +41,7 @@ Select a card, or press #keycap("Enter") on it, to open the phase's lessons.
 
 The panel beside the list tells more about the lesson under the focus or the pointer: its number (#strong(scr-text("lesson_n").replace("%d.%d", "2.1"))), its title, #scr("learn") and #scr("last_result") with its day.
 
-A lesson's row opens nothing yet: the lessons' briefings and flights come in a later version.
+Select a lesson, or press #keycap("Enter") on it, to open its briefing (@briefing-lesson). A lesson of a phase that has no flights yet opens nothing.
 
 #scr("back") or #keycap("Esc") goes one screen back: from the lessons to the phases, from the phases to the #scr("missions") screen, from there to the Hangar.
 
