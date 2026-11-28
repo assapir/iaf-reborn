@@ -3,7 +3,7 @@
 # briefing_page.gd, debrief_page.gd, notebook.gd) with sample content, in English and Hebrew, at 1920 × 1080:
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> -- \
 #     --log-file <log> --path modern-iaf -s ../modern-iaf/tests/_training_mocks_shot.gd
-# Writes <dir>/{phases,lessons,brief_top,brief_exec,brief_end,debrief,hangar,pilot,nb_1,nb_2}_<lang>.png.
+# Writes <dir>/{phases,lessons,brief_top,brief_exec,brief_end,debrief,pilot,nb_1,nb_2}_<lang>.png.
 extends "res://../tests/godot/base.gd"
 
 # Loaded in run(): a preload here compiles before the Settings autoload exists.
@@ -250,10 +250,6 @@ func run() -> void:
 		if only.is_empty() or "debrief" in only:
 			await _debrief(fe, ids.pass)
 		if only.is_empty() or "hangar" in only:
-			fe.show_page("hangar")
-			await frames(3)
-			_hangar(fe)
-			await _shot("hangar")
 			fe.show_page("credits")
 			fe.show_page("pilot")
 			await frames(3)
@@ -575,22 +571,7 @@ func _debrief(fe: Control, id: int) -> void:
 		pass
 
 
-## 6a. The Hangar's jet card: the course's progress in the training box.
-func _hangar(fe: Control) -> void:
-	var box: Control = fe.find_child("Training", true, false)
-	var tv: VBoxContainer = box.get_child(0)
-	for c in tv.get_children():
-		if c is HBoxContainer:
-			var ls: Array = c.find_children("*", "Label", false, false)
-			ls[0].text = t("course")
-			ls[-1].text = t("course_line")
-		elif c is ProgressBar:
-			c.max_value = 47
-			c.value = 7
-	(fe.find_child("LastFlight", true, false) as Label).text = t("last_line")
-
-
-## 6b. The Pilot screen's logbook: the course's box under the jet's line (the Hangar card's training box).
+## 6. The Pilot screen's logbook: the course's box under the jet's line (the Hangar card stays as it is).
 func _pilot(fe: Control) -> void:
 	var head: Control = fe.find_child("Plane_f16i", true, false)
 	if head == null:
