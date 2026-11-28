@@ -126,7 +126,7 @@
 - {en: touchdown, he: נגיעה, from: game}
 - {en: final approach, he: גישה סופית, from: game}
 - {en: traffic pattern, he: הקפה, from: field}
-- {en: go-around, he: הליכה סביב, from: field, not: [סיבוב נוסף]}
+- {en: go-around, he: go-around, from: english, not: [הליכה סביב, סיבוב נוסף]}
 - {en: sortie, he: גיחה, from: field}
 - {en: threshold, he: סף, from: field}
 - {en: line-up, he: התיישרות על המסלול, from: plain}
