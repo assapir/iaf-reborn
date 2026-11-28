@@ -1,7 +1,8 @@
 # Modern IAF's text over the flight (modern-iaf/docs/front-end.md §8), in the front end's look (menu/look.gd, Heebo),
 # mirrored in Hebrew, on the front end's 1080-high canvas scaled to the window:
 # - the radio lines (nothing else: the user, 25 Nov 2026): a strip centred at the top, the newest at the bottom, each
-#   for LINE_S seconds (terrain_view.gd _on_subtitle hands them to the flight add-on, not the original's console);
+#   while its voice plays, or LINE_S seconds for a line with no clip (terrain_view.gd _on_subtitle hands them to the
+#   flight add-on, not the original's console);
 # - a panel at the inline-start top for the radio menu (its title and numbered lines, each clickable;
 #   flight/sim_flight.gd);
 # No key hint over the flight (the user, 13 Nov: "lets remove the kb hints"; 15 Nov: "remove it completely"): the keys
@@ -14,7 +15,7 @@ extends Control
 signal language_changed
 
 const Look := preload("../menu/look.gd")
-## A subtitle shows this long (s, real time) and at most BAND_LINES at once.
+## A line with no clip shows this long (s, real time); at most BAND_LINES at once.
 const LINE_S := 8.0
 const BAND_LINES := 3
 ## A line's text size at the 1080-high canvas: a film subtitle's, the front end's body text less one (the Mac play
@@ -28,7 +29,7 @@ var panel: PanelContainer
 var menu_box: VBoxContainer
 var _on_pick := Callable()
 var _band: VBoxContainer
-var _lines: Array = []  # [Label, shown at (ms)]
+var _lines: Array = []  # [box, shown at (ms), its last clip's player, has a clip]
 var _lang := ""
 
 
@@ -111,8 +112,8 @@ func _fit() -> void:
 # --- the band ---------------------------------------------------------------------------------------------------------
 
 
-## A radio line or a message, at the bottom of the band.
-func subtitle(text: String) -> void:
+## A radio line or a message, at the bottom of the band, while `until` (its voice's last clip) plays; LINE_S without.
+func subtitle(text: String, until: Node = null) -> void:
 	var box := PanelContainer.new()
 	box.add_theme_stylebox_override("panel", Look.box(Color(Look.BG, 0.75), Color(0, 0, 0, 0), 0, 5, Vector2(14, 3)))
 	box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -122,7 +123,7 @@ func subtitle(text: String) -> void:
 	l.add_theme_font_size_override("font_size", SUBTITLE_PX)
 	box.add_child(l)
 	_band.add_child(box)
-	_lines.append([box, Time.get_ticks_msec()])
+	_lines.append([box, Time.get_ticks_msec(), until, until != null])
 	while _lines.size() > BAND_LINES:
 		_lines.pop_front()[0].queue_free()
 
@@ -135,8 +136,16 @@ func _process(_delta: float) -> void:
 	if Settings.language != _lang:
 		_apply_language()
 	var now := Time.get_ticks_msec()
-	while not _lines.is_empty() and now - int(_lines[0][1]) > LINE_S * 1000.0:
-		_lines.pop_front()[0].queue_free()
+	for x in _lines.duplicate():
+		# A clip's player frees itself as it ends (flight_sounds.gd _on_finished).
+		var over: bool
+		if x[3]:
+			over = not is_instance_valid(x[2])
+		else:
+			over = now - int(x[1]) > LINE_S * 1000.0
+		if over:
+			_lines.erase(x)
+			x[0].queue_free()
 
 
 # --- the panel (the radio menu) ---------------------------------------------------------------------------------------

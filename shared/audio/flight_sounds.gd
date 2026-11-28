@@ -200,6 +200,12 @@ func silence() -> void:
 	for c in get_children():
 		if c is AudioStreamPlayer or c is AudioStreamPlayer3D:
 			c.stop()
+	# The speech channel's players go (a radio line's subtitle lasts while its player lives: flight_ui.gd).
+	var ch: Dictionary = _channels.get(101, {"cur": null, "queue": []})
+	for p in ch.queue + [ch.cur]:
+		if p is Node and is_instance_valid(p):
+			p.queue_free()
+	_channels.erase(101)
 
 
 func _ready() -> void:
@@ -762,6 +768,25 @@ func phrase_cue(f: Callable) -> void:
 		f.call()
 
 
+## Ours (Modern IAF): `f` runs as the phrase channel's `p` starts (at once if it already plays): a radio line's
+## subtitle shown as its own voice starts (radio.gd cue_subtitle).
+func on_start(p: Node, f: Callable) -> void:
+	var c: Dictionary = _channels.get(101, {"cur": null, "queue": []})
+	if c.queue.has(p):
+		p.set_meta("on_start", f)
+	else:
+		f.call()
+
+
+## Starts `p` and runs its on_start.
+func _start(p: Node) -> void:
+	p.play()
+	if p.has_meta("on_start"):
+		var f: Callable = p.get_meta("on_start")
+		if f.is_valid():
+			f.call()
+
+
 ## A logical channel plays one sound at a time; a new one waits for the current (UNCERTAIN: queue
 ## vs replace, docs/sound.md §2).
 func _channel_play(ch: int, p: Node) -> void:
@@ -774,7 +799,7 @@ func _channel_play(ch: int, p: Node) -> void:
 		c.queue.append(p)
 	else:
 		c.cur = p
-		p.play()
+		_start(p)
 
 
 func _on_finished(p: Node) -> void:
@@ -789,7 +814,7 @@ func _on_finished(p: Node) -> void:
 						n.call()
 				elif is_instance_valid(n):
 					c.cur = n
-					n.play()
+					_start(n)
 					break
 	_players3d = _players3d.filter(func(e): return e[0] != p)
 	p.queue_free()

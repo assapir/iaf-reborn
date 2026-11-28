@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The instructor's calls in flight (2026-11-28, [training-plan.md](training-plan.md) §2.3;
+  [training.md](training.md) §17):** each lesson's calls as data, fired in order by the flight's state in Rust (any
+  number of calls on a step, any number of lines in a call), the start-up calls left out once phase 1 is passed, none
+  in a check ride; the voice Kokoro `af_aoede`, on the F-16s' intercom without key clicks, from the F-35I's second
+  jet on the radio; English and Hebrew subtitles. Each lesson's calls are its lesson file's (training.md §16), lesson
+  1.1's the first; lesson 2.2's script (Approvals A136) goes into the pattern phase's file. "My controls" starts the
+  F-16 demonstration. `calls` tests, `test_instructor_calls.gd`.
 - **Phase 1's lessons (2026-11-28, [training-plan.md](training-plan.md) §3 phase 1; [training.md](training.md) §16):**
   the lesson content's shape (one file per phase: the missions by jet, the briefing's eight sections, the notebook's
   Lesson tab, the instructor's calls with their tests) and phase 1 in it for the Barak, the Sufa and the Adir at their
@@ -10,8 +17,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   missions of the new kind `lesson`, scored every 3 s with their end read from the recording and the course's items
   graded; the card holds what a lesson asks for and opens a ground lesson's shutdown on its spot; the lesson's own
   shutdown is no fault; the tower's radio check (menu 5); the night lighting items; the recorder's `power` column.
-  Open: the calls are played by the call engine (job train-calls) and the briefing's sections and the Lesson tab shown
-  by the screens of job train-fe. `course` and `training` tests, `test_course_lessons.gd`.
+  Open: the briefing's sections and the Lesson tab shown by the screens of job train-fe. `course` and `training` tests, `test_course_lessons.gd`.
 - **The training course's screens (2026-11-28, Approvals A130 and A131; [front-end.md](front-end.md) §2.2,
   [training-plan.md](training-plan.md) §5):** Missions → Training opens the Hangar jet's course: eight phase cards in
   two rows of four, each with its number, title and lessons passed of its own, the title line the course's lessons

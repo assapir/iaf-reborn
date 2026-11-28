@@ -2007,8 +2007,9 @@ func _cockpit_note(text: String) -> void:
 
 
 ## Subtitle console (FUN_0044a060): wrapped at the last space before 40 characters, first letter
-## upper-cased; the newest 14 lines are shown (drawn by the cockpit HUD layer).
-func _on_subtitle(text: String) -> void:
+## upper-cased; the newest 14 lines are shown (drawn by the cockpit HUD layer). `until`: the line's last clip (ours,
+## Modern IAF's band shows the line while it plays; radio.gd cue_subtitle).
+func _on_subtitle(text: String, until: Node = null) -> void:
 	# FUN_0044a060: first letter upper-cased, wrapped at the last space before 40 characters.
 	var t := text
 	if t == "" or not text_messages:
@@ -2016,7 +2017,7 @@ func _on_subtitle(text: String) -> void:
 	_log_event(_log_st, {"event": "message", "text": t})
 	t = t[0].to_upper() + t.substr(1)
 	if addon != null and addon.has_method("subtitle"):
-		addon.subtitle(t)  # the project's own text over the flight (IAF 2026's band, Settings.flight_addon)
+		addon.subtitle(t, until)  # the project's own text over the flight (IAF 2026's band, Settings.flight_addon)
 		return
 	while t.length() >= 40:
 		var cut := t.substr(0, 40).rfind(" ")

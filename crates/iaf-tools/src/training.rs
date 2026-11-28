@@ -71,8 +71,8 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("startup", "Start-up", "התנעה"),
     ("takeoff", "Take-off", "המראה"),
     ("range", "Weapons range", "מטווח"),
-    ("lesson", "Lesson", "שיעור"),
-    ("lesson_not_done", "The lesson did not reach its end.", "השיעור לא הגיע לסופו."),
+    ("lesson", "Lesson", "תרגול"),
+    ("lesson_not_done", "The lesson did not reach its end.", "התרגול לא הגיע לסופו."),
     // Fail reasons.
     ("no_start", "The engine never started.", "המנוע לא הותנע."),
     ("over_time", "Not done within the time budget.", "לא הושלם בזמן שהוקצב."),

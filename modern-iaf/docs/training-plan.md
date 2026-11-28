@@ -114,11 +114,34 @@ notebook ([training.md](training.md) §11) during the flight.
 - **One demonstration.** In the overhead-break lesson (phase 2, lesson 2, §3) the F-16 instructor says "my
   controls", flies one full pattern with the stick and throttle moving, then says "your controls". The F-35I instructor leads the same
   pattern in front of the player. No other lesson has a demonstration.
-- **English voice**, with subtitles in the screen's language (Hebrew or English). The voice is generated with the
-  tower's text-to-speech, in a third voice (12 Nov 2026). The script and a voice sample go to the user before the
-  voice is built.
+- **English voice**, with subtitles in the screen's language (Hebrew or English). The voice is the tower's
+  text-to-speech in its own voice, Kokoro `af_aoede` (12 Nov 2026; the user picked it from three samples on 28 Nov
+  2026). Lesson 2.2's script stands as written (the user, 28 Nov 2026: "A136 is ok, we will fix the voices or add
+  more longer talking when we work on each mission"); each lesson's wording is set when its mission is built.
+- **The calls are data** ([training.md](training.md) §17): per lesson its calls in order, each with the flight state
+  it waits for and any number of lines, and any number of calls on one step. A call may explain how to do something
+  at any moment of the flight, for as long as the lesson needs (the user, 28 Nov 2026: "O/c ours can have more talk
+  etc.").
 - **Switch highlights** in the 3D cockpit mark the switches and gauges of the current step (12 Nov 2026). The player
   can operate every switch at any time and in any order, and the result is real (11 Nov 2026).
+
+**The 1998 game's instructor, a model for the talk.** The user, 28 Nov 2026: "See how the instructor there explain
+how to do what, sometimes mid flight etc." What its training missions' instructor does[^iaf98] is a floor for ours,
+not a limit (described here in our words; none of its lines is used):
+
+- **Kinds of call:** an introduction with the sortie's aim; how to do the next step, with its numbers (the rotation
+  speed, the climb attitude, the approach speed and angle); a checklist read aloud with the player; what a display or
+  a sight shows and how to use it; a demonstration flown on the autopilot, then the hand-over; a reminder before the
+  second try; praise when a step is done.
+- **When:** at the flight's start (seconds in), at places on the route (the jet within some tens of metres of a
+  marker, or past one by more than a kilometre, checked every 4 s), one call after another as each step is done,
+  and in the air at the pattern's turning points (the turn onto downwind, the base turn, the final turn as the ILS
+  localizer moves)[^runtime].
+- **How long:** from two words of praise to about 90 words (the wingman commands, one key after another); most how-to
+  calls are three to five sentences.
+
+Ours keeps the plan's rules above (the task at the checklist's level, no switch or key named, no corrections and no
+safety calls). Its calls are data, so a lesson can carry each of these kinds of call (inferred).
 
 ### 2.4 The debrief
 
@@ -129,8 +152,8 @@ them, then the conclusions and the lessons to apply[^tahkir]. On today's debrief
 1. **What happened:** the flight's track on the map, with each fault marked at the place it happened, and the
    mission clock.
 2. **Each graded item:** what should have happened (its standard), what was flown, the gap, and its grade.
-3. **Conclusions and lessons:** the lesson's grade, then the instructor's one-line lessons for next time. The
-   instructor's voice reads this part.
+3. **Conclusions and lessons:** the lesson's grade, then the instructor's one-line lessons for next time, on the
+   page only, with no voice (the user, 28 Nov 2026: "No need for the instructor to read the debrief").
 
 The grades:
 
@@ -342,6 +365,10 @@ capabilities. A builder checks each against [status.md](status.md) before a phas
     ([PDF](https://www.idf.il/media/g1cb0fyx/מנחה-לעריכת-תחקיר-ערכי-המערכה-על-הערכים_compressed-1.pdf)).
 [^atc]: The IAF's Advanced Training Center by Ovda: live-fire ranges, low-flying areas, ground targets and SAM
     threats ([Air & Space Forces Magazine](https://www.airandspaceforces.com/gunfight-in-the-israeli-desert)).
+[^iaf98]: Jane's IAF (1998), its training missions 311 to 326: the instructor's spoken lines and subtitles, read on
+    28 Nov 2026 in the data the setup converts from the player's own copy of the game (not in the repository).
+[^runtime]: How the 1998 game fires them: [docs/mission-runtime.md](../../docs/mission-runtime.md) §4 and §7 (the
+    take-off mission's markers and its chain of events).
 
 [^cnatra-scale]: US Navy, Chief of Naval Air Training, CNATRAINST 1500.4F, the grade definitions
     ([page 60](https://navyflightmanuals.tpub.com/1500.4Fwch1&2&3&4&5/1500.4Fwch1&2&3&4&50060.htm),

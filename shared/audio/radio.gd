@@ -294,31 +294,39 @@ func say(template: String, strings: Array = [], ints: Array = [], print_it := tr
 	var shown := text != "" and host != null and host.has_method("_on_subtitle")
 	if shown and not menu:
 		host._on_subtitle(text)
-	var clips: Array = p.wavs
-	if Settings.radio_key_clicks() and not clips.is_empty():
+	var clicks: bool = Settings.radio_key_clicks() and not p.wavs.is_empty()
+	if clicks:
 		play_wav("key_on.ogg")
-		clips = clips + ["key_off.ogg"]
+	var players: Array = []  # the voice's: the subtitle shows from its first word to its last
+	for w in p.wavs:
+		players.append(play_wav(w))
+	if clicks:
+		play_wav("key_off.ogg")
 	if shown and menu:
-		cue_subtitle(text)
-	for w in clips:
-		play_wav(w)
+		cue_subtitle(text, players)
 	return p
 
 
-## Ours (Modern IAF, `menu`): the subtitle `text` shows when the speech queued before it ends, as its own voice starts
-## (the user, 2026-11-13: "comms subtitle should show up as talking"); at once with no speech queued or no sound.
-func cue_subtitle(text: String) -> void:
+## Ours (Modern IAF, `menu`): the subtitle `text` of the line spoken by `players` (play_wav's, in order) shows as the
+## first one starts and stays until the last one ends (the user, 2026-11-13: "comms subtitle should show up as
+## talking"; 28 Nov, A141: "subtitles not sync with sound"). No clip (not shipped): it shows when the speech queued
+## before it ends, for the band's own time; no sound: at once.
+func cue_subtitle(text: String, players: Array = []) -> void:
 	var s = host.get("sounds") if host != null else null
-	if s is Object and s.has_method("phrase_cue") and s.get("silenced") != true:
+	var ps := players.filter(func(n): return n is Node)
+	if s is Object and s.has_method("on_start") and s.get("silenced") != true and not ps.is_empty():
+		s.on_start(ps[0], host._on_subtitle.bind(text, ps[-1]))
+	elif s is Object and s.has_method("phrase_cue") and s.get("silenced") != true:
 		s.phrase_cue(host._on_subtitle.bind(text))
 	else:
 		host._on_subtitle(text)
 
 
-## FUN_004c5470(file, 0, 1): a plain wav on the phrase channel.
-func play_wav(file: String) -> void:
+## FUN_004c5470(file, 0, 1): a plain wav on the phrase channel; its player (null: not shipped, or no sound).
+func play_wav(file: String) -> Node:
 	if host != null and host.get("sounds") != null:
-		host.sounds.play_phrase_wav(file)
+		return host.sounds.play_phrase_wav(file)
+	return null
 
 
 # --- time ---------------------------------------------------------------------------------------

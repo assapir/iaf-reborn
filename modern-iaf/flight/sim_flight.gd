@@ -19,6 +19,8 @@ const Tanker := preload("res://shared/ai/tanker.gd")
 const Card := preload("card.gd")
 const FlightUi := preload("flight_ui.gd")
 const FrameMeter := preload("frame_meter.gd")
+const InstructorCalls := preload("instructor_calls.gd")
+const Instructor := preload("instructor.gd")
 ## A pass pauses the flight under the front end's "accomplished" panel (training.md §9) once the radio's queued speech
 ## is said; a fail flies on end_hold_s with nothing over the view, then ends into the debrief.
 ## The menu's lines: [request id, English, Hebrew] (radio.gd request; "landing": its Ctrl+T contact_tower).
@@ -148,6 +150,8 @@ var _rest := false  # the page's lines after its first eight (MORE)
 ## The menu's calls as shown (ids), and the tower's answers so far (templates; approvals for IafTraining.radio_calls).
 var shown: Array = []
 var answers := PackedStringArray()
+## The radio calls made, by id (pick), for the instructor's `called:` tests (training.md §16.3).
+var called := PackedStringArray()
 var _hold_m := {}  # iaf.ibx section -> its holding point's distance to the lineup point (m), once read
 ## The text over the flight: the band of radio lines, the panel, the key hint (flight_ui.gd).
 var ui: Control
@@ -180,6 +184,11 @@ var out_dir := ""
 ## The training run's IafTraining (its live check, its run and scorer; null without rules) and the run's fail reason
 ## ("" while none).
 var trainer: RefCounted
+## The instructor's calls of the lesson flown (instructor_calls.gd, training.md §17); null in a flight that is
+## no lesson.
+var instructor: Node
+## The lesson the mission flies (course.json's missions), "" none.
+var _lesson := ""
 var _why: String:
 	get:
 		return String(trainer.run_why()) if trainer != null else ""
@@ -288,6 +297,7 @@ func _ready() -> void:
 			for ph in course.phases if course is Dictionary else []:
 				for le in ph.lessons:
 					check_ride = check_ride or (String(le.key) == key and String(le.kind) == "check")
+		_lesson = String(IafCalls.lesson_of(plane, String(files[0].name)))
 		_tanker_spec = readable.get("tanker", {})
 		_failures_plan = readable.get("failures", [])
 		if String(readable.get("category", "")) == "fly_now":
@@ -303,6 +313,8 @@ func _ready() -> void:
 	elif not rules.is_empty() and host.blackbox_path == "" and Settings.isolated():
 		# Tests record beside the debrief (the player's flights folder untouched).
 		host.blackbox_path = _dir().path_join("flight-%s-%s.jsonl" % [Settings.file_stamp(), mission_name])
+	if _lesson != "":
+		start_calls(_lesson)
 	var layer := CanvasLayer.new()
 	layer.layer = 16
 	add_child(layer)
@@ -317,6 +329,29 @@ func _ready() -> void:
 	add_child(FrameMeter.new())  # the frame time the Settings screen shows (front-end.md §4.2)
 	kneeboard = Kneeboard.new(self)
 	add_child(kneeboard)
+
+
+## Starts the instructor's calls of lesson `key` (a course lesson's key, "pattern.overhead") from the mission's runway;
+## the start-up calls are left out once the pilot has passed phase 1 (training-plan.md §2.1).
+func start_calls(key: String) -> void:
+	if instructor != null:
+		instructor.queue_free()
+	var rwy := String(trainer.runway()) if trainer != null else String(host.radio.runway)
+	var db: String = Settings.records_db() if out_dir == "" else _dir().path_join("modern-iaf.sqlite")
+	var book = JSON.parse_string(IafPilotLog.course_logbook(db, Settings.pilot(), plane))
+	var known: bool = book is Dictionary and int(book.phases[0].passed) >= int(book.phases[0].lessons)
+	instructor = InstructorCalls.new(self, key, plane, rwy, known)
+	instructor.said.connect(_on_call)
+	add_child(instructor)
+
+
+## A call of the instructor said: "My controls" starts the F-16s' demonstration (instructor.gd demo, training.md §14);
+## the lesson's calls say its hand-over lines with the voice, so the demonstration does not show them again.
+func _on_call(id: String) -> void:
+	if id == "my_controls":
+		var demo: Node = Instructor.of(host)
+		demo.voiced.append_array(["my_controls", "your_controls"])
+		demo.demo()
 
 
 func _dir() -> String:
@@ -584,10 +619,10 @@ func choose(n: int) -> void:
 
 
 ## A radio line or a message (terrain_view.gd _on_subtitle): the band of the sim's own text, not the original's
-## console.
-func subtitle(text: String) -> void:
+## console. `until`: its voice's last clip (null: the band's own time).
+func subtitle(text: String, until: Node = null) -> void:
 	if ui != null:
-		ui.subtitle(text)
+		ui.subtitle(text, until)
 
 
 ## A key press (terrain_view.gd before its key table): the "Call the tower" key opens / closes the menu; while it is
@@ -752,6 +787,7 @@ func runway_in_use() -> String:
 func pick(id: String) -> String:
 	if not id in calls():
 		return ""
+	called.append(id)
 	var r: Node = host.radio
 	var cs: String = r.formation_name(r._player_ent())
 	var said_cs: String = r.kidon(cs)

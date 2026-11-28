@@ -547,10 +547,17 @@ pub fn voices(
         // A clip without `say` is Hebrew only (voices --he).
         .filter(|c| c["say"].is_string() && c["file"].as_str().is_some_and(|f| picked(only, f)))
         .collect();
+    // The instructor's calls (the lesson files, training.md §16, §17): each line in the instructor's voice, through the helmet
+    // chain (the F-16s' intercom) or the radio chain (the F-35I's second jet).
+    let instructor: Vec<Value> = crate::calls::clips(&crate::sim_bases::load(&data.join("airbases"))?)?
+        .into_iter()
+        .filter(|c| picked(only, &c.file))
+        .map(|c| json!({"file": c.file, "say": c.say, "mode": if c.radio { "radio" } else { "helmet" }}))
+        .collect();
     // Each clip in its role's voice into `<file>`, and again in the role's English voice of the other gender (the
     // AWACS's) into `en/<model>/<file>`.
     let (mut jobs, mut lines) = (vec![], vec![]);
-    for c in &clips {
+    for &c in &clips {
         let name = c["voice"].as_str().context("voices.json: a clip without \"voice\"")?;
         let (voice, speed) = role(&v, name)?;
         let text = c["say"].as_str().context("voices.json: a clip without \"say\"")?;
@@ -567,6 +574,11 @@ pub fn voices(
                 ipa: Value::Null,
             });
         }
+    }
+    let (voice, speed) = role(&v, "instructor")?;
+    for c in &instructor {
+        jobs.push((c, PathBuf::from(c["file"].as_str().unwrap_or(""))));
+        lines.push(Line { text: c["say"].as_str().unwrap_or("").into(), voice: voice.into(), speed, ipa: Value::Null });
     }
     check(cancel)?;
     let said = kokoro(repo, &lines, &tmp.0)?;
@@ -654,7 +666,8 @@ fn unmade(sounds: &Path, v: &Value) -> Result<Vec<String>> {
 fn deploy(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let sounds = data.join("sounds");
     let v: Value = serde_json::from_str(&std::fs::read_to_string(sounds.join("voices.json"))?)?;
-    let left = unmade(&sounds, &v)?;
+    let mut left = unmade(&sounds, &v)?;
+    left.extend(crate::sim::instructor_files(data)?.into_iter().filter(|f| !sounds.join(f).exists()));
     if let Some(first) = left.first() {
         log!(pr, "voices: {} clips still to make ({first}…): the run for the other language deploys", left.len());
         return Ok(());

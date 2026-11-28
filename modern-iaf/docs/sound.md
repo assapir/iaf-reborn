@@ -352,7 +352,7 @@ result, and why it was dropped:
   each word's time, so §5.2 cuts there.
 
 ## 3. The voices
-Six Kokoro voices[^kokoro], all American English (Kokoro's `a` language); §5 gives the model, the chains and the
+Seven Kokoro voices[^kokoro], all American English (Kokoro's `a` language); §5 gives the model, the chains and the
 licence:
 
 | role | Kokoro voice, speed | speaks |
@@ -362,6 +362,7 @@ licence:
 | pilot | `am_puck`, 1.1 | the player's radio-menu calls (helmet chain, §5.2; the requests to the AWACS, "Eitam, Kidon 1, picture"), "Roger", the ejection; a woman's voice `af_sarah` for a pilot who picked it (§3.2) |
 | AWACS | `am_fenrir`, 1.1 | the contact calls `ACFT_FCTRL_LONG` / `_SHORT` ([ews.md](ews.md) §7); Scramble's task call `AWX_TASK` ([../../docs/ai.md](../../docs/ai.md) §23); the controller's answers to the radio menu's requests and the Eitam's call for help (`AWX_*`, [../../docs/ai.md](../../docs/ai.md) §24) |
 | wingman | `am_eric`, 1.1 | the four-ship's wingmen Kidon 1-2 to 1-4: their answers and calls (`WNG_*`, `radio.gd flight_call`; the words in [research/radio-terms.md](research/radio-terms.md)); the friendly-fire calls of the unit hit and of the shooter's wingman; the player's commands to them (`CMD_*`) are the pilot's |
+| instructor | `af_aoede`, 1.0 | the training instructor's calls ([training.md](training.md) §17): the helmet chain on the F-16s' intercom (no key clicks), the radio chain from the F-35I's second jet; English in both languages, picked by the user on 28 November 2026 from three voices no other role uses |
 | boom (the tanker's boom operator) | `am_onyx`, 1.1 | the tanker's boom operator: its clearances and calls (`TNK_*`, `radio.gd tanker_call`; the words in [research/air-refuelling.md](research/air-refuelling.md) §8.4); the player's request (`REQ_REFUEL`, its address `GIDEON_P` / `REEM_P`) and the command "Refuel" (`CMD_REFUEL`) are the pilot's. Its Hebrew voice in each cast is the tower's (the tower is far below at the tanker's height; 25 November 2026); in English a woman's voice `af_kore` (VOICES.md's C+, on disk) when the cast gives it a woman (§3.2) |
 
 **Choice** (9 November 2026; the user on 3 November: "less British", American or neutral voices). Kokoro's
@@ -513,7 +514,7 @@ flight are told apart:
 | `yael` | woman | 181 Hz | 62 % | the AWACS, a wingman |
 | `lily` | woman | 198 Hz | 63 % | the tower, a wingman |
 | `shira` | woman | 213 Hz | 62 % | the player's own calls, a wingman |
-| `tamar` | woman | 200 Hz | 56 % | the instructor only, never a radio role (the user, 20 November 2026: "Always the same voice, female"); no instructor line exists yet |
+| `tamar` | woman | 200 Hz | 56 % | kept for a Hebrew instructor, never a radio role (the user, 20 November 2026: "Always the same voice, female"); the instructor speaks English (`af_aoede`, §3) |
 
 **The casts** (`voices.json` `he.casts`): eight, each giving the tower, the AWACS, the player's calls (`pilot`) and
 the wingmen Kidon 1-2, 1-3 and 1-4 one voice each, three men and three women in every cast. Which cast a mission flies

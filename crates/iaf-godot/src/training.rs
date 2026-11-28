@@ -2,8 +2,8 @@
 //! live check that ends a training run at once on a fail, and the score at its end on the flight's recording.
 
 use godot::prelude::*;
-use iaf_tools::course;
 use iaf_tools::training::{self, Now, Watch};
+use iaf_tools::{calls, course};
 use std::path::Path;
 
 #[derive(GodotClass)]
@@ -232,7 +232,12 @@ impl IafTraining {
 
 /// `now["answers"]`: the tower's answer templates so far.
 fn answers(now: &VarDictionary) -> Vec<String> {
-    now.get("answers")
+    list(now, "answers")
+}
+
+/// `now[key]`, a PackedStringArray, as strings.
+fn list(now: &VarDictionary, key: &str) -> Vec<String> {
+    now.get(key)
         .and_then(|v| v.try_to::<PackedStringArray>().ok())
         .map_or(vec![], |a| a.as_slice().iter().map(|s| s.to_string()).collect())
 }
@@ -267,5 +272,115 @@ fn radio_now(now: &VarDictionary) -> training::RadioNow {
         lineup_m: now.get("lineup_m").and_then(|v| v.try_to::<f64>().ok()).unwrap_or(f64::INFINITY),
         hold_m: now.get("hold_m").and_then(|v| v.try_to::<f64>().ok()).unwrap_or(training::HOLDING_POINT_M),
         answers: answers(now),
+    }
+}
+
+/// `IafCalls`: the instructor's calls of a lesson in flight (`iaf_tools::calls`, modern-iaf/docs/training.md §17).
+#[derive(GodotClass)]
+#[class(init, base = RefCounted)]
+pub struct IafCalls {
+    calls: Option<calls::Calls>,
+}
+
+#[godot_api]
+impl IafCalls {
+    /// Opens lesson `lesson`'s calls in jet `jet` at the jet's home base (the airbase files in `airbases`, an absolute
+    /// path), from runway end `runway` ("" the base's main end); `startup_known`: the pilot passed phase 1, so the
+    /// start-up calls are left out. "" when opened, else the error.
+    #[func]
+    fn open(
+        &mut self,
+        lesson: GString,
+        jet: GString,
+        airbases: GString,
+        runway: GString,
+        startup_known: bool,
+    ) -> GString {
+        let run = || -> anyhow::Result<calls::Calls> {
+            let bases = iaf_tools::sim_bases::load(Path::new(&airbases.to_string()))?;
+            let jet = jet.to_string();
+            let name = course::course().jets.get(&jet).and_then(|j| j["base"].as_str()).unwrap_or("").to_string();
+            let base = iaf_tools::sim_bases::by_name(&bases, &name)
+                .ok_or_else(|| anyhow::anyhow!("calls: {jet} has no home base"))?;
+            calls::Calls::open(&lesson.to_string(), &jet, base, &runway.to_string(), startup_known)
+        };
+        match run() {
+            Ok(c) => {
+                self.calls = Some(c);
+                GString::new()
+            }
+            Err(e) => GString::from(format!("{e:#}").as_str()),
+        }
+    }
+
+    /// The lines to say this frame, in order, each {call, file, en, he}: `now` = {on_ground, x, y (the engine frame,
+    /// m), alt_ft, speed_kt, heading (deg), roll (deg), vs_fpm, rpm (%), ins_aligned, engine_on, power (0 none, 1 the
+    /// battery, 2 the displays), items (the card's items ticked), answers (the tower's answer templates), hot (the
+    /// flight started with the engine running), called (the radio calls made)}.
+    #[func]
+    fn tick(&mut self, now: VarDictionary) -> VarArray {
+        let f = |k: &str| now.get(k).and_then(|v| v.try_to::<f64>().ok()).unwrap_or(0.0);
+        let b = |k: &str| now.get(k).and_then(|v| v.try_to::<bool>().ok()).unwrap_or(false);
+        let n = calls::Now {
+            on_ground: b("on_ground"),
+            x: f("x"),
+            y: f("y"),
+            alt_ft: f("alt_ft"),
+            speed_kt: f("speed_kt"),
+            heading: f("heading"),
+            roll: f("roll"),
+            vs_fpm: f("vs_fpm"),
+            rpm: f("rpm"),
+            ins_aligned: b("ins_aligned"),
+            engine_on: b("engine_on"),
+            power: now.get("power").and_then(|v| v.try_to::<i64>().ok()).unwrap_or(0),
+            items: list(&now, "items"),
+            cleared: training::Cleared::of(&answers(&now), b("hot")),
+            called: list(&now, "called"),
+        };
+        let mut out = VarArray::new();
+        for s in self.calls.as_mut().map_or(vec![], |c| c.tick(&n)) {
+            let mut d = VarDictionary::new();
+            d.set("call", s.call.as_str());
+            d.set("file", s.file.as_str());
+            d.set("en", s.en.as_str());
+            d.set("he", s.he.as_str());
+            out.push(&d.to_variant());
+        }
+        out
+    }
+
+    /// The lesson of course jet `jet` that the readable mission `mission` flies (course.json's `missions`), "" none.
+    #[func]
+    fn lesson_of(jet: GString, mission: GString) -> GString {
+        course::course().lesson_of(&jet.to_string(), &mission.to_string()).unwrap_or_default().as_str().into()
+    }
+
+    /// The runway end the calls name ("25R"), "" before `open`.
+    #[func]
+    fn runway(&self) -> GString {
+        self.calls.as_ref().map_or("", |c| c.runway()).into()
+    }
+
+    /// The engine-frame point `along` m from the runway's threshold and `right` m to its right, with the base's
+    /// elevation (ft): Vector3(x, y, elevation_ft); and the runway's heading (`runway_heading`). For a scripted flight.
+    #[func]
+    fn place(&self, along: f64, right: f64) -> Vector3 {
+        self.calls.as_ref().map_or(Vector3::ZERO, |c| {
+            let (p, e, _) = c.place(along, right);
+            Vector3::new(p[0] as f32, p[1] as f32, e as f32)
+        })
+    }
+
+    /// The heading of the runway in use, deg.
+    #[func]
+    fn runway_heading(&self) -> f64 {
+        self.calls.as_ref().map_or(0.0, |c| c.place(0.0, 0.0).2)
+    }
+
+    /// The calls not said yet, by id.
+    #[func]
+    fn left(&self) -> PackedStringArray {
+        self.calls.as_ref().map_or(vec![], |c| c.left()).iter().map(|s| GString::from(*s)).collect()
     }
 }

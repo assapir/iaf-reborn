@@ -1377,6 +1377,12 @@ pub fn en_other<'a>(voices: &'a Value, role: &str) -> Option<&'a Value> {
     voices["voices"][role]["other"].as_object().map(|_| &voices["voices"][role]["other"])
 }
 
+/// The instructor's clips (`calls::clips`, training.md §17) with the airbase files of `data`: made by `iaf-sim voices`,
+/// deployed with the other clips.
+pub fn instructor_files(data: &Path) -> Result<Vec<String>> {
+    Ok(crate::calls::clips(&crate::sim_bases::load(&data.join("airbases"))?)?.into_iter().map(|c| c.file).collect())
+}
+
 impl VoicesHe {
     pub fn voices_of(&self, role: &str) -> impl Iterator<Item = &str> {
         self.roles.get(role).into_iter().flatten().map(String::as_str)
@@ -1483,7 +1489,8 @@ pub fn own_sounds(data: &Path, assets: &Path, cancel: &AtomicBool) -> Result<(us
     let he = compile_voices_he(&voices)?;
     let names = |k: &str| table[k].as_array().into_iter().flatten().filter_map(|v| v.as_str().map(String::from));
     let rows = table["rows"].as_array().into_iter().flatten().filter_map(|r| r["file"].as_str().map(String::from));
-    let files: BTreeSet<String> = rows.chain(names("by_name")).chain(radio.files.clone()).collect();
+    let files: BTreeSet<String> =
+        rows.chain(names("by_name")).chain(radio.files.clone()).chain(instructor_files(data)?).collect();
     std::fs::create_dir_all(&out).with_context(|| out.display().to_string())?;
     for f in &files {
         check(cancel)?;

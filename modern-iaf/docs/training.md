@@ -862,8 +862,8 @@ flies ramon_startup, ends it through `sim_flight.gd`'s score and store, and chec
 
 ## 14. The instructor flies
 The course's one demonstration ([training-plan.md](training-plan.md) §2.3, §4): the instructor flies the overhead
-pattern and the landing. No lesson starts it yet; dev hooks in `modern-iaf/flight/instructor.gd` start it, and the
-course's lessons call the same hooks.
+pattern and the landing. In the F-16s lesson 2.2's "My controls" call starts it (§17.3); the other hooks in
+`modern-iaf/flight/instructor.gd` are for development and tests.
 
 **The pattern** (`iaf_flight::autopilot::OVERHEAD`, set on a jet's autopilot by `IafFlight.ap_set_overhead`): the
 landing waypoint is the pattern's initial point (`ap_overhead_initial`), and the landing flies the overhead in place of
@@ -896,7 +896,8 @@ autopilot's break-out. Then "Your controls", and the route is the mission's agai
 (`ai_flights.gd join_flight`: its slot, the radio commands, the landing sequence). `lead` takes it out of the flight
 (`leave_flight`) and it flies the pattern to its landing and its shelter, "Follow me"; the player flies behind it.
 
-**The lines** are subtitles only, in the screen's language; the voice comes with the course's script:
+**The lines** are subtitles, in the screen's language; a line the lesson's calls say with the voice (§17:
+"My controls") shows once, with its call:
 
 | Id | English | Hebrew |
 |----|---------|--------|
@@ -1069,8 +1070,8 @@ and any elsewhere, still fails the mission (§7.2).
 
 ### 16.3 The tests
 
-A call's `when` and a mission's `end` name tests of the flight's state: data that the instructor's call engine reads
-(job train-calls) and, for an `end`, the scorer (`training::holds`).
+A call's `when` and a mission's `end` name tests of the flight's state. Each has its rule in the instructor's call
+engine (§17.2, with its figures).
 
 | Test | Holds when |
 |------|------------|
@@ -1117,6 +1118,74 @@ without its switches, with a word on what to wait for, mid-flight as the 1998 ga
 ([../../docs/autopilot.md](../../docs/autopilot.md) §3); 1.1 has the most. The budgets (15 minutes for 1.1 and 1.2,
 30 for the taxi lessons) are inferred. `modern-iaf/tests/test_course_lessons.gd` checks the content for each jet,
 loads every lesson and flies 1.1 and 1.2 by the card's switches to a Pass.
+
+## 17. The instructor's calls
+The instructor's calls in flight ([training-plan.md](training-plan.md) §2.3) are data: each lesson's `calls` in its
+phase's lesson file (§16.1), read by `crates/iaf-tools/src/calls.rs` (module `calls`, the call engine). The game runs
+them in `modern-iaf/flight/instructor_calls.gd` through `IafCalls`.
+
+### 17.1 How the calls fire
+A call fires when the call before it has fired and every test of its `when` holds (§17.2); calls whose tests hold
+together fire in the same moment, in order. So a step can carry any number of calls and a call any number of lines,
+said one after the other. With `new` the call's tests must first fail after the call before it fired (a step that
+comes a second time, such as the initial point after the demonstration, or the jet dark at the end of a lesson that
+started dark). A call with `startup` is left out once the pilot has passed phase 1 (every lesson of the course
+logbook's first phase passed, §13.3), a call with `jets` is said only in those jets, and a check ride has no calls.
+In a line, `{rwy}` is the runway in use: said "two five right" and shown "25 right" / "25 ימין" (the tower's way,
+[sound.md](sound.md) §3).
+
+### 17.2 The tests
+The rules of §16.3's tests. Each reads one frame: the jet's place in the engine frame, its altitude, speed, heading,
+bank and climb, the engine's RPM, the INS and the electrical power, the checklist card's ticked items, the tower's
+answers and the radio calls made. Places are measured from the threshold of the runway in use (the mission's, turned into
+the wind) along its centreline and across it. Every figure is inferred.
+
+| test | holds |
+|---|---|
+| `start` | always: the lesson's start |
+| `idle` | the engine at 60 % RPM or more (the idle, §3.1) |
+| `aligned` | the INS aligned with the avionics on |
+| `hold_point` | on the ground, stopped (below 3 kt), within 150 m of the lineup point and off the runway |
+| `lined_up` | on the ground, stopped on the runway's first half, on its heading within 30° |
+| `initial` | in the air on the extended centreline 2 to 6 NM out, within 1.5 km of it, on the runway's heading within 30° |
+| `over_runway` | in the air over the runway, within 500 m of its centreline |
+| `downwind` | in the air on the reciprocal heading within 30°, 500 m to 4 km abeam the runway |
+| `final_turn` | in the air abeam the threshold or past it, 500 m to 4 km out |
+| `final` | in the air up to 6 km out, within 150 m of the centreline, on its heading within 10°, wings within 10° of level |
+| `touchdown_zone` | below 300 ft over the first 3,000 ft of the runway |
+| `climb_out` | in the air past the threshold, above 300 ft, climbing 300 ft/min or more |
+| `slowed` | on the ground on the runway at 40 kt or less |
+| `parked` | on the ground, stopped within 30 m of where the flight started |
+| `engine_off` | the engine not running |
+| `power_off` | no electrical power (the flight model's power 0: not even the battery) |
+| `item:<id>` | the card's item `<id>` ticked (`card.gd` `done`, §12) |
+| `cleared:<phase>` | the tower's clearance for `startup`, `taxi` or `takeoff` given (`Cleared::of`, §3.3) |
+| `called:<call>` | the pilot made the radio menu's call `<call>` (`sim_flight.gd` `called`, §8) |
+
+### 17.3 In the game
+`sim_flight.gd` starts the calls when the mission flies a course lesson (`IafCalls.lesson_of`: the lesson's
+`missions`, §16.1; `start_calls(key)` starts any lesson's). `instructor_calls.gd` reads the flight's state five times a
+second and asks `IafCalls.tick` for the lines that come now. Each line's clip plays on the speech queue after any
+call already playing; its subtitle shows while its clip plays (from the clip's start to its end), in the screen's language, with the other language kept
+for a language change (`radio.gd` `bilingual`, `cue_subtitle`). The signal `said(call)` names each call said; the
+demonstration starts on `my_controls` (`sim_flight.gd` `_on_call`: `instructor.gd` `demo`, §14). The demonstration lands and stops (§14), so lesson
+2.2's hand-over call ("Your controls") comes as it rolls out (`slowed`), and the demonstration shows neither
+hand-over line a second time.
+
+**The voice:** Kokoro `af_aoede` at speed 1.0 (the role `instructor` in `voices.json`; [sound.md](sound.md) §3),
+English in both languages. The F-16s' instructor sits in the back seat on the intercom: the helmet chain, always
+live, no key clicks. The F-35I's flies a second jet: the radio chain with the key clicks. `iaf-sim voices` says each
+line into `ins_<phase>_<lesson>_<call>_<n>.ogg` (`insr_…` on the radio), a line with `{rwy}` once for each runway end
+of each jet's home base (`…_25r.ogg`); `iaf-sim own` deploys them with the other clips. The debrief has no voice.
+
+### 17.4 Checks
+`cargo test -p iaf-tools --lib calls`: every test of §16.3 has its rule; lesson 1.1's calls in the Sufa, each at its
+checklist item, the radio check and the jet dark, and the Adir's own; the overhead pattern's tests flown as a script
+of frames, each call in order, once, at its step; a `new` call that waits for its step to come again; `{rwy}`; the
+start-up calls left out after phase 1, none in a check ride or another jet's; the runway's words and the clips' names
+(the intercom's and the radio's). `modern-iaf/tests/test_instructor_calls.gd` flies lesson 1.1's mission in the Sufa:
+the mission starts its calls by itself; a scripted frame per step gives the calls in order, one clip a line played,
+the subtitles in English and Hebrew.
 
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon

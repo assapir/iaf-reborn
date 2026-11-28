@@ -592,11 +592,12 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   "To complete: …" line and the wrong-runway line went on 2026-11-25 (below; the tower still names a wrong runway). The in-flight mission card on H was
   removed on 2026-11-13 (the user's order); H is the notebook's key since the same day (record 118).
 - **The radio lines** show in a strip centred at the top, over the sky rather than the cockpit's panel,
-  the newest at the bottom, three at most, each for 8 s, wholly in the game's language ([training.md](training.md)
-  §8). A radio line shows as its voice starts, not at the menu's pick: the pilot's call after its key click, the
-  tower's answer after the pilot's call and the gap (the user, 2026-11-13: "comms subtitle should show up as talking";
-  `radio.gd cue_subtitle`, `flight_sounds.gd phrase_cue`: a mark in the speech channel's queue). A line without a clip
-  (no sound file) shows at once. The text is subtitle size, 20 px at 1080 (the Mac play test, 2026-11-11: 26 px was too big).
+  the newest at the bottom, three at most, wholly in the game's language ([training.md](training.md)
+  §8). A radio line shows while its voice plays: from its first clip's start to its last clip's end, not at the menu's
+  pick: the pilot's call after its key click, the tower's answer after the pilot's call and the gap (the user,
+  2026-11-13: "comms subtitle should show up as talking"; 28 Nov, A141: "subtitles not sync with sound"; `radio.gd
+  cue_subtitle`, `flight_sounds.gd on_start`; the band drops the line when its last clip's player ends). A line
+  without a clip (no sound file) shows when the speech before it ends, for 8 s; with no sound, at once. The text is subtitle size, 20 px at 1080 (the Mac play test, 2026-11-11: 26 px was too big).
 - **Nothing but the radio** (the user, 2026-11-25: "why I still see any popup in flight? remove this functionality
   completely for nothing which isn't radio"; before that, 2026-11-19: no line for a change the cockpit shows): every
   line that is not a radio call (a switch's new state, a refusal, damage, a cheat) goes through

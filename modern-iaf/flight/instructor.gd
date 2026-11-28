@@ -1,6 +1,6 @@
 # Modern IAF's instructor in flight (modern-iaf/docs/training-plan.md §2.3, §4; modern-iaf/docs/training.md "The
-# instructor flies"): the one demonstration of the overhead pattern. No lesson starts it yet: these are dev / test
-# hooks.
+# instructor flies"): the one demonstration of the overhead pattern. Lesson 2.2's "My controls" call starts `demo`
+# (sim_flight.gd, training.md §17); the rest are dev / test hooks.
 # - F-16s (`demo`): "My controls": the player's autopilot flies the player's jet through the overhead pattern and the
 #   landing at the base nearest it (IafFlight ap_set_overhead, the landing waypoint at the pattern's initial point); the
 #   stick and the throttle move with it in the 3D cockpit (terrain_view.gd's levers). Stopped on the runway, or once the
@@ -29,6 +29,8 @@ var role := ""
 var jet := {}
 ## The lines said, by id (tests).
 var said: Array = []
+## The lines the lesson's calls say with the voice (instructor_calls.gd, training.md §17): not shown a second time.
+var voiced: Array = []
 
 
 ## The flight scene's instructor, made on the first call.
@@ -45,6 +47,8 @@ static func of(h: Node) -> Node:
 func say(id: String) -> void:
 	var l: Array = LINES[id]
 	said.append(id)
+	if id in voiced:
+		return
 	if host.get("radio") != null:
 		host.radio.bilingual(l[0], l[1])
 	host._on_subtitle(l[0])

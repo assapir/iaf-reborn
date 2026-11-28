@@ -41,9 +41,10 @@ chapters:
   - {id: debrief, title: "התחקיר", file: game/flying/debrief.typ}
 - id: missions-training
   title: "משימות ואימון"
-  intro: "שלבי מסלול האימון, וקרב האימון מול מטוס תוקף."
+  intro: "שלבי מסלול האימון, המדריך בתרגול, וקרב האימון מול מטוס תוקף."
   sections:
   - {id: course-ground, title: "שלב 1: קרקע והתנעה", file: game/missions-training/course-ground.typ}
+  - {id: instructor, title: "המדריך", file: game/missions-training/instructor.typ}
   - {id: training-fight, title: "קרב אימון", file: game/missions-training/training-fight.typ}
 - id: bases
   title: "בסיסים"
