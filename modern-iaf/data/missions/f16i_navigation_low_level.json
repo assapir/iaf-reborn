@@ -1,0 +1,101 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16i",
+    "base": "Ramon",
+    "at": "parking",
+    "elevation_m": 648
+  },
+  "runway": "25R",
+  "route": [
+    {
+      "lat": 30.6,
+      "lon": 34.82,
+      "alt_m": 652,
+      "speed_kmh": 778,
+      "agl_ft": 500
+    },
+    {
+      "lat": 30.3,
+      "lon": 34.75,
+      "alt_m": 952,
+      "speed_kmh": 778,
+      "agl_ft": 500
+    },
+    {
+      "lat": 30.45,
+      "lon": 34.58,
+      "alt_m": 752,
+      "speed_kmh": 778,
+      "agl_ft": 500
+    },
+    {
+      "lat": 30.7,
+      "lon": 34.85,
+      "alt_m": 752,
+      "speed_kmh": 778,
+      "agl_ft": 500
+    }
+  ],
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "a day lesson (training-plan.md §1: every lesson but the night lesson and the night check rides by day)",
+    "wind_kt": "calm (inferred: the route's times and the approach are learnt without a wind)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "runway": "the base's runway the take-off missions use; the tower turns it into the wind",
+    "route": "four steerpoints at 500 ft above the ground (agl_ft) and 420 kt; alt_m is the ground's height there, read from the map, plus 500 ft (inferred, our own route)",
+    "training.time_budget_s": "the start-up, the taxi and the lesson's flight with time to spare (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.end": "the lesson ends with the jet back on its spot and the engine off (training.md §16.3)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLRM elevation 2126 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f16i_navigation_low_level",
+  "menu_id": 3322,
+  "lesson": "navigation.low_level",
+  "title": {
+    "en": "Low-level navigation",
+    "he": "ניווט בגובה נמוך"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "calls": [],
+    "checklist": [],
+    "time_budget_s": 2700,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

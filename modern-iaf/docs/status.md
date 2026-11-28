@@ -3,6 +3,16 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Phase 3's lessons, navigation and instruments (2026-11-28, [training-plan.md](training-plan.md) §3 phase 3;
+  [training.md](training.md) §16.10):** the six lessons (waypoint navigation at 15,000 ft, low-level navigation at
+  500 ft, the instrument approach in cloud by the TACAN fixes and the ILS, the systems failures one after the other,
+  the low route by night, check ride 3 at night) for the F-16D at Ramat David, the F-16I at Ramon and the F-35I at
+  Nevatim: a mission per jet, the briefing's eight sections with five diagrams, the notebook's Lesson tab and the
+  instructor's calls in English and Hebrew. Their items are measured from the recording against the mission's route
+  and runway (the steerpoints' passes, the times, the heights, the ILS's dots, the failures' steps); the call test
+  `steerpoint:<n>`; a mission's own `weather`, which Modern IAF now draws (its rain setting `mission`). The
+  instructor's clips (Kokoro `af_aoede`).
+  `course`, `training` and `calls` tests, `test_lessons_navigation.gd`.
 - **The formation phase's lessons (2026-11-28, [training.md](training.md) §16.8, [training-plan.md](training-plan.md)
   §3 phase 4):** the six lessons of phase 4 for the Barak, the Sufa and the Adir: as number two behind an AI lead
   (the wingman lesson, tactical formation, at night), leading a pair and a four-ship, and check ride 4 as Kidon 1-3.

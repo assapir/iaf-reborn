@@ -1052,7 +1052,7 @@ A lesson's mission is a mission file ([data-formats.md](data-formats.md) §5) wi
 `training::lesson`): it passes when its end came within `time_budget_s` and nothing failed (§3.0), else it goes on
 (`lesson_not_done`) until the budget. The scorer reads the end from the recording (`training::end_at`); the
 recorder's version 2 has the `power` column for `power_off` (0 none, 1 the battery, 2 the displays up). The record's
-`graded` holds each of the lesson's course items (§13: a check ride's all) with its standard, what was flown, the gap
+`graded` holds each of the lesson's course items (§13: a check ride's all, but a night lesson's by day and an emergency lesson's when none of its emergencies came: `Course::graded_items`) with its standard, what was flown, the gap
 and the grade, and the lesson's grade counts them; `at`, where it was flown (the engine frame, the sample its value
 comes from; null for an item of the whole flight), the debrief's pin; `comment`, the instructor's comment (the item's
 `comments.above` when Above average, `comments.below` when Below average or Unsatisfactory, none when Average) and
@@ -1121,6 +1121,7 @@ The flight's tests read `ai_flights.gd flight_facts()`: `IafAi.facts` (`iaf_ai::
 `landed`) and the lead's orders given.
 | `called:<call>` | the pilot made the radio call `<call>` (§8; the AWACS's `awacs:<request>`, the tanker's request `tanker`) |
 | `tanker:<event>` | the tanker's event for the player's jet came: `joined` (within 1 NM), `cleared_precontact`, `cleared_contact`, `contact`, `disconnect`, `breakaway`, `complete` ([../../docs/ai.md](../../docs/ai.md) §25) |
+| `steerpoint:<n>` | in the air within 1 NM of the route's steerpoint `<n>` (1 the first) |
 
 A mission's `end` takes the tests the scorer reads from the recording (`training::END_TESTS`): `power_off`,
 `engine_off`, `idle`, `aligned`, `parked` (stopped within 30 m of the start), `item:`, `called:` and `tanker:`. A phase that
@@ -1361,6 +1362,53 @@ off (`end`: `parked`, `engine_off`).
 jet from beside the tanker through the check-in, the vector, the request, pre-contact, contact and full, then checks
 its graded items. The budgets (60 minutes for 6.1, 75 for 6.2 to 6.4, 90 for the check ride) are inferred.
 
+### 16.10 Phase 3
+
+The six lessons of [training-plan.md](training-plan.md) §3, phase 3, each for the three jets at their home bases
+(`lessons/navigation.json`, the missions `<jet>_navigation_<lesson>`, menu ids 3311–3363), cold and dark on the jet's
+parking spot, the wind calm. Each takes off from the take-off missions' runway (Ramat David 27, Ramon 25R, Nevatim
+26L) and ends parked with the engine off; none asks for card items or tower calls but the check ride. The routes and
+the approach fixes are ours (inferred), placed away from the borders; a steerpoint's `agl_ft` marks a low-level leg
+([data-formats.md](data-formats.md) §5).
+
+| Lesson | Time, weather | The route | What it flies | Items |
+|--------|---------------|-----------|---------------|-------|
+| 3.1 Waypoint navigation | 08:00, clear | four steerpoints at 15,000 ft, 420 kt; the last on the runway's line, 15 NM out (12 at Ramat David) | the route on time, a straight-in | `steerpoint_miss`, `altitude_error`, `time_on_target` |
+| 3.2 Low-level navigation | 08:00, clear | four steerpoints at 500 ft above the ground, 420 kt | the low route, a climb, a straight-in | `steerpoint_miss`, `low_level_height_error`, `time_on_target` |
+| 3.3 Instrument approach | 08:00, `weather` heavy: the cloud deck from about 450 m above the ground to 5,500 m ([../../docs/rendering.md](../../docs/rendering.md) §10.1) | two fixes on the runway's line: 12 NM at 5,000 ft and 9 NM at 3,000 ft above the field, 300 kt | the departure in cloud, the TACAN to the fixes, the ILS to the decision height (200 ft) and a landing | `localizer_deviation`, `glideslope_deviation`, `approach_speed_error`, `touchdown_distance` |
+| 3.4 Systems failures | 08:00, clear | lesson 3.1's first two steerpoints at 12,000 ft | the F-16s: `gen_main`, `standby_gains`, `gen_epu`, `hyd_b` at 180, 330, 480 and 600 s after the lift-off; the F-35I: `gear_fault` on the roll at 100 kt, `gen_main`, `standby_gains` (§15) | `emergency_checklist`, `altitude_error` |
+| 3.5 At night | 20:00, clear | lesson 3.2's at 1,000 ft above the ground | the low route by night, the goggles or the night camera | `steerpoint_miss`, `low_level_height_error` |
+| 3.6 Check ride 3 | 20:00, clear | 3.1's first two steerpoints, 3.2's last two at 1,000 ft above the ground, 3.3's fixes | phases 1 to 3, the check ride's emergency (§13.4) | phases 1 to 3's (§13.1) |
+
+**What the items read** (`training.rs` `Nav`, in every lesson that grades them: phase 3's and the later check rides;
+every figure inferred). A steerpoint's pass is the jet's nearest airborne sample to it on its first approach within
+5 NM after the pass before (without one, the nearest of the rest of the flight); the samples the autopilot flies
+(`ap_mode` not 0) are not the pilot's. `touchdown_distance` and `emergency_checklist` are the field's measures of §16.6;
+the systems failures add their steps there.
+
+| Item | Flown value |
+|------|-------------|
+| `steerpoint_miss` | the largest distance of a pass from its steerpoint, NM |
+| `time_on_target` | the time from steerpoint 1's pass to the last's, less the planned time (each leg at the speed of the steerpoint it flies to), s |
+| `altitude_error` | after a failure in the air: the largest change of altitude in its first minute, ft; else on the legs between two steerpoints at one altitude, neither low, the largest difference from it, ft; the 1 NM round each steerpoint left out |
+| `low_level_height_error` | on the legs between two low steerpoints, the largest difference of the height above the ground from the leg's `agl_ft`, ft; the 1 NM round each steerpoint left out |
+| `localizer_deviation`, `glideslope_deviation` | the largest deviation in dots from 4 NM out down to 200 ft above the field, heading for the runway; one dot is half the ADI's full scale (1.25° of localizer, 0.35° of glide slope, `instruments::pnp_bars`), on the sim's ILS: a 5° path down to the lineup point along the runway's whole-degree heading (`iaf_flight::airbase::ils`) |
+| `approach_speed_error` | from the last steerpoint (the second fix) to the gear down, the largest difference of the calibrated airspeed (`iaf_avionics::release::kcas`) from 300 kt |
+| `emergency_checklist` (§16.6's, with the systems failures' steps) | a landing on a runway after the failure (every failure); `gen_epu` the displays dark, then back (the `power` column below 2, then 2: the EPU on by hand); `standby_gains` 12° of angle of attack at most, 230 to 650 kt calibrated with the gear up; `gear_fault` at most the jet's gear limit (`gear_limit.kcas`) + 10 kt calibrated |
+
+**The calls** name the next task only: the take-off and the turn to steerpoint 1, each steerpoint's pass
+(`steerpoint:<n>`, the next leg's figure), the climb into cloud (`alt:6000`) and the fixes, each failure as it comes
+(`failure:<id>`), the final, the roll-out and the shelter; the F-35I's instructor joins after the take-off (`join`).
+The check ride has none. The instructor's voice clips come from `iaf-sim voices`.
+
+**The weather** of lesson 3.3 is the mission's own (`weather` in the readable mission, the misc `weather` of the
+compiled one): Modern IAF has no Rain switch, so its `Settings.rain` is `mission` and a mission without a weather flies
+dry ([../../docs/rendering.md](../../docs/rendering.md) §10).
+
+`modern-iaf/tests/test_lessons_navigation.gd` checks the content for each jet, the cloud deck of lesson 3.3's mission,
+and flies lesson 3.1's route in the Barak and the Sufa on the NAV autopilot to its grades (the autopilot sinks about 500 ft in its turns and flies 382 kt, so only the steerpoints' distance is held to a grade). Open: the F-35I's route on the player's NAV autopilot, which bleeds to 165 kt in the first turn and stalls (the player's autopilot on the Adir's 6-DoF; the Adir's own tests fly the AI's autopilot); `training::tests::navigation_items_are_measured`
+the items from synthetic flights; `calls::tests::the_steerpoint_and_failure_calls_fire_at_their_step` the calls.
+
 ## 17. The instructor's calls
 The instructor's calls in flight ([training-plan.md](training-plan.md) §2.3) are data: each lesson's `calls` in its
 phase's lesson file (§16.1), read by `crates/iaf-tools/src/calls.rs` (module `calls`, the call engine). The game runs
@@ -1405,6 +1453,7 @@ the wind) along its centreline and across it. Every figure is inferred.
 | `called:<call>` | the pilot made the radio menu's call `<call>` (`sim_flight.gd` `called`, §8) |
 | `failure:<id>` | the failure `<id>` on (`IafFlight.failures` `active`); the engine fire only while it burns (`fire`), so a second fire is a new step |
 | `alt:<ft>` | in the air at least `<ft>` above the field's elevation |
+| `steerpoint:<n>` | in the air within 1 NM of the route's steerpoint `<n>` (1 the first; the frame's `route`, `terrain_view.gd` `route` in the engine frame) |
 | `aoa:<deg>` | in the air at an angle of attack of at least `<deg>` |
 | `g:<g>` | in the air at a load factor of at least `<g>` |
 | `called:<call>` | the pilot made the radio menu's call `<call>` (`sim_flight.gd` `called`, §8; an AWACS request answered `awacs:<request>`, the tanker's request `tanker`) |

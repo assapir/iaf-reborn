@@ -77,7 +77,8 @@ var _cam_vel := Vector3.ZERO
 var _drift_world := Vector3.ZERO
 
 
-## The flight's rain level's row; {} = dry (the switch Off, or a Clear mission).
+## The flight's rain level's row; {} = dry (the switch Off, or a Clear mission). "mission" (Modern IAF, which has no
+## Rain switch): only a mission's own weather.
 static func level() -> Dictionary:
 	if Settings.rain == "off":
 		return {}

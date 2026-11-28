@@ -1,0 +1,157 @@
+{
+  "category": "training",
+  "time": "20:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f35i",
+    "base": "Nevatim",
+    "at": "parking",
+    "elevation_m": 405
+  },
+  "runway": "26L",
+  "route": [
+    {
+      "lat": 31.05,
+      "lon": 34.78,
+      "alt_m": 4572,
+      "speed_kmh": 778
+    },
+    {
+      "lat": 30.75,
+      "lon": 34.9,
+      "alt_m": 4572,
+      "speed_kmh": 778
+    },
+    {
+      "lat": 30.8,
+      "lon": 35.2,
+      "alt_m": 605,
+      "speed_kmh": 778,
+      "agl_ft": 1000
+    },
+    {
+      "lat": 31.1,
+      "lon": 35.38,
+      "alt_m": 55,
+      "speed_kmh": 778,
+      "agl_ft": 1000
+    },
+    {
+      "lat": 31.2579,
+      "lon": 35.26056,
+      "alt_m": 1929,
+      "speed_kmh": 556
+    },
+    {
+      "lat": 31.24654,
+      "lon": 35.20363,
+      "alt_m": 1319,
+      "speed_kmh": 556
+    }
+  ],
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "a night lesson after dark (sunset at the bases about 16:45 in winter; training-plan.md §1: check ride 3 is flown at night)",
+    "wind_kt": "calm (inferred: the route's times and the approach are learnt without a wind)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "runway": "the base's runway the take-off missions use; the tower turns it into the wind",
+    "route": "lesson 3.1's first two steerpoints, lesson 3.2's last two at 1,000 ft above the ground, lesson 3.3's two fixes (inferred)",
+    "training.time_budget_s": "the start-up, the taxi and the lesson's flight with time to spare (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.end": "the lesson ends with the jet back on its spot and the engine off (training.md §16.3)",
+    "failures": "none of its own: the check ride's unannounced emergency comes from training.md §13.4",
+    "training.checklist": "the cards from the start to the shutdown with the night lighting: a check ride covers phase 1's start-up and taxi (data/checklists, training.md §12)",
+    "training.calls": "the tower's four ground calls: phase 1's tower_calls item (training.md §3.3)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f35i_navigation_check",
+  "menu_id": 3363,
+  "lesson": "navigation.check",
+  "title": {
+    "en": "Check ride 3",
+    "he": "טיסת מבחן 3"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "calls": [
+      "startup",
+      "taxi",
+      "lineup",
+      "takeoff"
+    ],
+    "checklist": [
+      "survival_kit",
+      "loose_items",
+      "park_brake",
+      "master_arm_safe",
+      "alt_gear_norm",
+      "land_taxi_off",
+      "gear_down",
+      "main_power",
+      "starter",
+      "engine",
+      "selftest",
+      "hmd_night",
+      "hmd_preflight",
+      "displays",
+      "fuel_joker",
+      "icaw",
+      "canopy",
+      "seat_arm",
+      "taxi_light",
+      "park_brake_off",
+      "fcs_reset",
+      "flight_controls",
+      "cautions",
+      "landing_light",
+      "gear_up",
+      "landing_light_off",
+      "ops_check",
+      "landing_light_on",
+      "gear_down_ldg",
+      "gear_down_call",
+      "taxi_light_in",
+      "arm_safe",
+      "seat_safe",
+      "park_brake_on",
+      "throttle_off",
+      "batt_off",
+      "walkaround"
+    ],
+    "time_budget_s": 3600,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

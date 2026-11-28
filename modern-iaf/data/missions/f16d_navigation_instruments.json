@@ -1,0 +1,88 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16d",
+    "base": "Ramat David",
+    "at": "parking",
+    "elevation_m": 56
+  },
+  "runway": "27",
+  "route": [
+    {
+      "lat": 32.67924,
+      "lon": 35.42814,
+      "alt_m": 1580,
+      "speed_kmh": 556
+    },
+    {
+      "lat": 32.67621,
+      "lon": 35.36885,
+      "alt_m": 970,
+      "speed_kmh": 556
+    }
+  ],
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred",
+    "weather": "inferred"
+  },
+  "notes": {
+    "time": "a day lesson (training-plan.md §1: every lesson but the night lesson and the night check rides by day)",
+    "wind_kt": "calm (inferred: the route's times and the approach are learnt without a wind)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "runway": "the base's runway the take-off missions use; the tower turns it into the wind",
+    "route": "the two approach fixes on the runway's extended centreline: 12 NM at 5,000 ft and 9 NM at 3,000 ft above the field, 300 kt (inferred)",
+    "training.time_budget_s": "the start-up, the taxi and the lesson's flight with time to spare (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.end": "the lesson ends with the jet back on its spot and the engine off (training.md §16.3)",
+    "weather": "heavy rain: the cloud deck from about 450 m above the ground to 5,500 m (docs/rendering.md §10.1), so the departure and the fixes are flown in cloud and the runway shows below about 1,500 ft"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLRD elevation 185 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f16d_navigation_instruments",
+  "menu_id": 3331,
+  "lesson": "navigation.instruments",
+  "title": {
+    "en": "Instrument approach",
+    "he": "גישת מכשירים"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "calls": [],
+    "checklist": [],
+    "time_budget_s": 2700,
+    "end_hold_s": 5,
+    "goals": []
+  },
+  "weather": "heavy"
+}

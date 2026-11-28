@@ -27,8 +27,8 @@ const PROFILE := {
 	"hud_ladder": "conformal",
 	"bomb_release": "real",
 	"briefing_map": "modern",
-	# The weather is the mission's (no Rain row): "off" until a mission brings its own.
-	"rain": "off",
+	# The weather is the mission's (no Rain row): dry until a mission brings its own (weather.gd level).
+	"rain": "mission",
 	"cockpit_3d": "3d",
 	"textured_sky": false,
 	"hud_style": "real",

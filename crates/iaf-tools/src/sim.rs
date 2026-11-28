@@ -726,8 +726,17 @@ fn has_route(r: &Value) -> bool {
 
 /// The figures of a mission file, of each of its flights and of each placed unit that need a source (§1 of
 /// data-formats.md): a whole route is one figure.
-const MISSION_FIGURES: [&str; 8] =
-    ["time", "wind_kt", "wind_from", "start.lat", "start.lon", "start.heading", "start.elevation_m", "route"];
+const MISSION_FIGURES: [&str; 9] = [
+    "time",
+    "wind_kt",
+    "wind_from",
+    "start.lat",
+    "start.lon",
+    "start.heading",
+    "start.elevation_m",
+    "route",
+    "weather",
+];
 const FLIGHT_FIGURES: [&str; 5] = ["start.lat", "start.lon", "start.heading", "start.alt_m", "route"];
 const PLACED_FIGURES: [&str; 6] = ["lat", "lon", "heading", "alt_m", "route", "speed_kmh"];
 
@@ -866,6 +875,12 @@ pub fn compile_mission(
     misc[hex("mission", "win")] = texts(f, "win")?["en"].clone();
     misc[hex("mission", "lose")] = texts(f, "lose")?["en"].clone();
     misc[hex("mission", "category")] = json!(f.v["category"].as_str().unwrap_or(""));
+    // Ours, unhexed (as the mission editor's): the mission's own weather, its rain and cloud deck
+    // (docs/rendering.md §10; Settings.mission_weather).
+    if let Some(w) = f.v["weather"].as_str() {
+        ensure!(["clear", "light", "heavy"].contains(&w), "{}: weather {w:?}: clear, light or heavy", f.name);
+        misc["weather"] = json!(w);
+    }
     // The player's flight (Kidon 1): the start, its unit and its route.
     let start = &f.v["start"];
     let unit = db.unit(start["unit"].as_str().unwrap_or("")).with_context(|| f.name.clone())?;

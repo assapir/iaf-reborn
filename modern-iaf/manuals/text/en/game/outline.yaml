@@ -45,6 +45,7 @@ chapters:
   sections:
   - {id: course-ground, title: "Phase 1: Ground and start-up", file: game/missions-training/course-ground.typ}
   - {id: course-pattern, title: "Phase 2: Basic handling, the pattern and landing", file: game/missions-training/course-pattern.typ}
+  - {id: course-navigation, title: "Phase 3: Navigation and instruments", file: game/missions-training/course-navigation.typ}
   - {id: course-formation, title: "Phase 4: Formation and flight lead", file: game/missions-training/course-formation.typ}
   - {id: instructor, title: "The instructor", file: game/missions-training/instructor.typ}
   - {id: course-control, title: "Phase 6: AWACS, ground control and the tanker", file: game/missions-training/course-control.typ}

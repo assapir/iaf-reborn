@@ -1,0 +1,101 @@
+{
+  "category": "training",
+  "time": "20:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16d",
+    "base": "Ramat David",
+    "at": "parking",
+    "elevation_m": 56
+  },
+  "runway": "27",
+  "route": [
+    {
+      "lat": 32.55,
+      "lon": 34.97,
+      "alt_m": 405,
+      "speed_kmh": 778,
+      "agl_ft": 1000
+    },
+    {
+      "lat": 32.9,
+      "lon": 35.1,
+      "alt_m": 325,
+      "speed_kmh": 778,
+      "agl_ft": 1000
+    },
+    {
+      "lat": 32.85,
+      "lon": 35.42,
+      "alt_m": 555,
+      "speed_kmh": 778,
+      "agl_ft": 1000
+    },
+    {
+      "lat": 32.62,
+      "lon": 35.33,
+      "alt_m": 385,
+      "speed_kmh": 778,
+      "agl_ft": 1000
+    }
+  ],
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "a night lesson after dark (sunset at the bases about 16:45 in winter; training-plan.md §1: check ride 3 is flown at night)",
+    "wind_kt": "calm (inferred: the route's times and the approach are learnt without a wind)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "runway": "the base's runway the take-off missions use; the tower turns it into the wind",
+    "route": "lesson 3.2's steerpoints at 1,000 ft above the ground (agl_ft; inferred: a higher floor by night)",
+    "training.time_budget_s": "the start-up, the taxi and the lesson's flight with time to spare (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.end": "the lesson ends with the jet back on its spot and the engine off (training.md §16.3)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLRD elevation 185 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f16d_navigation_night",
+  "menu_id": 3351,
+  "lesson": "navigation.night",
+  "title": {
+    "en": "At night: low-level navigation",
+    "he": "בלילה: ניווט בגובה נמוך"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "calls": [],
+    "checklist": [],
+    "time_budget_s": 2700,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

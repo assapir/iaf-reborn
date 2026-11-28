@@ -2508,6 +2508,8 @@ Mission tab (mission-editor.md §3) or in Mission Creator Better (front-end.md �
 
 - **Off** never rains, whatever the mission says: it is the performance escape.
 - **Light / Heavy** is the level for the missions without a weather of their own; a mission's own weather wins.
+- **Mission** (Modern IAF's own value, fixed by its profile: the sim has no Rain switch) rains only in a mission with a
+  weather of its own (its readable mission's `weather`, modern-iaf/docs/data-formats.md §5); every other flies dry.
 - **Random** picks Clear, Light or Heavy rain once per flight, when the mission's files are read
   (`MissionRuntime.mission_files` → `Settings.mission_weather`, into `Settings.flight_weather`); the flight's end
   clears it (`Settings.clear_runway_wind`), so the next flight picks again.

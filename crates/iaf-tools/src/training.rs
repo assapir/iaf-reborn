@@ -1690,14 +1690,21 @@ fn lesson(
         Some(_) => {}
     }
     let check_ride = c.is_check_ride(key);
-    let came = failures(f);
+    let came_at = failures(f);
+    // Phase 3's items (a route's steerpoints, the ILS) in any lesson that grades them: its own and the later check
+    // rides.
+    let nav = Nav::of(f, mission, airbases).ok();
+    let came = &came_at;
     let came: Vec<(&str, bool)> = came.iter().map(|x| (x.0.as_str(), f.samples[x.1].on_ground)).collect();
     let graded = c
         .graded_items(p, l, &came)
         .into_iter()
         .filter_map(|id| {
             let i = c.item(&id)?;
-            let (mut flown, mut at) = measure(f, &id, mission, r, calls);
+            let (mut flown, mut at) = match nav.as_ref().and_then(|n| n.measure(f, &id, &came_at)) {
+                Some(v) => v,
+                None => measure(f, &id, mission, r, calls),
+            };
             if let (None, Some(fd)) = (flown, &field) {
                 (flown, at) = self::flown(f, &id, fd, figures);
             }
@@ -1860,6 +1867,8 @@ struct Field {
     ends: Vec<Runway>,
     used: Runway,
     elevation_m: f64,
+    /// The jet's gear-down speed limit, kt calibrated (its aircraft definition's `gear_limit`).
+    gear_kcas: Option<f64>,
 }
 
 impl Field {
@@ -1868,7 +1877,10 @@ impl Field {
         let base = sim_bases::base(airbase, "start.base")?;
         let ends = base.runways.iter().flat_map(|r| r.designators.clone()).map(|d| runway(airbase, &d));
         let used = runway(airbase, base.mission_runway(mission).unwrap_or(""))?;
-        Ok(Field { ends: ends.collect::<Result<_>>()?, used, elevation_m: base.elevation })
+        let airframe = course::course().jets.get(mission["start"]["unit"].as_str().unwrap_or("")).cloned();
+        let gear_kcas = airframe
+            .and_then(|j| iaf_flight::airframe::get(j["airframe"].as_str()?)?.gear_limit.as_ref().map(|g| g.kcas));
+        Ok(Field { ends: ends.collect::<Result<_>>()?, used, elevation_m: base.elevation, gear_kcas })
     }
 
     /// The runway end the jet at `x` is on, rolling or landing on its heading (within LEG_DEG).
@@ -1887,6 +1899,199 @@ impl Field {
     fn on_final(&self, x: &Sample) -> bool {
         let low = x.agl_m.is_some_and(|h| (FINAL_AGL_M[0]..=FINAL_AGL_M[1]).contains(&h));
         !x.on_ground && low && self.toward(x, FINAL_DEG).is_some_and(|(out, c)| out <= FINAL_M && c <= FINAL_CROSS_M)
+    }
+}
+
+// --- The navigation and instruments phase's items (training.md §16.10) -----------------------------------------------
+
+/// A steerpoint's turn: the samples within this of a steerpoint (m) are left out of the height held (inferred: a turn
+/// to the next leg at 420 kt and 45° of bank is about 2 NM across).
+const STEER_TURN_M: f64 = 1_852.0;
+/// A steerpoint's pass is looked for on the first approach within 5 NM of it, m (inferred: a later leg home may come
+/// nearer).
+const PASS_M: f64 = 9_260.0;
+/// One dot of the ILS: the ADI's full scale is two dots, ±2.5° on the localizer and ±0.7° on the glide slope
+/// (iaf_flight::instruments::PNP_LOC_FULL_DEG, PNP_GS_FULL_DEG).
+const LOC_DOT_DEG: f64 = 1.25;
+const GS_DOT_DEG: f64 = 0.35;
+/// The approach is graded from this far before the threshold (m, 4 NM) down to the decision height above the field
+/// (ft; inferred).
+const APPROACH_OUT_M: f64 = 7_408.0;
+const DECISION_FT: f64 = 200.0;
+/// The instrument approach's speed before the gear comes down, kt indicated (inferred).
+pub const APPROACH_KT: f64 = 300.0;
+/// The standby gains' limits (training.md §15): an angle of attack of 12° at most, 240 to 650 kt with the gear up.
+const STBY_AOA_DEG: f64 = 12.0;
+const STBY_KT: [f64; 2] = [240.0, 650.0];
+
+/// A steerpoint of the mission's route: its place in the engine frame, its altitude (m), its planned speed (km/h)
+/// and, on a low-level leg, the height above the ground it is flown at (`agl_ft`, ft).
+struct Steer {
+    at: [f64; 2],
+    alt_m: f64,
+    kmh: f64,
+    agl_ft: Option<f64>,
+}
+
+/// The mission's route and runway for the navigation phase's items (training.md §16.10), and the field's elevation (m).
+struct Nav {
+    route: Vec<Steer>,
+    runway: Option<Runway>,
+    field_m: f64,
+}
+
+/// The time a failure's altitude is graded from its start, s (inferred: the first minute, while the pilot reads the
+/// lights and runs the steps).
+const FAILURE_HOLD_S: f64 = 60.0;
+
+impl Nav {
+    fn of(f: &Flight, mission: &Value, airbases: &[Value]) -> Result<Nav> {
+        let mut route = vec![];
+        for p in mission["route"].as_array().into_iter().flatten() {
+            route.push(Steer {
+                at: sim::place(p, "route")?,
+                alt_m: p["alt_m"].as_f64().unwrap_or(0.0),
+                kmh: p["speed_kmh"].as_f64().unwrap_or(0.0),
+                agl_ft: p["agl_ft"].as_f64(),
+            });
+        }
+        let runway = match mission["runway"].as_str() {
+            Some(d) => Some(runway(airbase_of(mission, airbases)?, d)?),
+            None => None,
+        };
+        let s0 = &f.samples[0];
+        Ok(Nav { route, runway, field_m: s0.alt_m.unwrap_or(0.0) - s0.agl_m.unwrap_or(0.0) })
+    }
+
+    /// Each steerpoint's pass in order: the airborne sample nearest it after the pass before, with its distance (m).
+    fn passes(&self, s: &[Sample]) -> Vec<(usize, f64)> {
+        let mut out: Vec<(usize, f64)> = vec![];
+        for p in &self.route {
+            let from = out.last().map_or(0, |x| x.0);
+            let d = |i: usize| (i, (s[i].x - p.at[0]).hypot(s[i].y - p.at[1]));
+            let air = || (from..s.len()).filter(|&i| !s[i].on_ground).map(d);
+            // The nearest sample of the first approach within PASS_M, else the nearest of the rest of the flight.
+            let near = match air().find(|x| x.1 <= PASS_M) {
+                Some((a, _)) => (a..s.len())
+                    .take_while(|&i| !s[i].on_ground && d(i).1 <= PASS_M)
+                    .map(d)
+                    .min_by(|a, b| a.1.total_cmp(&b.1)),
+                None => air().min_by(|a, b| a.1.total_cmp(&b.1)),
+            };
+            match near {
+                Some(n) => out.push(n),
+                None => break,
+            }
+        }
+        out
+    }
+
+    /// The planned time from steerpoint 1 to the last, s: each leg at the speed of the steerpoint it flies to.
+    fn planned_s(&self) -> f64 {
+        let leg = |w: &[Steer]| (w[1].at[0] - w[0].at[0]).hypot(w[1].at[1] - w[0].at[1]) / (w[1].kmh / 3.6);
+        self.route.windows(2).filter(|w| w[1].kmh > 0.0).map(leg).sum()
+    }
+
+    /// Phase 3's item `id` (training.md §16.10): (the flown value, its sample); None for an item this does not
+    /// measure. `came`: the flight's failures with the sample each came at.
+    fn measure(&self, f: &Flight, id: &str, came: &[(String, usize)]) -> Option<(Option<f64>, Option<usize>)> {
+        let s = &f.samples;
+        let own = |i: &usize| s[*i].ap_mode == 0.0 && !s[*i].on_ground;
+        // The largest of (value, sample) by magnitude, its sign kept.
+        let worst = |v: &mut dyn Iterator<Item = (f64, usize)>| -> (Option<f64>, Option<usize>) {
+            match v.max_by(|a, b| a.0.abs().total_cmp(&b.0.abs())) {
+                Some((x, i)) => (Some(x), Some(i)),
+                None => (None, None),
+            }
+        };
+        let passes = self.passes(s);
+        let whole = passes.len() == self.route.len() && self.route.len() > 1;
+        // The pilot's samples on leg k (from steerpoint k-1 to k, 1 the second), out of each steerpoint's turn.
+        let leg = |k: usize| {
+            let (a, b) = (passes[k - 1].0, passes[k].0);
+            (a..=b)
+                .filter(own)
+                .filter(move |&i| self.route.iter().all(|p| (s[i].x - p.at[0]).hypot(s[i].y - p.at[1]) > STEER_TURN_M))
+        };
+        let v = match id {
+            "steerpoint_miss" if !self.route.is_empty() => worst(&mut passes.iter().map(|&(i, d)| (d / 1852.0, i))),
+            "time_on_target" if whole => {
+                let (a, b) = (passes[0].0, passes[passes.len() - 1].0);
+                (Some(s[b].t - s[a].t - self.planned_s()), Some(b))
+            }
+            // The failures' first minute in the air (a failure on the ground left out); without one, the level legs
+            // between two steerpoints at one altitude, neither of them low.
+            "altitude_error" if !came.is_empty() || whole => {
+                let air: Vec<usize> = came.iter().map(|c| c.1).filter(|&i| !s[i].on_ground).collect();
+                if !air.is_empty() {
+                    worst(&mut air.iter().flat_map(|&i| {
+                        (i..s.len())
+                            .take_while(move |&k| s[k].t - s[i].t <= FAILURE_HOLD_S)
+                            .filter(own)
+                            .map(move |k| ((s[k].alt_m.unwrap_or(0.0) - s[i].alt_m.unwrap_or(0.0)) * FT_PER_M, k))
+                    }))
+                } else {
+                    let level = |k: &usize| {
+                        let (a, b) = (&self.route[k - 1], &self.route[*k]);
+                        a.agl_ft.is_none() && b.agl_ft.is_none() && (a.alt_m - b.alt_m).abs() < 30.0
+                    };
+                    worst(&mut (1..passes.len()).filter(level).flat_map(|k| {
+                        let alt = self.route[k].alt_m;
+                        leg(k).map(move |i| ((s[i].alt_m.unwrap_or(0.0) - alt) * FT_PER_M, i))
+                    }))
+                }
+            }
+            "low_level_height_error" if whole => {
+                let low = |k: &usize| self.route[k - 1].agl_ft.is_some() && self.route[*k].agl_ft.is_some();
+                worst(&mut (1..passes.len()).filter(low).flat_map(|k| {
+                    let h = self.route[k].agl_ft.unwrap_or(0.0);
+                    leg(k).filter_map(move |i| Some((s[i].agl_m? * FT_PER_M - h, i)))
+                }))
+            }
+            "localizer_deviation" | "glideslope_deviation" | "approach_speed_error" => {
+                let rw = self.runway.as_ref()?;
+                let lineup = rw.start_m + sim_bases::LINEUP_IN_M;
+                // (along before the lineup point m, the localizer's and the glide slope's deviation, deg).
+                let ils = |x: &Sample| {
+                    let (along, right) = rw.local(x.x, x.y);
+                    let out = lineup - along;
+                    // The sim's localizer runs down the runway's whole-degree heading through the lineup point.
+                    let loc = (rw.heading - rw.heading.round()) - right.atan2(out).to_degrees();
+                    let gs = (x.alt_m.unwrap_or(0.0) - self.field_m).atan2(out).to_degrees()
+                        + f64::from(iaf_flight::airbase::ILS_GLIDE_DEG);
+                    (out, loc, gs)
+                };
+                let toward = |x: &Sample| angle(x.heading, rw.heading).abs() <= 30.0;
+                let final_ = |i: &usize| {
+                    let (out, _, _) = ils(&s[*i]);
+                    let h = s[*i].agl_m.unwrap_or(0.0) * FT_PER_M;
+                    toward(&s[*i]) && (0.0..=APPROACH_OUT_M).contains(&out) && h >= DECISION_FT
+                };
+                match id {
+                    "localizer_deviation" => worst(
+                        &mut (0..s.len()).filter(own).filter(final_).map(|i| (ils(&s[i]).1.abs() / LOC_DOT_DEG, i)),
+                    ),
+                    "glideslope_deviation" => worst(
+                        &mut (0..s.len()).filter(own).filter(final_).map(|i| (ils(&s[i]).2.abs() / GS_DOT_DEG, i)),
+                    ),
+                    // Before the gear: from the last steerpoint (the approach fix) to the gear down.
+                    "approach_speed_error" => {
+                        let from = passes.last().map_or(0, |p| p.0);
+                        let to = (from..s.len()).find(|&i| s[i].gear && !s[i].on_ground).unwrap_or(from);
+                        worst(&mut (from..to).filter(own).map(|i| {
+                            (
+                                iaf_avionics::release::kcas(s[i].speed_kt / 1.943_844, s[i].alt_m.unwrap_or(0.0))
+                                    - APPROACH_KT,
+                                i,
+                            )
+                        }))
+                    }
+                    _ => (None, None),
+                }
+            }
+            _ => return None,
+        };
+        Some(v)
     }
 }
 
@@ -1938,6 +2143,7 @@ fn flown(
     let after = |id: &'static str| failures(f).into_iter().filter(move |(k, _)| k == id).map(|(_, i)| i);
     let idle = |x: &Sample| x.engine && x.rpm.unwrap_or(0.0) >= IDLE_RPM;
     let lever = iaf_flight::sixdof::failures::FIRE_MIN_LEVER;
+    let kcas = |x: &Sample| iaf_avionics::release::kcas(x.speed_kt / 1.943_844, x.alt_m.unwrap_or(0.0));
     let none = (None, None);
     match id {
         "max_centreline_offset" => {
@@ -2045,6 +2251,31 @@ fn flown(
                         let back = rest.iter().position(|x| x.throttle <= 0.0);
                         vec![back.is_some(), back.is_some_and(|k| rest[k..].iter().any(|x| !x.on_ground && idle(x)))]
                     }
+                    // The systems failures (training.md §16.10): their limits held after them, and a landing on a runway.
+                    "standby_gains" => vec![
+                        rest.iter()
+                            .filter(|x| own(x) && !x.on_ground)
+                            .all(|x| x.aoa.is_none_or(|a| a <= STBY_AOA_DEG + 0.5)),
+                        rest.iter()
+                            .filter(|x| own(x) && !x.on_ground && !x.gear)
+                            .all(|x| (STBY_KT[0] - 10.0..=STBY_KT[1]).contains(&kcas(x))),
+                        touchdowns().any(|(_, k, _)| k > i),
+                    ],
+                    // The displays back on the EPU: the power down below the displays', then up again.
+                    "gen_epu" => {
+                        let dark = rest.iter().position(|x| x.power.is_some_and(|p| p < 2));
+                        vec![
+                            dark.is_some_and(|k| rest[k..].iter().any(|x| x.power == Some(2))),
+                            touchdowns().any(|(_, k, _)| k > i),
+                        ]
+                    }
+                    "gear_fault" => vec![
+                        rest.iter()
+                            .filter(|x| own(x) && !x.on_ground)
+                            .all(|x| field.gear_kcas.is_none_or(|g| kcas(x) <= g + 10.0)),
+                        touchdowns().any(|(_, k, _)| k > i),
+                    ],
+                    "hyd_a" | "hyd_b" | "gen_main" | "gen_both" => vec![touchdowns().any(|(_, k, _)| k > i)],
                     _ => vec![],
                 };
                 of += steps.len();
@@ -2842,6 +3073,93 @@ mod tests {
 
     fn value(d: &Debrief, id: &str) -> f64 {
         d.items.iter().find(|i| i.id == id).and_then(|i| i.value).unwrap_or(f64::NAN)
+    }
+
+    /// Phase 3's items from synthetic flights (training.md §16.10): lesson 3.1's route flown 300 m off each steerpoint,
+    /// 50 m high and 10 s late; lesson 3.3's final one dot high and half a dot right, its touchdown 200 m past the
+    /// threshold; the generators and the EPU's start failed, the EPU started by hand and the jet landed.
+    #[test]
+    fn navigation_items_are_measured() {
+        let ab = airbases();
+        let m = mission("f16i_navigation_steerpoints");
+        let ground =
+            Sample { alt_m: Some(648.0), agl_m: Some(0.0), on_ground: true, engine: true, ..Default::default() };
+        let mut f = Flight { samples: vec![ground.clone()], ..Default::default() };
+        let pts: Vec<[f64; 2]> = m["route"].as_array().unwrap().iter().map(|p| sim::place(p, "t").unwrap()).collect();
+        let v = 778.0 / 3.6;
+        let mut t = 100.0;
+        for k in 0..pts.len() {
+            let (a, b) = (if k == 0 { pts[0] } else { pts[k - 1] }, pts[k]);
+            let n = ((b[0] - a[0]).hypot(b[1] - a[1]) / v).round().max(1.0) as usize;
+            for i in 1..=n {
+                let w = i as f64 / n as f64;
+                let air =
+                    Sample { on_ground: false, agl_m: Some(3000.0), alt_m: Some(4572.0 + 50.0), ..ground.clone() };
+                f.samples.push(Sample { t, x: a[0] + (b[0] - a[0]) * w + 300.0, y: a[1] + (b[1] - a[1]) * w, ..air });
+                t += 1.0;
+            }
+            if k == 1 {
+                t += 10.0;
+            }
+        }
+        let nav = Nav::of(&f, &m, &ab).unwrap();
+        let get = |id: &str, came: &[(String, usize)]| nav.measure(&f, id, came).unwrap().0.unwrap();
+        assert!((get("steerpoint_miss", &[]) - 300.0 / 1852.0).abs() < 0.01, "{}", get("steerpoint_miss", &[]));
+        assert!((get("altitude_error", &[]) - 50.0 * FT_PER_M).abs() < 1.0, "{}", get("altitude_error", &[]));
+        assert!((get("time_on_target", &[]) - 10.0).abs() < 3.0, "{}", get("time_on_target", &[]));
+        assert!(nav.measure(&f, "low_level_height_error", &[]).unwrap().0.is_none(), "no low leg in 3.1");
+        // Lesson 3.3's final.
+        let m = mission("f16i_navigation_instruments");
+        let rw = runway(airbase_of(&m, &ab).unwrap(), "25R").unwrap();
+        let lineup = rw.start_m + sim_bases::LINEUP_IN_M;
+        let mut f = Flight { samples: vec![ground.clone()], ..Default::default() };
+        let tilt = rw.heading - rw.heading.round();
+        for (i, out) in (500..7000).step_by(100).rev().enumerate() {
+            let out = out as f64;
+            let right = out * (tilt - 0.625).to_radians().tan();
+            let h = out * (5.0 + 0.35_f64).to_radians().tan();
+            let along = lineup - out;
+            let (x, y) = (
+                rw.from[0] + rw.dir[0] * along + rw.dir[1] * right,
+                rw.from[1] + rw.dir[1] * along - rw.dir[0] * right,
+            );
+            let s = Sample {
+                t: 200.0 + i as f64,
+                x,
+                y,
+                alt_m: Some(648.0 + h),
+                agl_m: Some(h),
+                heading: rw.heading,
+                gear: true,
+                on_ground: false,
+                ..ground.clone()
+            };
+            f.samples.push(s);
+        }
+        let nav = Nav::of(&f, &m, &ab).unwrap();
+        let get = |id: &str| nav.measure(&f, id, &[]).unwrap().0.unwrap();
+        assert!((get("glideslope_deviation") - 1.0).abs() < 0.05, "{}", get("glideslope_deviation"));
+        assert!((get("localizer_deviation") - 0.5).abs() < 0.05, "{}", get("localizer_deviation"));
+        assert!(nav.measure(&f, "touchdown_distance", &[]).is_none(), "the field's own measure");
+        // The EPU started by hand (the displays dark, then back) and the landing: every step done; without it, half.
+        let td = rw.start_m + 200.0;
+        let (x, y) = (rw.from[0] + rw.dir[0] * td, rw.from[1] + rw.dir[1] * td);
+        let mut f2 = Flight { samples: f.samples.clone(), ..Default::default() };
+        f2.samples.push(Sample { t: 300.0, x, y, heading: rw.heading, gear: true, ..ground.clone() });
+        f2.events.push(json!({"t": 300.0, "event": "touchdown", "sink_ms": 2.0}));
+        f2.events.push(json!({"t": f2.samples[5].t, "event": "failure", "failure": "gen_epu"}));
+        for s in &mut f2.samples[5..] {
+            s.power = Some(1);
+        }
+        let field = Field::of(&m, &ab).unwrap();
+        assert_eq!(flown(&f2, "emergency_checklist", &field, None).0, Some(50.0));
+        f2.samples[20].power = Some(2);
+        assert_eq!(flown(&f2, "emergency_checklist", &field, None).0, Some(100.0));
+        let came = vec![("gen_epu".to_string(), 5)];
+        // A failure's minute: the altitude held from its start.
+        f2.samples[6].alt_m = f2.samples[5].alt_m.map(|a| a - 30.0);
+        let a = nav.measure(&f2, "altitude_error", &came).unwrap().0.unwrap();
+        assert!(a < -98.0, "{a}");
     }
 
     /// Every lesson's `checklist` names items of its jet's checklist card (training.md §12), once each, in the card's

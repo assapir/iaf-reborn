@@ -38,6 +38,8 @@ const CLIMB_FPM: f64 = 300.0;
 const SLOWED_KT: f64 = 40.0;
 /// Back at the spot the flight started from, m (inferred: a shelter's pad).
 const PARKED_M: f64 = 30.0;
+/// At a steerpoint: within 1 NM of it, m (inferred: the HUD's steering turns the jet to the next leg about there).
+const STEER_M: f64 = 1_852.0;
 
 /// A test of the flight's state a call waits for (training.md §16.3; its names `course::TESTS`, `course::ARG_TESTS`).
 #[derive(Debug, Clone, PartialEq)]
@@ -100,6 +102,8 @@ pub enum Test {
     LeadOrder(String),
     /// The tanker's event for the player's jet came (`course::TANKER_EVENTS`, training.md §16.3).
     Tanker(String),
+    /// In the air within STEER_M of the route's steerpoint (1 the first).
+    Steerpoint(usize),
 }
 
 impl Test {
@@ -140,6 +144,9 @@ impl Test {
                 }
                 Some(("lead_order", a)) if !a.is_empty() => Test::LeadOrder(a.into()),
                 Some(("tanker", a)) if course::TANKER_EVENTS.contains(&a) => Test::Tanker(a.into()),
+                Some(("steerpoint", a)) if a.parse::<usize>().is_ok_and(|n| n > 0) => {
+                    Test::Steerpoint(a.parse().unwrap_or(1))
+                }
                 _ => bail!("calls: \"{t}\" is no test"),
             },
         })
@@ -327,6 +334,8 @@ pub struct Now {
     pub lead_orders: Vec<String>,
     /// The tanker's events for the player's jet so far (`course::TANKER_EVENTS`).
     pub tanker: Vec<String>,
+    /// The route's steerpoints in the engine frame, m, the first first.
+    pub route: Vec<[f64; 2]>,
 }
 
 /// A line said: its call, its clip, its English and Hebrew subtitles.
@@ -464,6 +473,7 @@ impl Calls {
             Test::FlightLanded => s.flight_landed,
             Test::LeadOrder(o) => s.lead_orders.contains(o),
             Test::Tanker(e) => s.tanker.contains(e),
+            Test::Steerpoint(n) => air && s.route.get(n - 1).is_some_and(|p| (s.x - p[0]).hypot(s.y - p[1]) <= STEER_M),
         }
     }
 
@@ -532,6 +542,7 @@ mod tests {
             "lead_order:tac_right",
             "called:awacs:checkin",
             "tanker:contact",
+            "steerpoint:4",
         ]) {
             assert!(Test::of(t).is_ok(), "{t}");
         }
@@ -604,6 +615,46 @@ mod tests {
         c.tick(&n);
         n.failures.push("engine_fire".into());
         assert_eq!(c.tick(&n).len(), 1, "the flight's fire");
+    }
+
+    /// Lesson 3.1 (navigation.json) in the Sufa: each steerpoint's call within a mile of it, in the air, in order; and
+    /// lesson 3.4's failure calls as each failure comes, the Adir's gear fault its own.
+    #[test]
+    fn the_steerpoint_and_failure_calls_fire_at_their_step() {
+        let b = ramon();
+        let mut c = Calls::open("navigation.steerpoints", "f16i", &b, "25R", true).unwrap();
+        c.calls.retain(|x| x.id.starts_with("sp"));
+        let route = vec![
+            [700_000.0, 3_420_000.0],
+            [710_000.0, 3_400_000.0],
+            [720_000.0, 3_410_000.0],
+            [715_000.0, 3_415_000.0],
+        ];
+        let mut n = Now { alt_ft: 15_000.0, route: route.clone(), ..Now::default() };
+        let mut flown: Vec<String> = vec![];
+        for (k, p) in route.iter().enumerate() {
+            [n.x, n.y] = [p[0] + 2_500.0, p[1]];
+            assert!(c.tick(&n).is_empty(), "steerpoint {} not yet: 2.5 km out", k + 1);
+            n.x = p[0] + 1_000.0;
+            n.on_ground = k == 0;
+            flown.extend(c.tick(&n).into_iter().map(|s| s.call));
+            n.on_ground = false;
+            flown.extend(c.tick(&n).into_iter().map(|s| s.call));
+        }
+        assert_eq!(flown, ["sp1", "sp2", "sp3", "sp4"]);
+        assert!(Test::of("steerpoint:0").is_err() && Test::of("steerpoint:x").is_err());
+        let mut c = Calls::open("navigation.systems", "f16i", &b, "25R", true).unwrap();
+        c.calls.retain(|x| x.id.starts_with('g') || ["epu", "hyd"].contains(&x.id.as_str()));
+        assert_eq!(c.left(), ["gen", "gains", "epu", "hyd"], "the Sufa's: no gear fault");
+        let mut n = Now::default();
+        let mut said = vec![];
+        for f in ["gen_main", "standby_gains", "gen_epu", "hyd_b"] {
+            n.failures.push(f.into());
+            said.extend(c.tick(&n).into_iter().map(|s| s.call));
+        }
+        assert_eq!(said, ["gen", "gains", "epu", "hyd"]);
+        let c = Calls::open("navigation.systems", "f35i", &b, "25R", true).unwrap();
+        assert!(c.left().contains(&"gear") && !c.left().contains(&"epu"), "the Adir's: the gear fault, no EPU");
     }
 
     /// Phase 6's lessons (control.json) open in each jet: their AWACS `called:` and `tanker:` tests are known.

@@ -17,6 +17,7 @@ const LESSONS: &[(&str, &str)] = &[
     ("pattern", include_str!("../../../modern-iaf/data/training/lessons/pattern.json")),
     ("formation", include_str!("../../../modern-iaf/data/training/lessons/formation.json")),
     ("control", include_str!("../../../modern-iaf/data/training/lessons/control.json")),
+    ("navigation", include_str!("../../../modern-iaf/data/training/lessons/navigation.json")),
 ];
 
 /// The briefing's sections in their order (training-plan.md §2.2): each a list of paragraphs.
@@ -53,11 +54,13 @@ pub const TESTS: [&str; 20] = [
 /// `failure:<id>` (the flight's failure `<id>` started, training.md §15), and the figures held at least: `alt:<ft>`
 /// (the altitude above the field), `aoa:<deg>` (the angle of attack), `g:<g>` (the load factor), and
 /// `lead_order:<order>` (the AI lead gave the order: iaf_ai::LEAD_CALLS without "lead_"), and `tanker:<event>` (the
-/// tanker's event for the player's jet, one of `TANKER_EVENTS`).
-pub const ARG_TESTS: [&str; 9] = ["item", "cleared", "called", "failure", "alt", "aoa", "g", "lead_order", "tanker"];
+/// tanker's event for the player's jet, one of `TANKER_EVENTS`), and `steerpoint:<n>` (in the air at the route's
+/// steerpoint `n`, 1 the first).
+pub const ARG_TESTS: [&str; 10] =
+    ["item", "cleared", "called", "failure", "alt", "aoa", "g", "lead_order", "tanker", "steerpoint"];
 
 /// The argument tests whose argument is a number.
-const NUMBER_TESTS: [&str; 3] = ["alt", "aoa", "g"];
+const NUMBER_TESTS: [&str; 4] = ["alt", "aoa", "g", "steerpoint"];
 
 /// The tanker's events for the player's jet (`shared/ai/tanker.gd`, the flight's `tanker` events): within 1 NM of it
 /// (`joined`), then the boom operator's calls (`iaf_ai::tanker::Event`).
@@ -404,7 +407,10 @@ pub fn test_ok(t: &str) -> bool {
     match t.split_once(':') {
         Some(("tanker", a)) => TANKER_EVENTS.contains(&a),
         Some((k, a)) => {
-            ARG_TESTS.contains(&k) && !a.is_empty() && (!NUMBER_TESTS.contains(&k) || a.parse::<f64>().is_ok())
+            ARG_TESTS.contains(&k)
+                && !a.is_empty()
+                && (!NUMBER_TESTS.contains(&k) || a.parse::<f64>().is_ok())
+                && (k != "steerpoint" || a.parse::<usize>().is_ok_and(|n| n > 0))
         }
         None => TESTS.contains(&t),
     }

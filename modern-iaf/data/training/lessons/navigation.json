@@ -1,0 +1,2958 @@
+{
+  "about": "Phase 3's lessons (Navigation and instruments): per lesson its missions by jet, the briefing's sections, the notebook's Lesson tab and the instructor's calls (modern-iaf/docs/training.md §16). Read by crates/iaf-tools/src/course.rs. The procedures are the manuals' (f16/ch6/navigation.typ, f35i/ch6/navigation.typ, the landing sections) and the failures' steps the notebook's EMERGENCY tab (training.md §15); the routes and the approach fixes are ours (inferred).",
+  "lessons": {
+    "steerpoints": {
+      "missions": {
+        "f16d": "f16d_navigation_steerpoints",
+        "f16i": "f16i_navigation_steerpoints",
+        "f35i": "f35i_navigation_steerpoints"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, by day: a navigation at medium altitude. Four steerpoints at 15,000 ft and 420 kt on their planned times, then a straight-in landing.",
+            "he": "{jet}, {base}, מסלול {runway}, יום. ניווט בגובה בינוני: ארבע נקודות ציון ב-15,000 רגל וב-420 קשר בזמנים המתוכננים, ואחר כך גישה ישירה ונחיתה."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can fly a route of steerpoints on the HUD's steering, step them on the DED, pass each within half a mile, hold the height within 100 ft and reach the last one within 15 seconds of the plan.",
+            "he": "בסיום התרגול הזה תדעו לטוס מסלול של נקודות ציון לפי ההיגוי ב-HUD, להחליף נקודות ציון ב-DED, לעבור כל נקודה במרחק של עד חצי מייל ולהחזיק גובה בתוך 100 רגל, תוך עמידה בזמן המתוכנן לנקודה האחרונה, עד 15 שניות.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "After this lesson you can fly a route of steerpoints on the helmet's steering, step them, pass each within half a mile, hold the height within 100 ft and reach the last one within 15 seconds of the plan.",
+            "he": "בסיום התרגול הזה תדעו לטוס מסלול של נקודות ציון לפי ההיגוי בקסדה, להחליף נקודות ציון, לעבור כל נקודה במרחק של עד חצי מייל ולהחזיק גובה בתוך 100 רגל, תוך עמידה בזמן המתוכנן לנקודה האחרונה, עד 15 שניות.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower on the radio.",
+            "he": "כידון 1, {jet}; המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Two F-35I: Kidon 1, yours, and the instructor's, Kidon 2, which joins you after the take-off and talks on the radio. {base} tower on the radio.",
+            "he": "שני F-35I: כידון 1 (אתם) וכידון 2 (המדריך), שמצטרף אחרי ההמראה ומדבר בקשר. מגדל {base} בקשר.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The route: four steerpoints over the coast, the Carmel and the Galilee, about 70 NM from steerpoint 1 to steerpoint 4; the jet already holds them.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. המסלול: ארבע נקודות ציון מעל החוף, הכרמל והגליל, כ-70 מייל מנקודה 1 עד נקודה 4; הנקודות כבר במטוס.",
+            "jets": [
+              "f16d"
+            ]
+          },
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The route: four steerpoints over the central Negev, about 70 NM from steerpoint 1 to steerpoint 4; the jet already holds them.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. המסלול: ארבע נקודות ציון מעל מרכז הנגב, כ-70 מייל מנקודה 1 עד נקודה 4; הנקודות כבר במטוס.",
+            "jets": [
+              "f16i"
+            ]
+          },
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The route: four steerpoints over the northern Negev, about 70 NM from steerpoint 1 to steerpoint 4; the jet already holds them.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. המסלול: ארבע נקודות ציון מעל צפון הנגב, כ-70 מייל מנקודה 1 עד נקודה 4; הנקודות כבר במטוס.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "execution": [
+          {
+            "en": "Start-up and taxi as taught in phase 1, with the checklist ({key:118}): the tower for the start-up, the taxi and the line-up, runway {runway}.",
+            "he": "יש להתניע ולהסיע כמו בשלב 1, לפי הבד\"ח ({key:118}), ולבקש מהמגדל אישור להתנעה, להסעה ולכניסה למסלול {runway}.",
+            "at": "start"
+          },
+          {
+            "en": "Take off and climb on the runway heading; clear of the field, turn to steerpoint 1 and climb to 15,000 ft at 420 kt.",
+            "he": "יש להמריא ולטפס בכיוון המסלול; אחרי היציאה מהבסיס לפנות לנקודת ציון 1 ולטפס ל-15,000 רגל ב-420 קשר.",
+            "at": "lineup"
+          },
+          {
+            "en": "Steering: the HUD's steering cue and the EHSI point to the steerpoint picked on the DED; {key:39} steps to the next one, {key:40} back. The DED shows its number, distance and time to go.",
+            "he": "ההיגוי: סמן ההיגוי ב-HUD וה-EHSI מצביעים על נקודת הציון שנבחרה ב-DED; {key:39} עובר לנקודה הבאה, {key:40} חוזר לקודמת. ה-DED מראה את מספרה, את המרחק ואת הזמן עד אליה.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Steering: the helmet's caret and the steerpoint's square point to the steerpoint picked; {key:39} steps to the next one, {key:40} back. The panoramic display's function bar shows its number; the TSD ({key:53}) draws the route.",
+            "he": "ההיגוי: הסמן בקסדה והריבוע של נקודת הציון מצביעים על הנקודה שנבחרה; {key:39} עובר לנקודה הבאה, {key:40} חוזר לקודמת. סרגל הפונקציות בצג הפנורמי מראה את מספרה; ה-TSD ({key:53}) מצייר את המסלול.",
+            "jets": [
+              "f35i"
+            ]
+          },
+          {
+            "en": "Steerpoint 1 starts the clock. Each leg at 420 kt and 15,000 ft; at each steerpoint turn at once to the next. Steerpoint 4 is the last, on the runway's line: the plan puts it a set time after steerpoint 1, so hold the speed and correct the time by a few knots.",
+            "he": "נקודת ציון 1 מתחילה את מדידת הזמן. כל קטע ב-420 קשר וב-15,000 רגל; בכל נקודה יש לפנות מיד לנקודה הבאה. נקודה 4 היא האחרונה, על קו המסלול: התכנון קובע לה זמן מנקודה 1, ולכן יש להחזיק מהירות ולתקן את הזמן בכמה קשרים.",
+            "diagram": "route_medium"
+          },
+          {
+            "en": "Home: a straight-in to runway {runway}. 10 NM out at 3,000 ft above the field, gear down below 300 kt, three green; the 3° path at 13° angle of attack.",
+            "he": "יש לחזור בגישה ישירה למסלול {runway}: 10 מייל בחוץ, 3,000 רגל מעל הבסיס; מתחת ל-300 קשר להוריד כן ולוודא שלושה ירוקים; שיפוע 3° בזווית התקפה 13°."
+          },
+          {
+            "en": "After landing: clear the runway, the after-landing checks, taxi to the shelter and shut down with the checklist. The lesson ends with the engine off on the spot.",
+            "he": "אחרי הנחיתה יש לפנות את המסלול, לבצע בדיקות אחרי נחיתה, להסיע לדת\"ק ולכבות לפי הבד\"ח. התרגול מסתיים כשהמנוע כבוי בעמדה."
+          }
+        ],
+        "coordination": [
+          {
+            "en": "Stay on the route, within 5 NM of each leg, between 10,000 and 20,000 ft. Bingo: 2,000 lb, then straight home. Alternate: Tel Nof. \"Knock it off\" from either seat ends the exercise.",
+            "he": "על המסלול, עד 5 מייל מכל קטע, בין 10,000 ל-20,000 רגל. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: תל נוף. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16d"
+            ]
+          },
+          {
+            "en": "Stay on the route, within 5 NM of each leg, between 10,000 and 20,000 ft. Bingo: 2,000 lb, then straight home. Alternate: Nevatim. \"Knock it off\" from either seat ends the exercise.",
+            "he": "על המסלול, עד 5 מייל מכל קטע, בין 10,000 ל-20,000 רגל. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: נבטים. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16i"
+            ]
+          },
+          {
+            "en": "Stay on the route, within 5 NM of each leg, between 10,000 and 20,000 ft. Bingo: 3,000 lb, then straight home. Alternate: Hatzerim. \"Knock it off\" from either jet ends the exercise.",
+            "he": "על המסלול, עד 5 מייל מכל קטע, בין 10,000 ל-20,000 רגל. בינגו: 3,000 ליברות, ואז ישר הביתה. שדה חלופי: חצרים. \"סיום קרב\" מכל מטוס עוצר את התרגיל.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "signal": [
+          {
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך באינטרקום. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Callsign Kidon 1; the instructor Kidon 2. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the tower's frequency. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; המדריך כידון 2. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך בתדר המגדל. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Start-up, taxi, runway {runway}",
+          "he": "יש להתניע ולהסיע למסלול {runway}",
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          }
+        },
+        {
+          "en": "Take-off; turn to steerpoint 1; climb to 15,000 ft",
+          "he": "יש להמריא, לפנות לנקודת ציון 1 ולטפס ל-15,000 רגל"
+        },
+        {
+          "en": "Steerpoint 1: the clock starts; 420 kt",
+          "he": "נקודת ציון 1: מדידת הזמן מתחילה; 420 קשר",
+          "wait": {
+            "en": "the steerpoint passed",
+            "he": "הנקודה עברה"
+          },
+          "diagram": "route_medium"
+        },
+        {
+          "en": "At each steerpoint: step to the next, turn",
+          "he": "בכל נקודה: לעבור לנקודה הבאה ולפנות"
+        },
+        {
+          "en": "Steerpoint 4 on time; ±100 ft",
+          "he": "יש להגיע לנקודה 4 בזמן; ±100 רגל"
+        },
+        {
+          "en": "Straight-in: 10 NM, 3,000 ft; gear down",
+          "he": "יש לגשת ישירות: 10 מייל, 3,000 רגל; להוריד כן",
+          "wait": {
+            "en": "three green",
+            "he": "שלושה ירוקים"
+          }
+        },
+        {
+          "en": "Clear the runway; shelter; shut down",
+          "he": "יש לפנות את המסלול, להסיע לדת\"ק ולכבות",
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          }
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today we navigate: four steerpoints at fifteen thousand feet, and we want to be on time at the last one.",
+              "he": "היום ננווט: ארבע נקודות ציון ב-15,000 רגל, ואנחנו רוצים להגיע בזמן לנקודה האחרונה."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Let's start up. We'll follow the checklist.",
+              "he": "נתחיל בהתנעה. נעבוד לפי הבד\"ח."
+            }
+          ],
+          "startup": true
+        },
+        {
+          "id": "taxi",
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "All yours. After the take-off we turn to steerpoint one and climb to fifteen thousand, four twenty knots.",
+              "he": "שלך. אחרי ההמראה נפנה לנקודת ציון 1 ונטפס ל-15,000 רגל, 420 קשר."
+            }
+          ]
+        },
+        {
+          "id": "join",
+          "when": [
+            "climb_out"
+          ],
+          "lines": [
+            {
+              "en": "Kidon 2, joining on your left. Carry on, I'm with you.",
+              "he": "כידון 2 מצטרף משמאל. ממשיכים, אני איתך."
+            }
+          ],
+          "jets": [
+            "f35i"
+          ]
+        },
+        {
+          "id": "sp1",
+          "when": [
+            "steerpoint:1"
+          ],
+          "lines": [
+            {
+              "en": "Steerpoint one, the clock's running. Let's step to two and follow the steering.",
+              "he": "נקודה 1, הזמן רץ. נעבור לנקודה 2 ונלך לפי ההיגוי."
+            }
+          ]
+        },
+        {
+          "id": "sp2",
+          "when": [
+            "steerpoint:2"
+          ],
+          "lines": [
+            {
+              "en": "Two. On to three. Let's keep the height steady.",
+              "he": "נקודה 2. ממשיכים לשלוש. נשמור על הגובה."
+            }
+          ]
+        },
+        {
+          "id": "sp3",
+          "when": [
+            "steerpoint:3"
+          ],
+          "lines": [
+            {
+              "en": "Three. Last leg. Let's check the time to go and fix the speed if we need to.",
+              "he": "נקודה 3. הקטע האחרון. נבדוק את הזמן שנשאר ונתקן מהירות אם צריך."
+            }
+          ]
+        },
+        {
+          "id": "sp4",
+          "when": [
+            "steerpoint:4"
+          ],
+          "lines": [
+            {
+              "en": "Four, that's the route. Let's go home: a straight-in to {rwy}.",
+              "he": "נקודה 4, סיימנו את המסלול. נחזור הביתה בגישה ישירה למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "rollout",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nicely done. Let's clear the runway and taxi back to the shelter.",
+              "he": "יפה מאוד. נפנה את המסלול ונסיע חזרה לדת\"ק."
+            }
+          ]
+        },
+        {
+          "id": "shelter",
+          "when": [
+            "parked"
+          ],
+          "lines": [
+            {
+              "en": "We're home. Let's shut down with the checklist, and I'll see you in the debrief.",
+              "he": "הגענו. נכבה לפי הבד\"ח, וניפגש בתחקיר."
+            }
+          ],
+          "new": true
+        }
+      ]
+    },
+    "low_level": {
+      "missions": {
+        "f16d": "f16d_navigation_low_level",
+        "f16i": "f16i_navigation_low_level",
+        "f35i": "f35i_navigation_low_level"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, by day: a low-level navigation. Four steerpoints at 500 ft above the ground and 420 kt on their planned times, then a climb and a straight-in landing.",
+            "he": "{jet}, {base}, מסלול {runway}, יום. ניווט בגובה נמוך: ארבע נקודות ציון ב-500 רגל מעל הקרקע וב-420 קשר בזמנים המתוכננים, ואחר כך טיפוס, גישה ישירה ונחיתה."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can fly a route of steerpoints low over the ground, look out and follow the ground while the steering keeps you on the route, pass each steerpoint within half a mile and hold 500 ft above the ground within 100 ft.",
+            "he": "בסיום התרגול הזה תדעו לטוס מסלול של נקודות ציון נמוך מעל הקרקע, להסתכל החוצה ולעקוב אחרי הקרקע כשההיגוי שומר עליכם על המסלול, ולעבור כל נקודה במרחק של עד חצי מייל, תוך החזקת 500 רגל מעל הקרקע בתוך 100 רגל."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower on the radio.",
+            "he": "כידון 1, {jet}; המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Two F-35I: Kidon 1, yours, and the instructor's, Kidon 2, which joins you after the take-off and talks on the radio. {base} tower on the radio.",
+            "he": "שני F-35I: כידון 1 (אתם) וכידון 2 (המדריך), שמצטרף אחרי ההמראה ומדבר בקשר. מגדל {base} בקשר.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The route: four steerpoints over the Carmel's coast, the Acre plain, the eastern Galilee and the Jezreel valley; the jet already holds them.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. המסלול: ארבע נקודות ציון מעל חוף הכרמל, עמק עכו, הגליל המזרחי ועמק יזרעאל; הנקודות כבר במטוס.",
+            "jets": [
+              "f16d"
+            ]
+          },
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The route: four steerpoints over the central Negev, the Ramon crater and the Negev highlands; the jet already holds them.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. המסלול: ארבע נקודות ציון מעל מרכז הנגב, מכתש רמון והר הנגב; הנקודות כבר במטוס.",
+            "jets": [
+              "f16i"
+            ]
+          },
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The route: four steerpoints over the northern Negev, the Negev highlands and the Arava down to the Dead Sea; the jet already holds them.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. המסלול: ארבע נקודות ציון מעל צפון הנגב, הר הנגב והערבה עד ים המלח; הנקודות כבר במטוס.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "execution": [
+          {
+            "en": "Start-up and taxi as taught in phase 1, with the checklist ({key:118}): the tower for the start-up, the taxi and the line-up, runway {runway}.",
+            "he": "יש להתניע ולהסיע כמו בשלב 1, לפי הבד\"ח ({key:118}), ולבקש מהמגדל אישור להתנעה, להסעה ולכניסה למסלול {runway}.",
+            "at": "start"
+          },
+          {
+            "en": "Take off and climb to 2,000 ft above the ground toward steerpoint 1; 5 NM before it descend to 500 ft above the ground.",
+            "he": "יש להמריא ולטפס ל-2,000 רגל מעל הקרקע לכיוון נקודת ציון 1; 5 מייל לפניה לרדת ל-500 רגל מעל הקרקע.",
+            "at": "lineup"
+          },
+          {
+            "en": "Steering: the HUD's steering cue and the EHSI point to the steerpoint picked on the DED; {key:39} steps to the next one, {key:40} back. The DED shows its number, distance and time to go.",
+            "he": "ההיגוי: סמן ההיגוי ב-HUD וה-EHSI מצביעים על נקודת הציון שנבחרה ב-DED; {key:39} עובר לנקודה הבאה, {key:40} חוזר לקודמת. ה-DED מראה את מספרה, את המרחק ואת הזמן עד אליה.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Steering: the helmet's caret and the steerpoint's square point to the steerpoint picked; {key:39} steps to the next one, {key:40} back. The panoramic display's function bar shows its number; the TSD ({key:53}) draws the route.",
+            "he": "ההיגוי: הסמן בקסדה והריבוע של נקודת הציון מצביעים על הנקודה שנבחרה; {key:39} עובר לנקודה הבאה, {key:40} חוזר לקודמת. סרגל הפונקציות בצג הפנורמי מראה את מספרה; ה-TSD ({key:53}) מצייר את המסלול.",
+            "jets": [
+              "f35i"
+            ]
+          },
+          {
+            "en": "Low level: 500 ft above the ground at 420 kt. The eyes outside, on the ground ahead; a glance inside for the steering, the radar altimeter and the time. Over a ridge, climb before it and keep the height above it; in a turn, the nose up a little: the bank takes height.",
+            "he": "בגובה נמוך: 500 רגל מעל הקרקע ב-420 קשר. העיניים בחוץ, על הקרקע שלפנים; מבט קצר פנימה להיגוי, למד הגובה הרדיו ולזמן. לפני רכס יש לטפס ולשמור גובה מעליו; בפנייה יש להרים מעט את האף, כי ההטיה מורידה גובה.",
+            "diagram": "low_level"
+          },
+          {
+            "en": "After steerpoint 4: climb to 3,000 ft above the field, turn for home and fly a straight-in to runway {runway}.",
+            "he": "אחרי נקודת ציון 4 יש לטפס ל-3,000 רגל מעל הבסיס, לפנות הביתה ולגשת ישירות למסלול {runway}."
+          },
+          {
+            "en": "Home: a straight-in to runway {runway}. 10 NM out at 3,000 ft above the field, gear down below 300 kt, three green; the 3° path at 13° angle of attack.",
+            "he": "יש לחזור בגישה ישירה למסלול {runway}: 10 מייל בחוץ, 3,000 רגל מעל הבסיס; מתחת ל-300 קשר להוריד כן ולוודא שלושה ירוקים; שיפוע 3° בזווית התקפה 13°."
+          },
+          {
+            "en": "After landing: clear the runway, the after-landing checks, taxi to the shelter and shut down with the checklist. The lesson ends with the engine off on the spot.",
+            "he": "אחרי הנחיתה יש לפנות את המסלול, לבצע בדיקות אחרי נחיתה, להסיע לדת\"ק ולכבות לפי הבד\"ח. התרגול מסתיים כשהמנוע כבוי בעמדה."
+          }
+        ],
+        "coordination": [
+          {
+            "en": "Stay within 3 NM of each leg. Climb at once to 2,000 ft above the ground if the ground ahead is unclear. Never below 300 ft above the ground on the low-level legs. Bingo: 2,000 lb, then straight home. Alternate: Tel Nof. \"Knock it off\" from either seat ends the exercise.",
+            "he": "עד 3 מייל מכל קטע. אם הקרקע שלפנים לא ברורה, יש לטפס מיד ל-2,000 רגל מעל הקרקע. בקטעים הנמוכים לא לרדת מתחת ל-300 רגל מעל הקרקע. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: תל נוף. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16d"
+            ]
+          },
+          {
+            "en": "Stay within 3 NM of each leg. Climb at once to 2,000 ft above the ground if the ground ahead is unclear. Never below 300 ft above the ground on the low-level legs. Bingo: 2,000 lb, then straight home. Alternate: Nevatim. \"Knock it off\" from either seat ends the exercise.",
+            "he": "עד 3 מייל מכל קטע. אם הקרקע שלפנים לא ברורה, יש לטפס מיד ל-2,000 רגל מעל הקרקע. בקטעים הנמוכים לא לרדת מתחת ל-300 רגל מעל הקרקע. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: נבטים. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16i"
+            ]
+          },
+          {
+            "en": "Stay within 3 NM of each leg. Climb at once to 2,000 ft above the ground if the ground ahead is unclear. Never below 300 ft above the ground on the low-level legs. Bingo: 3,000 lb, then straight home. Alternate: Hatzerim. \"Knock it off\" from either jet ends the exercise.",
+            "he": "עד 3 מייל מכל קטע. אם הקרקע שלפנים לא ברורה, יש לטפס מיד ל-2,000 רגל מעל הקרקע. בקטעים הנמוכים לא לרדת מתחת ל-300 רגל מעל הקרקע. בינגו: 3,000 ליברות, ואז ישר הביתה. שדה חלופי: חצרים. \"סיום קרב\" מכל מטוס עוצר את התרגיל.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "signal": [
+          {
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך באינטרקום. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Callsign Kidon 1; the instructor Kidon 2. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the tower's frequency. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; המדריך כידון 2. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך בתדר המגדל. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Start-up, taxi, runway {runway}",
+          "he": "יש להתניע ולהסיע למסלול {runway}",
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          }
+        },
+        {
+          "en": "Take-off; 2,000 ft above the ground to steerpoint 1",
+          "he": "יש להמריא ולטוס ב-2,000 רגל מעל הקרקע לנקודת ציון 1"
+        },
+        {
+          "en": "5 NM before it: down to 500 ft above the ground",
+          "he": "5 מייל לפניה: לרדת ל-500 רגל מעל הקרקע",
+          "diagram": "low_level"
+        },
+        {
+          "en": "Each leg: 420 kt, 500 ft ±100, eyes outside",
+          "he": "בכל קטע: 420 קשר, 500 רגל ±100, העיניים בחוץ"
+        },
+        {
+          "en": "After steerpoint 4: climb, turn home",
+          "he": "אחרי נקודה 4: לטפס ולפנות הביתה",
+          "wait": {
+            "en": "3,000 ft above the field",
+            "he": "3,000 רגל מעל הבסיס"
+          }
+        },
+        {
+          "en": "Straight-in: 10 NM, 3,000 ft; gear down",
+          "he": "יש לגשת ישירות: 10 מייל, 3,000 רגל; להוריד כן",
+          "wait": {
+            "en": "three green",
+            "he": "שלושה ירוקים"
+          }
+        },
+        {
+          "en": "Clear the runway; shelter; shut down",
+          "he": "יש לפנות את המסלול, להסיע לדת\"ק ולכבות",
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          }
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today we go low: four steerpoints at five hundred feet above the ground. Eyes outside, the steering only a glance.",
+              "he": "היום יורדים נמוך: ארבע נקודות ציון ב-500 רגל מעל הקרקע. העיניים בחוץ, להיגוי רק מבט קצר."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Let's start up. We'll follow the checklist.",
+              "he": "נתחיל בהתנעה. נעבוד לפי הבד\"ח."
+            }
+          ],
+          "startup": true
+        },
+        {
+          "id": "taxi",
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "All yours. We'll climb to two thousand above the ground and head for steerpoint one.",
+              "he": "שלך. נטפס ל-2,000 רגל מעל הקרקע ונפנה לנקודת ציון 1."
+            }
+          ]
+        },
+        {
+          "id": "join",
+          "when": [
+            "climb_out"
+          ],
+          "lines": [
+            {
+              "en": "Kidon 2, joining on your left. Carry on, I'm with you.",
+              "he": "כידון 2 מצטרף משמאל. ממשיכים, אני איתך."
+            }
+          ],
+          "jets": [
+            "f35i"
+          ]
+        },
+        {
+          "id": "sp1",
+          "when": [
+            "steerpoint:1"
+          ],
+          "lines": [
+            {
+              "en": "Steerpoint one. Five hundred feet from here on; let's follow the ground.",
+              "he": "נקודה 1. מכאן והלאה 500 רגל; נעקוב אחרי הקרקע."
+            }
+          ]
+        },
+        {
+          "id": "sp2",
+          "when": [
+            "steerpoint:2"
+          ],
+          "lines": [
+            {
+              "en": "Two. Watch the ridges ahead; we climb before them, not over them.",
+              "he": "נקודה 2. נשים לב לרכסים שלפנים; מטפסים לפניהם, לא מעליהם."
+            }
+          ]
+        },
+        {
+          "id": "sp3",
+          "when": [
+            "steerpoint:3"
+          ],
+          "lines": [
+            {
+              "en": "Three. Last low leg. Keep the turns shallow and the nose up a touch.",
+              "he": "נקודה 3. הקטע הנמוך האחרון. פניות רדודות, והאף קצת למעלה."
+            }
+          ]
+        },
+        {
+          "id": "sp4",
+          "when": [
+            "steerpoint:4"
+          ],
+          "lines": [
+            {
+              "en": "Four. Let's climb out to three thousand above the field and take her home, straight in to {rwy}.",
+              "he": "נקודה 4. נטפס ל-3,000 רגל מעל הבסיס ונחזור הביתה בגישה ישירה למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "rollout",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nicely done. Let's clear the runway and taxi back to the shelter.",
+              "he": "יפה מאוד. נפנה את המסלול ונסיע חזרה לדת\"ק."
+            }
+          ]
+        },
+        {
+          "id": "shelter",
+          "when": [
+            "parked"
+          ],
+          "lines": [
+            {
+              "en": "We're home. Let's shut down with the checklist, and I'll see you in the debrief.",
+              "he": "הגענו. נכבה לפי הבד\"ח, וניפגש בתחקיר."
+            }
+          ],
+          "new": true
+        }
+      ]
+    },
+    "instruments": {
+      "missions": {
+        "f16d": "f16d_navigation_instruments",
+        "f16i": "f16i_navigation_instruments",
+        "f35i": "f35i_navigation_instruments"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, by day in cloud: an instrument departure, the TACAN to the approach fixes, and the ILS to a landing.",
+            "he": "{jet}, {base}, מסלול {runway}, יום, בעננים. המראה בטיסת מכשירים, TACAN לנקודות הגישה, ו-ILS עד נחיתה."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can fly in cloud on the instruments alone: find the approach fixes by the TACAN, intercept the ILS and fly it down to the decision height, within half a dot of the localizer and the glide slope and 5 kt of the approach speed.",
+            "he": "בסיום התרגול הזה תדעו לטוס בעננים לפי המכשירים בלבד: למצוא את נקודות הגישה לפי ה-TACAN, להיכנס ל-ILS ולטוס בו עד גובה ההחלטה, תוך שמירה בתוך חצי נקודה מה-Localizer ומה-Glideslope ובתוך 5 קשר ממהירות הגישה."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower on the radio.",
+            "he": "כידון 1, {jet}; המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Two F-35I: Kidon 1, yours, and the instructor's, Kidon 2, which joins you after the take-off and talks on the radio. {base} tower on the radio.",
+            "he": "שני F-35I: כידון 1 (אתם) וכידון 2 (המדריך), שמצטרף אחרי ההמראה ומדבר בקשר. מגדל {base} בקשר.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm. A deck of rain cloud from about 1,500 ft above the ground up to about 18,000 ft; under it rain and about 6 km of visibility, inside it nothing to see. {base}, runway {runway}; the jet starts cold on its parking spot. The fixes are on the runway's line: 12 NM out at 5,000 ft above the field, and 9 NM out at 3,000 ft.",
+            "he": "יום, רוח שקטה. שכבת ענני גשם מכ-1,500 רגל מעל הקרקע עד כ-18,000 רגל; מתחתיה גשם וראות של כ-6 ק\"מ, ובתוכה אין ראות. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. נקודות הגישה על קו המסלול: 12 מייל בחוץ ב-5,000 רגל מעל הבסיס, ו-9 מייל בחוץ ב-3,000 רגל."
+          }
+        ],
+        "execution": [
+          {
+            "en": "Start-up and taxi as taught in phase 1, with the checklist ({key:118}): the tower for the start-up, the taxi and the line-up, runway {runway}.",
+            "he": "יש להתניע ולהסיע כמו בשלב 1, לפי הבד\"ח ({key:118}), ולבקש מהמגדל אישור להתנעה, להסעה ולכניסה למסלול {runway}.",
+            "at": "start"
+          },
+          {
+            "en": "Before the take-off set {base}'s TACAN on the T-ILS page ({key:152}) and the EHSI to TCN ({key:173}); the ILS needs no setting: it serves runway {runway}.",
+            "he": "לפני ההמראה יש לכוון את ה-TACAN של {base} בדף T-ILS ({key:152}) ואת ה-EHSI ל-TCN ({key:173}); ה-ILS לא דורש כיוון: הוא משרת את מסלול {runway}.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Before the take-off set the CNI's navigation source to TCN, {base}'s TACAN; the ILS needs no setting: it serves runway {runway}. Back on the route for the fixes, with NAV ({key:45}).",
+            "he": "לפני ההמראה יש לכוון את מקור הניווט ב-CNI ל-TCN, ה-TACAN של {base}; ה-ILS לא דורש כיוון: הוא משרת את מסלול {runway}. לנקודות הגישה חוזרים למסלול, ב-NAV ({key:45}).",
+            "jets": [
+              "f35i"
+            ]
+          },
+          {
+            "en": "Take off and climb on the runway heading into the cloud: from here on the attitude, the height and the heading come from the instruments. At 6,000 ft above the field turn to steerpoint 1, the first fix, and level at 5,000 ft above the field.",
+            "he": "יש להמריא ולטפס בכיוון המסלול לתוך הענן: מכאן והלאה הגובה, הכיוון והמצב של המטוס נלקחים רק מהמכשירים. ב-6,000 רגל מעל הבסיס יש לפנות לנקודת ציון 1, נקודת הגישה הראשונה, ולהתיישר ב-5,000 רגל מעל הבסיס.",
+            "at": "lineup"
+          },
+          {
+            "en": "The fixes: steerpoint 1 at 12 NM from the TACAN, 5,000 ft above the field, 300 kt; on to steerpoint 2 at 9 NM, descending to 3,000 ft above the field, still 300 kt, on the runway's line.",
+            "he": "נקודות הגישה: נקודת ציון 1 ב-12 מייל מה-TACAN, 5,000 רגל מעל הבסיס, 300 קשר; משם לנקודת ציון 2 ב-9 מייל, בירידה ל-3,000 רגל מעל הבסיס, עדיין 300 קשר, על קו המסלול.",
+            "diagram": "instrument_approach"
+          },
+          {
+            "en": "The ILS: past steerpoint 2 the localizer centres; hold it with small heading changes. The glide slope comes down to meet you at about 5.6 NM: gear down, slow to 13° angle of attack and follow it down; the sim's glide path is 5°. At 200 ft above the field, the decision height: land with the runway in sight, else go around.",
+            "he": "ה-ILS: אחרי נקודת ציון 2 ה-Localizer מתמרכז; יש להחזיק אותו בשינויי כיוון קטנים. בכ-5.6 מייל מגיעים ל-Glideslope: יש להוריד כן, להאט לזווית התקפה 13° ולרדת לאורכו; זווית הגלישה בסימולטור 5°. ב-200 רגל מעל הבסיס, גובה ההחלטה: נוחתים כשהמסלול נראה, אחרת הליכה סביב."
+          },
+          {
+            "en": "After landing: clear the runway, the after-landing checks, taxi to the shelter and shut down with the checklist. The lesson ends with the engine off on the spot.",
+            "he": "אחרי הנחיתה יש לפנות את המסלול, לבצע בדיקות אחרי נחיתה, להסיע לדת\"ק ולכבות לפי הבד\"ח. התרגול מסתיים כשהמנוע כבוי בעמדה."
+          }
+        ],
+        "coordination": [
+          {
+            "en": "Stay on the runway's line and above 3,000 ft above the field until steerpoint 2. Lost the ILS: climb to 5,000 ft above the field on the runway heading and call the tower. Bingo: 2,000 lb, then straight home. Alternate: Tel Nof. \"Knock it off\" from either seat ends the exercise.",
+            "he": "על קו המסלול ומעל 3,000 רגל מעל הבסיס עד נקודת ציון 2. אם ה-ILS אבד: לטפס ל-5,000 רגל מעל הבסיס בכיוון המסלול ולקרוא למגדל. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: תל נוף. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16d"
+            ]
+          },
+          {
+            "en": "Stay on the runway's line and above 3,000 ft above the field until steerpoint 2. Lost the ILS: climb to 5,000 ft above the field on the runway heading and call the tower. Bingo: 2,000 lb, then straight home. Alternate: Nevatim. \"Knock it off\" from either seat ends the exercise.",
+            "he": "על קו המסלול ומעל 3,000 רגל מעל הבסיס עד נקודת ציון 2. אם ה-ILS אבד: לטפס ל-5,000 רגל מעל הבסיס בכיוון המסלול ולקרוא למגדל. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: נבטים. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16i"
+            ]
+          },
+          {
+            "en": "Stay on the runway's line and above 3,000 ft above the field until steerpoint 2. Lost the ILS: climb to 5,000 ft above the field on the runway heading and call the tower. Bingo: 3,000 lb, then straight home. Alternate: Hatzerim. \"Knock it off\" from either jet ends the exercise.",
+            "he": "על קו המסלול ומעל 3,000 רגל מעל הבסיס עד נקודת ציון 2. אם ה-ILS אבד: לטפס ל-5,000 רגל מעל הבסיס בכיוון המסלול ולקרוא למגדל. בינגו: 3,000 ליברות, ואז ישר הביתה. שדה חלופי: חצרים. \"סיום קרב\" מכל מטוס עוצר את התרגיל.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "signal": [
+          {
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך באינטרקום. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Callsign Kidon 1; the instructor Kidon 2. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the tower's frequency. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; המדריך כידון 2. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך בתדר המגדל. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Start-up, taxi, runway {runway}",
+          "he": "יש להתניע ולהסיע למסלול {runway}",
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          }
+        },
+        {
+          "en": "TACAN {base} on T-ILS; EHSI to TCN",
+          "he": "יש לכוון TACAN {base} ב-T-ILS ואת ה-EHSI ל-TCN",
+          "jets": [
+            "f16d",
+            "f16i"
+          ]
+        },
+        {
+          "en": "The CNI's navigation source: TCN",
+          "he": "יש לכוון את מקור הניווט ב-CNI ל-TCN",
+          "jets": [
+            "f35i"
+          ]
+        },
+        {
+          "en": "Take-off into the cloud; on the instruments",
+          "he": "יש להמריא לתוך הענן ולטוס לפי המכשירים"
+        },
+        {
+          "en": "Steerpoint 1: 12 NM, 5,000 ft, 300 kt",
+          "he": "נקודת ציון 1: 12 מייל, 5,000 רגל, 300 קשר",
+          "diagram": "instrument_approach"
+        },
+        {
+          "en": "Steerpoint 2: 9 NM, 3,000 ft; the localizer",
+          "he": "נקודת ציון 2: 9 מייל, 3,000 רגל; ה-Localizer"
+        },
+        {
+          "en": "Glide slope: gear down, 13° AoA, follow it",
+          "he": "Glideslope: להוריד כן, זווית התקפה 13°, לרדת לאורכו",
+          "wait": {
+            "en": "three green",
+            "he": "שלושה ירוקים"
+          }
+        },
+        {
+          "en": "200 ft: runway in sight, land; else go around",
+          "he": "200 רגל: מסלול נראה, לנחות; אחרת הליכה סביב"
+        },
+        {
+          "en": "Clear the runway; shelter; shut down",
+          "he": "יש לפנות את המסלול, להסיע לדת\"ק ולכבות",
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          }
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today we fly in the weather. Once we're in the cloud we trust the instruments, not the feeling in our seat.",
+              "he": "היום טסים במזג אוויר. ברגע שנכנסים לענן סומכים על המכשירים, לא על התחושה בגוף."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Let's start up. We'll follow the checklist.",
+              "he": "נתחיל בהתנעה. נעבוד לפי הבד\"ח."
+            }
+          ],
+          "startup": true
+        },
+        {
+          "id": "tacan",
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's set the TACAN for the base, then call the tower and taxi to {rwy}.",
+              "he": "המנוע תקין. נכוון את ה-TACAN לבסיס, ואז נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "All yours. We climb straight ahead into the cloud. Eyes on the attitude.",
+              "he": "שלך. נטפס ישר קדימה לתוך הענן. העיניים על מד המצב."
+            }
+          ]
+        },
+        {
+          "id": "join",
+          "when": [
+            "climb_out"
+          ],
+          "lines": [
+            {
+              "en": "Kidon 2, joining on your left. Carry on, I'm with you.",
+              "he": "כידון 2 מצטרף משמאל. ממשיכים, אני איתך."
+            }
+          ],
+          "jets": [
+            "f35i"
+          ]
+        },
+        {
+          "id": "turn",
+          "when": [
+            "alt:6000"
+          ],
+          "lines": [
+            {
+              "en": "Good. Let's turn for steerpoint one and level at five thousand above the field, three hundred knots.",
+              "he": "טוב. נפנה לנקודת ציון 1 ונתיישר ב-5,000 רגל מעל הבסיס, 300 קשר."
+            }
+          ]
+        },
+        {
+          "id": "sp1",
+          "when": [
+            "steerpoint:1"
+          ],
+          "lines": [
+            {
+              "en": "Fix one. Now down to three thousand on the way to steerpoint two, and stay on the runway's line.",
+              "he": "נקודה 1. עכשיו יורדים ל-3,000 רגל בדרך לנקודה 2, ונשארים על קו המסלול."
+            }
+          ]
+        },
+        {
+          "id": "sp2",
+          "when": [
+            "steerpoint:2"
+          ],
+          "lines": [
+            {
+              "en": "Fix two. The localizer should be centring. When the glide slope comes down, gear down and follow it.",
+              "he": "נקודה 2. ה-Localizer אמור להתמרכז. כשה-Glideslope יורד, מורידים כן ויורדים לאורכו."
+            }
+          ]
+        },
+        {
+          "id": "final",
+          "when": [
+            "final"
+          ],
+          "lines": [
+            {
+              "en": "Runway in sight? Then we land. If not at two hundred feet, we go around.",
+              "he": "המסלול נראה? אז נוחתים. אם לא, ב-200 רגל הולכים סביב."
+            }
+          ]
+        },
+        {
+          "id": "rollout",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nicely done. Let's clear the runway and taxi back to the shelter.",
+              "he": "יפה מאוד. נפנה את המסלול ונסיע חזרה לדת\"ק."
+            }
+          ]
+        },
+        {
+          "id": "shelter",
+          "when": [
+            "parked"
+          ],
+          "lines": [
+            {
+              "en": "We're home. Let's shut down with the checklist, and I'll see you in the debrief.",
+              "he": "הגענו. נכבה לפי הבד\"ח, וניפגש בתחקיר."
+            }
+          ],
+          "new": true
+        }
+      ]
+    },
+    "systems": {
+      "missions": {
+        "f16d": "f16d_navigation_systems",
+        "f16i": "f16i_navigation_systems",
+        "f35i": "f35i_navigation_systems"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, by day: systems failures. Out toward steerpoint 2 at 12,000 ft, then an electrical failure, a flight control fault, the loss of both generators and a hydraulic failure, one after the other; back on the standby instruments and the EPU to a straight-in landing.",
+            "he": "{jet}, {base}, מסלול {runway}, יום. תקלות מערכות: יציאה לכיוון נקודת ציון 2 ב-12,000 רגל, ואז, בזו אחר זו, תקלת חשמל, תקלת בקרת טיסה, אובדן שני הגנרטורים ותקלה הידראולית. חזרה על מכשירי הגיבוי ועל ה-EPU לגישה ישירה ונחיתה.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "One {jet} from {base}, runway {runway}, by day: systems failures. A landing gear fault on the take-off, then an electrical failure and a flight control fault on the way out toward steerpoint 2 at 12,000 ft; back to a planned straight-in landing.",
+            "he": "{jet}, {base}, מסלול {runway}, יום. תקלות מערכות: תקלת כן נסע בהמראה, ואז, בדרך לנקודת ציון 2 ב-12,000 רגל, תקלת חשמל ותקלת בקרת טיסה. חזרה לגישה ישירה מתוכננת ונחיתה.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can recognise each failure by its lights and the voice, hold the jet level on the standby instruments, run the failure's steps from the notebook's EMERGENCY tab, start the EPU by hand and lower the gear by the alternate way, and land straight in, holding the height within 100 ft while you work.",
+            "he": "בסיום התרגול הזה תדעו לזהות כל תקלה לפי הנוריות והקול, להחזיק את המטוס ישר ואופקי על מכשירי הגיבוי, לבצע את צעדי התקלה מלשונית החירום בפנקס, להפעיל את ה-EPU ידנית, להוריד כן בדרך החלופית ולנחות בגישה ישירה, תוך החזקת הגובה בתוך 100 רגל בזמן העבודה.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "After this lesson you can recognise each failure by the ICAWS and the voice, run its steps from the notebook's EMERGENCY tab, keep the speed under the gear's limit with the gear stuck down, fly the degraded flight controls gently, and land straight in, holding the height within 100 ft while you work.",
+            "he": "בסיום התרגול הזה תדעו לזהות כל תקלה לפי ה-ICAWS והקול, לבצע את צעדיה מלשונית החירום בפנקס, לשמור מהירות מתחת למגבלת הכן כשהכן תקוע למטה, להטיס בעדינות את בקרת הטיסה הפגועה ולנחות בגישה ישירה, תוך החזקת הגובה בתוך 100 רגל בזמן העבודה.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower on the radio.",
+            "he": "כידון 1, {jet}; המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Two F-35I: Kidon 1, yours, and the instructor's, Kidon 2, which joins you after the take-off and talks on the radio. {base} tower on the radio.",
+            "he": "שני F-35I: כידון 1 (אתם) וכידון 2 (המדריך), שמצטרף אחרי ההמראה ומדבר בקשר. מגדל {base} בקשר.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The way out: steerpoints 1 and 2 over the coast, the Carmel and the Galilee, at 12,000 ft.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. הדרך החוצה: נקודות ציון 1 ו-2 מעל החוף, הכרמל והגליל, ב-12,000 רגל.",
+            "jets": [
+              "f16d"
+            ]
+          },
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The way out: steerpoints 1 and 2 over the central Negev, at 12,000 ft.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. הדרך החוצה: נקודות ציון 1 ו-2 מעל מרכז הנגב, ב-12,000 רגל.",
+            "jets": [
+              "f16i"
+            ]
+          },
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The way out: steerpoints 1 and 2 over the northern Negev, at 12,000 ft.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. הדרך החוצה: נקודות ציון 1 ו-2 מעל צפון הנגב, ב-12,000 רגל.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "execution": [
+          {
+            "en": "Start-up and taxi as taught in phase 1, with the checklist ({key:118}): the tower for the start-up, the taxi and the line-up, runway {runway}.",
+            "he": "יש להתניע ולהסיע כמו בשלב 1, לפי הבד\"ח ({key:118}), ולבקש מהמגדל אישור להתנעה, להסעה ולכניסה למסלול {runway}.",
+            "at": "start"
+          },
+          {
+            "en": "Take off and climb toward steerpoint 1 to 12,000 ft at 420 kt. The failures come in flight, one after the other; the lesson's briefing names them, the flight does not say when.",
+            "he": "יש להמריא ולטפס לכיוון נקודת ציון 1 ל-12,000 רגל ב-420 קשר. התקלות מגיעות בטיסה בזו אחר זו; התדריך מציג אותן, והטיסה לא מודיעה מתי.",
+            "at": "lineup"
+          },
+          {
+            "en": "At each failure: first fly the jet, level, 1 g, the height held; then read the lights, open the notebook's EMERGENCY tab ({key:118}) and do its steps in order; then land as soon as practical, straight in.",
+            "he": "בכל תקלה: קודם להטיס את המטוס, ישר ואופקי, 1 G, להחזיק את הגובה; אחר כך לקרוא את הנוריות, לפתוח את לשונית החירום בפנקס ({key:118}) ולבצע את הצעדים לפי הסדר; ואז לנחות בהקדם האפשרי, בגישה ישירה.",
+            "diagram": "emergency_return"
+          },
+          {
+            "en": "The failures: MAIN GEN (the standby generator carries the jet; ELEC CAUTION RESET); STBY GAINS (1 g, the angle of attack at 12° or less, 240 to 650 kt with the gear up, FLCS RESET); both generators with the EPU dark and the displays gone (EPU switch to ON: the displays come back on the EPU's hydrazine, about 10 minutes); HYD PRESS B (ALT GEAR to lower the gear, one steady brake application).",
+            "he": "התקלות: MAIN GEN (הגנרטור החלופי מחזיק את המטוס; ELEC CAUTION RESET); STBY GAINS (1 G, זווית התקפה עד 12°, 240 עד 650 קשר עם כן למעלה, FLCS RESET); שני הגנרטורים, ה-EPU כבוי והצגים כבים (מתג ה-EPU ל-ON: הצגים חוזרים על ההידרזין של ה-EPU, כ-10 דקות); HYD PRESS B (ALT GEAR להורדת הכן, לחיצת בלמים אחת רציפה).",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "The failures: GEAR FAIL on the take-off, the gear stuck down (below 300 kt for the whole flight, a planned full-stop landing); ELEC FAIL (the IPP holds the displays; land as soon as practical); FCS DEGD (1 g, the angle of attack at 12° or less, gentle inputs).",
+            "he": "התקלות: GEAR FAIL בהמראה, הכן תקוע למטה (מתחת ל-300 קשר בכל הטיסה, נחיתה מתוכננת עד עצירה); ELEC FAIL (ה-IPP מחזיק את הצגים; לנחות בהקדם האפשרי); FCS DEGD (1 G, זווית התקפה עד 12°, תנועות עדינות).",
+            "jets": [
+              "f35i"
+            ]
+          },
+          {
+            "en": "Home: a straight-in to runway {runway}. 10 NM out at 3,000 ft above the field, gear down below 300 kt, three green; the 3° path at 13° angle of attack.",
+            "he": "יש לחזור בגישה ישירה למסלול {runway}: 10 מייל בחוץ, 3,000 רגל מעל הבסיס; מתחת ל-300 קשר להוריד כן ולוודא שלושה ירוקים; שיפוע 3° בזווית התקפה 13°."
+          },
+          {
+            "en": "After landing: clear the runway, the after-landing checks, taxi to the shelter and shut down with the checklist. The lesson ends with the engine off on the spot.",
+            "he": "אחרי הנחיתה יש לפנות את המסלול, לבצע בדיקות אחרי נחיתה, להסיע לדת\"ק ולכבות לפי הבד\"ח. התרגול מסתיים כשהמנוע כבוי בעמדה."
+          }
+        ],
+        "coordination": [
+          {
+            "en": "Stay within 20 NM of {base}, between 8,000 and 15,000 ft until the return. The failures are the lesson's own; any other trouble: \"knock it off\" and home. Bingo: 2,000 lb, then straight home. Alternate: Tel Nof. \"Knock it off\" from either seat ends the exercise.",
+            "he": "עד 20 מייל מ{base}, בין 8,000 ל-15,000 רגל עד החזרה. התקלות הן חלק מהתרגול; כל בעיה אחרת: \"סיום קרב\" והביתה. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: תל נוף. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16d"
+            ]
+          },
+          {
+            "en": "Stay within 20 NM of {base}, between 8,000 and 15,000 ft until the return. The failures are the lesson's own; any other trouble: \"knock it off\" and home. Bingo: 2,000 lb, then straight home. Alternate: Nevatim. \"Knock it off\" from either seat ends the exercise.",
+            "he": "עד 20 מייל מ{base}, בין 8,000 ל-15,000 רגל עד החזרה. התקלות הן חלק מהתרגול; כל בעיה אחרת: \"סיום קרב\" והביתה. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: נבטים. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16i"
+            ]
+          },
+          {
+            "en": "Stay within 20 NM of {base}, between 8,000 and 15,000 ft until the return. The failures are the lesson's own; any other trouble: \"knock it off\" and home. Bingo: 3,000 lb, then straight home. Alternate: Hatzerim. \"Knock it off\" from either jet ends the exercise.",
+            "he": "עד 20 מייל מ{base}, בין 8,000 ל-15,000 רגל עד החזרה. התקלות הן חלק מהתרגול; כל בעיה אחרת: \"סיום קרב\" והביתה. בינגו: 3,000 ליברות, ואז ישר הביתה. שדה חלופי: חצרים. \"סיום קרב\" מכל מטוס עוצר את התרגיל.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "signal": [
+          {
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך באינטרקום. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Callsign Kidon 1; the instructor Kidon 2. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the tower's frequency. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; המדריך כידון 2. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך בתדר המגדל. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Start-up, taxi, runway {runway}",
+          "he": "יש להתניע ולהסיע למסלול {runway}",
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          }
+        },
+        {
+          "en": "Take-off; to steerpoint 1, 12,000 ft, 420 kt",
+          "he": "יש להמריא ולטוס לנקודת ציון 1, 12,000 רגל, 420 קשר"
+        },
+        {
+          "en": "A failure: fly the jet, level, 1 g",
+          "he": "תקלה: קודם להטיס את המטוס, ישר ואופקי, 1 G",
+          "diagram": "emergency_return"
+        },
+        {
+          "en": "Read the lights; the EMERGENCY tab's steps",
+          "he": "יש לקרוא את הנוריות ולבצע את הצעדים מלשונית החירום"
+        },
+        {
+          "en": "No displays: EPU to ON; standby instruments",
+          "he": "אין צגים: EPU ל-ON; מכשירי הגיבוי",
+          "jets": [
+            "f16d",
+            "f16i"
+          ]
+        },
+        {
+          "en": "HYD B: ALT GEAR for the gear",
+          "he": "HYD B: ALT GEAR להורדת הכן",
+          "jets": [
+            "f16d",
+            "f16i"
+          ]
+        },
+        {
+          "en": "Gear stuck down: below 300 kt",
+          "he": "כן תקוע למטה: מתחת ל-300 קשר",
+          "jets": [
+            "f35i"
+          ]
+        },
+        {
+          "en": "Home, straight in; land as soon as practical",
+          "he": "יש לחזור בגישה ישירה ולנחות בהקדם האפשרי",
+          "wait": {
+            "en": "the runway",
+            "he": "המסלול"
+          }
+        },
+        {
+          "en": "Clear the runway; shelter; shut down",
+          "he": "יש לפנות את המסלול, להסיע לדת\"ק ולכבות",
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          }
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today things break. When they do, we fly the jet first, then the checklist, then we go home.",
+              "he": "היום דברים יתקלקלו. כשזה קורה, קודם מטיסים את המטוס, אחר כך הבד\"ח, ואז הביתה."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Let's start up. We'll follow the checklist.",
+              "he": "נתחיל בהתנעה. נעבוד לפי הבד\"ח."
+            }
+          ],
+          "startup": true
+        },
+        {
+          "id": "taxi",
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "All yours. We head for steerpoint one at twelve thousand.",
+              "he": "שלך. נצא לנקודת ציון 1 ב-12,000 רגל."
+            }
+          ]
+        },
+        {
+          "id": "join",
+          "when": [
+            "climb_out"
+          ],
+          "lines": [
+            {
+              "en": "Kidon 2, joining on your left. Carry on, I'm with you.",
+              "he": "כידון 2 מצטרף משמאל. ממשיכים, אני איתך."
+            }
+          ],
+          "jets": [
+            "f35i"
+          ]
+        },
+        {
+          "id": "gear",
+          "when": [
+            "failure:gear_fault"
+          ],
+          "lines": [
+            {
+              "en": "The gear's stuck down. We keep it under three hundred knots the whole way, and plan a full-stop landing.",
+              "he": "הכן תקוע למטה. נשמור מתחת ל-300 קשר כל הדרך, ונתכנן נחיתה עד עצירה."
+            }
+          ],
+          "jets": [
+            "f35i"
+          ]
+        },
+        {
+          "id": "gen",
+          "when": [
+            "failure:gen_main"
+          ],
+          "lines": [
+            {
+              "en": "There it is. Level, one g, hold the height. Then the lights, and the emergency tab.",
+              "he": "הנה זה. ישר ואופקי, 1 G, נחזיק גובה. אחר כך הנוריות, ולשונית החירום."
+            }
+          ]
+        },
+        {
+          "id": "gains",
+          "when": [
+            "failure:standby_gains"
+          ],
+          "lines": [
+            {
+              "en": "Flight controls now. Gentle hands, twelve degrees at most, and we turn for home.",
+              "he": "עכשיו בקרת הטיסה. ידיים עדינות, עד 12°, ונפנה הביתה."
+            }
+          ]
+        },
+        {
+          "id": "epu",
+          "when": [
+            "failure:gen_epu"
+          ],
+          "lines": [
+            {
+              "en": "Displays gone. The EPU switch to on, and we fly the standby instruments until they're back.",
+              "he": "הצגים כבו. מתג ה-EPU ל-ON, ונטוס על מכשירי הגיבוי עד שיחזרו."
+            }
+          ],
+          "jets": [
+            "f16d",
+            "f16i"
+          ]
+        },
+        {
+          "id": "hyd",
+          "when": [
+            "failure:hyd_b"
+          ],
+          "lines": [
+            {
+              "en": "Hydraulics B. The gear won't come down the normal way; we'll use the alternate gear on final.",
+              "he": "הידראוליקה B. הכן לא ירד בדרך הרגילה; בסופית נוריד אותו בדרך החלופית."
+            }
+          ],
+          "jets": [
+            "f16d",
+            "f16i"
+          ]
+        },
+        {
+          "id": "final",
+          "when": [
+            "final"
+          ],
+          "lines": [
+            {
+              "en": "Straight in. Nice and steady, and we land the first time.",
+              "he": "גישה ישירה. יציב ורגוע, ונוחתים בפעם הראשונה."
+            }
+          ]
+        },
+        {
+          "id": "rollout",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nicely done. Let's clear the runway and taxi back to the shelter.",
+              "he": "יפה מאוד. נפנה את המסלול ונסיע חזרה לדת\"ק."
+            }
+          ]
+        },
+        {
+          "id": "shelter",
+          "when": [
+            "parked"
+          ],
+          "lines": [
+            {
+              "en": "We're home. Let's shut down with the checklist, and I'll see you in the debrief.",
+              "he": "הגענו. נכבה לפי הבד\"ח, וניפגש בתחקיר."
+            }
+          ],
+          "new": true
+        }
+      ]
+    },
+    "night": {
+      "missions": {
+        "f16d": "f16d_navigation_night",
+        "f16i": "f16i_navigation_night",
+        "f35i": "f35i_navigation_night"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, at night: the low-level route of lesson 3.2, at 1,000 ft above the ground, then a straight-in landing.",
+            "he": "{jet}, {base}, מסלול {runway}, לילה. מסלול הניווט הנמוך של תרגול 3.2 ב-1,000 רגל מעל הקרקע, ואחר כך גישה ישירה ונחיתה."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can fly a low-level route at night with the goggles, pass each steerpoint within half a mile and hold 1,000 ft above the ground within 100 ft.",
+            "he": "בסיום התרגול הזה תדעו לטוס מסלול נמוך בלילה עם אמר\"ל ולעבור כל נקודת ציון במרחק של עד חצי מייל, תוך החזקת 1,000 רגל מעל הקרקע בתוך 100 רגל.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "After this lesson you can fly a low-level route at night with the helmet's night camera, pass each steerpoint within half a mile and hold 1,000 ft above the ground within 100 ft.",
+            "he": "בסיום התרגול הזה תדעו לטוס מסלול נמוך בלילה עם מצלמת הלילה בקסדה ולעבור כל נקודת ציון במרחק של עד חצי מייל, תוך החזקת 1,000 רגל מעל הקרקע בתוך 100 רגל.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower on the radio.",
+            "he": "כידון 1, {jet}; המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Two F-35I: Kidon 1, yours, and the instructor's, Kidon 2, which joins you after the take-off and talks on the radio. {base} tower on the radio.",
+            "he": "שני F-35I: כידון 1 (אתם) וכידון 2 (המדריך), שמצטרף אחרי ההמראה ומדבר בקשר. מגדל {base} בקשר.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Night, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The route: lesson 3.2's four steerpoints over the Carmel's coast, the Acre plain, the eastern Galilee and the Jezreel valley.",
+            "he": "לילה, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. המסלול: ארבע נקודות הציון של תרגול 3.2, מעל חוף הכרמל, עמק עכו, הגליל המזרחי ועמק יזרעאל.",
+            "jets": [
+              "f16d"
+            ]
+          },
+          {
+            "en": "Night, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The route: lesson 3.2's four steerpoints over the central Negev, the Ramon crater and the Negev highlands.",
+            "he": "לילה, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. המסלול: ארבע נקודות הציון של תרגול 3.2, מעל מרכז הנגב, מכתש רמון והר הנגב.",
+            "jets": [
+              "f16i"
+            ]
+          },
+          {
+            "en": "Night, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The route: lesson 3.2's four steerpoints over the northern Negev, the Negev highlands and the Arava down to the Dead Sea.",
+            "he": "לילה, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. המסלול: ארבע נקודות הציון של תרגול 3.2, מעל צפון הנגב, הר הנגב והערבה עד ים המלח.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "execution": [
+          {
+            "en": "Start-up and taxi as taught in phase 1, with the checklist ({key:118}): the tower for the start-up, the taxi and the line-up, runway {runway}.",
+            "he": "יש להתניע ולהסיע כמו בשלב 1, לפי הבד\"ח ({key:118}), ולבקש מהמגדל אישור להתנעה, להסעה ולכניסה למסלול {runway}.",
+            "at": "start"
+          },
+          {
+            "en": "The cockpit for the night, as taught in phase 1; the goggles down ({key:255}) after the take-off, up for the landing light on final.",
+            "he": "תא הטייס מכוון ללילה כמו בשלב 1; אחרי ההמראה להוריד את האמר\"ל ({key:255}), ולהרים אותו לאור הנחיתה בסופית.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "The cockpit for the night, as taught in phase 1; after the take-off the helmet's night camera ({key:254}).",
+            "he": "תא הטייס מכוון ללילה כמו בשלב 1; אחרי ההמראה מצלמת הלילה בקסדה ({key:254}).",
+            "jets": [
+              "f35i"
+            ]
+          },
+          {
+            "en": "Take off and climb to 2,000 ft above the ground toward steerpoint 1; 5 NM before it descend to 1,000 ft above the ground.",
+            "he": "יש להמריא ולטפס ל-2,000 רגל מעל הקרקע לכיוון נקודת ציון 1; 5 מייל לפניה לרדת ל-1,000 רגל מעל הקרקע.",
+            "at": "lineup"
+          },
+          {
+            "en": "Steering: the HUD's steering cue and the EHSI point to the steerpoint picked on the DED; {key:39} steps to the next one, {key:40} back. The DED shows its number, distance and time to go.",
+            "he": "ההיגוי: סמן ההיגוי ב-HUD וה-EHSI מצביעים על נקודת הציון שנבחרה ב-DED; {key:39} עובר לנקודה הבאה, {key:40} חוזר לקודמת. ה-DED מראה את מספרה, את המרחק ואת הזמן עד אליה.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Steering: the helmet's caret and the steerpoint's square point to the steerpoint picked; {key:39} steps to the next one, {key:40} back. The panoramic display's function bar shows its number; the TSD ({key:53}) draws the route.",
+            "he": "ההיגוי: הסמן בקסדה והריבוע של נקודת הציון מצביעים על הנקודה שנבחרה; {key:39} עובר לנקודה הבאה, {key:40} חוזר לקודמת. סרגל הפונקציות בצג הפנורמי מראה את מספרה; ה-TSD ({key:53}) מצייר את המסלול.",
+            "jets": [
+              "f35i"
+            ]
+          },
+          {
+            "en": "Low level at night: 1,000 ft above the ground at 420 kt, the radar altimeter in the scan more often than by day; the ground shows less, so trust the height and climb early before a ridge.",
+            "he": "בגובה נמוך בלילה: 1,000 רגל מעל הקרקע ב-420 קשר, ולהסתכל על מד הגובה הרדיו יותר מאשר ביום; הקרקע נראית פחות, ולכן יש לסמוך על הגובה ולטפס מוקדם לפני רכס.",
+            "diagram": "low_level_night"
+          },
+          {
+            "en": "After steerpoint 4: climb to 3,000 ft above the field, turn for home and fly a straight-in to runway {runway}.",
+            "he": "אחרי נקודת ציון 4 יש לטפס ל-3,000 רגל מעל הבסיס, לפנות הביתה ולגשת ישירות למסלול {runway}."
+          },
+          {
+            "en": "Home: a straight-in to runway {runway}. 10 NM out at 3,000 ft above the field, gear down below 300 kt, three green; the 3° path at 13° angle of attack.",
+            "he": "יש לחזור בגישה ישירה למסלול {runway}: 10 מייל בחוץ, 3,000 רגל מעל הבסיס; מתחת ל-300 קשר להוריד כן ולוודא שלושה ירוקים; שיפוע 3° בזווית התקפה 13°."
+          },
+          {
+            "en": "After landing: clear the runway, the after-landing checks, taxi to the shelter and shut down with the checklist. The lesson ends with the engine off on the spot.",
+            "he": "אחרי הנחיתה יש לפנות את המסלול, לבצע בדיקות אחרי נחיתה, להסיע לדת\"ק ולכבות לפי הבד\"ח. התרגול מסתיים כשהמנוע כבוי בעמדה."
+          }
+        ],
+        "coordination": [
+          {
+            "en": "Stay within 3 NM of each leg. Climb at once to 2,000 ft above the ground if the picture goes or the ground ahead is unclear. Never below 300 ft above the ground on the low-level legs. Bingo: 2,000 lb, then straight home. Alternate: Tel Nof. \"Knock it off\" from either seat ends the exercise.",
+            "he": "עד 3 מייל מכל קטע. אם התמונה נעלמת או שהקרקע שלפנים לא ברורה, יש לטפס מיד ל-2,000 רגל מעל הקרקע. בקטעים הנמוכים לא לרדת מתחת ל-300 רגל מעל הקרקע. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: תל נוף. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16d"
+            ]
+          },
+          {
+            "en": "Stay within 3 NM of each leg. Climb at once to 2,000 ft above the ground if the picture goes or the ground ahead is unclear. Never below 300 ft above the ground on the low-level legs. Bingo: 2,000 lb, then straight home. Alternate: Nevatim. \"Knock it off\" from either seat ends the exercise.",
+            "he": "עד 3 מייל מכל קטע. אם התמונה נעלמת או שהקרקע שלפנים לא ברורה, יש לטפס מיד ל-2,000 רגל מעל הקרקע. בקטעים הנמוכים לא לרדת מתחת ל-300 רגל מעל הקרקע. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: נבטים. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16i"
+            ]
+          },
+          {
+            "en": "Stay within 3 NM of each leg. Climb at once to 2,000 ft above the ground if the picture goes or the ground ahead is unclear. Never below 300 ft above the ground on the low-level legs. Bingo: 3,000 lb, then straight home. Alternate: Hatzerim. \"Knock it off\" from either jet ends the exercise.",
+            "he": "עד 3 מייל מכל קטע. אם התמונה נעלמת או שהקרקע שלפנים לא ברורה, יש לטפס מיד ל-2,000 רגל מעל הקרקע. בקטעים הנמוכים לא לרדת מתחת ל-300 רגל מעל הקרקע. בינגו: 3,000 ליברות, ואז ישר הביתה. שדה חלופי: חצרים. \"סיום קרב\" מכל מטוס עוצר את התרגיל.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "signal": [
+          {
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך באינטרקום. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Callsign Kidon 1; the instructor Kidon 2. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the tower's frequency. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; המדריך כידון 2. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך בתדר המגדל. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Start-up, taxi, runway {runway}",
+          "he": "יש להתניע ולהסיע למסלול {runway}",
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          }
+        },
+        {
+          "en": "After the take-off: goggles down",
+          "he": "אחרי ההמראה: להוריד אמר\"ל",
+          "jets": [
+            "f16d",
+            "f16i"
+          ]
+        },
+        {
+          "en": "After the take-off: the night camera",
+          "he": "אחרי ההמראה: מצלמת הלילה",
+          "jets": [
+            "f35i"
+          ]
+        },
+        {
+          "en": "2,000 ft above the ground to steerpoint 1",
+          "he": "יש לטוס ב-2,000 רגל מעל הקרקע לנקודת ציון 1"
+        },
+        {
+          "en": "5 NM before it: down to 1,000 ft above the ground",
+          "he": "5 מייל לפניה: לרדת ל-1,000 רגל מעל הקרקע",
+          "diagram": "low_level_night"
+        },
+        {
+          "en": "Each leg: 420 kt, 1,000 ft ±100",
+          "he": "בכל קטע: 420 קשר, 1,000 רגל ±100"
+        },
+        {
+          "en": "After steerpoint 4: climb, turn home",
+          "he": "אחרי נקודה 4: לטפס ולפנות הביתה",
+          "wait": {
+            "en": "3,000 ft above the field",
+            "he": "3,000 רגל מעל הבסיס"
+          }
+        },
+        {
+          "en": "Straight-in: 10 NM, 3,000 ft; gear down",
+          "he": "יש לגשת ישירות: 10 מייל, 3,000 רגל; להוריד כן",
+          "wait": {
+            "en": "three green",
+            "he": "שלושה ירוקים"
+          }
+        },
+        {
+          "en": "Clear the runway; shelter; shut down",
+          "he": "יש לפנות את המסלול, להסיע לדת\"ק ולכבות",
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          }
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Tonight we fly the low route again, at a thousand feet. The ground is harder to read, so we trust the height.",
+              "he": "הלילה נטוס שוב את המסלול הנמוך, ב-1,000 רגל. קשה יותר לקרוא את הקרקע, ולכן סומכים על הגובה."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Let's start up. We'll follow the checklist.",
+              "he": "נתחיל בהתנעה. נעבוד לפי הבד\"ח."
+            }
+          ],
+          "startup": true
+        },
+        {
+          "id": "taxi",
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "All yours. After the take-off, goggles down, and we head for steerpoint one.",
+              "he": "שלך. אחרי ההמראה מורידים אמר\"ל, ונפנה לנקודת ציון 1."
+            }
+          ],
+          "jets": [
+            "f16d",
+            "f16i"
+          ]
+        },
+        {
+          "id": "lined_up_f35",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "All yours. After the take-off, the night camera on, and we head for steerpoint one.",
+              "he": "שלך. אחרי ההמראה מצלמת הלילה, ונפנה לנקודת ציון 1."
+            }
+          ],
+          "jets": [
+            "f35i"
+          ]
+        },
+        {
+          "id": "join",
+          "when": [
+            "climb_out"
+          ],
+          "lines": [
+            {
+              "en": "Kidon 2, joining on your left. Carry on, I'm with you.",
+              "he": "כידון 2 מצטרף משמאל. ממשיכים, אני איתך."
+            }
+          ],
+          "jets": [
+            "f35i"
+          ]
+        },
+        {
+          "id": "sp1",
+          "when": [
+            "steerpoint:1"
+          ],
+          "lines": [
+            {
+              "en": "Steerpoint one. A thousand feet from here on. Keep the radar altimeter in the scan.",
+              "he": "נקודה 1. מכאן והלאה 1,000 רגל. מד הגובה הרדיו בסריקה."
+            }
+          ]
+        },
+        {
+          "id": "sp3",
+          "when": [
+            "steerpoint:3"
+          ],
+          "lines": [
+            {
+              "en": "Three. Last low leg. Easy on the turns.",
+              "he": "נקודה 3. הקטע הנמוך האחרון. בעדינות בפניות."
+            }
+          ]
+        },
+        {
+          "id": "sp4",
+          "when": [
+            "steerpoint:4"
+          ],
+          "lines": [
+            {
+              "en": "Four. Let's climb out and take her home, straight in to {rwy}.",
+              "he": "נקודה 4. נטפס ונחזור הביתה בגישה ישירה למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "rollout",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nicely done. Let's clear the runway and taxi back to the shelter.",
+              "he": "יפה מאוד. נפנה את המסלול ונסיע חזרה לדת\"ק."
+            }
+          ]
+        },
+        {
+          "id": "shelter",
+          "when": [
+            "parked"
+          ],
+          "lines": [
+            {
+              "en": "We're home. Let's shut down with the checklist, and I'll see you in the debrief.",
+              "he": "הגענו. נכבה לפי הבד\"ח, וניפגש בתחקיר."
+            }
+          ],
+          "new": true
+        }
+      ]
+    },
+    "check": {
+      "missions": {
+        "f16d": "f16d_navigation_check",
+        "f16i": "f16i_navigation_check",
+        "f35i": "f35i_navigation_check"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, at night: check ride 3. Start-up, taxi, take-off; steerpoints 1 and 2 at 15,000 ft, steerpoints 3 and 4 at 1,000 ft above the ground; the TACAN to the fixes, steerpoints 5 and 6; the ILS to a landing; taxi back and shut down.",
+            "he": "{jet}, {base}, מסלול {runway}, לילה. טיסת מבחן 3: התנעה, הסעה והמראה; נקודות ציון 1 ו-2 ב-15,000 רגל, נקודות 3 ו-4 ב-1,000 רגל מעל הקרקע; TACAN לנקודות הגישה, נקודות 5 ו-6; ILS עד נחיתה; הסעה חזרה וכיבוי."
+          }
+        ],
+        "target": [
+          {
+            "en": "This flight checks everything from phases 1 to 3, at night. The instructor gives no calls in flight; the notebook stays with you. One emergency already taught may come, unannounced.",
+            "he": "בסיום התרגול הזה תדעו לבצע לבד ובלילה את כל מה שנלמד בשלבים 1 עד 3: להתניע, להמריא, לטוס מסלול בגובה ובגובה נמוך ולגשת בטיסת מכשירים לנחיתה, בלי הנחיות בטיסה ועם הפנקס בלבד, כולל טיפול בחירום שכבר נלמד, שעלול להגיע בלי הודעה מראש, תוך עמידה בזמנים ובגבולות."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat, silent until the debrief. {base} ground and tower on the radio.",
+            "he": "כידון 1, {jet}; המדריך במושב האחורי, שותק עד התחקיר. קרקע ומגדל {base} בקשר.",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Two F-35I: Kidon 1, yours, and the instructor's, Kidon 2, which follows you and says nothing until the debrief. {base} ground and tower on the radio.",
+            "he": "שני F-35I: כידון 1 (אתם) וכידון 2 (המדריך), שעוקב אחריכם ולא מדבר עד התחקיר. קרקע ומגדל {base} בקשר.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Night, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The route: steerpoints 1 and 2 of lesson 3.1, steerpoints 3 and 4 of lesson 3.2, and the two fixes of lesson 3.3 on the runway's line.",
+            "he": "לילה, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. המסלול: נקודות ציון 1 ו-2 של תרגול 3.1, נקודות 3 ו-4 של תרגול 3.2, ושתי נקודות הגישה של תרגול 3.3 על קו המסלול."
+          }
+        ],
+        "execution": [
+          {
+            "en": "Start-up, taxi and line-up by the checklist ({key:118}), with the cockpit set for the night; every tower call ({key:47}).",
+            "he": "יש להתניע, להסיע ולעלות למסלול לפי הבד\"ח ({key:118}), עם תא טייס מכוון ללילה, ולבצע כל קריאה למגדל ({key:47}).",
+            "at": "start"
+          },
+          {
+            "en": "Take off; steerpoints 1 and 2 at 15,000 ft and 420 kt; descend for steerpoints 3 and 4 at 1,000 ft above the ground, 420 kt; the clock runs from steerpoint 1.",
+            "he": "יש להמריא; נקודות ציון 1 ו-2 ב-15,000 רגל וב-420 קשר; לרדת לנקודות 3 ו-4 ב-1,000 רגל מעל הקרקע, 420 קשר; הזמן נמדד מנקודה 1.",
+            "at": "lineup",
+            "diagram": "route_medium"
+          },
+          {
+            "en": "After steerpoint 4: climb to 5,000 ft above the field for steerpoint 5 (12 NM out), then steerpoint 6 (9 NM, 3,000 ft) at 300 kt, the ILS to the decision height and the landing.",
+            "he": "אחרי נקודה 4 יש לטפס ל-5,000 רגל מעל הבסיס לנקודה 5 (12 מייל בחוץ), ואחר כך לנקודה 6 (9 מייל, 3,000 רגל) ב-300 קשר, ב-ILS עד גובה ההחלטה ולנחות.",
+            "diagram": "instrument_approach"
+          },
+          {
+            "en": "An emergency may come: fly the jet, run the EMERGENCY tab's steps, land as soon as practical.",
+            "he": "חירום עלול להגיע: יש להטיס את המטוס, לבצע את הצעדים מלשונית החירום ולנחות בהקדם האפשרי."
+          },
+          {
+            "en": "After landing: clear the runway, the after-landing checks, taxi to the shelter and shut down with the checklist. The lesson ends with the engine off on the spot.",
+            "he": "אחרי הנחיתה יש לפנות את המסלול, לבצע בדיקות אחרי נחיתה, להסיע לדת\"ק ולכבות לפי הבד\"ח. התרגול מסתיים כשהמנוע כבוי בעמדה."
+          }
+        ],
+        "coordination": [
+          {
+            "en": "As in lessons 3.1 to 3.3. Never below 300 ft above the ground on the low-level legs. Bingo: 2,000 lb, then straight home. Alternate: Tel Nof. \"Knock it off\" from either seat ends the exercise.",
+            "he": "כמו בתרגולים 3.1 עד 3.3. בקטעים הנמוכים לא לרדת מתחת ל-300 רגל מעל הקרקע. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: תל נוף. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16d"
+            ]
+          },
+          {
+            "en": "As in lessons 3.1 to 3.3. Never below 300 ft above the ground on the low-level legs. Bingo: 2,000 lb, then straight home. Alternate: Nevatim. \"Knock it off\" from either seat ends the exercise.",
+            "he": "כמו בתרגולים 3.1 עד 3.3. בקטעים הנמוכים לא לרדת מתחת ל-300 רגל מעל הקרקע. בינגו: 2,000 ליברות, ואז ישר הביתה. שדה חלופי: נבטים. \"סיום קרב\" מכל מושב עוצר את התרגיל.",
+            "jets": [
+              "f16i"
+            ]
+          },
+          {
+            "en": "As in lessons 3.1 to 3.3. Never below 300 ft above the ground on the low-level legs. Bingo: 3,000 lb, then straight home. Alternate: Hatzerim. \"Knock it off\" from either jet ends the exercise.",
+            "he": "כמו בתרגולים 3.1 עד 3.3. בקטעים הנמוכים לא לרדת מתחת ל-300 רגל מעל הקרקע. בינגו: 3,000 ליברות, ואז ישר הביתה. שדה חלופי: חצרים. \"סיום קרב\" מכל מטוס עוצר את התרגיל.",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ],
+        "signal": [
+          {
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך באינטרקום. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f16d",
+              "f16i"
+            ]
+          },
+          {
+            "en": "Callsign Kidon 1; the instructor Kidon 2. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}); call the tower with {key:47}. TACAN: {base}'s station, on the notebook's RADIO page. The instructor on the tower's frequency. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; המדריך כידון 2. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס ({key:118}); מגדל ב-{key:47}. TACAN: התחנה של {base}, בדף הקשר בפנקס. המדריך בתדר המגדל. מילת קוד: \"סיום קרב\".",
+            "jets": [
+              "f35i"
+            ]
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Start-up, taxi, runway {runway}; the night cockpit",
+          "he": "יש להתניע ולהסיע למסלול {runway}, עם תא טייס ללילה",
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          }
+        },
+        {
+          "en": "Steerpoints 1, 2: 15,000 ft, 420 kt",
+          "he": "נקודות ציון 1 ו-2: 15,000 רגל, 420 קשר",
+          "diagram": "route_medium"
+        },
+        {
+          "en": "Steerpoints 3, 4: 1,000 ft above the ground",
+          "he": "נקודות ציון 3 ו-4: 1,000 רגל מעל הקרקע"
+        },
+        {
+          "en": "Steerpoints 5, 6: the fixes; the ILS",
+          "he": "נקודות ציון 5 ו-6: נקודות הגישה; ILS",
+          "diagram": "instrument_approach"
+        },
+        {
+          "en": "Any emergency: fly, the EMERGENCY tab, land",
+          "he": "כל חירום: להטיס, לשונית החירום, לנחות"
+        },
+        {
+          "en": "Clear the runway; shelter; shut down",
+          "he": "יש לפנות את המסלול, להסיע לדת\"ק ולכבות",
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          }
+        }
+      ]
+    }
+  },
+  "diagrams": {
+    "route_medium": {
+      "title": {
+        "en": "The route at medium altitude",
+        "he": "המסלול בגובה בינוני"
+      },
+      "points": [
+        {
+          "en": "Take-off",
+          "he": "המראה",
+          "hold": {
+            "en": "the runway heading · climb",
+            "he": "בכיוון המסלול · טיפוס"
+          }
+        },
+        {
+          "en": "Steerpoint 1",
+          "he": "נקודת ציון 1",
+          "hold": {
+            "en": "15,000 ft · 420 kt · the clock starts",
+            "he": "15,000 רגל · 420 קשר · הזמן מתחיל"
+          }
+        },
+        {
+          "en": "Steerpoint 2",
+          "he": "נקודת ציון 2",
+          "hold": {
+            "en": "within ½ nm · turn to 3",
+            "he": "עד ½ מייל · לפנות ל-3"
+          }
+        },
+        {
+          "en": "Steerpoint 3",
+          "he": "נקודת ציון 3",
+          "hold": {
+            "en": "±100 ft",
+            "he": "±100 רגל"
+          }
+        },
+        {
+          "en": "Steerpoint 4",
+          "he": "נקודת ציון 4",
+          "hold": {
+            "en": "on time · ±15 s",
+            "he": "בזמן · ±15 שניות"
+          }
+        },
+        {
+          "en": "Straight-in",
+          "he": "גישה ישירה",
+          "hold": {
+            "en": "10 nm · 3,000 ft",
+            "he": "10 מייל · 3,000 רגל"
+          }
+        }
+      ],
+      "top": {
+        "runway": [
+          [
+            50.0,
+            80.0
+          ],
+          [
+            38.0,
+            84.0
+          ]
+        ],
+        "paths": [
+          {
+            "track": [
+              [
+                44,
+                82
+              ],
+              [
+                30,
+                86
+              ],
+              [
+                18,
+                76
+              ],
+              [
+                15,
+                30
+              ],
+              [
+                55,
+                10
+              ],
+              [
+                88,
+                40
+              ],
+              [
+                82,
+                70
+              ],
+              [
+                62,
+                76
+              ],
+              [
+                50,
+                80
+              ]
+            ]
+          }
+        ],
+        "pins": [
+          [
+            30,
+            86
+          ],
+          [
+            15,
+            30
+          ],
+          [
+            55,
+            10
+          ],
+          [
+            88,
+            40
+          ],
+          [
+            82,
+            70
+          ],
+          [
+            62,
+            76
+          ]
+        ]
+      },
+      "side": {
+        "paths": [
+          {
+            "track": [
+              [
+                2,
+                0
+              ],
+              [
+                15,
+                70
+              ],
+              [
+                30,
+                80
+              ],
+              [
+                75,
+                80
+              ],
+              [
+                88,
+                20
+              ],
+              [
+                98,
+                0
+              ]
+            ]
+          }
+        ],
+        "pins": [
+          [
+            2,
+            0
+          ],
+          [
+            30,
+            80
+          ],
+          [
+            45,
+            80
+          ],
+          [
+            60,
+            80
+          ],
+          [
+            75,
+            80
+          ],
+          [
+            88,
+            20
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              50,
+              90
+            ],
+            "en": "15,000 ft",
+            "he": "15,000 רגל"
+          }
+        ]
+      }
+    },
+    "low_level": {
+      "title": {
+        "en": "The low-level route",
+        "he": "המסלול בגובה נמוך"
+      },
+      "points": [
+        {
+          "en": "Descent",
+          "he": "ירידה",
+          "hold": {
+            "en": "5 nm before steerpoint 1",
+            "he": "5 מייל לפני נקודה 1"
+          }
+        },
+        {
+          "en": "Steerpoint 1",
+          "he": "נקודת ציון 1",
+          "hold": {
+            "en": "500 ft above the ground · 420 kt",
+            "he": "500 רגל מעל הקרקע · 420 קשר"
+          }
+        },
+        {
+          "en": "Steerpoint 2",
+          "he": "נקודת ציון 2",
+          "hold": {
+            "en": "climb before a ridge",
+            "he": "טיפוס לפני רכס"
+          }
+        },
+        {
+          "en": "Steerpoint 3",
+          "he": "נקודת ציון 3",
+          "hold": {
+            "en": "±100 ft",
+            "he": "±100 רגל"
+          }
+        },
+        {
+          "en": "Steerpoint 4",
+          "he": "נקודת ציון 4",
+          "hold": {
+            "en": "climb · home",
+            "he": "טיפוס · הביתה"
+          }
+        }
+      ],
+      "top": {
+        "runway": [
+          [
+            20.0,
+            85.0
+          ],
+          [
+            10.0,
+            80.0
+          ]
+        ],
+        "paths": [
+          {
+            "track": [
+              [
+                15,
+                82
+              ],
+              [
+                30,
+                60
+              ],
+              [
+                40,
+                40
+              ],
+              [
+                45,
+                20
+              ],
+              [
+                80,
+                15
+              ],
+              [
+                90,
+                55
+              ],
+              [
+                55,
+                75
+              ],
+              [
+                25,
+                85
+              ]
+            ]
+          }
+        ],
+        "pins": [
+          [
+            35,
+            50
+          ],
+          [
+            45,
+            20
+          ],
+          [
+            80,
+            15
+          ],
+          [
+            90,
+            55
+          ],
+          [
+            55,
+            75
+          ]
+        ]
+      },
+      "side": {
+        "paths": [
+          {
+            "track": [
+              [
+                2,
+                40
+              ],
+              [
+                15,
+                40
+              ],
+              [
+                25,
+                14
+              ],
+              [
+                40,
+                20
+              ],
+              [
+                50,
+                36
+              ],
+              [
+                58,
+                22
+              ],
+              [
+                75,
+                16
+              ],
+              [
+                88,
+                14
+              ],
+              [
+                98,
+                45
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                2,
+                0
+              ],
+              [
+                25,
+                4
+              ],
+              [
+                40,
+                10
+              ],
+              [
+                50,
+                26
+              ],
+              [
+                58,
+                12
+              ],
+              [
+                75,
+                6
+              ],
+              [
+                88,
+                4
+              ],
+              [
+                98,
+                2
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            15,
+            40
+          ],
+          [
+            25,
+            14
+          ],
+          [
+            50,
+            36
+          ],
+          [
+            75,
+            16
+          ],
+          [
+            88,
+            14
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              32,
+              30
+            ],
+            "en": "500 ft above the ground",
+            "he": "500 רגל מעל הקרקע"
+          },
+          {
+            "at": [
+              66,
+              2
+            ],
+            "en": "the ground",
+            "he": "הקרקע"
+          }
+        ]
+      }
+    },
+    "instrument_approach": {
+      "title": {
+        "en": "The TACAN fixes and the ILS",
+        "he": "נקודות ה-TACAN וה-ILS"
+      },
+      "points": [
+        {
+          "en": "Steerpoint 1: the first fix",
+          "he": "נקודת ציון 1: נקודת הגישה הראשונה",
+          "hold": {
+            "en": "12 nm · 5,000 ft · 300 kt",
+            "he": "12 מייל · 5,000 רגל · 300 קשר"
+          }
+        },
+        {
+          "en": "Steerpoint 2: the second fix",
+          "he": "נקודת ציון 2: נקודת הגישה השנייה",
+          "hold": {
+            "en": "9 nm · 3,000 ft · 300 kt",
+            "he": "9 מייל · 3,000 רגל · 300 קשר"
+          }
+        },
+        {
+          "en": "The glide slope",
+          "he": "ה-Glideslope",
+          "hold": {
+            "en": "about 5.6 nm · gear down · 13° AoA",
+            "he": "כ-5.6 מייל · כן למטה · זווית התקפה 13°"
+          }
+        },
+        {
+          "en": "Decision height",
+          "he": "גובה ההחלטה",
+          "hold": {
+            "en": "200 ft · runway in sight",
+            "he": "200 רגל · מסלול נראה"
+          }
+        },
+        {
+          "en": "Touchdown",
+          "he": "נגיעה",
+          "hold": {
+            "en": "within 300 m of the threshold",
+            "he": "עד 300 מ' מהסף"
+          }
+        }
+      ],
+      "top": {
+        "runway": [
+          [
+            12.0,
+            50.0
+          ],
+          [
+            2.0,
+            50.0
+          ]
+        ],
+        "paths": [
+          {
+            "track": [
+              [
+                96,
+                50
+              ],
+              [
+                70,
+                50
+              ],
+              [
+                45,
+                50
+              ],
+              [
+                20,
+                50
+              ],
+              [
+                12,
+                50
+              ]
+            ]
+          }
+        ],
+        "pins": [
+          [
+            96,
+            50
+          ],
+          [
+            70,
+            50
+          ],
+          [
+            45,
+            50
+          ],
+          [
+            22,
+            50
+          ],
+          [
+            12,
+            50
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              55,
+              40
+            ],
+            "en": "the runway's line · the localizer",
+            "he": "קו המסלול · ה-Localizer"
+          }
+        ]
+      },
+      "side": {
+        "paths": [
+          {
+            "track": [
+              [
+                96,
+                90
+              ],
+              [
+                80,
+                90
+              ],
+              [
+                70,
+                55
+              ],
+              [
+                45,
+                55
+              ],
+              [
+                22,
+                6
+              ],
+              [
+                12,
+                0
+              ]
+            ]
+          }
+        ],
+        "pins": [
+          [
+            96,
+            90
+          ],
+          [
+            70,
+            55
+          ],
+          [
+            45,
+            55
+          ],
+          [
+            22,
+            6
+          ],
+          [
+            12,
+            0
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              30,
+              36
+            ],
+            "en": "5° glide path",
+            "he": "שיפוע 5°"
+          },
+          {
+            "at": [
+              60,
+              72
+            ],
+            "en": "in cloud",
+            "he": "בענן"
+          }
+        ]
+      }
+    },
+    "emergency_return": {
+      "title": {
+        "en": "A failure and the way home",
+        "he": "תקלה והדרך הביתה"
+      },
+      "points": [
+        {
+          "en": "The failure",
+          "he": "התקלה",
+          "hold": {
+            "en": "level · 1 g · the height held",
+            "he": "ישר ואופקי · 1 G · גובה נשמר"
+          }
+        },
+        {
+          "en": "The checklist",
+          "he": "הבד\"ח",
+          "hold": {
+            "en": "the EMERGENCY tab, in order",
+            "he": "לשונית החירום, לפי הסדר"
+          }
+        },
+        {
+          "en": "Turn home",
+          "he": "פנייה הביתה",
+          "hold": {
+            "en": "the TACAN · gentle",
+            "he": "TACAN · בעדינות"
+          }
+        },
+        {
+          "en": "Straight-in",
+          "he": "גישה ישירה",
+          "hold": {
+            "en": "10 nm · 3,000 ft · gear down",
+            "he": "10 מייל · 3,000 רגל · כן למטה"
+          }
+        },
+        {
+          "en": "Touchdown",
+          "he": "נגיעה",
+          "hold": {
+            "en": "a full stop",
+            "he": "עד עצירה"
+          }
+        }
+      ],
+      "top": {
+        "runway": [
+          [
+            20.0,
+            70.0
+          ],
+          [
+            8.0,
+            70.0
+          ]
+        ],
+        "paths": [
+          {
+            "track": [
+              [
+                15,
+                70
+              ],
+              [
+                40,
+                50
+              ],
+              [
+                70,
+                25
+              ],
+              [
+                85,
+                20
+              ],
+              [
+                92,
+                35
+              ],
+              [
+                85,
+                60
+              ],
+              [
+                65,
+                70
+              ],
+              [
+                20,
+                70
+              ]
+            ]
+          }
+        ],
+        "pins": [
+          [
+            70,
+            25
+          ],
+          [
+            85,
+            20
+          ],
+          [
+            92,
+            40
+          ],
+          [
+            55,
+            70
+          ],
+          [
+            20,
+            70
+          ]
+        ]
+      }
+    },
+    "low_level_night": {
+      "title": {
+        "en": "The low-level route at night",
+        "he": "המסלול בגובה נמוך בלילה"
+      },
+      "points": [
+        {
+          "en": "Descent",
+          "he": "ירידה",
+          "hold": {
+            "en": "5 nm before steerpoint 1",
+            "he": "5 מייל לפני נקודה 1"
+          }
+        },
+        {
+          "en": "Steerpoint 1",
+          "he": "נקודת ציון 1",
+          "hold": {
+            "en": "1,000 ft above the ground · 420 kt",
+            "he": "1,000 רגל מעל הקרקע · 420 קשר"
+          }
+        },
+        {
+          "en": "Steerpoint 2",
+          "he": "נקודת ציון 2",
+          "hold": {
+            "en": "climb early before a ridge",
+            "he": "טיפוס מוקדם לפני רכס"
+          }
+        },
+        {
+          "en": "Steerpoint 3",
+          "he": "נקודת ציון 3",
+          "hold": {
+            "en": "±100 ft",
+            "he": "±100 רגל"
+          }
+        },
+        {
+          "en": "Steerpoint 4",
+          "he": "נקודת ציון 4",
+          "hold": {
+            "en": "climb · home",
+            "he": "טיפוס · הביתה"
+          }
+        }
+      ],
+      "top": {
+        "runway": [
+          [
+            20.0,
+            85.0
+          ],
+          [
+            10.0,
+            80.0
+          ]
+        ],
+        "paths": [
+          {
+            "track": [
+              [
+                15,
+                82
+              ],
+              [
+                30,
+                60
+              ],
+              [
+                40,
+                40
+              ],
+              [
+                45,
+                20
+              ],
+              [
+                80,
+                15
+              ],
+              [
+                90,
+                55
+              ],
+              [
+                55,
+                75
+              ],
+              [
+                25,
+                85
+              ]
+            ]
+          }
+        ],
+        "pins": [
+          [
+            35,
+            50
+          ],
+          [
+            45,
+            20
+          ],
+          [
+            80,
+            15
+          ],
+          [
+            90,
+            55
+          ],
+          [
+            55,
+            75
+          ]
+        ]
+      },
+      "side": {
+        "paths": [
+          {
+            "track": [
+              [
+                2,
+                40
+              ],
+              [
+                15,
+                40
+              ],
+              [
+                25,
+                14
+              ],
+              [
+                40,
+                20
+              ],
+              [
+                50,
+                36
+              ],
+              [
+                58,
+                22
+              ],
+              [
+                75,
+                16
+              ],
+              [
+                88,
+                14
+              ],
+              [
+                98,
+                45
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                2,
+                0
+              ],
+              [
+                25,
+                4
+              ],
+              [
+                40,
+                10
+              ],
+              [
+                50,
+                26
+              ],
+              [
+                58,
+                12
+              ],
+              [
+                75,
+                6
+              ],
+              [
+                88,
+                4
+              ],
+              [
+                98,
+                2
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            15,
+            40
+          ],
+          [
+            25,
+            14
+          ],
+          [
+            50,
+            36
+          ],
+          [
+            75,
+            16
+          ],
+          [
+            88,
+            14
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              32,
+              30
+            ],
+            "en": "1,000 ft above the ground",
+            "he": "1,000 רגל מעל הקרקע"
+          },
+          {
+            "at": [
+              66,
+              2
+            ],
+            "en": "the ground",
+            "he": "הקרקע"
+          }
+        ]
+      }
+    }
+  }
+}

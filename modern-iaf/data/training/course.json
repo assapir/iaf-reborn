@@ -32,6 +32,7 @@
     "sink_rate": {"label": {"en": "Sink rate at touchdown", "he": "מהירות השקיעה בנגיעה"}, "standard": {"limit": "max", "bands": [4, 7, 10], "unit": "ft/s"}},
     "go_around_height": {"label": {"en": "Lowest height in the go-around", "he": "הגובה הנמוך ביותר בהליכה סביב"}, "standard": {"limit": "min", "bands": [200, 100, 50], "unit": "ft"}},
     "airspeed_error": {"label": {"en": "Airspeed held", "he": "החזקת המהירות"}, "standard": {"limit": "tol", "target": 0, "bands": [5, 10, 15], "unit": "kt"}},
+    "approach_speed_error": {"label": {"en": "Approach speed held", "he": "החזקת מהירות הגישה"}, "standard": {"limit": "tol", "target": 0, "bands": [5, 10, 15], "unit": "kt"}},
     "altitude_error": {"label": {"en": "Altitude held", "he": "החזקת הגובה"}, "standard": {"limit": "tol", "target": 0, "bands": [100, 200, 300], "unit": "ft"}},
     "max_g": {"label": {"en": "Highest load", "he": "העומס הגבוה ביותר"}, "standard": {"limit": "max", "bands": [8.5, 9, 9], "unit": "g"}},
     "corner_speed_error": {"label": {"en": "Corner speed held in the turn", "he": "החזקת מהירות הפנייה המיטבית"}, "standard": {"limit": "tol", "target": 0, "bands": [10, 20, 30], "unit": "kt"}},
@@ -90,7 +91,7 @@
     {"id": "navigation", "title": {"en": "Navigation and instruments", "he": "ניווט וטיסת מכשירים"}, "lessons": [
       {"id": "steerpoints", "title": {"en": "Waypoint navigation", "he": "ניווט בנקודות ציון"}, "line": {"en": "Waypoints at medium altitude with the ICP and the DED.", "he": "נקודות ציון בגובה בינוני עם ה-ICP וה-DED."}, "items": ["steerpoint_miss", "altitude_error", "time_on_target"]},
       {"id": "low_level", "title": {"en": "Low-level navigation", "he": "ניווט בגובה נמוך"}, "line": {"en": "A route of waypoints at low level.", "he": "מסלול של נקודות ציון בגובה נמוך."}, "items": ["steerpoint_miss", "low_level_height_error", "time_on_target"]},
-      {"id": "instruments", "title": {"en": "Instrument approach", "he": "גישת מכשירים"}, "line": {"en": "In cloud: the TACAN and ILS approaches.", "he": "בעננים: גישות TACAN ו-ILS."}, "items": ["localizer_deviation", "glideslope_deviation", "airspeed_error", "touchdown_distance"]},
+      {"id": "instruments", "title": {"en": "Instrument approach", "he": "גישת מכשירים"}, "line": {"en": "In cloud: the TACAN and ILS approaches.", "he": "בעננים: גישות TACAN ו-ILS."}, "items": ["localizer_deviation", "glideslope_deviation", "approach_speed_error", "touchdown_distance"]},
       {"id": "systems", "title": {"en": "Systems failures", "he": "תקלות מערכות"}, "line": {"en": "Hydraulic and electrical failures, flown on the standby instruments.", "he": "תקלות הידראוליות וחשמליות, בטיסה על מכשירי הגיבוי."}, "items": ["emergency_checklist", "altitude_error"], "emergencies": ["hydraulic", "gear_fault", "electrical", "epu", "flight_controls"]},
       {"id": "night", "kind": "night", "title": {"en": "At night: low-level navigation", "he": "בלילה: ניווט בגובה נמוך"}, "line": {"en": "Low-level navigation by night.", "he": "ניווט בגובה נמוך בלילה."}, "items": ["steerpoint_miss", "low_level_height_error"]},
       {"id": "check", "kind": "check", "night": true, "title": {"en": "Check ride 3", "he": "טיסת מבחן 3"}, "line": {"en": "Everything of phases 1 to 3, at night.", "he": "כל שלבים 1 עד 3, בלילה."}}

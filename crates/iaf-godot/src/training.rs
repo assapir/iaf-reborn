@@ -324,7 +324,8 @@ impl IafCalls {
     /// battery, 2 the displays), items (the card's items ticked), answers (the tower's answer templates), hot (the
     /// flight started with the engine running), called (the radio calls made), aoa (deg), g, failures (the failures
     /// on, the engine fire while it burns), in_slot, flight_joined, flight_landed, lead_orders (the player's flight:
-    /// ai_flights.gd flight_facts), tanker (the tanker's events for the jet: tanker.gd player_events)}.
+    /// ai_flights.gd flight_facts), tanker (the tanker's events for the jet: tanker.gd player_events), route (the
+    /// steerpoints, PackedVector2Array in the engine frame)}.
     #[func]
     fn tick(&mut self, now: VarDictionary) -> VarArray {
         let f = |k: &str| now.get(k).and_then(|v| v.try_to::<f64>().ok()).unwrap_or(0.0);
@@ -353,6 +354,10 @@ impl IafCalls {
             flight_landed: b("flight_landed"),
             lead_orders: list(&now, "lead_orders"),
             tanker: list(&now, "tanker"),
+            route: now
+                .get("route")
+                .and_then(|v| v.try_to::<PackedVector2Array>().ok())
+                .map_or(vec![], |a| a.as_slice().iter().map(|p| [f64::from(p.x), f64::from(p.y)]).collect()),
         };
         let mut out = VarArray::new();
         for s in self.calls.as_mut().map_or(vec![], |c| c.tick(&n)) {

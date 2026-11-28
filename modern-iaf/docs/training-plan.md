@@ -2,7 +2,7 @@
 
 This is the plan for Modern IAF's training lessons: the course for each jet, what a lesson is, how the instructor
 works, and how a lesson is briefed and graded. The course's data, its grades and its first two screens are built
-(§5), and the lessons of phases 1, 2, 4 and 6 for the three jets ([training.md](training.md) §16.4, §16.7, §16.8, §16.9). The ten earlier training missions are not part of it: the course replaces them in
+(§5), and the lessons of phases 1, 2, 3, 4 and 6 for the three jets ([training.md](training.md) §16.4, §16.7, §16.8, §16.9, §16.10). The ten earlier training missions are not part of it: the course replaces them in
 the front end (the user, 28 Nov 2026: "The current existing train should be deleted, o/c. It replaces them"). The user decided it in a planning talk on 28 November 2026; the 12 and 13 November
 decisions that still stand are marked with their date.
 
@@ -220,6 +220,9 @@ Built for the three jets: the lessons' missions, briefings, Lesson tabs and call
    standby instruments.
 5. **At night:** low-level navigation with the goggles or the DAS night camera.
 6. **Check ride 3**, at night.
+
+Built ([training.md](training.md) §16.10): the routes and the approach fixes are ours; lesson 3.3 flies in the
+mission's own heavy rain and cloud deck; lesson 3.4 gives its failures one after the other.
 
 ### Phase 4: Formation and flight lead
 

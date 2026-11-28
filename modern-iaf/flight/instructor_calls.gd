@@ -67,6 +67,7 @@ func _process(delta: float) -> void:
 			"flight_landed": bool(fl.get("landed", false)),
 			"lead_orders": PackedStringArray(fl.get("orders", [])),
 			"tanker": host.tanker.player_events if host.get("tanker") != null else PackedStringArray(),
+			"route": _route(),
 		}
 	)
 
@@ -79,6 +80,14 @@ func _failures() -> PackedStringArray:
 	var out := PackedStringArray(d.get("active", PackedStringArray()))
 	if not bool(d.get("fire", false)):
 		out.erase("engine_fire")
+	return out
+
+
+## The route's steerpoints in the engine frame (terrain_view.gd `route`: each waypoint's `world`).
+func _route() -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for w in host.get("route") if host.get("route") != null else []:
+		out.append(Vector2(w.world.x, w.world.y))
 	return out
 
 
