@@ -1114,7 +1114,8 @@ impl Watch {
     /// `shutdown`) is the shutdown a lesson asks for when its card holds `throttle_off` (training.md §16.2), no fault
     /// (""); any other fault stands.
     pub fn step_fault<'a>(&self, step: &str, fault: &'a str) -> &'a str {
-        let taught = step == "cutoff" && fault == "shutdown" && self.rules.checklist.iter().any(|i| i == "throttle_off");
+        let taught =
+            step == "cutoff" && fault == "shutdown" && self.rules.checklist.iter().any(|i| i == "throttle_off");
         if taught { "" } else { fault }
     }
 

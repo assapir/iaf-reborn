@@ -36,7 +36,8 @@ impl IafTraining {
     #[func]
     fn step_fault(&self, step: GString, fault: GString) -> GString {
         let f = fault.to_string();
-        self.watch.as_ref().map_or(f.clone(), |w| w.step_fault(&step.to_string(), &f).to_string()).into()
+        let out = self.watch.as_ref().map_or(f.as_str(), |w| w.step_fault(&step.to_string(), &f));
+        GString::from(out)
     }
 
     /// How long a fail shows its reason before the debrief, s (the rules' `end_hold_s`).

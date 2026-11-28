@@ -755,8 +755,12 @@ mod tests {
                     for s in SECTIONS {
                         assert!(!le["briefing"][s].as_array().unwrap().is_empty(), "{key} {jet}: {s} empty");
                     }
-                    let mut tests: Vec<String> =
-                        le["calls"].as_array().into_iter().flatten().flat_map(|x| strings(&x["when"], "").unwrap()).collect();
+                    let mut tests: Vec<String> = le["calls"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .flat_map(|x| strings(&x["when"], "").unwrap())
+                        .collect();
                     tests.extend(strings(&m["training"]["end"], "").unwrap());
                     for t in tests {
                         match t.split_once(':') {
