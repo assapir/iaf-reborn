@@ -95,8 +95,7 @@ func walk(fe: Control, lang: String) -> void:
 		await _code_first(fe, "the Hangar")
 	# The course's progress is in the Pilot screen's logbook only (Approvals A135).
 	check(not _has_part(card, "מתוך" if he else " passed"), "%s: no training progress on the card" % lang)
-	var last: Label = fe.find_child("LastFlight", true, false)
-	check(last.text.contains("המראה" if he else "Take-off"), "%s: the last flight: %s" % [lang, last.text])
+	check(fe.find_child("LastFlight", true, false) == null, "%s: no last-flight line on the card" % lang)
 	check(fe.find_child("Campaign", true, false) == null, lang + ": no campaign button (the Missions screen has it)")
 	var gear: Button = fe.find_child("Settings", true, false)
 	check(gear != null and gear.text == ("הגדרות" if he else "Settings"), "%s: the Settings in the top bar" % lang)

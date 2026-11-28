@@ -605,7 +605,7 @@ func _body(inline := 96, top := 112, bottom := 112) -> MarginContainer:
 
 ## The Hangar (front-end.md §1, the user's A25, 2026-11-13): the sim's first screen, in place of Home, Pick a plane and
 ## the jet's Training page. The jets at the inline start, the picked one turning in 3D in the middle with its full
-## name faint behind it, its card at the inline end: the squadron and base, facts, the last flight and Fly,
+## name faint behind it, its card at the inline end: the squadron and base, facts and Fly,
 ## which opens the Missions screen. The jet picked is the one flown or picked last, else the first (no jet unpicked).
 func _page_hangar() -> void:
 	if jet().is_empty():
@@ -820,8 +820,8 @@ func jet_stores(j: Dictionary, lo = null) -> Dictionary:
 	return out
 
 
-## The picked jet's card: its name, squadron and base, its facts, the last flight on it and Fly, which opens the
-## Missions screen. The course's progress is in the Pilot screen's logbook only (Approvals A135).
+## The picked jet's card: its name, squadron and base, its facts and Fly, which opens the Missions screen. The
+## course's progress is in the Pilot screen's logbook only (Approvals A135).
 func _jet_card(j: Dictionary) -> void:
 	# The sim's missions built (the jet's Scramble start).
 	var built := not section_missions("fly_now").is_empty()
@@ -849,18 +849,13 @@ func _jet_card(j: Dictionary) -> void:
 		var val := _text(cell, f[1], "Fact")
 		val.add_theme_font_size_override("font_size", 28)
 	facts.add_child(row)
-	# The last flight on this jet.
-	var tbox := PanelContainer.new()
-	tbox.name = "Training"
-	tbox.add_theme_stylebox_override("panel", Look.box(Color(0, 0, 0, 0), Look.LINE, 1, 6, Vector2(16, 14)))
-	v.add_child(tbox)
-	var tv := _vbox(tbox, 8)
 	if not built:
-		# No missions (the sim's data not built): what is missing and the setup command, in place of the last flight.
-		_setup_note(tv)
-	var last := _label(tv, last_flight(j), "Small")
-	last.name = "LastFlight"
-	last.visible = built
+		# No missions (the sim's data not built): what is missing and the setup command.
+		var nbox := PanelContainer.new()
+		nbox.name = "SetupNote"
+		nbox.add_theme_stylebox_override("panel", Look.box(Color(0, 0, 0, 0), Look.LINE, 1, 6, Vector2(16, 14)))
+		v.add_child(nbox)
+		_setup_note(_vbox(nbox, 8))
 	var go := _button(v, s("fly"), "Fly", func(): show_page("missions"))
 	go.name = "Fly"
 	go.custom_minimum_size.y = 76
@@ -887,21 +882,6 @@ func jet_facts(j: Dictionary) -> Array:
 		[s("base_l"), s("base_" + j.base)],
 		[s("tail_number"), tail],
 	]
-
-
-## The last flight on jet `j` (a sortie's `plane`; one stored without it: its mission's own jet): "Last: Take-off ·
-## Pass · 13 Nov 2026", or that none was flown.
-func last_flight(j: Dictionary) -> String:
-	for i in range(sorties().size() - 1, -1, -1):
-		var a: Dictionary = sorties()[i]
-		var plane := str(a.get("plane", ""))
-		if plane != "" and plane != j.unit:
-			continue
-		var m := mission_by_id(int(a.mission_id))
-		if not m.is_empty() and (plane != "" or str(jet_of(m).get("unit", "")) == j.unit):
-			var r := s("pass" if int(a.result) == 1 else "fail")
-			return s("last_flight") % [mission_title(int(a.mission_id)), r, day_text(str(a.date))]
-	return s("not_flown")
 
 
 ## What is missing without the sim's data and the command that builds it (./modern-iaf-setup; Windows: its .ps1) on a
@@ -1001,6 +981,11 @@ func open_section(id: String) -> void:
 	section = id
 	if id == "fly_now":
 		FreeCombatPage.reset()  # 0800 today on each opening
+	if id == "training":
+		# The focus on the first phase not yet passed (all passed: the first; the user, A140).
+		var phases: Array = course_book().get("phases", [])
+		var open := phases.filter(func(ph): return int(ph.passed) < int(ph.lessons_n))
+		phase_i = phases.find(open[0]) if not open.is_empty() else 0
 	show_page({"fly_now": "free", "training": "phases"}.get(id, "section"))
 
 
@@ -1064,8 +1049,8 @@ func tr_label(d) -> String:
 
 
 ## Training (training-plan.md §5, Approvals A130): the jet's eight phases as the Missions screen's cards, two rows of
-## four, each with its number, title and the lessons passed of its own. A card opens the phase's lessons; Back (Esc)
-## the Missions screen.
+## four, each with its number, title and the lessons passed of its own; the focus on the first phase not yet passed
+## (open_section). A card opens the phase's lessons; Back (Esc) the Missions screen.
 func _page_phases() -> void:
 	var j := jet()
 	_header(["hangar", full_name(j), "missions", "sec_training"])
@@ -1114,7 +1099,8 @@ func open_phase(i: int) -> void:
 
 ## A phase's lessons (Approvals A131): the section list's rows, numbered phase.lesson, each with its title, what it
 ## trains and the pilot's best grade on it (Pass and Marginal in the pass chip, Unsatisfactory in the fail chip, else
-## Not flown yet); beside them the side panel on the lesson under the focus or the pointer. Back (Esc) the phases.
+## Not flown yet), the focus on the first not yet passed; beside them the side panel on the lesson under the focus or
+## the pointer. Back (Esc) the phases.
 func _page_lessons() -> void:
 	var j := jet()
 	var phases: Array = course_book().get("phases", [])
@@ -1139,8 +1125,14 @@ func _page_lessons() -> void:
 		_row_status(r[1], 210, tx, le.best != null, str(le.best) != "unsat")
 		rows.append(b)
 	_list_footer(rows)
-	_focus = rows[0]
-	_lesson_side(side, 0, ph.lessons[0])
+	# The focus on the first lesson not yet passed (all passed: the first; the user, A140).
+	var first := 0
+	for i in ph.lessons.size():
+		if ph.lessons[i].best in [null, "unsat"]:
+			first = i
+			break
+	_focus = rows[first]
+	_lesson_side(side, first, ph.lessons[first])
 
 
 ## A lesson's grade ("pass", "marginal", "unsat") in words.

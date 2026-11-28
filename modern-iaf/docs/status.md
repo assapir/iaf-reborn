@@ -9,7 +9,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   passed of 47, counted per jet (a Marginal counts as passed). A phase opens its lessons, numbered 1.1, 1.2 …, each
   with its title, one line on what it trains (the course's `line`) and the best grade (Pass, Marginal, Unsatisfactory,
   Not flown yet), beside them a panel on the lesson under the focus or the pointer. The Missions screen's Training
-  card shows the course's count. The Hangar's jet card shows the last flight only. The ten training missions are
+  card shows the course's count. The Hangar's jet card shows no training box. The ten training missions are
   listed in no section (the user, 28 Nov 2026: "The current existing train should be deleted, o/c. It replaces
   them"); their ten files are test fixtures only: the cockpit, weapons, AI and avionics tests start them (and
   `--mission <id>` for a developer), no player screen lists them. `test_training_phases.gd`, `test_front_end.gd`,

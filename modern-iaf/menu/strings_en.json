@@ -5,7 +5,6 @@
 	"squadron_l": "Squadron",
 	"base_l": "Base",
 	"tail_number": "Tail number",
-	"last_flight": "Last: %s · %s · %s",
 	"quit_q": "Quit the sim?",
 	"training": "Training",
 	"debrief": "Debrief",

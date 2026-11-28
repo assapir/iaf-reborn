@@ -42,8 +42,7 @@ func run() -> void:
 	for lang in ["en", "he"]:
 		s.language = lang
 		s.pilot_name = "נועה גולן" if lang == "he" else "Noa Golan"
-		fe.phase_i = 0
-		fe.show_page("phases")
+		fe.open_section("training")
 		await _shot("phases", lang)
 		fe.open_phase(1)
 		await frames(2)

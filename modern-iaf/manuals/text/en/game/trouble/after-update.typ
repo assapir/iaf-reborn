@@ -46,7 +46,7 @@ The cause: the step #stp("step_sim-missions") has not been built, or its data wa
 + Open "Modern IAF — Setup" (@setup-start).
 + Select #stp("install") on the #stp("page_install") page and wait for the #stp("page_done") page.
 + Select #stp("start_game").
-  #then[The Hangar's card shows the last flight on the jet, and #scr("fly") is alive.]
+  #then[The Hangar's card shows no setup note, and #scr("fly") is alive.]
 
 === The first flight after an update loads slowly <after-update-slow>
 

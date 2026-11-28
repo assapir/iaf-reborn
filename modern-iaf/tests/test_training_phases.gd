@@ -37,6 +37,14 @@ func run() -> void:
 	await frames(2)
 	check(_card(fe, 1).contains("1 of 5 passed"), "the Barak: its own course's count (%s)" % _card(fe, 1))
 	check(_card(fe, 2).contains("0 of 8 passed"), "the Barak: phase 2 not flown")
+	# Every lesson of the Sufa's phase 1 passed: Training focuses phase 2.
+	s.sim_jet = "f16i"
+	for k in ["ground.taxi", "ground.night", "ground.check"]:
+		var r := {"lesson": k, "grade": "pass", "plane": "f16i", "date": "2026-11-28T08:00:00", "pass": true}
+		IafPilotLog.log_sortie(s.records_db(), s.pilot(), 0, JSON.stringify(r))
+	fe.open_section("training")
+	await frames(2)
+	check(fe.find_child("Phase2", true, false).has_focus(), "the focus on the first phase not passed (2)")
 	s.sim_jet = "f16i"
 	s.pilot_name = ""
 
@@ -89,6 +97,7 @@ func walk(fe: Control, lang: String) -> void:
 	check(_has(rows[0], "תא הטייס והזנת חשמל" if he else "Cockpit and power"), "%s: the lesson's title" % lang)
 	check(_has_part(rows[0], "נורות האזהרה" if he else "the warning lights"), "%s: the lesson's line" % lang)
 	var st := func(i: int) -> String: return str(rows[i].find_child("Status", true, false).text)
+	check(rows[2].has_focus(), "%s: the focus on the first lesson not passed (1.3)" % lang)
 	check(st.call(0) == ("עבר" if he else "Pass"), "%s: 1.1 Pass" % lang)
 	check(st.call(1) == ("גבולי" if he else "Marginal"), "%s: 1.2 Marginal" % lang)
 	check(st.call(2) == ("טרם בוצעה" if he else "Not flown yet"), "%s: 1.3 not flown" % lang)
@@ -108,6 +117,7 @@ func walk(fe: Control, lang: String) -> void:
 	(fe.find_child("Phase2", true, false) as Button).pressed.emit()
 	await frames(2)
 	rows = fe.find_child("List", true, false).get_children()
+	check(rows[0].has_focus(), "%s: 2.1 Unsatisfactory: not passed, focused" % lang)
 	check(rows.size() == 8 and _has(rows[7], "2.8"), "%s: phase 2's eight lessons" % lang)
 	check(str(rows[0].find_child("Status", true, false).text) == ("לא מספק" if he else "Unsatisfactory"), "unsat")
 	fe.find_child("Back", true, false).pressed.emit()

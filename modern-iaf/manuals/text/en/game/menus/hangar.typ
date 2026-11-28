@@ -27,7 +27,7 @@ Two more jets stand in the list, greyed. They come in a later version; until the
 + On the #term("Hangar"), look under #scr("aircraft").
   #then[Each row shows a jet's full name, its squadron's number and its base.]
 + Select a jet's row, or move to it with the arrow keys and press #keycap("Enter").
-  #then[The jet stands in the middle of the screen, carrying its #term("loadout"). The card shows its #scr("squadron_l"), its #scr("base_l") and its #scr("tail_number"), and your last flight on it.]
+  #then[The jet stands in the middle of the screen, carrying its #term("loadout"). The card shows its #scr("squadron_l"), its #scr("base_l") and its #scr("tail_number").]
 + Select #scr("fly").
   #then[The #scr("missions") screen opens for that jet (@mission-list).]
 
