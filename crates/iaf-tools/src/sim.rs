@@ -1907,8 +1907,7 @@ mod tests {
         }
         let (a, b) = (xy(&t[1]["at"]), xy(&t[2]["at"]));
         assert!(((a[0] - b[0]).hypot(a[1] - b[1]) - 30.0).abs() < 1.5, "{a:?} {b:?}");
-        let mut v: Value =
-            serde_json::from_slice(&std::fs::read(data().join("ranges/ovda.json")).unwrap()).unwrap();
+        let mut v: Value = serde_json::from_slice(&std::fs::read(data().join("ranges/ovda.json")).unwrap()).unwrap();
         v["sites"][0]["kind"] = json!("patriot");
         assert!(compile_range(&File { name: "ovda".into(), v }, &db).is_err(), "an unknown site kind is refused");
     }

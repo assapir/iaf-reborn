@@ -380,6 +380,7 @@ Example, `modern-iaf/data/db/weapons/aim-9m.json`:
 | `fixed_loadout` | optional, `true`: the mission flies its own `loadout` (else the unit record's); the briefing's Arming page shows it read-only and the pilot's stored loadout is not loaded ([front-end.md](front-end.md) §10). Not compiled (the front end and `flight/fly.gd` read it from the readable file) |
 | `flights` | Kidon 2..4: `unit`, `count`, `task`, `start` {`lat`, `lon`, `heading`, `alt_m`}, `route`. A flight's `task` (Kidon 1's in `start`) is one of `training`, `cap`, `strike`, `escort` (`flights.rs` `TASKS`), `training` by default in a training mission and needed in any other. The briefing lists the flights ([front-end.md](front-end.md) §10), and the compiler writes them into the compiled file's `sim.flights`: [{`callsign`, `unit`, `count`, `task`, `player`, `start`, `route` (UTM 36N), `stores` (the unit record's pylon stores, [{`weapon`, `count`}])}]. A two-flight sample, test data and not a shipped mission: `modern-iaf/tests/data/two_flights.json` |
 | `drones` | the weapons range's target drones (§5.1): red flights already airborne. Each: `unit`, `count` (1 or 2), `name` (its members are "<name> 1", "<name> 2"), `brain` (a brain id of `data/db/brains`, §5.1), `start` {`lat`, `lon`, `heading`, `alt_m`}, `route` (as the player's, flown `laps` times, default 1). Their figures need sources as a flight's. Compiled with `set_red_flight` (formation 8, side red) and the role 2 |
+| `range`, `range_threats` | optional: the training range the mission flies at (an `id` of `data/ranges`, §5.2) and, `true`, its SAM sites too (default `false`: the hulks only). The compiler copies the compiled range into `sim.range` and the flag into `sim.range_threats`; `flight/range.gd` places them in flight |
 | `targets`, `sam_sites` | placed units: `unit`, `name`, `side` (default red), `lat`, `lon`, `alt_m`, `heading`, optional `route` [{`lat`, `lon`}, at least two] and `speed_kmh`; a target takes role 1 (role 2 in a training mission, whose scorer judges it: the runtime's role rules would open the 1998 game's pass box), a SAM site role 2 |
 
 How a mission compiles (`sim.rs compile_mission`): an empty mission with the seven parts (`skeleton`), then the
@@ -525,6 +526,38 @@ Example, `modern-iaf/data/missions/ramon_takeoff.json`:
   ]
 }
 ```
+
+### 5.2 The training range: `data/ranges/<id>.json`
+
+One range serves every course's air-to-ground and threat lessons ([training-plan.md](training-plan.md) §1): `ovda`,
+in the southern Negev 15 to 30 km north of Ovda. The IAF's training centre by Ovda has live-fire ranges with ground
+targets and SAM threats[^key-aero]; the range's name, place and layout are not published (searched 28 Nov 2026), so
+every figure of the file is inferred, its sites with the threat emitters of Blue Flag 2021 as their model[^bf21].
+
+| field | meaning |
+|---|---|
+| `id`, `name` | the range's id (a mission's `range`) and its name `{"en", "he"}` ("Ovda range", "מטווח עובדה") |
+| `area` | the range's ground, `[[lat, lon], …]` (at least three corners) |
+| `circle` | the bombing circle: its centre `lat`, `lon`, the score rings `rings_m` (25, 50, 100 m; not drawn, for the lessons' scoring) and the bull, a hulk of `unit` named `name` at the centre |
+| `strafe` | the strafe row: `count` hulks of `unit` `spacing_m` apart, centred on `lat`, `lon`, square to the run-in `heading` (true), named "`name` 1", "`name` 2", … |
+| `sites` | the SAM sites: `kind` (an air-defence site of [../../docs/ai.md](../../docs/ai.md) §15: `s300`, `tor`, `zsu`, `strela`, `igla`), `name`, `lat`, `lon`, `heading` (true) |
+| `control` | range control's radio station: `callsign` `{"en", "he"}` and `uhf_mhz` |
+| `sources`, `notes`, `footnotes` | as every file (§1) |
+
+The Ovda range: a T-72 hulk as the bull at 30.09° N 34.86° E; four Ural-4320 hulks 30 m apart, 2.4 km east of it,
+across a run-in from the east; an S-300PMU-2 battery (30.16° N 34.84° E), a Tor-M1 (30.14° N 34.91° E) and a
+ZSU-23-4 (30.12° N 34.88° E), each facing south; range control "Range" ("מטווח") on 263.75 MHz, invented as the
+notebook's frequencies are. From Ramon the bull is about 75 km, from Nevatim about 125 km, from Ramat David about
+330 km.
+
+`iaf-sim missions` compiles each file into `ranges.json` beside the missions ({id: range}): the points in the sim's
+frame (UTM 36N, grid headings), the strafe row laid out hulk by hulk into `targets` after the bull, the sites' kinds
+checked. `data/ranges` is an input of the `sim-missions` stamp. In flight `modern-iaf/flight/range.gd` stands the
+hulks on the ground once the ground under the jet has loaded (`convoys.gd` `vehicle`: mission entities of the unit
+records, on the side against the player's, so the sensors, the weapons and the scorer take them as any ground unit),
+stands them again on the finer heights every 5 s as they load, and with `range_threats` spawns the sites
+(`air_defence.gd` `spawn`). The look is the existing models' on the existing ground. Checked by
+`sim::tests::the_ovda_range_compiles_inside_its_area` and `modern-iaf/tests/test_range.gd`.
 
 ## 6. Our damage scale
 The shared damage model compares a warhead's power with a unit's strength (docs/damage.md §2). No public source gives
@@ -878,3 +911,9 @@ it ([front-end.md](front-end.md) §10).
 [^bms-asym]: Falcon BMS forum, "Asymmetric loads - Air to Ground for F16" (quotes the F-16 flight manual, section 5: the maximum allowable asymmetric (rolling) moment for ground handling, taxi, takeoff, inflight and landing is 25,020 foot-pounds), https://forum.falcon-bms.com/post/167880
 [^afm-f35]: Air & Space Forces Magazine, "F-35" (up to six AIM-120 internally; eight AIM-120 and two AIM-9 in all), https://www.airandspaceforces.com/weapons/f-35
 [^rk-bru61]: War Thunder forum (BRU-61 about 147 kg; unofficial), https://forum.warthunder.com/t/saab-jas-39e-f-gripen-general-discussion/291381?page=52
+[^key-aero]: Key.aero, "Knights of the Negev": the Advanced Training Center by Ovda (115 Squadron) with live-fire
+    ranges, supersonic high-altitude airspace and low-flying areas, its ranges with SAM threats and ground targets;
+    quoted by a search engine, the site refuses automated access (second-hand), https://www.key.aero/article/knights-negev
+[^bf21]: Janes, "Wide range of SAMs simulated during exercise Blue Flag in Israel" (2021): the SA-2, SA-3, SA-6, SA-8
+    and the Pantsir-S1 simulated by threat emitters; quoted by a search engine, paywalled (second-hand),
+    https://www.janes.com/defence-news/wide-range-of-sams-simulated-during-exercise-blue-flag-in-israel/

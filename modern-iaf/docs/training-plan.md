@@ -26,7 +26,9 @@ The pass and fail rules already built are in [training.md](training.md), the bri
 - **One range for every course.** The air-to-ground and threat lessons (phases 5 and 8) use the same range in the
   southern Negev, in the training complex by Ovda[^atc]; the flight time to it differs by base (the user, 28 Nov 2026:
   "The range should be in the same place always, so it can be different time to arrive"). From Ramon it is short,
-  from Nevatim longer, from Ramat David the longest. The range's real name and layout are open (§7).
+  from Nevatim longer, from Ramat David the longest. The range's real name and layout are not published, so the sim's
+  range is inferred: open desert 15 to 30 km north of Ovda with a bombing circle, a strafe row, three SAM sites and
+  range control ([data-formats.md](data-formats.md) §5.2).
 
 | Jet          | Home base   | Instructor                        |
 | ------------ | ----------- | --------------------------------- |
@@ -325,7 +327,8 @@ capabilities. A builder checks each against [status.md](status.md) before a phas
 
 - **The F-35I's lessons** where its procedures and stores differ from the F-16s' (§4): what is public is mapped to
   each emergency lesson in [research/training.md](research/training.md) §2; the steps themselves are not public.
-- **The range:** its real name, its targets and its SAM sites (§1).
+- **The range:** its real name, place, targets and range control's callsign (searched 28 Nov 2026, in English and
+  Hebrew: none published); the sim's range is inferred (§1).
 - **The IAF's own briefing and debrief headings**, if a source gives them; the sections above follow the IDF's
   general order and debrief.
 - **The IAF's own grading scale**, if a source is found (§2.4).
@@ -341,8 +344,10 @@ capabilities. A builder checks each against [status.md](status.md) before a phas
     [OPORD outline](https://www.subr.edu/assets/subr/ArmyROTC/pics/Tac_OPORD_Outline.pdf).
 [^tahkir]: IDF, guide to the values debrief: "what was", "what should have been", the gap, conclusions and lessons
     ([PDF](https://www.idf.il/media/g1cb0fyx/מנחה-לעריכת-תחקיר-ערכי-המערכה-על-הערכים_compressed-1.pdf)).
-[^atc]: The IAF's Advanced Training Center by Ovda: live-fire ranges, low-flying areas, ground targets and SAM
-    threats ([Air & Space Forces Magazine](https://www.airandspaceforces.com/gunfight-in-the-israeli-desert)).
+[^atc]: The IAF's Advanced Training Center by Ovda: "surface threat replicators"
+    ([Air & Space Forces Magazine](https://www.airandspaceforces.com/gunfight-in-the-israeli-desert)); live-fire
+    ranges, low-flying areas, and ranges with ground targets and SAM threats ([Key.aero](https://www.key.aero/article/knights-negev),
+    quoted by a search engine: second-hand).
 
 [^cnatra-scale]: US Navy, Chief of Naval Air Training, CNATRAINST 1500.4F, the grade definitions
     ([page 60](https://navyflightmanuals.tpub.com/1500.4Fwch1&2&3&4&5/1500.4Fwch1&2&3&4&50060.htm),
