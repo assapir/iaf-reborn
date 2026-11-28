@@ -201,6 +201,99 @@ impl IafFlight {
         }
     }
 
+    /// Plans a lesson's failure (modern-iaf/docs/training.md §15): `id` a `Failure` name ("engine_fire", "flameout",
+    /// "hyd_a", "hyd_b", "gen_main", "gen_both", "gen_epu", "standby_gains"), `on` "time" (`value` s of flight time),
+    /// "takeoff_roll" (`value` kt), "takeoff_roll_s" (`value` s into the roll) or "airborne" (`value` s after lift-off). "" when planned, else why not:
+    /// "unknown_failure", "unknown_when", "original_model", or the jet's refusal (`Failure::allowed`).
+    #[func]
+    fn plan_failure(&mut self, id: GString, on: GString, value: f64) -> GString {
+        use iaf_flight::sixdof::failures::{Failure, When};
+        let Some(f) = Failure::from_id(&id.to_string()) else { return "unknown_failure".into() };
+        let Some(w) = When::parse(&on.to_string(), value) else { return "unknown_when".into() };
+        let Some(Fm::SixDof(s)) = self.aircraft.as_mut() else { return "original_model".into() };
+        if let Err(e) = f.allowed(s.jet.epu) {
+            return e.into();
+        }
+        s.failures.plan(f, w);
+        GString::new()
+    }
+
+    /// Plans a course emergency, as the check ride's pick gives it (`IafTraining.check_ride_emergency`: `id`, `at`
+    /// "roll" or "airborne", `after_s`), through `failures::from_course` (`seed` picks hydraulic system A or B, the
+    /// EPU's automatic start or not). "" when planned, else why not (`no_failure` for an emergency with none here).
+    #[func]
+    fn plan_course_emergency(&mut self, id: GString, at: GString, after_s: f64, seed: i64) -> GString {
+        use iaf_flight::sixdof::failures::from_course;
+        let Some((f, w)) = from_course(&id.to_string(), &at.to_string(), after_s, seed as u64) else {
+            return "no_failure".into();
+        };
+        let Some(Fm::SixDof(s)) = self.aircraft.as_mut() else { return "original_model".into() };
+        if let Err(e) = f.allowed(s.jet.epu) {
+            return e.into();
+        }
+        s.failures.plan(f, w);
+        GString::new()
+    }
+
+    /// Starts a lesson's failure now (the dev hook; `plan_failure`'s names and refusals).
+    #[func]
+    fn start_failure(&mut self, id: GString) -> GString {
+        let e = self.plan_failure(id.clone(), "time".into(), 0.0);
+        if e.is_empty()
+            && let (Some(Fm::SixDof(s)), Some(f)) =
+                (self.aircraft.as_mut(), iaf_flight::sixdof::failures::Failure::from_id(&id.to_string()))
+        {
+            s.failures.start(f);
+        }
+        e
+    }
+
+    /// The ALT GEAR handle pulled: the gear comes down with hydraulic system B lost (sixdof/failures.rs).
+    #[func]
+    fn set_alt_gear(&mut self, pulled: bool) {
+        if let Some(Fm::SixDof(s)) = self.aircraft.as_mut() {
+            s.alt_gear = pulled;
+        }
+    }
+
+    /// The lesson's failures (sixdof/failures.rs): `active` the started ones' names, `warnings` those of them that
+    /// light a warning light, `fire` (ENG FIRE lit), `seized`
+    /// (the engine failed for good), `hyd` (systems A, B up), `gens` (the main, the standby generator up), `epu_auto`
+    /// (the EPU gets its automatic start), `standby_gains`, `accumulator_s` (the brakes' application left), `gear_held` (the gear does not move). Empty on
+    /// the original model.
+    #[func]
+    fn failures(&self) -> VarDictionary {
+        let mut d = VarDictionary::new();
+        let Some(Fm::SixDof(s)) = self.aircraft.as_ref() else { return d };
+        let f = &s.failures;
+        let names: PackedStringArray = iaf_flight::sixdof::failures::Failure::ALL
+            .iter()
+            .filter(|x| f.on(**x))
+            .map(|x| GString::from(x.id()))
+            .collect();
+        d.set("active", &names);
+        // Of them, the ones that light a warning light (the voice's "Warning"; the rest "Caution").
+        let warnings: PackedStringArray = iaf_flight::sixdof::failures::Failure::ALL
+            .iter()
+            .filter(|x| f.on(**x) && x.warning())
+            .map(|x| GString::from(x.id()))
+            .collect();
+        d.set("warnings", &warnings);
+        d.set("fire", f.fire());
+        d.set("seized", f.seized());
+        let ([ha, hb], [gm, gs]) = (f.hyd_ok(), f.gens_ok());
+        d.set("hyd", &varray![ha, hb]);
+        d.set("gens", &varray![gm, gs]);
+        d.set("epu_auto", f.epu_auto());
+        d.set("standby_gains", f.standby_gains());
+        d.set("accumulator_s", f.accumulator_s());
+        // The gear stays where it is: hydraulic system B lost (unless ALT GEAR is pulled with the handle down), the gear
+        // fault.
+        d.set("gear_held", f.gear_held(s.alt_gear && s.controls().gear_down));
+        d.set("gear_fault", f.on(iaf_flight::sixdof::failures::Failure::GearFault));
+        d
+    }
+
     /// The F-16 autopilot's other inputs, each frame: the stick's paddle held, TRIM/AP DISC at DISC, AIR REFUEL open,
     /// the EHSI's heading marker and the steerpoint's bearing (deg; negative: none).
     #[func]
@@ -1028,7 +1121,7 @@ impl IafFlight {
     /// `nozzle_oil` (left nozzle %, left oil psi, then right; `nozzle_and_oil`), `fuel_flow_pph` (the FM's fuel
     /// flow, lb/h: the 3D cockpit's fuel flow indicator). The F-16 3D cockpit's (`TurnSlip`, docs/cockpit.md
     /// "3D cockpit"): `yaw_rate_dps` (the body yaw rate, °/s, right +), `lateral_g` / `normal_g` (the specific force
-    /// along the right wing / the body's up axis, g), `cabin_alt_ft` (`cabin_altitude_ft`), `hyd_ab` (systems A, B:
+    /// along the right wing / the body's up axis, g), `cabin_alt_ft` (`cabin_altitude_ft`), `failures` (the 6-DoF's), `hyd_ab` (systems A, B:
     /// pressure / normal, `hydraulic_systems`).
     #[func]
     fn instruments(&mut self, damage: VarArray) -> VarDictionary {
@@ -1072,7 +1165,19 @@ impl IafFlight {
         d.set("lateral_g", self.turn_slip.lateral_g);
         d.set("normal_g", self.turn_slip.normal_g);
         d.set("cabin_alt_ft", instruments::cabin_altitude_ft(s.position[2] as f32 * 3.281));
-        d.set("hyd_ab", &PackedFloat32Array::from(&instruments::hydraulic_systems(rpm, flag(18))[..]));
+        // A lesson's failed hydraulic system reads zero (sixdof/failures.rs).
+        let mut hyd = instruments::hydraulic_systems(rpm, flag(18));
+        if let Some(Fm::SixDof(f)) = self.aircraft.as_ref() {
+            for (p, ok) in hyd.iter_mut().zip(f.failures.hyd_ok()) {
+                *p = if ok { *p } else { 0.0 };
+            }
+        }
+        d.set("hyd_ab", &PackedFloat32Array::from(&hyd[..]));
+        // The lesson's failures for the cockpit's lamps and lists (cockpit.gd `failure_flags`); none on the original.
+        let failures = self.failures();
+        if !failures.is_empty() {
+            d.set("failures", &failures);
+        }
         d.set("tas_kt", i.tas_kt);
         d.set("ground_kt", i.ground_kt);
         d.set("ias_kt", i.ias_kt);

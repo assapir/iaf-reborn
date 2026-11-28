@@ -826,7 +826,7 @@ func _checklist() -> Array:
 func cautions() -> Array:
 	var ind: Array = cockpit.indicators
 	var out := []
-	if ind[1] or ind[2]:
+	if ind[1] or ind[2] or cockpit.failure_flags()[0]:  # a hit's fire, or a lesson's (cockpit.gd failure_flags)
 		out.append(["ENG FIRE", "warning"])
 	if ind[0]:
 		out.append(["MASTER CAUTION", "caution"])

@@ -6,6 +6,7 @@ use super::aero::{Flow, Surfaces, add_drag, aspect_drag, coefficients, compressi
 use super::autopilot::{F16Autopilot, Panel as ApPanel, Sensed};
 use super::body::{Body, MAX_FRAME, MAX_STEP, Quat};
 use super::engine::Engine;
+use super::failures::{Failure, Failures, Inputs as FailureInputs};
 use super::fcs::{Fcs, Pilot, Sensors};
 use super::fuel::Tanks;
 use super::gear::Anchors;
@@ -108,6 +109,10 @@ pub struct SixDof {
     /// The pilot's systems damage flags (bit n = flag n) and whether the jet has two engines, as the original's
     /// (`aircraft::damage_bits`, `aircraft::stick_authority`).
     damage: u32,
+    /// The failures a lesson starts ([`Failures`], modern-iaf/docs/training.md §15).
+    pub failures: Failures,
+    /// The ALT GEAR handle pulled: the gear comes down on its stored air with hydraulic system B lost.
+    pub alt_gear: bool,
     twin: bool,
     /// The empty jet, kg (the reference weight less its fuel).
     empty_kg: f64,
@@ -262,6 +267,8 @@ impl SixDof {
             sb_switch: None,
             sb_cmd: 0.0,
             damage: 0,
+            failures: Failures::default(),
+            alt_gear: false,
             twin: false,
             empty_kg,
             ground_height: 0.0,
@@ -685,7 +692,22 @@ impl SixDof {
         // No fuel to the engine (an empty tank, MASTER FUEL or ENG FEED off): the engine flames out, lit or running,
         // and winds down with its generators (a stopped one, `engine_off`, has nothing to lose).
         let lit = self.engine_on || self.start_seq.phase != Phase::Running;
-        if !self.fuel_feeds() && lit && self.start_seq.flame_out(self.rpm() as f64) {
+        // The lesson's failures: a flame-out once, a seized engine (a fire kept burning) for good, the generators.
+        let fi = FailureInputs {
+            on_ground: self.on_ground,
+            ground_kt: self.body.speed() * 1.943844,
+            lever: self.controls.throttle as f64,
+            fuel_cut: !self.engine_on || !self.fuel_feeds(),
+        };
+        self.failures.step(&fi, dt);
+        let flameout = self.failures.take_started() & Failure::Flameout.bit() != 0;
+        // The F-35I has one starter/generator (its main one); the F-16s a main and a standby generator.
+        let gens = self.failures.gens_ok();
+        self.start_seq.gens_failed = if self.jet.start.starter_emergency { !gens[0] } else { gens == [false, false] };
+        if (!self.fuel_feeds() || flameout || self.failures.seized())
+            && lit
+            && self.start_seq.flame_out(self.rpm() as f64)
+        {
             self.engine_on = false;
         }
         // In the air the engine windmills and the emergency power can run (`start::WINDMILL_RPM_PER_KT`).
@@ -782,8 +804,16 @@ impl SixDof {
         let target = if (c.brakes || self.parking_brake) && self.on_ground { 1.0 } else { 0.0 };
         self.brake += (target - self.brake).clamp(-dt / BRAKE_RAMP_S, dt / BRAKE_RAMP_S);
         // Gear lever ramp; gear damage (7) holds the gear where it is, as the game's legs (docs/damage.md §5.2).
+        // With hydraulic system B lost only the ALT GEAR handle lowers the gear, and nothing raises it (p. 3-123).
+        let hyd = self.failures.hyd_ok();
         if self.damage & (1 << 7) == 0 {
-            let target = if c.gear_down { 0.0 } else { GEAR_UP };
+            let target = match (hyd[1], c.gear_down) {
+                _ if self.failures.on(Failure::GearFault) => self.gear,
+                (false, _) if self.alt_gear => 0.0,
+                (false, _) => self.gear,
+                (true, true) => 0.0,
+                (true, false) => GEAR_UP,
+            };
             self.gear += (target - self.gear).clamp(-GEAR_RATE * dt as f32, GEAR_RATE * dt as f32);
         }
         let gear_down = self.gear < GEAR_UP;
@@ -822,6 +852,8 @@ impl SixDof {
             }
             _ => sb.command(c.brakes && !self.on_ground, gear_locked),
         };
+        // Hydraulic system A lost: the speed brakes are inoperative (p. 3-123) and stay where they are.
+        let speed_brake = if hyd[0] { speed_brake } else { self.surfaces.dsb };
         let pilot = Pilot {
             stick_x,
             stick_y,
@@ -856,6 +888,7 @@ impl SixDof {
             on_ground: self.on_ground,
             tas: flow.v,
             weight_lb: self.mass() / LB,
+            standby_gains: self.failures.standby_gains().then_some(c.gear_down),
         };
         // Total flight-control damage (24): the control system no longer moves the surfaces; they stay where they were
         // (inferred; the original forces a spin, which a 6-DoF has to fly into).
@@ -879,7 +912,7 @@ impl SixDof {
         let jc = jets::Controls {
             surfaces: self.surfaces,
             throttle: travel,
-            wheels: self.wheels(&c),
+            wheels: self.failed_wheels(&c, hyd[1], dt),
             gear_down,
             stores_cd: self.stores_cd + if self.structure >= Stress::Damage { DAMAGED_DI } else { 0.0 },
             stores_roll: (self.stores_moment
@@ -1204,6 +1237,26 @@ impl SixDof {
     /// where the side grip cannot hold that radius at the speed (half of it used), and braked down to the speed
     /// that radius allows, straight: a braked main tyre keeps little side grip (the friction circle), and turning
     /// under full brakes ground-looped the jet backwards onto its tail (2026-11-16; all inferred).
+    /// [`SixDof::wheels`] with hydraulic system B lost: the pedals' brakes on the accumulators ([`Failures::brakes`];
+    /// the parking brake holds without using them, "use of the parking brake is preferred since brake/JFS accumulator
+    /// fluid is not depleted" and it is "available until the brake/JFS accumulators deplete", T.O. GR1F-16CJ-1
+    /// section I), the nose wheel castering (no steering; inferred: the strut is free
+    /// without its actuator's pressure).
+    fn failed_wheels(&mut self, c: &Controls, hyd_b: bool, dt: f64) -> super::gear::Wheels {
+        let pedals = if c.brakes && self.on_ground { self.brake } else { 0.0 };
+        let k = if self.parking_brake && self.failures.accumulator_s() > 0.0 {
+            1.0
+        } else {
+            self.failures.brakes(pedals, dt)
+        };
+        let mut w = self.wheels(c);
+        w.brake *= k;
+        if !hyd_b && self.pivot.is_none() {
+            (w.steer, w.castor) = (0.0, true);
+        }
+        w
+    }
+
     fn wheels(&self, c: &Controls) -> super::gear::Wheels {
         // The brakes' heat takes their braking away ([`limits::Brakes`]).
         let brake = self.brake * self.brakes.left(self.brake_limit());

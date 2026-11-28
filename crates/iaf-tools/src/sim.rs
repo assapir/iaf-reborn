@@ -776,6 +776,31 @@ fn briefing(f: &File) -> Result<Value> {
 /// One compiled mission file from a readable one.
 /// `bases`: the airbases (sim_bases::load); `ground`: the theatre's height at a point, None without it (the
 /// start's `elevation_m` then stands).
+/// A mission's lesson failures (`failures`, modern-iaf/docs/training.md §15): each `{"id", "on", "value"}` names a
+/// failure the player's jet has (`Failure::allowed`, the rule the flight takes too) and a known `on`.
+fn mission_failures(f: &File, unit: &File) -> Result<()> {
+    use iaf_flight::sixdof::failures::{Failure, When};
+    use iaf_flight::sixdof::jets;
+    // The unit's label names its jet ("F-16D": the Barak, the 6-DoF's "F-16").
+    let label = unit.v["label"].as_str().unwrap_or("");
+    let jet = jets::by_type(label).or_else(|| jets::by_type(label.strip_suffix('D').unwrap_or(label)));
+    for (k, x) in f.v["failures"].as_array().into_iter().flatten().enumerate() {
+        let id = x["id"].as_str().unwrap_or("");
+        let fail = Failure::from_id(id).with_context(|| format!("{}: failures[{k}]: no failure \"{id}\"", f.name))?;
+        let on = x["on"].as_str().unwrap_or("time");
+        ensure!(
+            When::parse(on, x["value"].as_f64().unwrap_or(0.0)).is_some(),
+            "{}: failures[{k}]: \"on\" is \"time\", \"takeoff_roll\", \"takeoff_roll_s\" or \"airborne\", not \"{on}\"",
+            f.name
+        );
+        let epu = jet.is_none_or(|j| j.epu);
+        if let Err(e) = fail.allowed(epu) {
+            anyhow::bail!("{}: failures[{k}]: {id} on the {label}: {e}", f.name);
+        }
+    }
+    Ok(())
+}
+
 pub fn compile_mission(
     f: &File,
     db: &Db,
@@ -818,6 +843,7 @@ pub fn compile_mission(
     // The player's flight (Kidon 1): the start, its unit and its route.
     let start = &f.v["start"];
     let unit = db.unit(start["unit"].as_str().unwrap_or("")).with_context(|| f.name.clone())?;
+    mission_failures(f, unit)?;
     let base_name = start["base"].as_str().with_context(|| format!("{}: start needs \"base\"", f.name))?;
     let base =
         sim_bases::by_name(bases, base_name).with_context(|| format!("{}: no airbase \"{base_name}\"", f.name))?;
@@ -2065,6 +2091,28 @@ mod tests {
 
     /// The training rules are checked: a training figure without a source, an unknown kind and an unknown goal are
     /// refused, and every take-off mission's runway is an end of its base's airbase file.
+    /// A mission's lesson failures (modern-iaf/docs/training.md §15): a known failure the jet has, a known `on`.
+    #[test]
+    fn lesson_failures_are_checked() {
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
+        let run = |f: &File| compile_mission(f, &db, &bases, &mut |_, _| None).map_err(|e| format!("{e:#}"));
+        let good = json!([{"id": "engine_fire", "on": "takeoff_roll", "value": 100}, {"id": "hyd_b", "value": 300}]);
+        assert!(run(&ramon(json!({"failures": good}))).is_ok());
+        let e = run(&ramon(json!({"failures": [{"id": "bird_strike"}]}))).unwrap_err();
+        assert!(e.contains("no failure \"bird_strike\""), "{e}");
+        let e = run(&ramon(json!({"failures": [{"id": "flameout", "on": "landing"}]}))).unwrap_err();
+        assert!(e.contains("not \"landing\""), "{e}");
+        // The F-35I has no EPU and no F-16 hydraulic systems.
+        let mut adir: Value =
+            serde_json::from_str(&std::fs::read_to_string(data().join("missions/nevatim_startup.json")).unwrap())
+                .unwrap();
+        adir["failures"] = json!([{"id": "gen_epu"}]);
+        let e = run(&File { name: "nevatim".into(), v: adir.clone() }).unwrap_err();
+        assert!(e.contains("no_epu"), "{e}");
+        adir["failures"] = json!([{"id": "gen_main"}, {"id": "engine_fire"}]);
+        assert!(run(&File { name: "nevatim".into(), v: adir }).is_ok());
+    }
+
     #[test]
     fn training_rules_are_checked() {
         let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());

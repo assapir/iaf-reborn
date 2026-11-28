@@ -127,6 +127,8 @@ var damage_flags: Array = []
 var pfl_acked: Array = []
 ## The F-16 autopilot's FLCS A/P FAIL and FLCS A/P DEGR (IafFlight.ap_state, cockpit3d.gd ap_inputs).
 var ap_faults := [false, false]
+## The fault list's index of the first lesson failure flag (failure_flags).
+const FAIL_FIRE := 34
 var twin_engines := false
 var gear_handle_down := true
 var gear_legs := [2, 2, 2]
@@ -626,7 +628,28 @@ func pfl_flags() -> Array:
 	var f := damage_flags.duplicate()
 	while f.size() < 32:
 		f.append(false)
-	return f + ap_faults
+	return f + ap_faults + failure_flags()
+
+
+## The fault list's flags of a lesson's failures (IafFlight.failures, crates/iaf-flight/src/sixdof/failures.rs), after
+## the autopilot's: FAIL_FIRE (34) the fire burning, 35 the engine failed for good, 36 a hydraulic system lost, 37 the
+## main generator, 38 the standby generator off line, 39 the FLCS on its standby gains, 40 the gear fault. All false
+## without failures.
+func failure_flags() -> Array:
+	var f: Dictionary = state.get("failures", {})
+	if f.is_empty():
+		return [false, false, false, false, false, false, false]
+	var hyd: Array = f.get("hyd", [true, true])
+	var gens: Array = f.get("gens", [true, true])
+	return [
+		bool(f.get("fire", false)),
+		bool(f.get("seized", false)),
+		not (bool(hyd[0]) and bool(hyd[1])),
+		not bool(gens[0]),
+		not bool(gens[1]),
+		bool(f.get("standby_gains", false)),
+		bool(f.get("gear_fault", false)),
+	]
 
 
 ## The Real HUD's panel input (real_hud.rs `panel`), {} without the UFC (reborn's HUD as it is).

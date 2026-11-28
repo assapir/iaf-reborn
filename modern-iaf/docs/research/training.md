@@ -84,7 +84,7 @@ One term for each thing. "In use" means the sim's Hebrew strings or docs already
 | Low level | גובה נמוך | [radio-terms.md](radio-terms.md) |
 | Air refuelling, the tanker | תדלוק אווירי, מטוס תדלוק | in use |
 | Training area | אזור האימון | in use ("יציאה מאזור האימון") |
-| Flameout | כיבוי מנוע (the engine "שכבה באוויר") | mako on fighter squadrons' training: "מנוע שכבה באוויר", second-hand[^mako-drills] |
+| Flameout | המנוע כבה באוויר (the source's own words; כיבוי מנוע is the checklist's engine shutdown, so it is not used for the flameout) | mako on fighter squadrons' training: "מנוע שכבה באוויר", second-hand[^mako-drills] |
 | Flight control fault | תקלת בקרת טיסה | ours, inferred: open (no Hebrew source found) |
 | Go-around | הליכה סביב | in use (`modern-iaf/manuals/text/he/terms.yaml`, from the field) |
 | Wingman | מספר 2 | in use (`terms.yaml`) |

@@ -4,11 +4,15 @@
 # No key hints, no clip, no mission title on it. Laid out on the front end's 1080-high canvas (W x H px), mirrored in
 # Hebrew (the tabs down the left edge). The flight's kneeboard (kneeboard.gd) holds one.
 # A section: {"id", "tab": its tab's text, "title", "red": the emergency tab's red, "blocks": BBCode paragraphs}; the
-# page breaks fall between blocks (a block taller than a page has a page of its own, cut off at its foot).
+# page breaks fall between blocks (a block taller than a page has a page of its own, cut off at its foot), never after
+# a heading (a block that starts with HEADING: it goes to the next page with the block it heads).
 extends Control
 
 ## The page shown changed (a tab, a turn).
 signal turned
+
+## A heading block's start (kneeboard.gd's section and procedure titles): kept with the block after it.
+const HEADING := "[font_size=16]"
 
 const WizardTheme := preload("../setup/wizard_theme.gd")
 const W := 460.0
@@ -240,10 +244,19 @@ func _paginate(s: Dictionary) -> Array:
 	for i in blocks.size():
 		_measure.text = String(blocks[i])
 		var h := float(_measure.get_content_height()) + sep
-		if i > first and y + h > body_height():
-			pages.append([first, i])
-			first = i
+		# A page of headings alone keeps the block they head, cut off at the page's foot if it is taller.
+		var only_heads := range(first, i).all(func(k): return String(blocks[k]).begins_with(HEADING))
+		if i > first and y + h > body_height() and not only_heads:
+			# A heading at the page's foot moves to the next page with its first block.
+			var cut := i
+			while cut - 1 > first and String(blocks[cut - 1]).begins_with(HEADING):
+				cut -= 1  # headings in a row move together
+			pages.append([first, cut])
 			y = 0.0
+			for k in range(cut, i):
+				_measure.text = String(blocks[k])
+				y += float(_measure.get_content_height()) + sep
+			first = cut
 		y += h
 	pages.append([first, blocks.size()])
 	return pages

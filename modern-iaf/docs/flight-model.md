@@ -985,6 +985,13 @@ before. The autopilot drives either through the `autopilot::Host` trait (the `Ai
   the control system stops moving the surfaces and they stay where they were (inferred: the original forces a spin). Gear
   damage (7) freezes the gear lever in the shared `terrain_view.gd`, so the 6-DoF's gear stays where it is. Test
   `systems_damage_as_the_original_reads_it`.
+* **Lesson failures** (2026-11-28, [training.md](training.md) §15, `sixdof/failures.rs`): a fire kept above minimum
+  thrust takes hydraulic system A and then the engine (it no longer relights); a flameout runs the engine down as an
+  empty tank does; hydraulic system A holds the speed brakes where they are; system B leaves the gear to the ALT GEAR
+  handle, the nose wheel castering and the brakes to the accumulators' 75 s; both generators failed hold the displays
+  only on the emergency power (`start.rs` `gens_failed`); the standby gains give the control system the air data of
+  sea level at 600 kt (gear handle up) or 230 kt (down) and fix the leading-edge flaps at 0° or 15°
+  (`fcs.rs` `Sensors::standby_gains`, T.O. GR1F-16CJ-1 p. 3-108). Tests `failures::*` in `crates/iaf-flight/tests/sixdof.rs`.
 * **Asymmetric stores and roll trim** (2026-11-14): the game's stores moment (`stores.rs` `roll_moment`, kg·m, the
   same call reborn's Better physics "Asymmetric stores" takes; a fuel tank × the external fuel left,
   `aircraft::tank_share`, as reborn's) rolls the jet with its weight × the load factor; the

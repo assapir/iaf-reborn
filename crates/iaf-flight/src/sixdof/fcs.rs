@@ -59,6 +59,24 @@ pub struct Sensors {
     pub weight_lb: f64,
     /// True airspeed, m/s.
     pub tas: f64,
+    /// The FLCS on its standby gains after a dual air data failure ([`super::failures::Failure::StandbyGains`]),
+    /// with the gear handle down (`true`) or up: Some.
+    pub standby_gains: Option<bool>,
+}
+
+/// The standby gains' fixed air data: "a fixed set of control gains which are optimized for sea level and 600 knots
+/// (LG handle in UP) and sea level and 230 knots (LG handle in DN)", the leading-edge flaps "at zero degrees with the
+/// LG handle up" and "15 degrees down with the LG handle down" (T.O. GR1F-16CJ-1 p. 3-108).
+pub const STANDBY_KT: (f64, f64) = (600.0, 230.0);
+pub const STANDBY_LEF_DEG: (f64, f64) = (0.0, 15.0);
+
+impl Sensors {
+    /// The air data the gains read: on standby gains sea level at the fixed speed ([`STANDBY_KT`]).
+    fn gains_view(&self) -> Sensors {
+        let Some(down) = self.standby_gains else { return *self };
+        let v = if down { STANDBY_KT.1 } else { STANDBY_KT.0 } * 0.514444;
+        Sensors { qbar: 0.5 * 1.225 * v * v, ps: 101_325.0, ..*self }
+    }
 }
 
 /// A first-order lag a/(s + a), stepped by its exact solution.
@@ -241,6 +259,7 @@ impl Fcs {
 
     /// One step of `dt` s (the rigid body's integrator step, at most 1/120 s): the surfaces' positions.
     pub fn step(&mut self, pilot: &Pilot, s: &Sensors, dt: f64) -> Surfaces {
+        let s = &s.gains_view();
         let qbar_k = s.qbar / 1000.0;
         // α filter (figure 62: limited −5…30°, 10/(s + 10)), shared by the three axes.
         let sh = self.alpha_shift;
@@ -387,7 +406,16 @@ impl Fcs {
         // (2s + 7.25)/(s + 7.25) = 2 − 7.25/(s + 7.25).
         self.lef_alpha_x += (s.alpha - self.lef_alpha_x) * (1.0 - (-7.25 * dt).exp());
         let alpha_lead = 2.0 * s.alpha - self.lef_alpha_x;
-        let lef_cmd = lef_schedule(alpha_lead, s.qbar, s.ps.max(1.0));
+        let lef_cmd = match s.standby_gains {
+            Some(down) => {
+                if down {
+                    STANDBY_LEF_DEG.1
+                } else {
+                    STANDBY_LEF_DEG.0
+                }
+            }
+            None => lef_schedule(alpha_lead, s.qbar, s.ps.max(1.0)),
+        };
         let dlef = self.lef.step(1.0 / 0.136, 25.0, (0.0, 25.0), lef_cmd, dt);
 
         // Speed brake: to its command (0…60°) at 30 deg/s (inferred: two seconds to open).

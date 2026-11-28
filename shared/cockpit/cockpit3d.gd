@@ -1620,6 +1620,7 @@ func _lamp_on(key: String) -> bool:
 	var legs: Array = cockpit.gear_legs
 	var flags: Array = cockpit.damage_flags
 	var flag := func(i: int) -> bool: return i < flags.size() and bool(flags[i])
+	var fail: Array = cockpit.failure_flags()  # a lesson's failures: fire, engine, hydraulics, MAIN / STBY GEN, gains
 	match key:
 		"master_caution":  # the game's, or a caution not yet acknowledged (FlightGear's failures.nas)
 			return bool(cockpit.indicators[0]) or _cautions.values().has(false)
@@ -1627,18 +1628,19 @@ func _lamp_on(key: String) -> bool:
 			return (
 				bool(cockpit.indicators[1])
 				or bool(cockpit.indicators[2])
+				or fail[0]
 				or _sw("controls/test/test-panel/fire-ovht-test")
 			)
-		"flcs", "to_ldg_config":
-			return bool(better.get(key, false))
+		"flcs", "to_ldg_config":  # FLCS also with the standby gains (T.O. GR1F-16CJ-1 p. 3-108)
+			return bool(better.get(key, false)) or (key == "flcs" and fail[5])
 		"ar_nws":  # on the ground (nose wheel steering), or the boom latched in the receptacle (p. 1-80)
 			return bool(better.get(key, false)) or bool(cockpit.state.get("ar", {}).get("contact", false))
 		"ar_disc":  # 3 s after the boom's disconnect (p. 1-80; shared/ai/tanker.gd)
 			return bool(cockpit.state.get("ar", {}).get("disc", false))
 		"engine":  # the engine not running (FlightGear's), or failed
-			return flag.call(2) or flag.call(22) or _phase() != "running"
+			return flag.call(2) or flag.call(22) or fail[1] or _phase() != "running"
 		"hyd_oil_press":  # failed, or, the engine not running, a system below 1000 psi (FlightGear's): its pumps slow
-			return flag.call(18) or (_phase() != "running" and float(better.get("hyd", HYD_LOW)) < HYD_LOW)
+			return flag.call(18) or fail[2] or (_phase() != "running" and float(better.get("hyd", HYD_LOW)) < HYD_LOW)
 		"aoa_slow", "aoa_on_speed", "aoa_fast":
 			return int(better.get("aoa_index", 0)) == ["", "aoa_slow", "aoa_on_speed", "aoa_fast"].find(key)
 		"gear_nose", "gear_left", "gear_right":
@@ -1660,9 +1662,9 @@ func _lamp_on(key: String) -> bool:
 		# The generators not on the buses: on the battery (FlightGear's jsb-electrical), or failed (damage 19 the main
 		# generator, 21 both: the pilot fault list's GEN MAIN / GEN STBY FAIL).
 		"main_gen":
-			return cockpit.power == 1 or flag.call(19) or flag.call(21)
+			return cockpit.power == 1 or flag.call(19) or flag.call(21) or fail[3] or _gens_low()
 		"stby_gen":
-			return cockpit.power == 1 or flag.call(21)
+			return cockpit.power == 1 or flag.call(21) or fail[4] or _gens_low()
 		"flcs_pmg", "flcs_rly":  # on the battery until the JFS turns (FlightGear's jsb-electrical)
 			return _phase() == "off"
 		"to_flcs":  # the battery feeding the FLCS while the engine turns below 44 % (start or run-down)
@@ -1712,7 +1714,7 @@ func _lamp_on(key: String) -> bool:
 				return false
 			return bool(tv.cat3) != (tv.weapons.stores.loading_category() == 3)
 		"caution_overheat":  # a fire (damage 16, 17) or the FIRE & OHEAT DETECT test (FlightGear's)
-			return flag.call(16) or flag.call(17) or _sw("controls/test/test-panel/fire-ovht-test")
+			return flag.call(16) or flag.call(17) or fail[0] or _sw("controls/test/test-panel/fire-ovht-test")
 		"caution_probe_heat":  # the PROBE HEAT switch at TEST: the caution flashes (FlightGear's, 0.15 s)
 			var test := float(switches.get("f16/avionics/probe-heat-switch", 0.0)) < -0.5
 			return test and int(Time.get_ticks_msec() / 150) % 2 == 0
@@ -1739,7 +1741,7 @@ func _lamp_on(key: String) -> bool:
 		"caution_anti_skid":  # a fault affecting braking (p. 1-117): the brakes failed (damage 5, BRAKES FAIL)
 			return flag.call(5)
 		"stby_gains":  # the FLCS on its standby gains: the dual air data failure (damage 11, the fault list's STBY GAIN)
-			return flag.call(11)
+			return flag.call(11) or fail[5]
 		"ar_rdy":  # AIR REFUEL at OPEN, the slipway door open, the system ready (p. 1-78): on hydraulic system B (inferred);
 			# out while the boom is latched and while DISC is lit (RDY again after DISC's 3 s, p. 1-80)
 			var ar: Dictionary = cockpit.state.get("ar", {})
@@ -1978,9 +1980,14 @@ func _epu(delta: float, ground: bool) -> void:
 	# in the original game the battery's power, as before; or both failed.
 	var rpm_low := float(cockpit.state.get("rpm", 0.0)) < EPU_GEN_RPM
 	var low: bool = rpm_low if not cockpit.systems.is_empty() else cockpit.power == 1
-	var gens_out: bool = (cockpit.power >= 1 and low) or (flags.size() > 21 and bool(flags[21]))
+	# A lesson's failures: both generators off line; the EPU's automatic start may be lost (failures.rs gen_epu).
+	var fail: Array = cockpit.failure_flags()
+	var gens_out: bool = (
+		(cockpit.power >= 1 and low) or (flags.size() > 21 and bool(flags[21])) or (fail[3] and fail[4])
+	)
+	var auto: bool = bool(cockpit.state.get("failures", {}).get("epu_auto", true))
 	_epu_armed = pos >= 1 or (_epu_armed and not ground)
-	var cmd: bool = cockpit.power >= 1 and (pos == 2 or (not ground and gens_out and _epu_armed))
+	var cmd: bool = cockpit.power >= 1 and (pos == 2 or (not ground and gens_out and _epu_armed and auto))
 	var bleed := _phase() == "running" and float(cockpit.state.get("rpm", 0.0)) >= EPU_BLEED_RPM
 	var hyd: bool = cmd and not bleed
 	if hyd:
@@ -1990,6 +1997,12 @@ func _epu(delta: float, ground: bool) -> void:
 	var tv := _tv()
 	if tv != null and tv.get("flight") != null and tv.flight.has_method("set_epu"):
 		tv.flight.set_epu(bool(epu.run))
+
+
+## Modern IAF's engine below the generators' RPM (start.rs JFS generator_rpm): off line, also while the EPU holds the
+## displays' power in the air (the original game keeps the battery's power as the test).
+func _gens_low() -> bool:
+	return not cockpit.systems.is_empty() and float(cockpit.state.get("rpm", 0.0)) < EPU_GEN_RPM
 
 
 ## The ILS receiver powered (its AUDIO 2 knob off its OFF stop).

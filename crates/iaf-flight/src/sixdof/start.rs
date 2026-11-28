@@ -285,6 +285,9 @@ pub struct Start {
     /// The F-16's EPU runs (set by its cockpit each frame: the EPU switch, its hydrazine; modern-iaf/docs/cockpit.md
     /// "EPU"): in the air it holds the displays' power with the generators off line.
     pub epu: bool,
+    /// Both generators failed (set by the flight each frame from its failures, `failures.rs`): the generators off
+    /// line at any RPM, so the displays drop unless the emergency power holds them.
+    pub gens_failed: bool,
 }
 
 impl Start {
@@ -443,12 +446,16 @@ impl Start {
         }
         let main = self.main == MainPwr::Main; // MAIN PWR at MAIN PWR: the generators on the buses
         let powered = main
+            && !self.gens_failed
             && self.phase != Phase::Rundown
             && self.phase != Phase::Off
             && if s.displays_on_starter { self.phase != Phase::Starter } else { self.rpm >= s.generator_rpm };
         // The emergency power coming on after the generators dropped (the EPU starts once they are off line) brings
         // the displays back after their warm-up.
         let emergency = main && self.emergency(s);
+        if self.gens_failed && !emergency {
+            self.displays_at = None;
+        }
         if self.displays_at.is_none() && (powered || emergency || (main && self.phase == Phase::Running)) {
             self.displays_at = Some(self.t);
         }

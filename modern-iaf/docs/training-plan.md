@@ -309,7 +309,7 @@ capabilities. A builder checks each against [status.md](status.md) before a phas
 - the overhead-break demonstration: the instructor flies the player's jet (built, started by dev hooks:
   [training.md](training.md) §14);
 - time acceleration on the ground after phase 1;
-- failures that a lesson starts (engine fire, flameout, hydraulics, electrics);
+- failures that a lesson starts (engine fire, flameout, hydraulics, electrics): built ([training.md](training.md) §15);
 - instrument approaches and cloud; night with the goggles, the DAS night camera, the targeting pod and the tanker;
 - AI wingmen in formation; the flight's commands;
 - AWACS and ground-control calls;

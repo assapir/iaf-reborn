@@ -26,9 +26,11 @@ An engine that fails just after lift-off leaves no time to analyse. Before lift-
 With low thrust that still flies the jet, select the afterburner; if that does not light, the engine's secondary control (ENG CONT at SEC), which gives #if sufa [70 to 80~%] else [70 to 95~%] of military thrust and no afterburner#fm[section III, "Low thrust on takeoff or at low altitude", #if sufa [page 3-35] else [page 3-36: the figure of the manual's General Electric engine, the F110-GE-129; for the #jet.short's F110-GE-100 it is inferred]].
 
 === Engine fire on take-off <emergency-takeoff-fire>
-#state("none")
+#state("part")
 
-It shows as in the air: *#row("lamp_eng_fire_0")*, *#row("lamp_caution_overheat_0")*, high #term("FTIT"), smoke#fm[section III, "Engine fire on takeoff", page 3-36]. Abort if the runway allows. If not, climb at take-off thrust to the lowest safe height for an ejection and go on with @emergency-fire.
+It shows as in the air: *#row("lamp_eng_fire_0")*, *#row("lamp_caution_overheat_0")*, high #term("FTIT"), smoke#fm[section III, "Engine fire on takeoff", page 3-36]. Abort if the runway allows (@emergency-abort); once stopped, throttle and #row("SW_MASTER_FUEL") to OFF. If not, climb at take-off thrust to the lowest safe height for an ejection and go on with @emergency-fire.
+
+#in-sim[A set fire can start on the take-off roll at a set speed #sym.arrow.r *ENG FIRE and OVERHEAT light, the voice says "Warning".* #key("Throttle idle") and #key("Wheel brakes (hold)"), then #key("Throttle OFF (engine shutdown)") #sym.arrow.r *the fire goes out after 15 seconds.* Not modelled: the smoke.]
 
 === The gear does not come up <emergency-gear-up>
 #state("none")

@@ -283,7 +283,7 @@ func _sections() -> Array:
 		if int(c.section) != at_section:
 			at_section = int(c.section)
 			var sec: Dictionary = flight.card.sections[at_section]
-			blocks.append("[font_size=16][b]%s[/b][/font_size]" % _esc(String(sec[l])))
+			blocks.append(Notebook.HEADING + "[b]%s[/b][/font_size]" % _esc(String(sec[l])))
 		var state := "done" if flight.card.done.has(c.id) else ("cur" if i == cur else "")
 		if not c.has("check"):
 			state = "ack"
@@ -350,7 +350,7 @@ func _sections() -> Array:
 	# controls have no switch to click in the cockpit).
 	blocks = []
 	for part in pages.get("weapons", []):
-		blocks.append("[font_size=16][b]%s[/b][/font_size]" % _esc(String(part.title[l])))
+		blocks.append(Notebook.HEADING + "[b]%s[/b][/font_size]" % _esc(String(part.title[l])))
 		for i in part.steps.size():
 			var st: Dictionary = part.steps[i]
 			var lines := []
@@ -370,7 +370,7 @@ func _sections() -> Array:
 		var now: Dictionary = rc.current()
 		var k := 0
 		for sec: Dictionary in rc.sections:
-			blocks.append("[font_size=16][b]%s[/b][/font_size]" % _esc(String(sec[l])))
+			blocks.append(Notebook.HEADING + "[b]%s[/b][/font_size]" % _esc(String(sec[l])))
 			for it: Dictionary in sec.items:
 				var state := "ack" if not it.has("check") else ("done" if rc.done.has(it.id) else "")
 				if state == "" and it == now:
@@ -386,7 +386,7 @@ func _sections() -> Array:
 		secs.append(_sec("refuel", "nb_refuel", "%s · %s" % [s("nb_refuel"), _jet()], blocks))
 	blocks = []
 	for e in pages.get("emergency", []):
-		blocks.append("[font_size=16][color=#a31515][b]%s[/b][/color][/font_size]" % _esc(String(e.title[l])))
+		blocks.append(Notebook.HEADING + "[color=#a31515][b]%s[/b][/color][/font_size]" % _esc(String(e.title[l])))
 		for i in e.steps.size():
 			blocks.append(step(i, String(e.steps[i][l]), [], "", ""))
 	var em := _sec("emergency", "nb_emergency", s("nb_emergency"), blocks)

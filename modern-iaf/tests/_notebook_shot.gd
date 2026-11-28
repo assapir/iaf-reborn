@@ -1,8 +1,9 @@
 # Dev helper (not run by tools/test.sh): the pilot's checklist notebook in a real render (modern-iaf/docs/training.md
 # §11): stowed on the right thigh, raised in English and Hebrew, the training ring with the board slid off it, the
 # edge pointer, the RADIO page, the page control (a section's second page, else the last page) and the first
-# start-up's help line. NB_SHOTS picks some (comma-separated names); SHOT_LANG=he takes the pictures that have no
-# language of their own in Hebrew (the Hebrew game manual's).
+# start-up's help line, the EMERGENCY tab's pages (emergency). NB_SHOTS picks some (comma-separated names);
+# SHOT_LANG=he takes the pictures that have no language of their own in Hebrew (the Hebrew game manual's); NB_MISSION
+# the mission (nevatim_startup: the F-35I).
 #   flock -o ~/.cache/iaf-gpu-bench.lock timeout -k 10 900 tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 \
 #     SHOW_OUT=<dir> [NB_SHOTS=raised_en,radio] [NB_SIZE=2560x1440] -- --log-file <temp> --display-driver x11 \
 #     --path modern-iaf -s ../modern-iaf/tests/_notebook_shot.gd
@@ -31,7 +32,7 @@ func run() -> void:
 	fly_gd = load("res://flight/fly.gd")
 	out = OS.get_temp_dir().path_join("iaf2026-shots-%d" % OS.get_process_id())
 	settings().show_info = false
-	var tv := await _start("ramon_startup")
+	var tv := await _start(_env("NB_MISSION", "ramon_startup"))  # NB_MISSION: nevatim_startup for the F-35I
 	Engine.time_scale = 1.0
 	await fly(tv, 2.0)
 	var kb: Node = tv.addon.kneeboard
@@ -41,6 +42,20 @@ func run() -> void:
 	if OS.get_environment("NB_BENCH") != "":
 		await _bench(tv, kb)
 		return
+	# The EMERGENCY tab, each page, in English and Hebrew (training.md §11, §15); NB_SHOTS=emergency alone stops there.
+	if _want("emergency"):
+		for lang in ["en", "he"]:
+			settings().language = lang
+			await fly(tv, 0.3)
+			kb.board.open("emergency")
+			for p in kb.board.page_count():
+				await fly(tv, 0.3)
+				await _shot("emergency_%s_%d" % [lang, p + 1])
+				kb.board.turn(1)
+		settings().language = _env("SHOT_LANG", "en")
+		kb.board.open("startup", kb._cur_block)
+		if not only.is_empty() and only.all(func(n): return n == "emergency"):
+			return
 	if _want("first_training"):
 		kb._help_line()
 		await _shot("first_training")

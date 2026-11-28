@@ -1107,6 +1107,15 @@ the 3D control (no new keys); the F-35I's are rows of `f35i_controls.json` with 
 | F-16 | AR DISC | lit for 3 s after the boom's disconnect, then RDY again (2026-11-25; research/air-refuelling.md §5) |
 | F-16 | AIR REFUEL switch | a row with a `system` (`air_refuel`): OPEN opens the door (`terrain_view.gd` `refuel_door`, command 296 on Shift + F1), and the external tanks hold their fuel while it is open (the 6-DoF's `Tanks::ext_hold`) |
 
+A lesson's failures ([training.md](training.md) §15) light the same lamps (`cockpit.gd` `failure_flags`, read by
+`cockpit3d.gd` `_lamp_on`): the fire ENG FIRE and OVERHEAT, a failed engine ENGINE, a hydraulic system HYD/OIL PRESS
+and its gauge at zero, the generators MAIN GEN and STBY GEN (so ELEC SYS), the standby gains STBY GAINS and the FLCS
+light; their fault list lines light FLCS FAULT, ENGINE FAULT and AVIONICS as any other. The EPU's automatic start
+(`_epu`) also sees both generators failed, and the `gen_epu` failure takes the automatic start away: only the switch
+at ON runs it. ALT GEAR also tells the flight model the handle is pulled (`IafFlight.set_alt_gear`), the one way down
+with hydraulic system B lost. On the F-35I the fire lights its ENG FIRE light and the ICAWS's ENG FIRE, its generator
+ELEC FAIL, the standby gains FCS DEGD (`pcd_formats.gd` `DAMAGE_CAUTIONS`).
+
 The F-16's checklist card checks its speed brakes too: "Speedbrakes – cycle, then closed" ticks once they were seen
 open and are closed again, "Speedbrakes – closed" after landing once closed (`card.gd` `speedbrake`).
 

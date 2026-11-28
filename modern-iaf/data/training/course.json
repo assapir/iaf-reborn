@@ -8,7 +8,7 @@
   "emergencies": {
     "engine_fire_roll": {"at": "roll", "window_s": [3, 12], "label": {"en": "Engine fire on the take-off roll", "he": "אש במנוע בריצת ההמראה"}},
     "engine_fire": {"at": "airborne", "window_s": [120, 900], "label": {"en": "Engine fire in flight", "he": "אש במנוע בטיסה"}},
-    "flameout": {"at": "airborne", "window_s": [120, 900], "label": {"en": "Flameout", "he": "כיבוי מנוע"}},
+    "flameout": {"at": "airborne", "window_s": [120, 900], "label": {"en": "Flameout", "he": "המנוע כבה באוויר"}},
     "hydraulic": {"at": "airborne", "window_s": [120, 900], "jets": ["f16d", "f16i"], "label": {"en": "Hydraulic failure", "he": "תקלה הידראולית"}},
     "gear_fault": {"at": "airborne", "window_s": [120, 900], "jets": ["f35i"], "label": {"en": "Landing gear fault", "he": "תקלת כן נסע"}},
     "epu": {"at": "airborne", "window_s": [120, 900], "jets": ["f16d", "f16i"], "label": {"en": "Flight on the EPU", "he": "טיסה על ה-EPU"}},
@@ -83,7 +83,7 @@
       {"id": "touch_and_go", "title": {"en": "Touch-and-go and go-around", "he": "נגיעה והמראה, והליכה סביב"}, "items": ["pattern_altitude_error", "final_aoa_error", "go_around_height"]},
       {"id": "high_aoa", "title": {"en": "High AoA and G", "he": "זווית התקפה גבוהה ועומסים"}, "items": ["airspeed_error", "max_g", "corner_speed_error"]},
       {"id": "engine_fire", "title": {"en": "Take-off abort and engine fire", "he": "ביטול המראה ואש במנוע"}, "items": ["abort_stopped", "fire_throttle_time", "emergency_checklist"], "emergencies": ["engine_fire_roll", "engine_fire"]},
-      {"id": "flameout", "title": {"en": "Flameout and airstart", "he": "כיבוי מנוע והתנעה באוויר"}, "items": ["airstart_done", "flameout_landing", "emergency_checklist"], "emergencies": ["flameout"]},
+      {"id": "flameout", "title": {"en": "Flameout and airstart", "he": "המנוע כבה באוויר: התנעה באוויר"}, "items": ["airstart_done", "flameout_landing", "emergency_checklist"], "emergencies": ["flameout"]},
       {"id": "night", "kind": "night", "title": {"en": "At night: the pattern and landing", "he": "בלילה: הקפה ונחיתה"}, "items": ["pattern_altitude_error", "final_aoa_error", "touchdown_distance"]},
       {"id": "check", "kind": "check", "title": {"en": "Check ride 2", "he": "טיסת מבחן 2"}}
     ]},

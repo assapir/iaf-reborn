@@ -871,7 +871,9 @@ occlusion, 2.0 MB; built by
     FLCS BIT FAIL (24), HYD A FAIL (18), ISA FLAP FAIL (4), SPD BRAK FAIL (5), GEAR FAIL (7), FLCS A/P FAIL (6),
     ENG FAIL (2 / 3 / 22 / 23), TANK LEAK (10), GEN MAIN FAIL (19 / 21), GEN STBY FAIL (21), FCR FAIL (15), RWR DEGR
     (14), HUD FAIL (12), AIR DATA FAIL (11), FCC FAIL (20); ENG AB FAIL (8 / 9), GUN FAIL (13) and ECM FAIL (1) are
-    ours (inferred). The F-16's "PFD" in FlightGear's model is this display, not a primary flight display.
+    ours (inferred). Modern IAF's lesson failures add their lines (flags 34 to 39, `cockpit.gd` `failure_flags`;
+    modern-iaf/docs/training.md §15): FIRE, ENG FAIL, GEN MAIN FAIL and GEN STBY FAIL as above, ISA ALL FAIL for a
+    hydraulic system (T.O. GR1F-16CJ-1 p. 3-123), STBY GAIN and FLCS ADC FAIL for the standby gains (p. 3-108). The F-16's "PFD" in FlightGear's model is this display, not a primary flight display.
 * **Light** (`cockpit3d.gd` `_lighting`, ours): FlightGear's ALS lights its interior with its own lights; with only
   the scene's light the panel was dark blue-grey (the sun stays outside the glareshield and the tub, leaving the sky's
   blue ambient). The panels', consoles' and instruments' materials also glow by their own texture × a colour, a flat

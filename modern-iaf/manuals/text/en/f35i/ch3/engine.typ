@@ -6,7 +6,8 @@
 #idx("Engine fire")*You recognise it by #row("lamp_eng_fire_0")* and an ICAWS message. #open-proc
 
 #in-sim[
-  - A fire comes from a hit only. #sym.arrow.r *ENG FIRE lights, on the panel and on the ICAWS format with ENGINE FAIL, the voice says "Warning", and the engine gives no thrust.*
+  - A set fire #sym.arrow.r *ENG FIRE lights, on the panel and on the ICAWS format, the voice says "Warning"; the engine keeps running.* The throttle at minimum (a quarter of its travel or less) or OFF #sym.arrow.r *the fire goes out after 15 seconds.* Kept above it #sym.arrow.r *after two minutes the engine fails for good (ENGINE FAIL).* The minimum and the times are the sim's own (inferred from the F-16's procedure).
+  - A fire after a hit #sym.arrow.r *ENG FIRE lights, on the panel and on the ICAWS format with ENGINE FAIL, the voice says "Warning", and the engine gives no thrust.*
   - #key("Extinguish engine fire") puts it out, once a flight. #sym.arrow.r *The light goes out and the thrust comes back.* The afterburner stays lost (*AB FAIL*). Pushing #row("lamp_eng_fire_0") does the same as the key.
 ]
 
@@ -21,5 +22,6 @@ The fuel states that come before an empty tank are public: "minimum fuel" is dec
   - An empty tank, a fire or a dead engine after a hit (*ENGINE FAIL*) #sym.arrow.r *no thrust.* Glide to a runway or eject.
   - An empty tank flames the engine out: *the #term("RPM") runs down*; in the air it settles where the airflow turns the engine, about 20~% at 250 kt. *The #term("IPP") keeps the displays up* as the jet's emergency power; on the ground below 52~% they go dark.
   - A leak after a hit (*FUEL LEAK*) #sym.arrow.r *the fuel falls fast.* The FUEL format marks #term("joker fuel") and bingo (@fuel).
+  - A set flameout runs the engine down as an empty tank does.
   - With the windmilling RPM at 12~% or more (about 150 kt and faster) the engine start lights the engine again without the IPP's cranking (inferred: the F-16's rule). Slower, the start on the ground works in the air as it does there (@cold-start). #term("Not modelled"): the real restart's heights and speeds (open), and fuel dumping.
 ]

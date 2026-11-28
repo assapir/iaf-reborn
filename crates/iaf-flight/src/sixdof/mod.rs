@@ -12,6 +12,7 @@ pub mod aero;
 pub mod autopilot;
 pub mod body;
 pub mod engine;
+pub mod failures;
 pub mod fcs;
 pub mod flight;
 pub mod fuel;

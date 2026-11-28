@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Failures a lesson starts (2026-11-28, the training plan's §6):** a mission, a check ride's pick or the dev hook
+  starts an engine fire (on the take-off roll or in flight), a flameout, hydraulic system A or B, the main generator,
+  both generators (with or without the EPU's automatic start), the FLCS's standby gains or a gear fault, on the F-16D, the F-16I and
+  the F-35I (no EPU or F-16 hydraulics: refused for it). Each shows its real lamps, fault list lines and ICAWS
+  cautions, MASTER CAUTION and the voice, acts on the flight model, and answers to the real checklist's steps, which
+  the notebook's EMERGENCY tab holds ([training.md](training.md) §15). A check ride's pick maps onto them (`IafFlight.plan_course_emergency`); no flight calls it until the course's missions exist. `failures.rs`, `sixdof.rs failures::*`,
+  `test_failures.gd`.
 - **The training course's records and rules (2026-11-28, [training-plan.md](training-plan.md) §2.4, §2.5, §3;
   [training.md](training.md) §13):** each jet's course as data (eight phases, 31 day lessons, 8 night lessons, 8
   check rides, each lesson's graded items with their standard), the grades in Rust (each item Unsatisfactory to Above

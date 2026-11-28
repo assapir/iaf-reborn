@@ -616,6 +616,8 @@ func _system_put(name: String, v: float, was := NAN) -> void:
 			# moves the lever; T.O. GR1F-16CJ-1 p. 1-106)
 			if on and not tv.gear_down:
 				tv._press([14, 0, 0])
+			if tv.get("flight") != null and tv.flight.has_method("set_alt_gear"):
+				tv.flight.set_alt_gear(on)  # the gear's stored air with hydraulic system B lost (failures.rs)
 		"alt_flaps":  # command 12 flips the flaps lever
 			if on != (float(tv.flaps) > 0.0):
 				tv._press([12, 0, 0])

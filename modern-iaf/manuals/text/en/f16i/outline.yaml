@@ -40,7 +40,7 @@ chapters:
   - {id: emergency-ground, title: Ground emergencies, sim: part, file: f16/ch3/ground.typ}
   - {id: emergency-takeoff, title: Take-off emergencies, sim: part, file: f16/ch3/takeoff.typ}
   - {id: emergency-engine, title: Engine emergencies in flight, sim: part, file: f16/ch3/engine.typ}
-  - {id: emergency-systems, title: "Electrical, hydraulic and flight control failures", sim: none, file: f16/ch3/systems.typ}
+  - {id: emergency-systems, title: "Electrical, hydraulic and flight control failures", sim: part, file: f16/ch3/systems.typ}
   - {id: emergency-control, title: Out-of-control recovery, sim: part, file: f16/ch3/control.typ}
   - {id: emergency-landing, title: Landing emergencies, sim: part, file: f16/ch3/landing.typ}
   - {id: ejection, title: Ejection, sim: full, file: f16/ch3/ejection.typ}

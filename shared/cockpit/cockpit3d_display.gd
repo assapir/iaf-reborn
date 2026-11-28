@@ -23,21 +23,26 @@ const PFL_BG := Color(0.0, 0.04, 0.01)
 const PFL_GREEN := Color(0.45, 0.98, 0.06)
 ## The pilot fault list's lines by the damage flags (docs/damage.md §5.2), warnings first: [flags, class (0 FLCS
 ## warning, 1 FLCS, 2 ENG, 3 AV), text]. The texts are FlightGear's fault list's (failures.nas, from GR1F-F16CJ-34-1
-## p. 1-475); the AB, gun and ECM lines are ours (inferred).
+## p. 1-475); the AB, gun and ECM lines are ours (inferred). Flags 34..39 are a lesson's failures (cockpit.gd
+## failure_flags): ISA ALL FAIL for a hydraulic system lost (T.O. GR1F-16CJ-1 p. 3-123), FLCS ADC FAIL and STBY GAIN for
+## the dual air data failure (p. 3-108).
 const FAULTS := [
-	[[16, 17], 0, ">FIRE          <"],
+	[[16, 17, 34], 0, ">FIRE          <"],
+	[[39], 0, ">STBY GAIN     <"],
 	[[24], 0, ">FLCS BIT  FAIL<"],
+	[[36], 1, " ISA  ALL  FAIL "],
+	[[39], 1, " FLCS ADC  FAIL "],
 	[[18], 1, " HYD  A    FAIL "],
 	[[4], 1, " ISA  FLAP FAIL "],
 	[[5], 1, " SPD  BRAK FAIL "],
-	[[7], 1, " GEAR      FAIL "],
+	[[7, 40], 1, " GEAR      FAIL "],
 	[[6, 32], 1, " FLCS A/P  FAIL "],
 	[[33], 1, " FLCS A/P  DEGR "],
-	[[2, 3, 22, 23], 2, " ENG       FAIL "],
+	[[2, 3, 22, 23, 35], 2, " ENG       FAIL "],
 	[[8, 9], 2, " ENG  AB   FAIL "],
 	[[10], 2, " TANK LEAK      "],
-	[[19, 21], 3, " GEN  MAIN FAIL "],
-	[[21], 3, " GEN  STBY FAIL "],
+	[[19, 21, 37], 3, " GEN  MAIN FAIL "],
+	[[21, 38], 3, " GEN  STBY FAIL "],
 	[[15], 3, " FCR       FAIL "],
 	[[14], 3, " RWR  DEGR      "],
 	[[12], 3, " HUD       FAIL "],

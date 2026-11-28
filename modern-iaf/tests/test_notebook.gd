@@ -38,6 +38,19 @@ func run() -> void:
 	check(kb._marks().is_empty(), "START-UP: no switch ringed before the clearance")
 	var ids: Array = nb.sections.map(func(x): return String(x.id))
 	check(ids == ["startup", "taxi", "radio", "landing", "weapons", "emergency", "data"], "the sections %s" % [ids])
+	# No page of any tab ends on a heading: it goes to the next page with the block it heads (the user, 28 Nov 2026).
+	for lang in ["en", "he"]:
+		settings().language = lang
+		await frames(3)
+		var orphans := []
+		for t in nb.sections.size():
+			var pages: Array = nb._pages[t]
+			for p in pages.size() - 1:
+				if String(nb.sections[t].blocks[int(pages[p][1]) - 1]).begins_with(nb.HEADING):
+					orphans.append("%s p%d" % [nb.sections[t].id, p + 1])
+		check(orphans.is_empty(), "%s: no page ends on a heading %s" % [lang, orphans])
+	settings().language = "en"
+	await frames(3)
 	for i in nb.sections.size():
 		check(nb._pages[i].size() >= 1 and not nb.sections[i].blocks.is_empty(), "%s has a page" % ids[i])
 	# H stows it (into the thigh's texture) and raises it again; K (the GPS bomb's PRE / VIS) leaves it.

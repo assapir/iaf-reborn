@@ -206,6 +206,10 @@ var done: Array = []
 var _fault := ""
 var _fault_shown := ""
 var kneeboard: Node
+## The mission's failures still to plan on the flight (its readable file's `failures`, training.md §15), and the
+## failures already announced (master caution and the voice once each).
+var _failures_plan: Array = []
+var _failures_seen: Array = []
 const STEP_IDS := ["main_power", "starter", "engine", "avionics", "ins", "canopy"]
 ## The F-16's power switches one by one (command 219's p2 → SYSTEMS[i]; iaf-flight start.rs SYSTEMS, the same order):
 ## the four AVIONIC POWER switches (together the avionics step) and the SNSR PWR panel's FCR, RDR ALT, LEFT HDPT and
@@ -275,6 +279,7 @@ func _ready() -> void:
 		mission_name = String(files[0].name) if not rules.is_empty() else ""
 		checklist = readable.get("training", {}).get("checklist", [])
 		_tanker_spec = readable.get("tanker", {})
+		_failures_plan = readable.get("failures", [])
 		if String(readable.get("category", "")) == "fly_now":
 			add_child(FreeCombat.new(host, host.radio.runway_base))  # Scramble's enemy and task (front-end.md §2.1)
 	if not rules.is_empty():
@@ -790,6 +795,7 @@ func _process(delta: float) -> void:
 	if changed and kneeboard != null:
 		kneeboard.refresh()
 	_canopy(delta)
+	_failures()
 	if rules.is_empty() or trainer.run_finished() or host.flight == null or host.get("_log") == null:
 		return
 	var t: float = host._log_t
@@ -851,6 +857,34 @@ func _process(delta: float) -> void:
 		_finish(d)  # a pass stays: the flight goes on until the player ends it
 	elif t > budget + PAST_BUDGET or String(rules.kind) == "startup" or why.any(func(r): return r in FINAL):
 		_finish(d)
+
+
+## A lesson's failure started now (the dev hook; IafFlight.start_failure's names): "" or why not.
+func start_failure(id: String) -> String:
+	return String(host.flight.start_failure(id)) if host.flight != null else "no_flight"
+
+
+## The mission's failures planned once the flight exists, and each failure's start announced as the jet does it: the
+## MASTER CAUTION and the voice's "Warning" (a warning light) or "Caution", and a `failure` event in the recording.
+func _failures() -> void:
+	if host.flight == null or not host.flight.has_method("failures"):
+		return
+	for f in _failures_plan:
+		var e := String(
+			host.flight.plan_failure(String(f.get("id", "")), String(f.get("on", "time")), float(f.get("value", 0.0)))
+		)
+		if e != "":
+			push_warning("failure %s: %s" % [f, e])
+	_failures_plan = []
+	var d: Dictionary = host.flight.failures()
+	var warnings: PackedStringArray = d.get("warnings", PackedStringArray())
+	for id in d.get("active", PackedStringArray()):
+		if _failures_seen.has(id):
+			continue
+		_failures_seen.append(id)
+		host.damage_light(0, true)
+		host.damage_sound("VOC_BBETTY", "BTY_FIRE" if warnings.has(id) else "BTY_CAUTION")
+		host._log_event(host.get("_log_st") if host.get("_log_st") != null else {}, {"event": "failure", "failure": id})
 
 
 ## Lined up on runway end `wrong` ("" none), not the mission's: the tower says so once per end ("Kidon 1, you are on

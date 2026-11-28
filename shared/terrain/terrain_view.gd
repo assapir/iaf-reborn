@@ -2619,10 +2619,30 @@ func _followed_destroyed() -> void:
 	)
 
 
+## The gear was held at the last indicator update (_update_indicators: its legs start once released).
+var _gear_was_held := false
+
+
+## The gear held where it is: gear damage (7, docs/damage.md §5.2), or Modern IAF's hydraulic system B lost with the
+## ALT GEAR handle in (IafFlight.failures `gear_held`, modern-iaf/docs/training.md §15). Never on the original model.
+func _gear_held() -> bool:
+	if player_damage.flags[7]:
+		return true
+	var f: Dictionary = flight.failures() if flight != null and flight.has_method("failures") else {}
+	return bool(f.get("gear_held", false))
+
+
 ## Gear legs / flaps lamps and the panel indicators the cockpit shows.
 func _update_indicators(delta: float) -> void:
+	var held := _gear_held()
+	var released := _gear_was_held and not held
+	_gear_was_held = held
 	for i in 3:
-		if gear_legs[i] == 1 and not player_damage.flags[7]:
+		# A gear held at the handle's move (hydraulic system B lost) starts once released (ALT GEAR pulled).
+		if released and gear_legs[i] == (0 if gear_down else 2):
+			gear_legs[i] = 1
+			leg_timers[i] = GEAR_LEG_TIME
+		if gear_legs[i] == 1 and not held:
 			leg_timers[i] -= delta
 			if leg_timers[i] <= 0.0:
 				gear_legs[i] = 2 if gear_down else 0
@@ -2888,9 +2908,9 @@ func _toggle_gear() -> void:
 	if not gear_down and st.speed_kt > GEAR_DOWN_MAX_KT:
 		return
 	gear_down = not gear_down
-	# Each leg only starts moving from locked (flight-model.md §12): 2 -> 1 -> 0 or 0 -> 1 -> 2.
+	# Each leg only starts moving from locked (flight-model.md §12): 2 -> 1 -> 0 or 0 -> 1 -> 2; a held gear does not.
 	for i in 3:
-		if gear_legs[i] == (0 if gear_down else 2):
+		if gear_legs[i] == (0 if gear_down else 2) and not _gear_held():
 			gear_legs[i] = 1
 			leg_timers[i] = GEAR_LEG_TIME
 

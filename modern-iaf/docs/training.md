@@ -565,11 +565,12 @@ edge, the text right to left.
 | LANDING / נחיתה | the call, the gear, the final's AOA, the touchdown, the throttle to OFF on the spot | `data/notebook.json` `pages.<f16 / f35i>.landing` |
 | WEAPONS / חימוש | arming (ST STA on the F-16s, MASTER ARM, the gear up), air-to-ground (the stores from the Arming page, the master mode and the CCIP cue, the release, the jettison) and air-to-air (the master mode, the radar lock, the release, the gun); each step with its switch, its place and its key as bound: the one page with keys, as the weapons' controls have no switch to click (2026-11-14, [weapons.md](weapons.md) §5) | `pages.<family>.weapons` (`key`: a record of `data/keys.json`) |
 | AIR REFUEL / תדלוק אווירי (only with a tanker on the flight; since 2026-11-25) | the jet's air refuelling checklist: BEFORE CONTACT, CONTACT, AFTER REFUELLING, ticked as the CHECKLIST's items are (the item to do now on the yellow band), its read-and-acknowledge items with ○. F-16s: the real -1's normal air refuelling procedure in outline (the -1's air refuelling section, p. 8-34)[^haf]; F-35I: inferred from the F-16's and the two public rules of research/air-refuelling.md. With eight tabs each tab is shorter (68 px in place of 78) to stay on the board | the card file's `refuel` sections, a second `card.gd` (`sim_flight.gd` `refuel_card`); the user, 2026-11-25: "the notebook should have air-refuling part for checklitst of it" |
-| EMERGENCY / חירום (a red tab, a red strip down the page) | the hot start, an engine fire on the ground, the ejection | `pages.<family>.emergency` |
+| EMERGENCY / חירום (a red tab, a red strip down the page) | the hot start (the F-16s), an engine fire on the ground, the failures of §15 with their checklist steps (the F-16s: the fire on take-off and in flight, the air start, hydraulic system A and B, the generators, STBY GAIN; the F-35I: the fire, the air start, ELEC FAIL, FCS DEGD), the ejection | `pages.<family>.emergency` |
 | DATA / נתונים | the mission, the base and its ICAO code, the time, the wind, the jet, the runway, the route's first point | the mission's readable file; the airbase file |
 
 A section is cut into pages that fit the paper: its blocks (a step, a table, a heading) are measured at the page's
-width and the page breaks between them. The pages turn by:
+width and the page breaks between them. A heading never ends a page: it goes to the next page with the block it
+heads (`notebook.gd` `HEADING`; the user, 28 Nov 2026). The pages turn by:
 - a click on a tab: that section's first page;
 - the page's own ‹ and › at its foot, with the section's page count between them ("1 / 2"; the user's "a clear way
   to move to the next page in the same section");
@@ -905,6 +906,59 @@ and lands at 1.6–3.0 m/s of sink, stopping on the runway.
 throttle moving, stopped on the runway) and `test_instructor_lead.gd` (the Adir's chase within 400 m after 60 s, then
 the lead's steps and its landing at Nevatim).
 
+
+## 15. Failures a lesson starts
+
+A mission, a check ride's pick ([training-plan.md](training-plan.md) §2.5) or a dev hook starts a real emergency of the
+jet in flight or on the take-off roll. The failure shows as the real jet shows it, and the pilot recovers by the real
+checklist's steps, which the notebook's EMERGENCY tab holds (§11). Game logic: `crates/iaf-flight/src/sixdof/failures.rs`
+(`Failures`, `Failure::allowed`); the 6-DoF applies the effects (`sixdof/flight.rs`, `start.rs` `gens_failed`,
+`fcs.rs` `standby_gains`). They are not the game's systems damage ([damage.md](../../docs/damage.md) §5.2, a hit's
+random pick), which stays as it is; the cockpit shows both.
+
+**Where a failure is set.**
+
+- A mission's readable file: `"failures": [{"id": "engine_fire", "on": "takeoff_roll", "value": 100}]`. `on` is
+  `time` (`value` s of flight time; the default), `takeoff_roll` (`value` kt of ground speed), `takeoff_roll_s`
+  (`value` s after the roll began, at 40 kt of ground speed, inferred) or `airborne` (`value` s after lift-off). A
+  take-off roll's failure not come by the lift-off is dropped, so it never comes on a landing roll. `iaf-sim missions` refuses an unknown failure, an unknown `on` and a failure the mission's jet does
+  not have ([data-formats.md](data-formats.md) §5); `sim_flight.gd` plans them on the flight (`IafFlight.plan_failure`).
+- A check ride's pick (§13.4, `IafTraining.check_ride_emergency`): `IafFlight.plan_course_emergency(id, at, after_s,
+  seed)` takes its answer through `failures::from_course`: `engine_fire_roll` and `engine_fire` the fire (on the roll
+  `after_s` into it, in the air after lift-off), `flameout`, `hydraulic` system A or B and `epu` both generators with
+  or without the EPU's automatic start (`seed` picks), `electrical` the main generator, `flight_controls` the standby
+  gains, `gear_fault` the gear fault. No flight calls
+  it yet: a check ride's flight comes with the course's missions, which wait for the user's word on the screens.
+- The dev hook: `sim_flight.gd` `start_failure(id)` starts it at once (`IafFlight.start_failure`).
+
+The one rule for all three is `Failure::allowed`: the F-35I has no EPU and no F-16 hydraulic systems (its surfaces
+move on their own electric actuators), so `hyd_a`, `hyd_b`, `gen_both` and `gen_epu` are refused for it
+(`no_hydraulic_systems`, `no_epu`).
+
+**At its start** the jet lights MASTER CAUTION and the voice says "Warning" for a failure that lights a red warning
+light (the fire, the flameout, the hydraulics, the standby gains) and "Caution" for the generators (`Failure::warning`);
+the recording gets a `failure` event with its id.
+
+| failure (`id`) | the jets | what the pilot sees | what it does in the sim | the recovery the sim answers to | source |
+|---|---|---|---|---|---|
+| engine fire (`engine_fire`) | all | ENG FIRE and OVERHEAT lit, FIRE on the fault list (the F-35I: ENG FIRE on its light and the ICAWS) | the engine keeps running; kept above minimum thrust for 60 s the fire burns through hydraulic system A, at 120 s the engine fails for good (ENG FAIL) | the throttle at minimum practical (a quarter of its travel or less) or OFF for 15 s puts it out; FIRE & OHEAT DETECT tests the detector; on the take-off roll the abort, then the throttle and MASTER FUEL to OFF | the procedure: T.O. GR1F-16CJ-1 p. 3-61[^haf3]; the times and the quarter: inferred |
+| flameout (`flameout`) | all | the RPM runs down, ENGINE lit, below 52 % MAIN GEN and STBY GEN; the F-16s' EPU starts by itself, the F-35I's IPP holds the displays | the engine stops as on an empty tank (§7.2) | the air start of §7.2: the throttle to OFF and up again with the engine windmilling at 12 % or more, the JFS below 20,000 ft and 400 kt | pp. 3-79, 3-80[^haf3] |
+| hydraulic system A (`hyd_a`) | the F-16s | HYD/OIL PRESS, HYD PRESS A at zero, ISA ALL FAIL on the fault list, FLCS FAULT | the speed brakes stay where they are; the flight controls fly on B | land as soon as practical, straight in | p. 3-123[^haf3] |
+| hydraulic system B (`hyd_b`) | the F-16s | HYD/OIL PRESS, HYD PRESS B at zero, ISA ALL FAIL, FLCS FAULT | the gear handle no longer moves the gear; no nose wheel steering (the nose wheel casters, inferred); the brakes on the accumulators, 75 s of braking | ALT GEAR pulled lowers the gear (`IafFlight.set_alt_gear`); one steady brake application | p. 3-123[^haf3] |
+| main generator (`gen_main`) | all | MAIN GEN and ELEC SYS (the F-35I: ELEC FAIL on the ICAWS), GEN MAIN FAIL | the F-16s: the standby generator carries the jet; the F-35I (one starter/generator): its IPP holds the displays in the air | ELEC CAUTION RESET (the generator stays failed), land as soon as practical | pp. 3-43, 3-44[^haf3]; the F-35I's: inferred |
+| main and standby generators (`gen_both`) | the F-16s | MAIN GEN, STBY GEN, ELEC SYS; EPU run and AIR | the generators off line: the displays drop, the EPU starts by itself and brings them back while its hydrazine lasts (§7.2) | check EPU run, land as soon as possible | p. 3-44[^haf3] |
+| the generators and the EPU's automatic start (`gen_epu`) | the F-16s | as `gen_both`, EPU run and AIR dark, the displays dark | the EPU gets no automatic start | EPU switch to ON: it runs and the displays come back | p. 3-44 ("manually turning the EPU on may correct this failure")[^haf3] |
+| gear fault (`gear_fault`) | all (the course gives it the F-35I) | GEAR FAIL on the ICAWS (the F-16s' fault list), the gear handle's light with the handle moved | the gear stays where it is, down or up; down past its speed limit it is damaged as any gear (§9.20 of flight-model.md) | stay below 300 kt with the gear down, hold, then a planned full-stop landing straight in | the F-35A at Eielson, 28 January 2025: the gear did not retract after take-off, and the board's lesson is the planned full-stop landing[^aviationist-2025]; the steps' wording and the 300 kt (the gear limit, flight-model.md §9.20) inferred |
+| standby gains (`standby_gains`) | all | STBY GAINS and the FLCS light, STBY GAIN and FLCS ADC FAIL on the fault list, FLCS FAULT (the F-35I: FCS DEGD) | the flight controls take fixed gains, those of sea level at 600 kt with the gear handle up and 230 kt with it down, the leading-edge flaps at 0° and 15° | 1 g, AOA 12° or less, 240 to 650 kt with the gear up, FLCS RESET, land as soon as practical | p. 3-108[^haf3]; the F-35I's: inferred |
+
+Not modelled: a reset that brings a generator back or leaves the standby gains (ELEC CAUTION RESET and FLCS RESET
+are taken and do not clear the failure; the manual allows that a reset may work, p. 3-108, p. 3-44), a dual hydraulic
+failure, the nozzle fire, the fire's smoke. With system B lost the parking brake holds without using the accumulators
+("use of the parking brake is preferred since brake/JFS accumulator fluid is not depleted", section I, the wheel brake system).
+Tests: `failures.rs` (unit), `crates/iaf-flight/tests/sixdof.rs` `failures::*` (each failure flown and recovered),
+`iaf-tools` `lesson_failures_are_checked` and `course_emergencies_are_flight_failures`, `modern-iaf/tests/test_failures.gd` (one case per failure, by the dev hook,
+on the Barak and the Adir).
+
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II", Specifications (F-35A): empty weight 29,300 lb (13,290 kg), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
@@ -930,3 +984,5 @@ the lead's steps and its landing at Nevatim).
 [^bdh]: Hebrew Wikipedia, "בדיקות חיוניות" (בד"ח: the checklist booklet; its sections before and after the take-off and the landing), through its mirror https://www.hamichlol.org.il/בדיקות_חיוניות
 [^boltepu]: BoltFlight, "F-16 Emergency Power Unit (EPU): Function, Operation, and Safety" (the EPU "for approximately 10-15 minutes when the main engine fails"; it engages by itself on an engine shutdown in the air; the windmill "increasing RPM to 20-25%"; the JFS-assisted airstart "below 20,000 feet and airspeed is under 400 knots"; secondary), https://boltflight.com/f-16-emergency-power-unit-epu-function-operation-and-safety/
 [^f16num]: Brainscape, "F-16 by the numbers" flashcards (12 % RPM: below it the main fuel pump does not give enough flow for an airstart; 20,000 ft / 400 kt for the JFS; secondary, a study set; second-hand: a search engine's listing), https://brainscape.com/flashcards/f-16-by-the-numbers-8760536/packs/14965827
+[^haf3]: T.O. GR1F-16CJ-1 (as [^haf]), section III "Emergency procedures": "Engine fire" p. 3-61; "Airstarts" pp. 3-79, 3-80; "Electrical system failures", "Main and standby generator failure (in flight)" and "Main, standby, and EPU generator failure" pp. 3-43 to 3-45; "Air data malfunctions" p. 3-108; "Hydraulic malfunctions", "System A failure", "System B failure" p. 3-123; https://archive.org/details/haf-f-16
+[^aviationist-2025]: The Aviationist, "Hydraulic Fluid Contamination and Ice Buildup Led to January F-35A Crash in Alaska", 26 August 2025 (as research/training.md), https://theaviationist.com/2025/08/26/eielson-january-2025-f-35-crash-aib-report/

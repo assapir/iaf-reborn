@@ -93,6 +93,7 @@
   "VV": "Vertical velocity",
   "VVI": "Vertical velocity indicator",
   "ADC": "Air data converter",
+  "ISA": "Integrated servoactuator",
   "DEEC": "Digital electronic engine control",
   "ACES": "Advanced concept ejection seat",
   "AP": "Autopilot"

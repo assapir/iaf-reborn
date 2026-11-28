@@ -1660,3 +1660,150 @@ fn the_cg_and_a_category_iii_load() {
     println!("CAT III load and switch, 35,000 lb, full pull at 450 kt: peak |β| {peak:.1}°");
     assert!(peak < 5.0, "{peak}");
 }
+
+/// The lesson failures (sixdof/failures.rs, modern-iaf/docs/training.md §15) on the flight, each with its recovery.
+mod failures {
+    use super::*;
+    use iaf_flight::sixdof::failures::{FIRE_OUT_S, FIRE_SPREAD_S, Failure, When};
+
+    fn level(f: &SixDof, throttle: f32) -> iaf_flight::Controls {
+        iaf_flight::Controls { throttle, gear_down: false, brakes: false, ..f.controls() }
+    }
+
+    #[test]
+    fn an_engine_fire_goes_out_at_minimum_thrust_or_takes_the_engine() {
+        let mut f = flight(jets::all()[1], 3048.0, 300.0 * KT, true);
+        f.failures.start(Failure::EngineFire);
+        fly_for(&mut f, 5.0, |f| level(f, 0.74));
+        assert!(f.failures.fire() && f.state().thrust_n > 0.0, "a fire leaves the thrust");
+        fly_for(&mut f, FIRE_OUT_S + 1.0, |f| level(f, 0.2)); // the throttle to minimum practical
+        assert!(!f.failures.fire() && f.start_phase() == "running");
+
+        let mut f = flight(jets::all()[1], 3048.0, 300.0 * KT, true);
+        f.failures.start(Failure::EngineFire);
+        fly_for(&mut f, 2.0 * FIRE_SPREAD_S + 1.0, |f| level(f, 0.74));
+        assert!(f.failures.seized() && !f.failures.hyd_ok()[0]);
+        assert_eq!(f.state().thrust_n, 0.0, "the engine failed");
+        f.start_step("cutoff").ok();
+        fly_for(&mut f, 1.0, |f| level(f, 0.74));
+        assert!(f.start_phase() != "running" && f.state().thrust_n == 0.0, "no relight");
+    }
+
+    #[test]
+    fn a_fire_on_the_take_off_roll_and_the_abort() {
+        let mut f = flight(jets::all()[0], 0.0, 0.0, false);
+        f.failures.plan(Failure::EngineFire, When::Roll(100.0));
+        let mut fired_at = None;
+        for i in 0..60 * 60 {
+            let fire = f.failures.fire();
+            if fire && fired_at.is_none() {
+                fired_at = Some(f.state().speed as f64 / KT);
+            }
+            // Abort: the throttle to idle and full brakes, then the throttle to OFF once stopped.
+            let c = if fire {
+                iaf_flight::Controls { throttle: 0.0, brakes: true, ..f.controls() }
+            } else {
+                iaf_flight::Controls { throttle: 1.0, brakes: false, gear_down: true, ..f.controls() }
+            };
+            f.set_controls(c);
+            if fire && f.state().speed < 0.5 && f.start_phase() == "running" {
+                f.start_step("cutoff").unwrap();
+            }
+            f.step(1.0 / 60.0);
+            if let Some(kt) = fired_at.filter(|_| !f.failures.fire()) {
+                println!("fire on the roll at {kt:.0} kt, out after {:.1} s", i as f64 / 60.0);
+                break;
+            }
+        }
+        assert!(fired_at.is_some_and(|kt| (100.0..110.0).contains(&kt)), "{fired_at:?}");
+        assert!(!f.failures.fire() && f.state().on_ground);
+    }
+
+    #[test]
+    fn a_flameout_and_the_air_start() {
+        let mut f = flight(jets::all()[1], 3048.0, 300.0 * KT, true);
+        f.failures.start(Failure::Flameout);
+        fly_for(&mut f, 20.0, |f| level(f, 0.5));
+        let s = f.state();
+        assert!(f.start_phase() != "running" && s.thrust_n == 0.0 && s.rpm < 52.0, "{} {}", f.start_phase(), s.rpm);
+        // The air start: throttle to OFF, then up (windmilling above 12 %).
+        f.start_step("cutoff").ok();
+        f.set_controls(level(&f, 0.0));
+        f.set_engine_on(true);
+        fly_for(&mut f, 30.0, |f| level(f, 0.3));
+        assert_eq!(f.start_phase(), "running", "relit");
+    }
+
+    #[test]
+    fn hydraulic_failures() {
+        // System A: the speed brakes stay shut; the flight controls fly on B.
+        let mut f = flight(jets::all()[0], 3048.0, 300.0 * KT, true);
+        f.failures.start(Failure::HydA);
+        fly_for(&mut f, 3.0, |f| iaf_flight::Controls { brakes: true, ..level(f, 0.74) });
+        assert!(f.surfaces().dsb < 0.1, "speed brakes {}", f.surfaces().dsb);
+        // System B: the lever does not lower the gear; ALT GEAR does.
+        let mut f = flight(jets::all()[0], 1000.0, 200.0 * KT, true);
+        f.failures.start(Failure::HydB);
+        let up = f.state().gear;
+        fly_for(&mut f, 10.0, |f| iaf_flight::Controls { gear_down: true, ..level(f, 0.6) });
+        assert_eq!(f.state().gear, up, "the lever alone leaves the gear up");
+        f.alt_gear = true;
+        fly_for(&mut f, 10.0, |f| iaf_flight::Controls { gear_down: true, ..level(f, 0.6) });
+        assert!(f.state().gear < 0.01, "ALT GEAR: the gear down ({} from {up})", f.state().gear);
+        // Parked with system B lost: the parking brake holds and leaves the accumulators full; the pedals use them.
+        let mut f = flight(jets::all()[0], 0.0, 0.0, false);
+        f.failures.start(Failure::HydB);
+        f.set_switch("parking_brake", 1);
+        fly_for(&mut f, 100.0, |f| iaf_flight::Controls { brakes: false, throttle: 0.0, ..f.controls() });
+        assert_eq!(f.failures.accumulator_s(), iaf_flight::sixdof::failures::ACCUMULATOR_S);
+        f.set_switch("parking_brake", 0);
+        fly_for(&mut f, 10.0, |f| iaf_flight::Controls { brakes: true, throttle: 0.0, ..f.controls() });
+        assert!(f.failures.accumulator_s() < 70.0, "the pedals: {}", f.failures.accumulator_s());
+        // Spent by the pedals, the parking brake no longer holds either.
+        fly_for(&mut f, 80.0, |f| iaf_flight::Controls { brakes: true, throttle: 0.0, ..f.controls() });
+        f.set_switch("parking_brake", 1);
+        assert_eq!(f.failures.accumulator_s(), 0.0);
+        assert_eq!(f.failures.brakes(1.0, 0.1), 0.0, "no braking left");
+    }
+
+    #[test]
+    fn the_gear_fault_holds_the_gear_down() {
+        // The F-35I's gear fault (the Eielson crash, research/training.md §3.4): lowered, it stays down.
+        let mut f = flight(jets::all()[2], 1000.0, 200.0 * KT, true);
+        fly_for(&mut f, 10.0, |f| iaf_flight::Controls { gear_down: true, ..level(f, 0.6) });
+        assert!(f.state().gear < 0.01);
+        f.failures.start(Failure::GearFault);
+        fly_for(&mut f, 10.0, |f| level(f, 0.6));
+        assert!(f.state().gear < 0.01, "the handle up leaves it down: {}", f.state().gear);
+    }
+
+    #[test]
+    fn generators_and_the_epu() {
+        let mut f = flight(jets::all()[0], 3048.0, 300.0 * KT, true);
+        f.failures.start(Failure::GenMain);
+        fly_for(&mut f, 5.0, |f| level(f, 0.74));
+        assert_eq!(f.power(), 2, "the standby generator carries the jet");
+        f.failures.start(Failure::GenBoth);
+        fly_for(&mut f, 5.0, |f| level(f, 0.74));
+        assert_eq!(f.power(), 1, "both off line, no EPU yet");
+        f.set_epu(true); // the cockpit's EPU runs (its automatic start, or the switch at ON)
+        fly_for(&mut f, 5.0, |f| level(f, 0.74));
+        assert_eq!(f.power(), 2, "the EPU holds the emergency buses");
+        // The F-35I's IPP is its emergency power.
+        let mut f = flight(jets::all()[2], 3048.0, 300.0 * KT, true);
+        f.failures.start(Failure::GenMain); // its one starter/generator
+        fly_for(&mut f, 5.0, |f| level(f, 0.74));
+        assert_eq!(f.power(), 2);
+    }
+
+    #[test]
+    fn standby_gains_fly_with_fixed_gains() {
+        let mut f = flight(jets::all()[0], 3048.0, 350.0 * KT, true);
+        f.failures.start(Failure::StandbyGains);
+        fly_for(&mut f, 20.0, |f| level(f, 0.74));
+        let s = f.state();
+        println!("standby gains, 20 s: alt {:.0} m, g {:.2}, LEF {:.1}", s.position.z, s.g, f.surfaces().dlef);
+        assert!((s.position.z - 3048.0).abs() < 150.0, "flies level: {}", s.position.z);
+        assert!(f.surfaces().dlef.abs() < 0.5, "the leading-edge flaps at 0° with the gear handle up");
+    }
+}

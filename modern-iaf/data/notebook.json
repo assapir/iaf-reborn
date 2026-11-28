@@ -48,11 +48,56 @@
           {"en": "FTIT — MONITOR", "he": "FTIT — מעקב"},
           {"en": "FTIT stays above 500 °C: MOTOR the engine with the JFS until below 200 °C", "he": "FTIT נשאר מעל 500°C: סיבוב המנוע במתנע JFS עד מתחת ל־200°C"}
         ]},
-        {"title": {"en": "ENGINE FIRE ON THE GROUND", "he": "שריפת מנוע על הקרקע"}, "steps": [
+        {"title": {"en": "ENGINE FIRE ON THE GROUND", "he": "אש במנוע על הקרקע"}, "steps": [
           {"en": "THROTTLE — OFF", "he": "מצערת — OFF"},
           {"en": "JFS — OFF", "he": "JFS — OFF"},
           {"en": "MAIN PWR — OFF", "he": "MAIN PWR — OFF"},
           {"en": "Canopy open, leave the jet", "he": "פתיחת החופה ויציאה מהמטוס"}
+        ]},
+        {"title": {"en": "ENGINE FIRE ON TAKE-OFF", "he": "אש במנוע בהמראה"}, "steps": [
+          {"en": "Runway left: ABORT — THROTTLE IDLE, full brakes", "he": "נותר מסלול: ביטול המראה — מצערת IDLE, בלימה מלאה"},
+          {"en": "Stopped: THROTTLE — OFF, MASTER FUEL — OFF", "he": "לאחר העצירה: מצערת — OFF, MASTER FUEL — OFF"},
+          {"en": "Take-off continued: CLIMB at take-off thrust to a safe ejection height", "he": "המשך ההמראה: טיפוס בדחף המראה עד גובה נטישה בטוח"}
+        ]},
+        {"title": {"en": "ENGINE FIRE IN FLIGHT", "he": "אש במנוע בטיסה"}, "steps": [
+          {"en": "THROTTLE — MINIMUM PRACTICAL", "he": "מצערת — הדחף המזערי המעשי"},
+          {"en": "ENG FIRE goes off: FIRE & OHEAT DETECT — PRESS", "he": "ENG FIRE כבה: FIRE & OHEAT DETECT — לחיצה"},
+          {"en": "Fire goes on (ENG FIRE stays, a hydraulic system or the FLCS lost): EJECT", "he": "האש נמשכת (ENG FIRE דולק, אובדן מערכת הידראולית או FLCS): נטישה"},
+          {"en": "Fire out: LAND AS SOON AS POSSIBLE", "he": "האש כבתה: נחיתה בהקדם האפשרי"}
+        ]},
+        {"title": {"en": "FLAMEOUT: AIR START", "he": "המנוע כבה באוויר: התנעה באוויר"}, "steps": [
+          {"en": "Speed for height: ZOOM", "he": "החלפת מהירות בגובה: טיפוס"},
+          {"en": "THROTTLE — OFF, then MIDRANGE", "he": "מצערת — OFF, ואז לאמצע המהלך"},
+          {"en": "Below 20,000 ft and 400 kt: JFS — START 2", "he": "מתחת ל־20,000 רגל ו־400 קשר: JFS — START 2"},
+          {"en": "EPU run light off: EPU — ON", "he": "נורית EPU run כבויה: EPU — ON"},
+          {"en": "Running: JFS — OFF, CAUTION RESET, EPU — OFF then NORM", "he": "המנוע פועל: JFS — OFF, CAUTION RESET, EPU — OFF ואז NORM"},
+          {"en": "No relight, below 2,000 ft above the ground: EJECT", "he": "אין התנעה, מתחת ל־2,000 רגל מעל הקרקע: נטישה"}
+        ]},
+        {"title": {"en": "HYDRAULIC SYSTEM A", "he": "מערכת הידראולית A"}, "steps": [
+          {"en": "LAND AS SOON AS PRACTICAL: smooth inputs, straight-in", "he": "נחיתה בהקדם המעשי: תנועות עדינות, גישה ישירה"},
+          {"en": "HYD PRESS B — MONITOR", "he": "HYD PRESS B — מעקב"},
+          {"en": "The speed brakes do not work", "he": "בלמי האוויר אינם פועלים"}
+        ]},
+        {"title": {"en": "HYDRAULIC SYSTEM B", "he": "מערכת הידראולית B"}, "steps": [
+          {"en": "LAND AS SOON AS PRACTICAL: smooth inputs, straight-in", "he": "נחיתה בהקדם המעשי: תנועות עדינות, גישה ישירה"},
+          {"en": "Gear handle up: ALT GEAR handle — PULL (190 kt max)", "he": "ידית הכן למעלה: ידית ALT GEAR — משיכה (190 קשר לכל היותר)"},
+          {"en": "Gear handle — DN", "he": "ידית הכן — DN"},
+          {"en": "Brakes on the accumulators (75 s): one steady application, stop straight ahead", "he": "בלמים מהמצברים ההידראוליים (75 שניות): בלימה אחת יציבה, עצירה בקו ישר"}
+        ]},
+        {"title": {"en": "MAIN GEN OR STBY GEN", "he": "MAIN GEN או STBY GEN"}, "steps": [
+          {"en": "ELEC CAUTION RESET — PRESS", "he": "ELEC CAUTION RESET — לחיצה"},
+          {"en": "LAND AS SOON AS PRACTICAL", "he": "נחיתה בהקדם המעשי"}
+        ]},
+        {"title": {"en": "MAIN GEN AND STBY GEN", "he": "MAIN GEN ו־STBY GEN"}, "steps": [
+          {"en": "EPU — ON (if EPU run is off)", "he": "EPU — ON (אם נורית EPU run כבויה)"},
+          {"en": "ELEC CAUTION RESET — PRESS", "he": "ELEC CAUTION RESET — לחיצה"},
+          {"en": "The lights stay on: LAND AS SOON AS POSSIBLE (the EPU's fuel)", "he": "הנוריות נשארות דולקות: נחיתה בהקדם האפשרי (הדלק של ה־EPU)"},
+          {"en": "Stopped: EPU — OFF", "he": "לאחר העצירה: EPU — OFF"}
+        ]},
+        {"title": {"en": "STBY GAIN: DUAL AIR DATA FAILURE", "he": "STBY GAIN: כשל כפול בנתוני האוויר"}, "steps": [
+          {"en": "1 g, AOA 12° max, 240–650 kt with the gear up", "he": "1 g, זווית התקפה עד 12°, 240–650 קשר כשהכן למעלה"},
+          {"en": "FLCS RESET — RESET", "he": "FLCS RESET — RESET"},
+          {"en": "LAND AS SOON AS PRACTICAL; above 240 kt until the gear is down", "he": "נחיתה בהקדם המעשי; מעל 240 קשר עד הורדת הכן"}
         ]},
         {"title": {"en": "EJECT", "he": "נטישה"}, "steps": [
           {"en": "Ejection handle, between the knees — PULL", "he": "ידית הנטישה, בין הברכיים — משיכה"}
@@ -87,10 +132,31 @@
         ]}
       ],
       "emergency": [
-        {"title": {"en": "ENGINE FIRE ON THE GROUND", "he": "שריפת מנוע על הקרקע"}, "steps": [
+        {"title": {"en": "ENGINE FIRE ON THE GROUND", "he": "אש במנוע על הקרקע"}, "steps": [
           {"en": "THROTTLE — OFF", "he": "מצערת — OFF"},
           {"en": "BATT — OFF", "he": "BATT — OFF"},
           {"en": "Canopy open, leave the jet", "he": "פתיחת החופה ויציאה מהמטוס"}
+        ]},
+        {"title": {"en": "ENGINE FIRE IN FLIGHT", "he": "אש במנוע בטיסה"}, "steps": [
+          {"en": "THROTTLE — MINIMUM PRACTICAL", "he": "מצערת — הדחף המזערי המעשי"},
+          {"en": "Fire goes on: EJECT. Fire out: LAND STRAIGHT-IN", "he": "האש נמשכת: נטישה. האש כבתה: נחיתה בגישה ישירה"}
+        ]},
+        {"title": {"en": "FLAMEOUT: AIR START", "he": "המנוע כבה באוויר: התנעה באוויר"}, "steps": [
+          {"en": "THROTTLE — OFF, then ENGINE START", "he": "מצערת — OFF, ואז התנעת מנוע"},
+          {"en": "The IPP holds the displays", "he": "ה־IPP מחזיק את התצוגות"},
+          {"en": "No relight: glide to a runway, or EJECT", "he": "אין התנעה: דאייה למסלול, או נטישה"}
+        ]},
+        {"title": {"en": "ELEC FAIL", "he": "ELEC FAIL"}, "steps": [
+          {"en": "The IPP gives the emergency power", "he": "ה־IPP מספק את כוח החירום"},
+          {"en": "LAND STRAIGHT-IN, as soon as practical", "he": "נחיתה בגישה ישירה, בהקדם המעשי"}
+        ]},
+        {"title": {"en": "FCS DEGD", "he": "FCS DEGD"}, "steps": [
+          {"en": "Fly gently: AOA 12° max", "he": "טיסה עדינה: זווית התקפה עד 12°"},
+          {"en": "LAND STRAIGHT-IN", "he": "נחיתה בגישה ישירה"}
+        ]},
+        {"title": {"en": "GEAR FAIL", "he": "GEAR FAIL"}, "steps": [
+          {"en": "The gear stays where it is: below 300 kt with it down", "he": "כן הנסע נשאר במקומו: מתחת ל־300 קשר כשהוא למטה"},
+          {"en": "Hold, then a planned full-stop landing, straight in", "he": "המתנה, ואז נחיתה מתוכננת עד עצירה מלאה, בגישה ישירה"}
         ]},
         {"title": {"en": "EJECT", "he": "נטישה"}, "steps": [
           {"en": "Ejection handle, between the knees — PULL", "he": "ידית הנטישה, בין הברכיים — משיכה"}
@@ -114,7 +180,8 @@
     "calls": "the tower's answers (modern-iaf/docs/training.md §8)",
     "pages.f16.landing": "inferred, the on-speed AOA 13° open",
     "pages.f16.weapons": "the F-16 cockpit's switch places as the 3D cockpit draws them (ST STA on the AVIONIC POWER panel, MASTER ARM on the MISC panel); the keys are the sim's key table (data/keys.json); the steps are the shared weapons code's (docs/weapons.md)",
-    "pages.f16.emergency": "the hot start after the T.O. checklist (training.md [^ep], weak); the fire on the ground and the ejection inferred",
+    "pages.f16.emergency": "the hot start after the T.O. checklist (training.md [^ep], weak); the fire on the ground and the ejection inferred; the in-flight emergencies T.O. GR1F-16CJ-1 section III: the take-off fire and the fire p. 3-61, the air start pp. 3-79 and 3-80, the hydraulic systems p. 3-123, the generators pp. 3-43 and 3-44, STBY GAIN p. 3-108 (modern-iaf/docs/training.md §15)",
+    "pages.f35i.emergency": "inferred from the F-16's procedures; the straight-in landing with a flight control fault, the AFI's paragraph 7.4.3; GEAR FAIL the Eielson board's lesson (research/training.md §3.4) (modern-iaf/docs/training.md §15)",
     "pages.f35i": "inferred",
     "stowed": "inferred: on the right thigh, as the mock-up of 2026-11-13",
     "gauges": "the F-16 model's RPM gauge: anim069, its needle on engines/engine[0]/n2 (f16.json animations); the dial's radius measured on a render (2026-11-15; until then anim067, the NOZ POS gauge above it)"

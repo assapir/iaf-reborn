@@ -376,6 +376,11 @@ ENG at +0x560 / +0x598 / +0x5b0 = flags 2 / 16 / 22, so the copy starts at +0x55
 - **The 6-DoF holds a damaged gear** (7) where it is: the lever no longer moves it (Modern IAF's flight model; the
   original's gear legs freeze in `terrain_view.gd` as above).
 
+**Ours, Modern IAF: the lesson failures.** A lesson's failures (modern-iaf/docs/training.md §15,
+`iaf_flight::sixdof::failures`) are not damage flags: the 6-DoF reads them itself, and the cockpit shows them on the
+same lamps, fault list and ICAWS as the flags above (the fault list's flags 34 to 39 after the autopilot's,
+`cockpit.gd` `failure_flags`). The damage codes and their pick stay as they are.
+
 **"No malfunctions"** (Gameplay, pref `+0x24`) and **"No wind"** (`+0x28`) have no reader. The exe touches them only in
 the copy from the menu (`4fe5f8`, `4fe676`) and in save / load; none of the 37 pref-getter (`43b5d0`) calls reads
 them. So systems still break with "No malfunctions" on, as in the original. The exe's flight model has no wind; the

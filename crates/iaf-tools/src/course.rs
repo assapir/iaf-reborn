@@ -498,6 +498,27 @@ pub fn course() -> &'static Course {
 mod tests {
     use super::*;
 
+    /// Each course emergency the flight can start is a failure the jet has (`failures::from_course`,
+    /// `Failure::allowed`, modern-iaf/docs/training.md §15).
+    #[test]
+    fn course_emergencies_are_flight_failures() {
+        use iaf_flight::sixdof::failures::from_course;
+        let jets = |jet: &str| match jet {
+            "f16d" => iaf_flight::sixdof::jets::by_type("F-16"),
+            "f16i" => iaf_flight::sixdof::jets::by_type("F-16I"),
+            _ => iaf_flight::sixdof::jets::by_type("F-35I"),
+        };
+        for (id, e) in &course().emergencies {
+            for jet in ["f16d", "f16i", "f35i"].into_iter().filter(|j| e.of(j)) {
+                for seed in [0, 1] {
+                    let (f, _) =
+                        from_course(id, &e.at, e.window_s[0], seed).unwrap_or_else(|| panic!("{id}: no failure"));
+                    assert_eq!(f.allowed(jets(jet).unwrap().epu), Ok(()), "{id} on {jet}");
+                }
+            }
+        }
+    }
+
     #[test]
     fn the_course_is_the_plans() {
         let c = course();

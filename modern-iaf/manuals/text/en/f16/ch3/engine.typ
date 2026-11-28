@@ -17,8 +17,9 @@ For any engine fault the first move is the same: trade speed for height. Above #
 The signs of a fire that goes on are the light staying on, flight control faults and the loss of a hydraulic system. A fire in the nozzle while in afterburner lights no warning, because it burns behind the detector; it is seen from outside, and leaving the afterburner puts it out in 30 to 45 seconds#fm[section III, "Engine fire", page 3-61]. The real jet has no extinguisher (inferred: the procedure names none).
 
 #in-sim[
-  - A fire comes from a hit only. #sym.arrow.r *ENG FIRE and OVERHEAT light, the voice says "Warning", the FTIT reads 900~°C, and the engine gives no thrust.*
-  - #key("Extinguish engine fire") puts it out, once a flight. #sym.arrow.r *The lights go out and the thrust comes back.* The afterburner stays lost. This extinguisher is the sim's own.
+  - A fire after a hit #sym.arrow.r *ENG FIRE and OVERHEAT light, the voice says "Warning", the FTIT reads 900~°C, and the engine gives no thrust.*
+  - A set fire #sym.arrow.r *ENG FIRE and OVERHEAT light, FIRE on the fault list, the voice says "Warning"; the engine keeps running.* The throttle at minimum practical (a quarter of its travel or less) or OFF #sym.arrow.r *the fire goes out after 15 seconds.* Kept above it #sym.arrow.r *after a minute hydraulic system A fails, after two minutes the engine fails for good (ENG FAIL) and does not relight.* These times are the sim's own.
+  - #key("Extinguish engine fire") puts out a fire after a hit, once a flight. #sym.arrow.r *The lights go out and the thrust comes back.* The afterburner stays lost. This extinguisher is the sim's own.
   - #term("Not modelled"): a fire that spreads, and the nozzle fire.
 ]
 
@@ -38,6 +39,7 @@ The actions are the air start, below, or the flameout landing (@emergency-flameo
 
 #in-sim[
   - An empty tank, a fire or a dead engine after a hit #sym.arrow.r *no thrust.* After a hit *ENGINE lights and the voice says "Warning".*
+  - A set flameout runs the engine down as an empty tank does; the air start below lights it again.
   - An empty tank flames the engine out: *the RPM runs down, #row("lamp_engine_0") lights, and below 52~% MAIN GEN, STBY GEN and #row("lamp_caution_elec_sys_0") light.* #key("Throttle OFF (engine shutdown)") in the air runs the engine down the same way. In the air the RPM settles where the airflow turns the engine, about 20~% at 250 kt: the engine *windmills*.
   - With the engine stopped in flight #sym.arrow.r *the EPU starts by itself: EPU run, AIR and HYDRAZN light and EPU FUEL falls.* *While the EPU runs, the displays and the avionics stay up*; with its hydrazine spent (10 minutes) or its switch at OFF they go dark. The flight controls keep working with it or without it (@hydraulic).
 ]

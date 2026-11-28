@@ -24,7 +24,7 @@ A Start-up #term("lesson") starts with the notebook raised at its #scr("nb_start
   [#scr("nb_landing")], [The landing in five lines: the call, the gear, the final approach, the touchdown, the engine off on the parking spot.],
   [#scr("nb_weapons")], [Arming, air-to-ground and air-to-air as short steps, each with its switch, the switch's place and its key.],
   [#scr("nb_refuel")], [Only when the flight has a #term("tanker") (@tanker): the jet's air refuelling checklist, before contact, contact and after refuelling, ticked as you work like the checklist card. The procedure is in each jet's manual: the #other("f16i", "air-refuelling"), the #other("f16d", "air-refuelling") and the #other("f35i", "air-refuelling").],
-  [#scr("nb_emergency")], [A red tab: an engine fire on the ground and the ejection; in the Sufa and the Barak also the #term("hot start").],
+  [#scr("nb_emergency")], [A red tab: an engine fire on the ground and in flight, the air start after a flameout, the generator and control failures, and the ejection; in the Sufa and the Barak also the #term("hot start"), the fire on take-off and the hydraulic failures. The steps are those a training mission's failures answer to.],
   [#scr("nb_data")], [The mission, the base and its code, the flight's start time (in a Scramble, the one you set or the one drawn) and in a Scramble its date, the wind, the jet, the runway and the route's first point.],
 )
 

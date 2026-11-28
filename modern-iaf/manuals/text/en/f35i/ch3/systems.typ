@@ -19,4 +19,6 @@ Without a radio the pilot joins another jet, sets the transponder to 7600 (7700 
 
 #in-sim[#key("Emergency jettison") or the button #sym.arrow.r *the stores #row("JETT_SEL") selects fall, unarmed: ALL every station, EXT the external stations only, SEL the selected store's stations; the bay doors open for a bay store; the air-to-air missiles stay.* On the ground nothing is dropped.]
 
+#in-sim[A set generator failure #sym.arrow.r *ELEC FAIL on the ICAWS; in the air the #term("IPP") keeps the displays up.* A set degraded control system #sym.arrow.r *FCS DEGD; the controls fly on fixed gains (inferred from the F-16's standby gains).* Fly gently, with at most 12° angle of attack, and land straight in. The sim has no hydraulic failure of this jet: its surfaces move on their own electric actuators.]
+
 #in-sim[What damage does: *ELEC FAIL* takes the radar and the warning receiver, and when total the weapons and the displays' flight data too; *FCS DEGD* leaves the stick a quarter of its authority: fly gently and land straight in; *FCS FAIL* stops the surfaces: eject. #row("FCS_RESET") moves only.]

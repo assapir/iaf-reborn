@@ -986,32 +986,33 @@ func efi(r: Rect2, tacan := {}) -> void:
 
 # --- ICAWS -------------------------------------------------------------------------------------------------------
 
-## The damage flags as caution lines (docs/damage.md §5.2), each once.
+## The damage flags as caution lines (docs/damage.md §5.2), each once; 34..40 a lesson's failures (cockpit.gd
+## failure_flags: the generator ELEC FAIL, the standby gains FCS DEGD, the gear fault GEAR FAIL, as the damage's lines).
 const DAMAGE_CAUTIONS := [
-	[[22, 16, 2], "ENGINE FAIL", "warning"],
+	[[22, 16, 2, 35], "ENGINE FAIL", "warning"],
 	[[8], "AB FAIL", "caution"],
 	[[11], "INS FAIL", "caution"],
 	[[10], "FUEL LEAK", "caution"],
 	[[15], "RADAR FAIL", "caution"],
-	[[18], "FCS DEGD", "caution"],
+	[[18, 39], "FCS DEGD", "caution"],
 	[[14], "RWR FAIL", "caution"],
 	[[24], "FCS FAIL", "warning"],
 	[[20], "WPN FAIL", "caution"],
 	[[4], "FLAPS FAIL", "caution"],
 	[[13], "GUN FAIL", "caution"],
-	[[7], "GEAR FAIL", "caution"],
+	[[7, 40], "GEAR FAIL", "caution"],
 	[[1], "ECM FAIL", "caution"],
 	[[12], "HMD FAIL", "caution"],
 	[[6], "AP FAIL", "caution"],
 	[[5], "BRAKES FAIL", "caution"],
-	[[19, 21], "ELEC FAIL", "caution"]
+	[[19, 21, 37], "ELEC FAIL", "caution"]
 ]
 
 
 ## The ICAWS lines, worst first: [text, "warning" | "caution" | "advisory"].
 func icaws_lines(base: Array) -> Array:
 	var out: Array = base.duplicate()
-	var flags: Array = cockpit.damage_flags
+	var flags: Array = cockpit.pfl_flags()
 	for row in DAMAGE_CAUTIONS:
 		if row[0].any(func(f): return f < flags.size() and flags[f]):
 			out.append([row[1], row[2]])
