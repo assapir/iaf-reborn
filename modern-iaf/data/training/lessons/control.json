@@ -599,7 +599,7 @@
           {
             "diagram": "awacs_braa",
             "en": "Check in with the AWACS once level: the radio menu's AWACS page ({key:47:3}), Check in. Eitam answers \"radar contact\": from then on the controller works with you. Check in before any other request.",
-            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"יש מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
+            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
           },
           {
             "diagram": "awacs_braa",
@@ -668,7 +668,7 @@
           "he": "יש להיכנס לרשת ה-AWACS",
           "wait": {
             "en": "\"radar contact\"",
-            "he": "\"יש מגע מכ\"מי\""
+            "he": "\"מגע מכ\"מי\""
           },
           "diagram": "awacs_braa"
         },
@@ -926,7 +926,7 @@
           {
             "diagram": "awacs_braa",
             "en": "Check in with the AWACS once level: the radio menu's AWACS page ({key:47:3}), Check in. Eitam answers \"radar contact\": from then on the controller works with you. Check in before any other request.",
-            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"יש מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
+            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
           },
           {
             "diagram": "vector_intercept",
@@ -996,7 +996,7 @@
           "he": "יש להיכנס לרשת ה-AWACS",
           "wait": {
             "en": "\"radar contact\"",
-            "he": "\"יש מגע מכ\"מי\""
+            "he": "\"מגע מכ\"מי\""
           },
           "diagram": "awacs_braa"
         },
@@ -1259,7 +1259,7 @@
           {
             "diagram": "awacs_braa",
             "en": "Check in with the AWACS once level: the radio menu's AWACS page ({key:47:3}), Check in. Eitam answers \"radar contact\": from then on the controller works with you. Check in before any other request.",
-            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"יש מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
+            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
           },
           {
             "diagram": "tanker_join",
@@ -1357,7 +1357,7 @@
           "he": "יש להיכנס לרשת ה-AWACS",
           "wait": {
             "en": "\"radar contact\"",
-            "he": "\"יש מגע מכ\"מי\""
+            "he": "\"מגע מכ\"מי\""
           },
           "diagram": "awacs_braa"
         },
@@ -1677,7 +1677,7 @@
           {
             "diagram": "awacs_braa",
             "en": "Check in with the AWACS once level: the radio menu's AWACS page ({key:47:3}), Check in. Eitam answers \"radar contact\": from then on the controller works with you. Check in before any other request.",
-            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"יש מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
+            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
           },
           {
             "jets": [
@@ -1790,7 +1790,7 @@
           "he": "יש להיכנס לרשת ה-AWACS",
           "wait": {
             "en": "\"radar contact\"",
-            "he": "\"יש מגע מכ\"מי\""
+            "he": "\"מגע מכ\"מי\""
           },
           "diagram": "awacs_braa"
         },
@@ -2110,7 +2110,7 @@
           {
             "diagram": "awacs_braa",
             "en": "Check in with the AWACS once level: the radio menu's AWACS page ({key:47:3}), Check in. Eitam answers \"radar contact\": from then on the controller works with you. Check in before any other request.",
-            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"יש מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
+            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
           },
           {
             "diagram": "tanker_positions",
@@ -2179,7 +2179,7 @@
           "he": "יש להיכנס לרשת ה-AWACS",
           "wait": {
             "en": "\"radar contact\"",
-            "he": "\"יש מגע מכ\"מי\""
+            "he": "\"מגע מכ\"מי\""
           },
           "diagram": "awacs_braa"
         },

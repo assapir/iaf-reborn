@@ -103,7 +103,9 @@ func _loads_control(unit: String, le: Dictionary) -> void:
 	# A check ride grades the items its flight gave occasion for (Course::graded_items): no night or emergency
 	# lesson's without the night or the emergency.
 	var ride := String(le.kind) == "check"
-	var n_ok: bool = graded.size() > 0 and graded.size() <= le.items.size() if ride else graded.size() == le.items.size()
+	var n_ok: bool = (
+		graded.size() > 0 and graded.size() <= le.items.size() if ride else graded.size() == le.items.size()
+	)
 	check(n_ok, "%s: the course's graded items (%d of %d)" % [what, graded.size(), le.items.size()])
 	addon.result = {"pass": true}  # not flown on: no sortie logged at the exit
 

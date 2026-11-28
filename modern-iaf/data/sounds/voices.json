@@ -5974,7 +5974,7 @@
       "voice": "awacs",
       "say": "radar contact",
       "mode": "particle",
-      "say_he": "יש מגע מכ\"מי",
+      "say_he": "מגע מכ\"מי",
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
@@ -10908,7 +10908,7 @@
     "AWX_RADAR_CONTACT": {
       "file": "awx_radar_contact.ogg",
       "text": "radar contact",
-      "text_he": "יש מגע מכ\"מי"
+      "text_he": "מגע מכ\"מי"
     },
     "AWX_COPY": {
       "file": "awx_copy.ogg",

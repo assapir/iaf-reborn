@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("Training course, phase 6")Phase 6 of the training course teaches you to work with the #term("AWACS") (@awacs-requests) and the #term("tanker") (@tanker). The steps of each lesson are in its briefing and on the notebook's Lesson tab; the refuelling procedure is in each jet's manual: the #other("f16i", "air-refuelling"), the #other("f16d", "air-refuelling") and the #other("f35i", "air-refuelling").
+#idx("Training course, phase 6")Phase 6 of the training course teaches you to work with the #term("AWACS") (@awacs-requests) and the #term("tanker") (@tanker). The steps of each #term("lesson") are in its briefing and on the #term("Notebook")'s Lesson tab; the refuelling procedure is in each jet's manual: the #other("f16i", "air-refuelling"), the #other("f16d", "air-refuelling") and the #other("f35i", "air-refuelling").
 
 #grid-table(
   (auto, 1fr, 1fr),

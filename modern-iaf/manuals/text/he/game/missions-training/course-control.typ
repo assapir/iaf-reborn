@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("קורס האימון, שלב 6")שלב 6 של קורס האימון מלמד לעבוד עם ה-#term("AWACS") (@awacs-requests) ועם #term("מטוס תדלוק") (@tanker). השלבים של כל תרגול נמצאים בתדריך שלו ובלשונית התרגול בפנקס; נוהל התדלוק נמצא במדריך של כל מטוס: #other("f16i", "air-refuelling"), #other("f16d", "air-refuelling") וכן #other("f35i", "air-refuelling").
+#idx("מסלול האימון, שלב 6")שלב 6 של מסלול האימון מלמד לעבוד עם ה-#term("AWACS") (@awacs-requests) ועם #term("מטוס תדלוק") (@tanker). השלבים של כל #term("תרגול") נמצאים בתדריך שלו ובלשונית התרגול ב#term("פנקס"); נוהל התדלוק נמצא במדריך של כל מטוס: #other("f16i", "air-refuelling"), #other("f16d", "air-refuelling") וכן #other("f35i", "air-refuelling").
 
 #grid-table(
   (auto, 1fr, 1fr),

@@ -2571,6 +2571,8 @@ writing on the subject uses):
 | bogey | לא מזוהה | second-hand: "כלי טיס בלתי מזוהה" (a search engine's quote); the contact calls' "מגעים לא מזוהים" |
 | friendly | ידידותי | second-hand: "לזהות כלי טיס ידידותי" (Hamichlol on IFF) |
 | clean | אין מגעים | ours around the sourced מגע ("יצרנו מגע מכ"מי ראשוני"[^ynet-uav]) |
+| radar contact (the check-in's answer) | מגע מכ"מי | sourced: "יצרנו מגע מכ"מי ראשוני"[^ynet-uav] |
+| copy (the answer to Judy) | קיבלתי | ours |
 | hot; flank; beam; drag | מתקרב; באלכסון; בניצב; מתרחק | ours |
 | bogey dope | המגע הקרוב | ours around מגע |
 | declare | זיהוי | sourced as the word: "היכולת לזהות ולסווג מטרות"[^jdn-eitam] |
