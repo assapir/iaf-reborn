@@ -3,6 +3,14 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The training range by Ovda (2026-11-28, the user: "The range should be in the same place always";
+  [training-plan.md](training-plan.md) §1, [data-formats.md](data-formats.md) §5.2):** one range for every course's
+  air-to-ground and threat lessons, as world data (`data/ranges/ovda.json`, compiled by `iaf-sim missions`): its area
+  north of Ovda, a bombing circle with a T-72 hulk as the bull, a strafe row of four truck hulks, an S-300, a Tor and a
+  ZSU-23-4 site, and range control's station. A mission names it with `range` (and `range_threats` for the sites);
+  in flight the hulks stand as ground units the sensors, weapons and scorer take, and the sites run as the enemy's
+  air defence. The real range's name and layout are not published: all of it is inferred. No mission names it yet:
+  the phase 5 and 8 lessons will. Checked by `modern-iaf/tests/test_range.gd`.
 - **The training course's screens (2026-11-28, Approvals A130 and A131; [front-end.md](front-end.md) §2.2,
   [training-plan.md](training-plan.md) §5):** Missions → Training opens the Hangar jet's course: eight phase cards in
   two rows of four, each with its number, title and lessons passed of its own, the title line the course's lessons
