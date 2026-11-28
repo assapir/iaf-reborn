@@ -58,7 +58,7 @@ func _a2a_content(unit: String, le: Dictionary, ids: Array, calls: Array) -> voi
 	check(named.size() > 0 and named.all(func(d): return diagrams.has(d)), "%s: its diagrams %s" % [what, named])
 	var check_ride := String(le.kind) == "check"
 	check(check_ride == (le.calls == null or le.calls.is_empty()), "%s: calls, none in a check ride" % what)
-	var m: Dictionary = Settings.load_json("res://data/missions/%s.json" % le.mission)
+	var m: Dictionary = settings().load_json("res://data/missions/%s.json" % le.mission)
 	var tests: Array = m.get("training", {}).get("end", []).duplicate()
 	for c in le.calls if le.calls is Array else []:
 		tests.append_array(c.when)
@@ -102,21 +102,22 @@ func _a2a_loads(unit: String, le: Dictionary) -> void:
 func _fly_bfm(unit: String) -> void:
 	var what := "%s offensive BFM" % unit
 	var name := "%s_%s_offensive_bfm" % [unit, PHASE]
-	var tv := await _start(name)
+	var tv := await _start(name, true)  # the lesson's fixed load (fly.gd arm)
 	var addon: Node = tv.addon
 	addon.answers = ["ACFT_CLEAR_TO_START", "ACFT_TAXI_TO_RUNWAY", "ACFT_CLEAR_TO_TAKEOFF"]
 	var a: Array = addon._aggressor_spec.at
 	var at := Vector3(float(a[0]), float(a[1]) + 5000.0, 4600.0)
+	var cfg := settings()
 	var flags := {
 		"airborne": true,
 		"engine_on": true,
 		"real_data": tv.real_data,
-		"f16_variant": Settings.f16_variant,
-		"f15_variant": Settings.f15_variant,
-		"sixdof_data": Settings.sixdof_data()
+		"f16_variant": cfg.f16_variant,
+		"f15_variant": cfg.f15_variant,
+		"sixdof_data": cfg.sixdof_data()
 	}
 	tv.rig.position = tv.world_to_scene(at)
-	tv.flight.start(Settings.own_dir(), tv.player.fm_section, tv.rig.position, Vector3.ZERO, Vector3(0, 0, -230), flags)
+	tv.flight.start(cfg.own_dir(), tv.player.fm_section, tv.rig.position, Vector3.ZERO, Vector3(0, 0, -230), flags)
 	tv.gear_down = false
 	check(await _until(tv, func(): return tv.get_node_or_null("Aggressor") != null, 10.0), "%s: fight's on" % what)
 	var agg: Node = tv.get_node_or_null("Aggressor")
@@ -133,7 +134,7 @@ func _fly_bfm(unit: String) -> void:
 		var lead := Vector3(0, 600, 0.5 * 9.81 * pow(600.0 / 1250.0, 2))
 		agg.rules.track(2.0, Vector3(0, 0, 5000), v, lead, Vector3(0, 600, 5000), v)
 		var ir: Dictionary = {}
-		for i in 12:
+		for i in w.stores.stations:
 			var st: Dictionary = w.stores.station(i)
 			if int(st.get("count", 0)) > 0 and int(st.w.get("type", 0)) in [570, 580]:
 				ir = st.w
