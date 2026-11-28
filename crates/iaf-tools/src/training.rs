@@ -1110,6 +1110,14 @@ pub struct Watch {
 }
 
 impl Watch {
+    /// A start-up step's fault as this run counts it: the throttle to OFF with the engine running (`cutoff`'s
+    /// `shutdown`) is the shutdown a lesson asks for when its card holds `throttle_off` (training.md §16.2), no fault
+    /// (""); any other fault stands.
+    pub fn step_fault<'a>(&self, step: &str, fault: &'a str) -> &'a str {
+        let taught = step == "cutoff" && fault == "shutdown" && self.rules.checklist.iter().any(|i| i == "throttle_off");
+        if taught { "" } else { fault }
+    }
+
     /// The rules of the readable mission file `mission` and its base from the airbase files in `airbases`.
     pub fn open(mission: &std::path::Path, airbases: &std::path::Path) -> Result<Watch> {
         let m: Value =
@@ -1584,7 +1592,7 @@ fn holds(f: &Flight, i: usize, test: &str) -> bool {
         }
         "parked" => x.on_ground && x.speed_kt < 1.0 && (x.x - s[0].x).hypot(x.y - s[0].y) <= PARKED_M,
         "item" => {
-            let last = f.events.iter().filter(before).filter(|e| e["event"] == "checklist" && e["item"] == arg).last();
+            let last = f.events.iter().rev().filter(before).find(|e| e["event"] == "checklist" && e["item"] == arg);
             last.is_some_and(|e| e["on"] != false)
         }
         "called" => f.events.iter().filter(before).any(|e| e["event"] == "radio" && e["call"] == arg),

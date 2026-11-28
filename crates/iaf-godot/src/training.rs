@@ -31,6 +31,14 @@ impl IafTraining {
         }
     }
 
+    /// A start-up step's fault as the run counts it (`training::Watch::step_fault`): "" when the lesson asks for it (the
+    /// shutdown of a lesson that teaches it), else `fault`.
+    #[func]
+    fn step_fault(&self, step: GString, fault: GString) -> GString {
+        let f = fault.to_string();
+        self.watch.as_ref().map_or(f.clone(), |w| w.step_fault(&step.to_string(), &f).to_string()).into()
+    }
+
     /// How long a fail shows its reason before the debrief, s (the rules' `end_hold_s`).
     #[func]
     fn end_hold_s(&self) -> f64 {

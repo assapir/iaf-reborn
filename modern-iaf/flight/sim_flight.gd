@@ -1396,6 +1396,8 @@ func throttle_off() -> void:
 	if host.flight == null:
 		return
 	var fault: String = host.flight.start_step("cutoff")
+	if trainer != null and not rules.is_empty():
+		fault = String(trainer.step_fault("cutoff", fault))  # a lesson's own shutdown is no fault (training.md §16.2)
 	var e := {"event": "checklist", "step": "cutoff"}
 	if fault != "":  # the fuel was on: the start's steps to take again (a cold or cranking engine keeps them)
 		e["fault"] = fault
