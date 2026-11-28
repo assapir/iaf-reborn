@@ -101,7 +101,7 @@ func _briefing(fe: Control, lang: String) -> void:
 	var txt := _texts(graded)
 	check(txt.contains("עד 25 קשר" if he else "max 25 kt"), "%s: a standard (%s)" % [lang, txt])
 	var sub: Label = fe.find_child("Subtitle", true, false)
-	check(sub.text.begins_with("שלב 1, שיעור 3" if he else "Phase 1, lesson 3"), "%s: %s" % [lang, sub.text])
+	check(sub.text.begins_with("שלב 1, תרגול 3" if he else "Phase 1, lesson 3"), "%s: %s" % [lang, sub.text])
 	(fe.find_child("Back", true, false) as Button).pressed.emit()
 	await frames(2)
 	check(fe.page == "lessons", "%s: Back to the lesson list" % lang)

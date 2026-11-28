@@ -78,15 +78,15 @@
   [#scr("export_flight")], [#idx("ייצוא נתוני טיסה")שומר את הקלטת הטיסה כקובץ במקום שנבחר: כל רגע בטיסה עם המיקום, המהירות, הגובה והאירועים, כפי שהמשחק הקליט אותם.],
 )
 
-=== התחקיר של שיעור <debrief-lesson>
+=== התחקיר של תרגול <debrief-lesson>
 
-#idx("תחקיר שיעור")#term("שיעור") מתוחקר בשלושה חלקים ממוספרים, לפי סדר התחקיר הצבאי:
+#idx("תחקיר תרגול")#term("תרגול") מתוחקר בשלושה חלקים ממוספרים, לפי סדר התחקיר הצבאי:
 
 + *#scr("db_happened")*: המפה כמו למעלה, וכל תקלה מסומנת בה בעיגול ממוספר במקום שבו קרתה: קודם הסעיפים שקיבלו #scr("grade_below") או #scr("grade_unsat"), אחריהם תקלות הטיסה.
 + *#scr("db_items")*: שורה לכל סעיף: הסימון (בסעיף שסומן במפה, מספר העיגול), שם הסעיף והערת המדריך מתחתיו, #scr("col_standard"), #scr("col_flown"), #scr("col_gap") ו#scr("col_grade"). הציונים הם #scr("grade_above"), #scr("grade_average"), #scr("grade_below") (בכתום) ו#scr("grade_unsat") (באדום).
-+ *#scr("db_conclusions")*: ציון השיעור, סיבת הכישלון אם נכשל, ו#scr("next_time") עם עצה לכל סעיף חלש.
++ *#scr("db_conclusions")*: ציון התרגול, סיבת הכישלון אם נכשל, ו#scr("next_time") עם עצה לכל סעיף חלש.
 
-ציון השיעור: #scr("pass"), #scr("grade_marginal") (עבר, עם סעיף מתחת לממוצע; בחותמת #scr("stamp_marginal")) או #scr("grade_unsat"). #scr("back_missions") עובר לשיעורי השלב, #scr("fly_again") לתדריך של השיעור ו#scr("next_mission") לשיעור הבא במסלול.
+ציון התרגול: #scr("pass"), #scr("grade_marginal") (עבר, עם סעיף מתחת לממוצע; בחותמת #scr("stamp_marginal")) או #scr("grade_unsat"). #scr("back_missions") עובר לתרגולי השלב, #scr("fly_again") לתדריך של התרגול ו#scr("next_mission") לתרגול הבא במסלול.
 
 === היכן התחקיר נשמר <debrief-kept>
 
