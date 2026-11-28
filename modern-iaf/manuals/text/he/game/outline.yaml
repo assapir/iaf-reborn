@@ -50,7 +50,7 @@ chapters:
   - {id: instructor, title: "המדריך", file: game/missions-training/instructor.typ}
   - {id: course-control, title: "שלב 6: בקרה ותדלוק אווירי", file: game/missions-training/course-control.typ}
   - {id: training-fight, title: "קרב אימון", file: game/missions-training/training-fight.typ}
-  - {id: course-air-to-air, title: "שלב 7: קרב אוויר", file: game/missions-training/course-air-to-air.typ}
+  - {id: course-air-to-air, title: "שלב 7: קרב אוויר ויירוט", file: game/missions-training/course-air-to-air.typ}
 - id: bases
   title: "בסיסים"
   intro: "הקרקע שממנה המטוסים פועלים."

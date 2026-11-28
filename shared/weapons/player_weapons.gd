@@ -1487,7 +1487,7 @@ func _log_fire(w: Dictionary) -> void:
 ## target's range and the missile's reach then (its DLZ, [max, min] m), a training lesson's `shots_in_reach`
 ## (modern-iaf/docs/training.md §16.11). Live and simulated shots alike.
 func _log_shot(w: Dictionary, o: Dictionary, target: Dictionary) -> void:
-	if not int(w.get("type", 0)) in [570, 580, 600, 610]:
+	if not int(w.get("type", 0)) in AA_TYPES:
 		return
 	var e := {"event": "shot", "weapon": String(w.get("name", "")), "type": int(w.type)}
 	if not target.is_empty():

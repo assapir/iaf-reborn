@@ -49,8 +49,7 @@ pub const FIGHTS_ON: f64 = 10.0 * 1852.0;
 /// span at 500 m) at a range between these (m: 500 ft to 3,000 ft, the gun's tracking range).
 const TRACK_RAD: f64 = 0.020;
 const TRACK_RANGE: (f64, f64) = (150.0, 3_000.0 * FT);
-/// The 20 mm round's muzzle speed (m/s; the M61's PGU-28, about 1,050 m/s) and gravity (m/s²) for the lead point.
-const MUZZLE: f64 = 1_050.0;
+/// Gravity (m/s²) for the round's drop.
 const G: f64 = 9.81;
 
 /// A set-up of an engagement.
@@ -128,19 +127,22 @@ pub fn fights_on(dist: f64, agl: f64) -> bool {
     dist <= FIGHTS_ON && agl >= FLOOR
 }
 
-/// Whether the gun tracks the other jet: the shooter at `own` (velocity `own_vel`, gun line `fwd`), the target at `tgt`
-/// (velocity `tgt_vel`), all world (z up). The lead point is where the target will be when a round fired now reaches
-/// it, raised by the round's drop; the gun tracks when its line is within [`TRACK_RAD`] of it inside [`TRACK_RANGE`].
-pub fn tracking(own: Vec3, own_vel: Vec3, fwd: Vec3, tgt: Vec3, tgt_vel: Vec3) -> bool {
+/// Whether the gun tracks the other jet: the shooter at `own` (velocity `own_vel`, the gun's shot line `gun_line`:
+/// `iaf_avionics::gun::shot_dir`, its rounds' muzzle speed `muzzle`, m/s), the target at `tgt` (velocity `tgt_vel`),
+/// all world (z up). The lead point is where the target will be, relative to the shooter, when a round fired now
+/// reaches it (the gun's own time of flight with drag, `gun::real_time_of_flight`), raised by the round's drop; the gun
+/// tracks when its line is within [`TRACK_RAD`] of it inside [`TRACK_RANGE`].
+pub fn tracking(own: Vec3, own_vel: Vec3, gun_line: Vec3, muzzle: f64, tgt: Vec3, tgt_vel: Vec3) -> bool {
+    use iaf_avionics::gun;
     let range = own.distance(tgt);
-    let Some(gun) = fwd.try_normalize() else { return false };
-    if !(TRACK_RANGE.0..=TRACK_RANGE.1).contains(&range) {
+    let Some(line) = gun_line.try_normalize() else { return false };
+    if !(TRACK_RANGE.0..=TRACK_RANGE.1).contains(&range) || muzzle <= 0.0 {
         return false;
     }
-    let tof = range / (MUZZLE + own_vel.dot(gun).max(0.0));
+    let tof = gun::real_time_of_flight(muzzle, range, gun::real_drag_k(own.z));
     let lead = tgt + (tgt_vel - own_vel) * tof + Vec3::new(0.0, 0.0, 0.5 * G * tof * tof);
     let to = lead - own;
-    let cos = to.dot(gun) / to.length();
+    let cos = to.dot(line) / to.length();
     cos.clamp(-1.0, 1.0).acos() <= TRACK_RAD
 }
 
@@ -460,13 +462,20 @@ mod tests {
     #[test]
     fn the_gun_tracks_on_the_lead_point() {
         // Both north at 200 m/s, the target 600 m ahead and level: the lead point is above it by the round's drop.
-        let (v, fwd) = (Vec3::new(0.0, 200.0, 0.0), Vec3::new(0.0, 1.0, 0.0));
+        use iaf_avionics::gun;
+        let (v, fwd, m) = (Vec3::new(0.0, 200.0, 0.0), Vec3::new(0.0, 1.0, 0.0), 1030.0);
         let (own, tgt) = (Vec3::new(0.0, 0.0, 5000.0), Vec3::new(0.0, 600.0, 5000.0));
-        let tof = 600.0 / (MUZZLE + 200.0);
-        let up = Vec3::new(0.0, 600.0, 0.5 * G * tof * tof);
-        assert!(tracking(own, v, up, tgt, v));
-        assert!(!tracking(own, v, Vec3::new(0.05, 1.0, 0.0), tgt, v), "50 mil off");
-        assert!(!tracking(own, v, fwd, Vec3::new(0.0, 1500.0, 5000.0), v), "beyond 3,000 ft");
+        let tof = |r: f64| gun::real_time_of_flight(m, r, gun::real_drag_k(5000.0));
+        let t = tof(600.0);
+        assert!(t > 600.0 / m, "drag: longer than at the muzzle speed alone");
+        assert!(tracking(own, v, Vec3::new(0.0, 600.0, 0.5 * G * t * t), m, tgt, v));
+        assert!(!tracking(own, v, Vec3::new(0.05, 1.0, 0.0), m, tgt, v), "50 mil off");
+        assert!(!tracking(own, v, fwd, m, Vec3::new(0.0, 1500.0, 5000.0), v), "beyond 3,000 ft");
+        // A crossing target (100 m/s to the right) with closure (50 m/s): the lead is ahead of it, not on it.
+        let tv = Vec3::new(100.0, 150.0, 0.0);
+        let lead = tgt + (tv - v) * t + Vec3::new(0.0, 0.0, 0.5 * G * t * t);
+        assert!(tracking(own, v, lead - own, m, tgt, tv), "on the lead point");
+        assert!(!tracking(own, v, Vec3::new(0.0, 600.0, 0.5 * G * t * t), m, tgt, tv), "on the target: behind its lead");
         assert!(fights_on(15_000.0, 2000.0) && !fights_on(25_000.0, 2000.0) && !fights_on(1000.0, 1000.0));
     }
 

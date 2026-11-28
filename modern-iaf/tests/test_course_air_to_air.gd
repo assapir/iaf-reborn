@@ -11,6 +11,7 @@
 #     -s ../modern-iaf/tests/test_course_air_to_air.gd --log-file <temp> [-- --jet f16i] [-- --load-only]
 extends "res://tests/test_course_lessons.gd"
 
+const GunRounds := preload("res://shared/weapons/gun_rounds.gd")
 const PHASE := "air_to_air"
 const SETUPS := 3
 
@@ -131,8 +132,10 @@ func _fly_bfm(unit: String) -> void:
 		for st in u.stations:
 			st.count = 0  # Red 1 unarmed: the player's shot is the one judged
 		var v := Vector3(0, 200, 0)
-		var lead := Vector3(0, 600, 0.5 * 9.81 * pow(600.0 / 1250.0, 2))
-		agg.rules.track(2.0, Vector3(0, 0, 5000), v, lead, Vector3(0, 600, 5000), v)
+		var muzzle := float(w.gun.velocity_jump)
+		var t: float = GunRounds.real_time_of_flight(muzzle, 600.0, 5000.0)
+		var lead := Vector3(0, 600, 0.5 * 9.81 * t * t)
+		agg.rules.track(2.0, Vector3(0, 0, 5000), v, lead, muzzle, Vector3(0, 600, 5000), v)
 		var ir: Dictionary = {}
 		for i in w.stores.stations:
 			var st: Dictionary = w.stores.station(i)

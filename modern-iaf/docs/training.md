@@ -1072,7 +1072,7 @@ comes from; null for an item of the whole flight), the debrief's pin; `comment`,
 | `tanker_disconnects` | the breakaways and the disconnects off the boom's limits (not `full`, `button` or `door`) |
 | `fuel_taken` | the fuel the boom gave of the room in the tanks at the first contact (the planned offload: the tanks full), %, at most 100 |
 | `targets_killed` | the % of the lesson's targets shot down by the player: its drones (the recording's own `kill` of an aircraft) and one aggressor in each engagement of its round (`sim_kill` by the player) |
-| `shots_in_reach` | the % of the player's air-to-air missiles (`shot`) fired with the target's range inside the missile's DLZ then |
+| `shots_in_reach` | the % of the player's air-to-air missiles (`shot`) fired with the target's range inside the missile's DLZ then; a shot with no target locked (no range) counts as outside |
 | `times_killed` | the aggressor's simulated kills of the player and real shoot-downs (`sim_kill` by the aggressor, `shot_down`) |
 | `tracking_time` | the player's gun tracking time over the round's engagements (`engagement`'s `tracked_s`), s |
 
@@ -1447,8 +1447,9 @@ exercise; a lesson's only start-up call is left out once phase 1 is passed.
   F-35I ARM; every shot at Red 1 is simulated either way.
 - **The recording** gets the player's air-to-air launches (`shot`, with the target's range and the DLZ) and the
   round's `fight`, `sim_kill` and `engagement` events ([../../docs/blackbox.schema.json](../../docs/blackbox.schema.json)),
-  which the items of §16.2 read. The gun's tracking time counts while the gun line is within 20 mil of the lead
-  point at 500 to 3,000 ft (`iaf_ai::aggressor::tracking`, inferred).
+  which the items of §16.2 read. The gun's tracking time counts while the gun's shot line is within 20 mil of
+  the lead point at 500 to 3,000 ft: the target where a round fired now meets it, by the gun's own time of flight
+  with drag at the jet's muzzle speed (`iaf_ai::aggressor::tracking`, `iaf_avionics::gun`; the window inferred).
 - **The diagrams** (§16.5): the intercept, the BVR start, the crank, the offensive and defensive set-ups, the
   pursuits, the yo-yos, the break turn, the guns jink, the reversal and the head-on pass.
 - **Hebrew.** The pursuits (lag, pure, lead), the crank and the guns jink stay in English in the Hebrew text: no

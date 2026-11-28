@@ -13,6 +13,7 @@
 extends Node
 
 const AiFlights := preload("res://shared/ai/ai_flights.gd")
+const GunRounds := preload("res://shared/weapons/gun_rounds.gd")
 const PLAYER := 0
 const AGGRESSOR := 1
 ## The aggressor's record by default (a Sufa: the aggressors are F-16s) and its skill (2 High: the adversary tactics).
@@ -101,8 +102,10 @@ func _begin(setups: PackedStringArray, at: Vector3, hdg: float, opts := {}) -> b
 		host.ai.enemy_flights[-1].vector = _vector
 	jet.shield = true
 	host.runtime.player_entity().shield = true
+	if not _place(rules.setup()):
+		return false
 	_event({"event": "fight", "state": "on", "setups": Array(setups), "unit": String(opts.get("unit", UNIT))})
-	return _place(rules.setup())
+	return true
 
 
 ## The engagement of set-up `name` begins: both jets in the air at its starts, their stores full again.
@@ -277,7 +280,8 @@ func _process(delta: float) -> void:
 	var w = host.get("weapons")
 	if w != null and combat != null:
 		var o: Dictionary = w.own()
-		rules.track(delta, pw, o.vel, o.fwd, aw, combat._velocity_of(jet))
+		var line: Vector3 = GunRounds.shot_dir(o.fwd, o.up)
+		rules.track(delta, pw, o.vel, line, float(w.gun.velocity_jump), aw, combat._velocity_of(jet))
 	var floor_m: float = IafAggressor.floor()
 	var low := _agl(pw) < floor_m or _agl(aw) < floor_m
 	var r: Dictionary = rules.step(now, pw.distance_to(aw), low)

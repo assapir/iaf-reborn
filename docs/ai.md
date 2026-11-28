@@ -2786,9 +2786,9 @@ and the BFM lessons' engagements each start from a set-up in the air. Phase 7's 
   (`aggressor::fights_on`), with the mission's aggressor record (`unit`: an F-16I, or the MiG-29A of the enemy types
   lesson) and its stores (`arm`). It flies its set-ups once (`Round::once`): after the last engagement's "knock it
   off" the round is over (`Round::done`), the aggressor stays out of the fight (and shielded) and the player is free.
-  The gun's tracking time counts while both fight and the player's gun line is within 20 mil of the lead point (the
-  aggressor where a round fired now meets it, raised by the round's drop at 1,050 m/s) at 500 to 3,000 ft
-  (`aggressor::tracking`, inferred). The recording gets `fight` (on, done), `sim_kill` (by, how) and `engagement`
+  The gun's tracking time counts while both fight and the player's shot line (`gun::shot_dir`) is within 20 mil of
+  the lead point (the aggressor where a round fired now meets it, by the gun's time of flight with drag at the jet's
+  muzzle speed, raised by the round's drop) at 500 to 3,000 ft (`aggressor::tracking`; the window inferred). The recording gets `fight` (on, done), `sim_kill` (by, how) and `engagement`
   (`tracked_s`) for the lesson's grades.
 - **The dev hook:** `Aggressor.start(host, setups, at, heading, opts)`; freeing the node unshields both jets
   (`shared/ai/aggressor.gd`): the round of `setups` (offensive, defensive, high_aspect, bvr) round `at` (world), the

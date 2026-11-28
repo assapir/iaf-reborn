@@ -107,7 +107,7 @@ func _kills() -> int:
 	var rt = host.get("runtime")
 	if rt != null:
 		for e in rt.entities.values():
-			if int(e.get("state", 0)) >= 3 and bool(e.get("airborne_class", false)):
+			if int(e.get("state", 0)) >= 3 and bool(e.get("airborne_class", false)) and host.enemy_of_player(e):
 				n += int(bool(e.get("killer", {}).get("player", false)))
 	var a: Node = host.get_node_or_null("Aggressor")
 	if a != null:
