@@ -281,7 +281,8 @@ func _process(delta: float) -> void:
 	if w != null and combat != null:
 		var o: Dictionary = w.own()
 		var line: Vector3 = GunRounds.shot_dir(o.fwd, o.up)
-		rules.track(delta, pw, o.vel, line, float(w.gun.velocity_jump), aw, combat._velocity_of(jet))
+		var me_gun := {"pos": pw, "vel": o.vel, "line": line, "muzzle": float(w.gun.velocity_jump)}
+		rules.track(delta, me_gun, aw, combat._velocity_of(jet))
 	var floor_m: float = IafAggressor.floor()
 	var low := _agl(pw) < floor_m or _agl(aw) < floor_m
 	var r: Dictionary = rules.step(now, pw.distance_to(aw), low)

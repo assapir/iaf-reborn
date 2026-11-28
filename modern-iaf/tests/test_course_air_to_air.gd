@@ -135,7 +135,8 @@ func _fly_bfm(unit: String) -> void:
 		var muzzle := float(w.gun.velocity_jump)
 		var t: float = GunRounds.real_time_of_flight(muzzle, 600.0, 5000.0)
 		var lead := Vector3(0, 600, 0.5 * 9.81 * t * t)
-		agg.rules.track(2.0, Vector3(0, 0, 5000), v, lead, muzzle, Vector3(0, 600, 5000), v)
+		var own := {"pos": Vector3(0, 0, 5000), "vel": v, "line": lead, "muzzle": muzzle}
+		agg.rules.track(2.0, own, Vector3(0, 600, 5000), v)
 		var ir: Dictionary = {}
 		for i in w.stores.stations:
 			var st: Dictionary = w.stores.station(i)

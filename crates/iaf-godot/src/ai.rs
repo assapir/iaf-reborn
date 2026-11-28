@@ -1193,12 +1193,14 @@ impl IafAggressor {
         aggressor::fights_on(dist, agl)
     }
 
-    /// One frame of `dt` s: whether the player's gun (at `own`, velocity `own_vel`, its shot line `line`, its rounds'
-    /// muzzle speed `muzzle`) tracks the aggressor (at `tgt`, velocity `tgt_vel`), all world; counted towards the
-    /// engagement's tracking time.
+    /// One frame of `dt` s: whether the player's gun (`own`: {pos, vel, line (its shot line), muzzle (its rounds' muzzle
+    /// speed, m/s)}) tracks the aggressor (at `tgt`, velocity `tgt_vel`), all world; counted towards the engagement's
+    /// tracking time.
     #[func]
-    fn track(&mut self, dt: f64, own: Vector3, own_vel: Vector3, line: Vector3, muzzle: f64, tgt: Vector3, tgt_vel: Vector3) -> bool {
-        let on = aggressor::tracking(vec3(own), vec3(own_vel), vec3(line), muzzle, vec3(tgt), vec3(tgt_vel));
+    fn track(&mut self, dt: f64, own: VarDictionary, tgt: Vector3, tgt_vel: Vector3) -> bool {
+        let v = |k: &str| own.get(k).and_then(|x| x.try_to::<Vector3>().ok()).map_or(Vec3::ZERO, vec3);
+        let muzzle = own.get("muzzle").and_then(|x| x.try_to::<f64>().ok()).unwrap_or(0.0);
+        let on = aggressor::tracking(v("pos"), v("vel"), v("line"), muzzle, vec3(tgt), vec3(tgt_vel));
         if let Some(r) = self.round.as_mut() {
             r.track(dt, on);
         }

@@ -475,7 +475,10 @@ mod tests {
         let tv = Vec3::new(100.0, 150.0, 0.0);
         let lead = tgt + (tv - v) * t + Vec3::new(0.0, 0.0, 0.5 * G * t * t);
         assert!(tracking(own, v, lead - own, m, tgt, tv), "on the lead point");
-        assert!(!tracking(own, v, Vec3::new(0.0, 600.0, 0.5 * G * t * t), m, tgt, tv), "on the target: behind its lead");
+        assert!(
+            !tracking(own, v, Vec3::new(0.0, 600.0, 0.5 * G * t * t), m, tgt, tv),
+            "on the target: behind its lead"
+        );
         assert!(fights_on(15_000.0, 2000.0) && !fights_on(25_000.0, 2000.0) && !fights_on(1000.0, 1000.0));
     }
 
