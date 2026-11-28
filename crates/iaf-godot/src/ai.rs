@@ -69,6 +69,18 @@ impl IafAi {
         true
     }
 
+    /// A test's pilot (`iaf_ai::Flight::pilot`): the player's jet `number` flown by the wingman's tree, its orders set on
+    /// the player's autopilot each `step` (the host's autopilot mirrors them on the levers). False: no such jet, or an
+    /// AI one.
+    #[func]
+    fn pilot(&mut self, number: i64, on: bool) -> bool {
+        let n = number.clamp(1, 4) as u8;
+        let Some((_, jet, _)) = self.jets.iter_mut().find(|j| j.0 == n) else { return false };
+        let mut b = jet.bind_mut();
+        let Some((_, ap)) = b.parts() else { return false };
+        self.flight.pilot(n, on, ap)
+    }
+
     /// Jet `number` lost (shot down, crashed, ejected) or back: the lead's loss promotes the next (1 → 3 → 2 → 4).
     #[func]
     fn set_alive(&mut self, number: i64, alive: bool) {
@@ -426,7 +438,7 @@ impl IafAi {
         let (ground, o) = (terrain(Some(ground)), Vec3::new(f64::from(origin.x), f64::from(origin.y), 0.0));
         let calls = self.flight.step_on(now, &|p| ground(p + o));
         for (n, jet, _) in &mut self.jets {
-            let Some(m) = self.flight.member(*n).filter(|m| m.ai) else { continue };
+            let Some(m) = self.flight.member(*n).filter(|m| m.ai || m.piloted) else { continue };
             let order = m.order;
             if let Some((fm, ap)) = jet.bind_mut().parts() {
                 iaf_ai::apply(&order, ap, fm);

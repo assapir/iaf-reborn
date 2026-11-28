@@ -6,9 +6,13 @@
 # - each lesson loads: the lesson's rules, the player's number in the flight (start.seat) with an AI lead, the pairs
 #   take-off, the lead's plan taken, the record scored with the course's graded items;
 # - lesson 4.2 in the air: the AI lead's line abreast and tac turn said, recorded as lead_order events, the player's
-#   `formation` events recorded, the turn swapping the sides.
+#   `formation` events recorded, the turn swapping the sides;
+# - lessons 4.1 and 4.2 flown end to end by a test pilot (IafAi.pilot: the AI #2's tree flies the player's jet through
+#   its autopilot): the pairs take-off, the lead's orders and tac turns, the rejoin, home and the landing, parked with
+#   the engine off; the lesson's end (flight_landed among its end tests) and its graded items formation_position and
+#   rejoin_time with the values flown.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
-#     -s ../modern-iaf/tests/test_formation_lessons.gd --log-file <temp> [-- --jet f16i] [-- --load-only]
+#     -s ../modern-iaf/tests/test_formation_lessons.gd --log-file <temp> [-- --jet f16i] [-- --load-only] [-- --no-full]
 extends "res://tests/test_mvp.gd"
 
 const UNITS := ["f16d", "f16i", "f35i"]
@@ -59,6 +63,9 @@ func run() -> void:
 			await _loads(unit, le)
 		if not args.has("--load-only"):
 			await _tac_turn(unit)
+			if not args.has("--no-full"):
+				for l in ["wingman", "tactical"]:
+					await _full_flight(unit, l)
 	Engine.time_scale = 1.0
 
 
@@ -153,3 +160,42 @@ func _tac_turn(unit: String) -> void:
 	check(log.contains('"lead_order"') and log.contains('"tac_right"'), "%s: lead_order recorded" % what)
 	check(log.contains('"formation"') and log.contains('"slot_m"'), "%s: the player's slot recorded" % what)
 	tv.addon.result = {"pass": true}
+
+
+## The sim's clock in the whole flights (time compression).
+const FULL_SCALE := 12.0
+
+
+## Lesson `lesson` (4.1 wingman, 4.2 tactical) flown end to end with the player's jet under the test pilot: the
+## lesson ends, the lead's plan all given, and the graded items flown with their values.
+func _full_flight(unit: String, lesson: String) -> void:
+	var name := "%s_formation_%s" % [unit, lesson]
+	var m: Dictionary = settings().load_json("res://data/missions/%s.json" % name)
+	var tv := await _start(name)
+	Engine.time_scale = FULL_SCALE
+	var addon: Node = tv.addon
+	var fa = tv.ai.flight_ai
+	var seat := int(m.start.seat)
+	check(fa.pilot(seat, true), "%s: the test pilot flies #%d" % [name, seat])
+	var t0: float = tv._sim_time
+	var up := false
+	while addon.result.is_empty() and tv._sim_time - t0 < float(m.training.time_budget_s) + 60.0:
+		await fly(tv, 30.0)
+		up = up or not tv.flight.state().on_ground
+	print("%s: %.0f s, %s" % [name, tv._sim_time - t0, addon.result.get("reasons")])
+	check(up, "%s: airborne" % name)
+	var said: Array = tv.ai.flight_facts().get("orders", [])
+	var plan: Array = m.lead_plan.map(func(p): return String(p.order))
+	check(plan.all(func(o): return o in said), "%s: the lead's plan given (%s of %s)" % [name, said, plan])
+	check(not addon.result.is_empty(), "%s: the lesson ends" % name)
+	check(bool(addon.result.get("pass", false)), "%s: a Pass (%s)" % [name, addon.result.get("reasons")])
+	var got := {}
+	for g in addon.result.get("graded", []):
+		got[String(g.id)] = g
+	for id in ["formation_position", "rejoin_time"] if "rejoin" in plan else ["formation_position"]:
+		var g: Dictionary = got.get(id, {})
+		check(g.get("flown") != null, "%s: %s flown (%s, %s)" % [name, id, g.get("flown"), g.get("grade")])
+	# (flight_landed is the lesson's end here, not a graded item: IafAi.facts gives it.)
+	check(bool(tv.ai.flight_facts().get("landed", false)), "%s: flight_landed" % name)
+	addon.result = {"pass": true}
+	Engine.time_scale = 1.0

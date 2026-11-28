@@ -354,6 +354,9 @@ pub struct Member {
     pub number: u8,
     /// Flown by the AI; false: the player.
     pub ai: bool,
+    /// The player's jet flown by the wingman's tree all the same, a test's pilot ([`Flight::pilot`]): every rule for
+    /// the player stays (`ai` false), and its calls are not said.
+    pub piloted: bool,
     pub alive: bool,
     pub skill: Skill,
     pub v: ApView,
@@ -682,6 +685,7 @@ impl Flight {
         self.members.push(Member {
             number,
             ai,
+            piloted: false,
             alive: true,
             skill: Skill::WINGMAN,
             v,
@@ -750,6 +754,18 @@ impl Flight {
         });
         self.members.sort_by_key(|m| m.number);
         self.lead = 0;
+    }
+
+    /// A test's pilot (on): the player's jet `number` flown by the wingman's tree as an AI #2 is (start, taxi, take-off,
+    /// slot, the lead's turns, home and landing); the host applies its orders to the player's autopilot. False: no such
+    /// jet, or an AI one.
+    pub fn pilot(&mut self, number: u8, on: bool, ap: &mut Autopilot) -> bool {
+        let Some(m) = self.members.iter_mut().find(|m| m.number == number && !m.ai) else { return false };
+        m.piloted = on;
+        if on {
+            ap.release_takeoff(0.0);
+        }
+        true
     }
 
     pub fn member(&self, number: u8) -> Option<&Member> {
@@ -1632,7 +1648,7 @@ impl Flight {
             .filter_map(|(i, m)| Some((sent(i, m), m.to_go?, m.v.speed)))
             .collect();
         for (i, m) in self.members.iter_mut().enumerate() {
-            let me = (m.ai && m.alive && m.airborne && !m.landed && m.released && i != lead_i)
+            let me = ((m.ai || m.piloted) && m.alive && m.airborne && !m.landed && m.released && i != lead_i)
                 .then_some((m.released_at, m.to_go))
                 .and_then(|(t, d)| Some((t, d?)));
             let ahead = me.and_then(|(t, d)| {
@@ -1717,7 +1733,7 @@ impl Flight {
                     rejoin = Some(Steer { to: s, g: REJOIN.2, speed, thr_max: 1.0, fighter: false });
                 }
             }
-            if !m.ai {
+            if !m.ai && !m.piloted {
                 continue;
             }
             m.now = now;
@@ -1812,7 +1828,7 @@ impl Flight {
                 m.last_shot = now;
                 shooters.push(m.number);
             }
-            for id in m.calls.drain(..) {
+            for id in m.calls.drain(..).filter(|_| m.ai) {
                 self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id }));
             }
         }
