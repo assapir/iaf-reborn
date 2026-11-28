@@ -95,7 +95,7 @@ The phase names built from these terms (ours, inferred, each from the terms abov
 | Phase | Hebrew |
 |---|---|
 | 1 Ground and start-up | קרקע והתנעה |
-| 2 Basic handling and the pattern | שליטה בסיסית, המראה ונחיתה |
+| 2 Basic handling, the pattern and landing | שליטה בסיסית, המראה ונחיתה |
 | 3 Navigation and instruments | ניווט וטיסת מכשירים |
 | 4 Formation and flight lead | מבנה והובלה |
 | 5 Air-to-ground | תקיפה |

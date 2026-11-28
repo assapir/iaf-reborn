@@ -173,7 +173,7 @@ The lessons below are the F-16 courses'. The F-35I's differences are in §4. Eac
 
 The help line above the notebook appears in lesson 1 only (13 Nov 2026).
 
-### Phase 2: Basic handling and the pattern
+### Phase 2: Basic handling, the pattern and landing
 
 1. **Take-off and first flight.** Take-off, climb, level turns, return and a straight-in landing.
 2. **The overhead break and landing.** The instructor's one demonstration (§2.3), then the player flies the pattern.

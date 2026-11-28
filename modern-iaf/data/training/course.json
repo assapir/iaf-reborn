@@ -77,7 +77,7 @@
       {"id": "night", "kind": "night", "title": {"en": "At night: start-up and taxi", "he": "בלילה: התנעה והסעה"}, "items": ["startup_time", "night_lighting", "taxi_speed"]},
       {"id": "check", "kind": "check", "title": {"en": "Check ride 1", "he": "טיסת מבחן 1"}}
     ]},
-    {"id": "pattern", "title": {"en": "Basic handling and the pattern", "he": "שליטה בסיסית, המראה ונחיתה"}, "lessons": [
+    {"id": "pattern", "title": {"en": "Basic handling, the pattern and landing", "he": "שליטה בסיסית, המראה ונחיתה"}, "lessons": [
       {"id": "first_flight", "title": {"en": "Take-off and first flight", "he": "המראה וטיסה ראשונה"}, "items": ["max_centreline_offset", "liftoff_speed_error", "gear_up_time", "touchdown_distance", "sink_rate"]},
       {"id": "overhead", "title": {"en": "The overhead break and landing", "he": "הקפה עם שבירה ונחיתה"}, "items": ["pattern_altitude_error", "final_aoa_error", "touchdown_distance", "landing_centreline"]},
       {"id": "touch_and_go", "title": {"en": "Touch-and-go and go-around", "he": "נגיעה והמראה, והליכה סביב"}, "items": ["pattern_altitude_error", "final_aoa_error", "go_around_height"]},
