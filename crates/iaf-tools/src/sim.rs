@@ -874,6 +874,27 @@ pub fn compile_range(f: &File, db: &Db) -> Result<Value> {
         "control": f.v["control"]}))
 }
 
+/// A mission's compiled range with the sites its `range_threats` picks (data-formats.md §5): `true` every site, a list
+/// of site names those sites only, absent or `false` none (the sites stay in the range, none spawns). Refuses a name
+/// the range does not have.
+pub fn range_threats(range: &Value, pick: &Value) -> Result<(Value, bool)> {
+    let mut r = range.clone();
+    let Some(names) = pick.as_array() else {
+        return match pick {
+            Value::Null | Value::Bool(_) => Ok((r, pick == &json!(true))),
+            _ => bail!("\"range_threats\" must be true, false or a list of the range's site names"),
+        };
+    };
+    let sites = r["sites"].as_array().cloned().unwrap_or_default();
+    let mut kept = vec![];
+    for n in names {
+        let s = sites.iter().find(|s| s["name"] == *n);
+        kept.push(s.with_context(|| format!("\"range_threats\": {n} is no site of range {}", range["id"]))?.clone());
+    }
+    r["sites"] = json!(kept);
+    Ok((r, !kept.is_empty()))
+}
+
 /// One compiled mission file from a readable one.
 /// `bases`: the airbases (sim_bases::load); `ground`: the theatre's height at a point, None without it (the
 /// start's `elevation_m` then stands).
@@ -1155,8 +1176,9 @@ pub fn missions(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
         let mut m = compile_mission(f, &db, &bases, &mut height)?;
         if let Some(r) = f.v["range"].as_str() {
             let r = ranges.get(r).with_context(|| format!("{}: no range \"{r}\" in data/ranges", f.name))?;
-            m["sim"]["range"] = r.clone();
-            m["sim"]["range_threats"] = json!(f.v["range_threats"].as_bool().unwrap_or(false));
+            let (r, threats) = range_threats(r, &f.v["range_threats"]).with_context(|| f.name.clone())?;
+            m["sim"]["range"] = r;
+            m["sim"]["range_threats"] = json!(threats);
         }
         if let Some(note) = m["sim"]["note"].as_str() {
             pr.warn(&format!("missions: {}: {note}", m["name"].as_str().unwrap_or("")));
@@ -1910,6 +1932,24 @@ mod tests {
         let mut v: Value = serde_json::from_slice(&std::fs::read(data().join("ranges/ovda.json")).unwrap()).unwrap();
         v["sites"][0]["kind"] = json!("patriot");
         assert!(compile_range(&File { name: "ovda".into(), v }, &db).is_err(), "an unknown site kind is refused");
+    }
+
+    /// A mission's `range_threats` picks the range's sites by name: true every site, a list those, a wrong name refused.
+    #[test]
+    fn a_mission_picks_the_ranges_sites() {
+        let db = Db::read(&data()).unwrap();
+        let v = serde_json::from_slice(&std::fs::read(data().join("ranges/ovda.json")).unwrap()).unwrap();
+        let r = compile_range(&File { name: "ovda".into(), v }, &db).unwrap();
+        let names = |p: Value| {
+            let (r, on) = range_threats(&r, &p).unwrap();
+            let n: Vec<String> = r["sites"].as_array().unwrap().iter().map(|s| s["name"].to_string()).collect();
+            (n.len(), on)
+        };
+        assert_eq!(names(json!(true)), (3, true));
+        assert_eq!(names(Value::Null).1, false);
+        assert_eq!(names(json!(["Site 2"])), (1, true));
+        assert!(range_threats(&r, &json!(["Site 9"])).is_err());
+        assert!(range_threats(&r, &json!("Site 2")).is_err());
     }
 
     /// The briefing's flights ride in `sim`: the two-flight sample (modern-iaf/tests/data, not a shipped mission) names
