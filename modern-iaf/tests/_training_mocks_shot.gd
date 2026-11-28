@@ -14,12 +14,12 @@ var Diagram: GDScript
 
 const PHASES := [
 	["Ground and start-up", "קרקע והתנעה", 5, 5],
-	["Basic handling, the pattern and landing", "שליטה בסיסית, הקפה ונחיתה", 8, 2],
+	["Basic handling, the pattern and landing", "שליטה בסיסית, המראה ונחיתה", 8, 2],
 	["Navigation and instruments", "ניווט וטיסת מכשירים", 6, 0],
-	["Formation and flight lead", "טיסת מבנה והובלה", 6, 0],
-	["Air-to-ground", "אוויר-קרקע", 5, 0],
-	["AWACS, ground control, tanker", "בקרה אווירית ותדלוק", 5, 0],
-	["Air-to-air", "אוויר-אוויר", 7, 0],
+	["Formation and flight lead", "מבנה והובלה", 6, 0],
+	["Air-to-ground", "תקיפה", 5, 0],
+	["AWACS, ground control, tanker", "בקרה ותדלוק אווירי", 5, 0],
+	["Air-to-air", "קרב אוויר ויירוט", 7, 0],
 	["Threats and electronic warfare", "איומים ולוחמה אלקטרונית", 5, 0],
 ]
 ## Phase 2's lessons: [en title, he title, en line, he line, result ("pass", "marginal", "unsat", "")].
