@@ -28,8 +28,8 @@ const LESSONS := [
 		"המראה, טיפוס, פניות אופקיות, נחיתה ישירה.", "pass"],
 	["The overhead break and landing", "הקפה עם שבירה ונחיתה", "The instructor flies one pattern, then you.",
 		"המדריך מטיס הקפה אחת, אחריו ההקפות שלכם.", "marginal"],
-	["Touch-and-go and go-around", "מגע-המראה וגו-אראונד", "Closed patterns, a touch-and-go, a go-around.",
-		"הקפות סגורות, מגע-המראה, גו-אראונד מסופית קצרה.", ""],
+	["Touch-and-go and go-around", "מגע-המראה ו-\u2066go-around\u2069", "Closed patterns, a touch-and-go, a go-around.",
+		"הקפות סגורות, מגע-המראה, \u2066go-around\u2069 מסופית קצרה.", ""],
 	["High AoA and G", "זווית התקפה גבוהה ועומס", "Slow flight, the AoA and G limiters, corner speed.",
 		"טיסה איטית, מגבילי זווית ההתקפה והעומס, מהירות פינה.", ""],
 	["Take-off abort and engine fire", "ביטול המראה ושריפת מנוע", "An engine fire on the roll, and one in flight.",
@@ -223,7 +223,7 @@ const T := {
 		"mission_field": "הקפה עם שבירה",
 		"course": "מסלול האימונים",
 		"course_line": "שלב 2 מתוך 8 · 7 מתוך 47 עברו",
-		"next_line": "הבא: 2.3 מגע-המראה וגו-אראונד",
+		"next_line": "הבא: 2.3 מגע-המראה ו-\u2066go-around\u2069",
 		"last_line": "אחרון: 2.2 הקפה עם שבירה · גבולי · 26 בנובמבר 2026",
 		"nb_tab": "שיעור",
 		"nb_title": "שיעור 2.2 · F-16I",
@@ -324,7 +324,6 @@ func _phases(fe: Control) -> void:
 	grid.add_theme_constant_override("v_separation", 20)
 	grid.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_SHRINK_CENTER
 	v.add_child(grid)
-	var next: Button = null
 	for i in PHASES.size():
 		var ph: Array = PHASES[i]
 		var b := Button.new()
@@ -337,9 +336,6 @@ func _phases(fe: Control) -> void:
 		var top: HBoxContainer = fe._hbox(cv, 0)
 		fe._label(top, "%02d" % (i + 1), "Num").add_theme_font_size_override("font_size", 36)
 		fe._spacer(top)
-		if i == 1:
-			fe._chip(top, fe.s("next_up"), true)
-			next = b
 		var h2: Label = fe._label(cv, ph[1] if lang == "he" else ph[0], "H2")
 		h2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		h2.custom_minimum_size.x = 300
@@ -354,7 +350,6 @@ func _phases(fe: Control) -> void:
 		for c in b.find_children("*", "Control", true, false):
 			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fe._footer("", [], false, [fe.back_button()])
-	next.grab_focus.call_deferred()
 
 
 ## 2. A phase's lessons in the section's list look, the side panel on lesson 2.2 (under the pointer).
@@ -369,14 +364,12 @@ func _lessons(fe: Control) -> void:
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	fe._title(v, "%s · %s" % [t("phase_n") % 2, name], fe.s("passed_of") % [2, 8])
 	var list: VBoxContainer = fe._vbox(v, 6)
-	var next: Button = null
 	for i in LESSONS.size():
 		var le: Array = LESSONS[i]
 		var b := Button.new()
 		b.theme_type_variation = "JetRow"
 		b.custom_minimum_size.y = 80
 		b.toggle_mode = true
-		b.button_pressed = i == 2
 		list.add_child(b)
 		var h: HBoxContainer = fe._hbox(fe._margin(b, 24, 6), 22)
 		h.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -388,9 +381,6 @@ func _lessons(fe: Control) -> void:
 		tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		fe._label(tv, le[1] if lang == "he" else le[0], "JetName")
 		fe._label(tv, le[3] if lang == "he" else le[2], "Small")
-		if i == 2:
-			fe._chip(h, fe.s("next_up"), true)
-			next = b
 		var chip: HBoxContainer = fe._hbox(h, 0)
 		chip.custom_minimum_size.x = 210
 		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -428,7 +418,6 @@ func _lessons(fe: Control) -> void:
 		fe._label(grid, fe.s(f[0]), "Small").size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		fe._label(grid, f[1], "Row").size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	fe._footer("", [], false, [fe.back_button()])
-	next.grab_focus.call_deferred()
 
 
 ## The overhead break's diagram drawn into a texture `sz` px (`paper`: the notebook's ink).
@@ -631,8 +620,7 @@ func _hangar(fe: Control) -> void:
 		elif c is ProgressBar:
 			c.max_value = 47
 			c.value = 7
-	(fe.find_child("LastFlight", true, false) as Label).text = t("next_line")
-	fe._label(tv, t("last_line"), "Small")
+	(fe.find_child("LastFlight", true, false) as Label).text = t("last_line")
 
 
 ## 6b. The Pilot screen's logbook: the course's box under the jet's line (the Hangar card's training box).
@@ -656,7 +644,7 @@ func _pilot(fe: Control) -> void:
 	bar.max_value = 47
 	bar.value = 7
 	tv.add_child(bar)
-	fe._label(tv, t("next_line"), "Small")
+	fe._label(tv, t("last_line"), "Small")
 
 
 ## 5. The notebook's Lesson tab, in the approved notebook, over the raised notebook's picture: page 1 the steps,
