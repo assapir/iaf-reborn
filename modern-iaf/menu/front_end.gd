@@ -1021,12 +1021,14 @@ func _section_card(parent: Control, n: int, title: String, progress: Array) -> B
 # --- Training: the course (training-plan.md §5) -----------------------------------------------------------------------
 
 
-## The Hangar jet's course (IafTraining.course) with the pilot's logbook of it (IafPilotLog.course_logbook) folded
-## in: per phase its `passed` and `lessons`, per lesson its `best` grade ("pass", "marginal", "unsat" or null) and its
-## `date`. {} for a jet without a course.
-func course_book() -> Dictionary:
-	var course = JSON.parse_string(IafTraining.course(Settings.sim_jet))
-	var book = JSON.parse_string(IafPilotLog.course_logbook(Settings.records_db(), Settings.pilot(), Settings.sim_jet))
+## The course of jet `unit` (the Hangar's by default; IafTraining.course) with the pilot's logbook of it
+## (IafPilotLog.course_logbook) folded in: per phase its `passed` and `lessons`, per lesson its `best` grade ("pass",
+## "marginal", "unsat" or null), its `date` and `attempts`. {} for a jet without a course.
+func course_book(unit := "") -> Dictionary:
+	if unit == "":
+		unit = Settings.sim_jet
+	var course = JSON.parse_string(IafTraining.course(unit))
+	var book = JSON.parse_string(IafPilotLog.course_logbook(Settings.records_db(), Settings.pilot(), unit))
 	if not course is Dictionary:
 		return {}
 	var phases: Array = course.phases
@@ -1040,7 +1042,33 @@ func course_book() -> Dictionary:
 			var r: Dictionary = res[k] if k < res.size() else {}
 			ph.lessons[k].best = r.get("best")
 			ph.lessons[k].date = r.get("date")
+			ph.lessons[k].attempts = int(r.get("attempts", 0))
 	return course
+
+
+## The course lesson mission `m` flies (its `lesson`) in the jet it is flown in: {phase, index (both from 0), lesson
+## (course_book's)}; {} for a mission outside the course.
+func lesson_of(m: Dictionary) -> Dictionary:
+	if str(m.get("lesson", "")) == "":
+		return {}
+	var phases: Array = course_book(str(m.get("start", {}).get("unit", ""))).get("phases", [])
+	for i in phases.size():
+		for k in phases[i].lessons.size():
+			if str(phases[i].lessons[k].get("mission", "")) == str(m.get("id", "")):
+				return {"phase": i, "index": k, "lesson": phases[i].lessons[k]}
+	return {}
+
+
+## Lesson `k` of the phase open (phase_i): its briefing (its mission in the Hangar's jet, the mission page); nothing
+## for a lesson whose phase has no missions yet.
+func open_lesson(k: int) -> void:
+	var ph: Dictionary = course_book().get("phases", [])[phase_i]
+	var m := mission_by_name(str(ph.lessons[k].get("mission", "")))
+	if m.is_empty():
+		return
+	missions = [m]
+	mission_i = 0
+	show_page("mission")
 
 
 ## A label of the course data ({"en", "he"}) in the screen's language.
@@ -1119,6 +1147,7 @@ func _page_lessons() -> void:
 		var n := "%d.%d" % [phase_i + 1, i + 1]
 		var r := _list_row(frame[0], "Lesson%d" % (i + 1), n, tr_label(le.title), tr_label(le.line), 80, 6)
 		var b: Button = r[0]
+		b.pressed.connect(open_lesson.bind(i))
 		b.focus_entered.connect(_lesson_side.bind(side, i, le))
 		b.mouse_entered.connect(_lesson_side.bind(side, i, le))
 		var tx := s("not_flown") if le.best == null else grade_text(str(le.best))
@@ -1376,8 +1405,20 @@ func _page_mission() -> void:
 		show_page("missions")
 		return
 	var m: Dictionary = missions[mission_i]
-	_header(section_crumbs() + [title_of(m)])
-	BriefingPage.build(self, m)
+	var lo := lesson_of(m)
+	if lo.is_empty():
+		_header(section_crumbs() + [title_of(m)])
+	else:
+		phase_i = int(lo.phase)
+		var n := [int(lo.phase) + 1, int(lo.index) + 1]
+		_header(["hangar", [full_name(jet()), "missions"], [s("phase_n") % n[0], "lessons"], s("lesson_n") % n])
+	BriefingPage.build(self, m, lo)
+
+
+## Where the briefing's Back (and Esc) goes: a lesson's list of its phase, else the section's list.
+func mission_back() -> String:
+	var m: Dictionary = missions[mission_i] if mission_i < missions.size() else {}
+	return "lessons" if not lesson_of(m).is_empty() else "section"
 
 
 ## The Scramble screen (front-end.md §2.1, free_combat_page.gd): the flight and the start, then Fly.
@@ -2567,6 +2608,7 @@ func _logbook(parent: Control, new := false) -> void:
 			counted("logbook_failed", int(pl.fails))
 		]
 		_label(rows, " · ".join(counts), "Muted")
+		_course_box(rows, str(pl.plane))
 		for m in pl.missions:
 			var r := _hbox(rows, 12)
 			var mm := mission_by_id(int(m.mission_id))
@@ -2575,6 +2617,45 @@ func _logbook(parent: Control, new := false) -> void:
 			title.clip_text = true
 			_chip(r, s("passes_n") % int(m.passes), true)
 			_chip(r, s("fails_n") % int(m.fails), false)
+
+
+## The logbook's training course box of jet `unit` (Approvals A135), once a lesson of it was flown: the phase the pilot
+## is in (the first not yet passed) of all, the lessons passed of all with their bar, and the last lesson flown with
+## its best grade and day.
+func _course_box(rows: Control, unit: String) -> void:
+	var phases: Array = course_book(unit).get("phases", [])
+	var passed := 0
+	var total := 0
+	var at := phases.size()
+	var last := []  # [date, "2.2", title, best]
+	for i in phases.size():
+		passed += int(phases[i].passed)
+		total += int(phases[i].lessons_n)
+		if at == phases.size() and int(phases[i].passed) < int(phases[i].lessons_n):
+			at = i + 1
+		for k in phases[i].lessons.size():
+			var le: Dictionary = phases[i].lessons[k]
+			if le.get("date") != null and (last.is_empty() or str(le.date) > str(last[0])):
+				last = [str(le.date), "%d.%d" % [i + 1, k + 1], tr_label(le.title), str(le.best)]
+	if last.is_empty():
+		return
+	var box := PanelContainer.new()
+	box.name = "Course_" + unit
+	box.add_theme_stylebox_override("panel", Look.box(Color(0, 0, 0, 0), Look.LINE, 1, 6, Vector2(16, 14)))
+	rows.add_child(box)
+	var tv := _vbox(box, 8)
+	var th := _hbox(tv, 10)
+	_label(th, s("course_box"), "Strong")
+	_spacer(th)
+	_label(th, s("course_line") % [at, phases.size(), passed, total], "Small")
+	var bar := ProgressBar.new()
+	bar.show_percentage = false
+	bar.custom_minimum_size.y = 8
+	bar.max_value = total
+	bar.value = passed
+	tv.add_child(bar)
+	var line := _label(tv, s("course_last") % [last[1], last[2], grade_text(last[3]), day_text(last[0])], "Small")
+	line.name = "CourseLast"
 
 
 ## A field typed in: the draft, the initials in the empty picture, and Save only with a name.
@@ -2897,20 +2978,32 @@ func _page_debrief() -> void:
 	var sec: Array = SECTIONS.filter(func(x): return x[1] != "" and x[1] == cat)
 	if not sec.is_empty():
 		section = sec[0][0]
-	_header(["hangar", [full_name(j), "missions"], [s("sec_" + section), "section"], "debrief"])
+	if not lesson_of(m).is_empty():
+		_header(["hangar", [full_name(j), "missions"], [s("sec_training"), "phases"], "debrief"])
+	else:
+		_header(["hangar", [full_name(j), "missions"], [s("sec_" + section), "section"], "debrief"])
 	DebriefPage.build(self, m)
 
 
 ## Back to missions: the list of the flown mission's section (its category) with the jet flown picked.
 func back_to_missions(m: Dictionary) -> void:
 	_to_section(m)
+	var lo := lesson_of(m)
+	if not lo.is_empty():
+		phase_i = int(lo.phase)  # a lesson's: its phase's lessons
+		show_page("lessons")
+		return
 	show_page("section")
 
 
 ## Fly again: the flown mission's briefing in the jet flown, Fly focused.
 func fly_again(m: Dictionary) -> void:
 	_to_section(m)
-	open_mission(maxi(_index_of(int(m.get("menu_id", 0))), 0))
+	if not lesson_of(m).is_empty():
+		missions = [m]  # a lesson's briefing (open_lesson)
+		open_mission(0)
+	else:
+		open_mission(maxi(_index_of(int(m.get("menu_id", 0))), 0))
 	_focus = find_child("Fly", true, false)
 	if _focus != null:
 		_grab.call_deferred(_focus)
@@ -2920,12 +3013,27 @@ func fly_again(m: Dictionary) -> void:
 func next_mission(m: Dictionary) -> void:
 	var id := next_of(m)
 	_to_section(m)
+	if not lesson_of(m).is_empty():
+		missions = [mission_by_id(id)]  # the next lesson's briefing
+		open_mission(0)
+		return
 	open_mission(maxi(_index_of(id), 0))
 
 
 ## The menu id of the mission after `m` in its section's order for its jet (MissionList.next_in), 0 after the last one.
 func next_of(m: Dictionary) -> int:
 	if m.is_empty():
+		return 0
+	var lo := lesson_of(m)
+	if not lo.is_empty():
+		# A lesson's: the course's next lesson with a mission in this jet (0 after the last).
+		var after := false
+		for ph in course_book(str(m.get("start", {}).get("unit", ""))).get("phases", []):
+			for le in ph.lessons:
+				var nm := mission_by_name(str(le.get("mission", ""))) if after and le.get("mission") != null else {}
+				if not nm.is_empty():
+					return int(nm.menu_id)
+				after = after or le.get("mission") == str(m.get("id", ""))
 		return 0
 	var unit := str(m.get("start", {}).get("unit", ""))
 	var ids := section_missions(str(m.get("category", "")), unit).map(func(x): return int(x.menu_id))
@@ -3270,7 +3378,7 @@ func back() -> void:
 		if bm != null:
 			bm.pressed.emit()  # the section's list in the jet flown, as the button
 			return
-	var to: String = BACK.get(page, "")
+	var to: String = mission_back() if page == "mission" else BACK.get(page, "")
 	if to != "":
 		show_page(to)
 

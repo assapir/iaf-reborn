@@ -12,6 +12,7 @@ const RadioScript := preload("res://shared/audio/radio.gd")
 const Look := preload("look.gd")
 const BriefingMap := preload("briefing_map.gd")
 const PrePanel := preload("pre_panel.gd")
+const Diagram := preload("diagram.gd")
 ## The card's width and the screen's edge (px on the 1920 × 1080 canvas, the mock's).
 const CARD_W := 600
 const TEXT_W := 640
@@ -22,16 +23,21 @@ const GAP := 32
 ## The text card's top (under the chips) and the explanation's type size (readable at 1280 × 720: 15 px there).
 const TEXT_TOP := 190
 const TEXT_PX := 23
+## A lesson's diagram on the text card (px, the mock's).
+const DIAGRAM := Vector2(580, 420)
 
 
 ## The briefing of mission `m` on `fe`; the controls named for the tests and the focus (ArmEdit, Back,
 ## Arming, Fly, MapPre (a GPS store aboard: the PRE targets panel, PreTargets), MapLabels, MapPhoto, ZoomIn, ZoomOut,
-## PageMap, Purpose, HowScroll, Para<n>; with several flights Flights, Flight_<callsign>, FlightDetail).
-static func build(fe: Control, m: Dictionary) -> void:
+## PageMap, Purpose, HowScroll, Para<n>; with several flights Flights, Flight_<callsign>, FlightDetail). A course
+## lesson's (`lo`, front_end.gd lesson_of) is its briefing in the IDF order (training-plan.md §2.2, Approvals A132):
+## the card's Mission and Target paragraphs (LessonMission, LessonTarget) in place of the objectives, the text card the
+## order's other sections (Section_<id>, Graded).
+static func build(fe: Control, m: Dictionary, lo := {}) -> void:
 	var map := _map(fe, m)
-	var card := _card(fe, m, map)
+	var card := _card(fe, m, map, lo)
 	var chips := _chips(fe, map)
-	var text := _text_card(fe, m)
+	var text := _text_card(fe, m) if lo.is_empty() else _lesson_card(fe, m, lo)
 	_pre_chip(fe, m, map, chips, text)
 	# The map opens on the base and the route in the room between the cards, under the chips, over the scale bar.
 	var aim := func():
@@ -88,7 +94,7 @@ static func _map(fe: Control, m: Dictionary) -> Control:
 
 
 ## The mission card at the inline start.
-static func _card(fe: Control, m: Dictionary, map: Control) -> Control:
+static func _card(fe: Control, m: Dictionary, map: Control, lo: Dictionary) -> Control:
 	var card := PanelContainer.new()
 	card.name = "Briefing"
 	card.add_theme_stylebox_override("panel", Look.box(Color(Look.PANEL, 0.94), Look.LINE, 1, 6, Vector2(32, 28)))
@@ -98,18 +104,25 @@ static func _card(fe: Control, m: Dictionary, map: Control) -> Control:
 	var v: VBoxContainer = fe._vbox(card, 18)
 	# The title and the line under it: what the mission is and the jet's squadron.
 	var tv: VBoxContainer = fe._vbox(v, 4)
-	fe._label(tv, fe.title_of(m), "H1")
+	var title: Label = fe._label(tv, fe.title_of(m) if lo.is_empty() else fe.tr_label(lo.lesson.title), "H1")
 	var j: Dictionary = fe.jet_of(m)
-	var sub: Label = fe._text(
-		tv, "%s %s · %s" % [fe.s("desc_" + fe.kind(m)), fe.full_name(j), fe.subtitle(j, false)], "Sub"
-	)
+	var line := "%s %s · %s" % [fe.s("desc_" + fe.kind(m)), fe.full_name(j), fe.subtitle(j, false)]
+	if not lo.is_empty():
+		# A lesson's title wraps (the mock's two lines); the line under it its place in the course and the jet.
+		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		title.custom_minimum_size.x = 500
+		line = fe.s("lesson_sub") % [int(lo.phase) + 1, int(lo.index) + 1, fe.full_name(j)]
+	var sub: Label = fe._text(tv, line, "Sub")
 	sub.name = "Subtitle"
 	_flights(fe, v, m, map)
 	_facts(fe, v, m)
-	_objectives(fe, v, m)
+	if lo.is_empty():
+		_objectives(fe, v, m)
+	else:
+		_lesson_opening(fe, v, m, lo)
 	_arming(fe, v, m)
 	var foot: HBoxContainer = fe._hbox(v, 12)
-	var back: Button = fe._button(foot, fe.s("back"), "Secondary", func(): fe.show_page("section"))
+	var back: Button = fe._button(foot, fe.s("back"), "Secondary", func(): fe.show_page(fe.mission_back()))
 	back.name = "Back"
 	back.custom_minimum_size = Vector2(142, 64)
 	_arming_button(fe, foot)
@@ -235,6 +248,21 @@ static func _objectives(fe: Control, parent: Control, m: Dictionary) -> void:
 		fe._text(row, o, "")
 
 
+## A lesson's opening paragraphs on the card (training-plan.md §2.2): MISSION, who flies what, where and when; TARGET,
+## what the pilot can do after it, in the accent's text colour.
+static func _lesson_opening(fe: Control, parent: Control, m: Dictionary, lo: Dictionary) -> void:
+	var ov: VBoxContainer = fe._vbox(parent, 8)
+	var b: Dictionary = lo.lesson.get("briefing", {})
+	for k in ["mission", "target"]:
+		_heading(fe, ov, fe.s("brief_" + k))
+		for p in b.get(k, []):
+			var r := _rich(fe, ov, fill_text(fe, m, fe.tr_label(p)))
+			r.name = "Lesson" + k.capitalize()
+			r.add_theme_font_size_override("normal_font_size", 19)
+			if k == "target":
+				r.add_theme_color_override("default_color", Look.ACCENT_TEXT)
+
+
 ## The Arming summary: the stores on the jet, the take-off weight (red over the maximum) and Edit, which opens the
 ## loadout screen (the page "arming").
 static func _arming(fe: Control, parent: Control, m: Dictionary) -> void:
@@ -358,6 +386,28 @@ static func _pill(b: Button) -> void:
 ## touchscreen's drag) and with the focus by the arrows / the gamepad's pad and Page Up / Down; at its ends the arrows
 ## move the focus on.
 static func _text_card(fe: Control, m: Dictionary) -> Control:
+	var parts := _text_frame(fe)
+	var v: VBoxContainer = parts[2]
+	var lang := "he" if fe.he() else "en"
+	var b: Dictionary = m.get("briefing", {})
+	_heading(fe, v, fe.s("learn" if str(m.get("category", "")) == "training" else "purpose"))
+	var purpose := _rich(fe, v, fill_text(fe, m, str(b.get("purpose", {}).get(lang, ""))))
+	purpose.name = "Purpose"
+	purpose.add_theme_color_override("default_color", Look.ACCENT_TEXT)
+	fe._spacer_px(v, 6)
+	_heading(fe, v, fe.s("how"))
+	var scroll: ScrollContainer = parts[1]
+	v.move_child(scroll, -1)
+	var list: VBoxContainer = fe._vbox(scroll, 18)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_paragraphs(fe, m, list, b.get("how", []))
+	return parts[0]
+
+
+## The text card at the inline end under the chips to the bottom, its scrolled list (HowScroll) in it: [the card, the
+## scroll, the card's VBox]. The list scrolls by the wheel (a touchscreen's drag) and with the focus by the arrows /
+## the gamepad's pad and Page Up / Down; at its ends the arrows move the focus on; the card's edge lights with it.
+static func _text_frame(fe: Control) -> Array:
 	var card := PanelContainer.new()
 	card.name = "Text"
 	var off := Look.box(Color(Look.PANEL, 0.94), Look.LINE, 1, 6, Vector2(28, 24))
@@ -369,14 +419,6 @@ static func _text_card(fe: Control, m: Dictionary) -> Control:
 	card.anchor_bottom = 1.0
 	card.offset_bottom = -40
 	var v: VBoxContainer = fe._vbox(card, 10)
-	var lang := "he" if fe.he() else "en"
-	var b: Dictionary = m.get("briefing", {})
-	_heading(fe, v, fe.s("learn" if str(m.get("category", "")) == "training" else "purpose"))
-	var purpose := _rich(fe, v, fill_text(fe, m, str(b.get("purpose", {}).get(lang, ""))))
-	purpose.name = "Purpose"
-	purpose.add_theme_color_override("default_color", Look.ACCENT_TEXT)
-	fe._spacer_px(v, 6)
-	_heading(fe, v, fe.s("how"))
 	var scroll := ScrollContainer.new()
 	scroll.name = "HowScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -384,11 +426,29 @@ static func _text_card(fe: Control, m: Dictionary) -> Control:
 	scroll.focus_mode = Control.FOCUS_ALL
 	scroll.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	v.add_child(scroll)
-	var list: VBoxContainer = fe._vbox(scroll, 18)
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var how: Array = b.get("how", [])
+	scroll.focus_entered.connect(func(): card.add_theme_stylebox_override("panel", on))
+	scroll.focus_exited.connect(func(): card.add_theme_stylebox_override("panel", off))
+	scroll.gui_input.connect(func(e: InputEvent): _scroll_keys(scroll, e))
+	return [card, scroll, v]
+
+
+## Paragraphs `how` into `list`, each numbered as the map's pins (a pin carries the number of the first paragraph done
+## at its place), its keys as bound in key caps, a start-up's switch pictures under it, a lesson's diagram (its
+## `diagram` of the lesson's `diagrams`, diagram.gd) over it.
+static func _paragraphs(fe: Control, m: Dictionary, list: Control, how: Array, diagrams := {}) -> void:
+	var lang := "he" if fe.he() else "en"
 	var unit := str(m.get("start", {}).get("unit", ""))
 	for i in how.size():
+		if diagrams.has(str(how[i].get("diagram", ""))):
+			var d := Diagram.new()
+			d.name = "Diagram_" + str(how[i].diagram)
+			d.font = fe._theme.default_font
+			d.bold = fe._theme.get_font("font", "Strong")
+			d.runway = str(m.get("runway", ""))
+			d.use(diagrams[str(how[i].diagram)], lang, Callable(fe, "s"))
+			d.custom_minimum_size = DIAGRAM
+			d.layout_direction = Control.LAYOUT_DIRECTION_LTR  # never mirrored (the map's rule)
+			list.add_child(d)
 		var row: HBoxContainer = fe._hbox(list, 14)
 		row.name = "Para%d" % (i + 1)
 		var n: Label = fe._label(row, str(i + 1), "Strong")
@@ -420,10 +480,54 @@ static func _text_card(fe: Control, m: Dictionary) -> Control:
 			pv.add_child(pics)
 		else:
 			pics.free()
-	scroll.focus_entered.connect(func(): card.add_theme_stylebox_override("panel", on))
-	scroll.focus_exited.connect(func(): card.add_theme_stylebox_override("panel", off))
-	scroll.gui_input.connect(func(e: InputEvent): _scroll_keys(scroll, e))
+
+
+## A lesson's text card at the inline end (Approvals A132): the order's sections after the card's two, in a scrolled
+## list (HowScroll, scrolled as the mission's text): Situation: enemy, our forces, weather and area; Execution, its
+## paragraphs numbered as the map's pins with their switch pictures and diagrams (_paragraphs), then the graded items
+## with their standards, each beside an empty box; Coordination and safety; Command and signal.
+static func _lesson_card(fe: Control, m: Dictionary, lo: Dictionary) -> Control:
+	var parts := _text_frame(fe)
+	var card: PanelContainer = parts[0]
+	var scroll: ScrollContainer = parts[1]
+	var list: VBoxContainer = fe._vbox(scroll, 12)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var b: Dictionary = lo.lesson.get("briefing", {})
+	for k in ["enemy", "our_forces", "weather_area", "execution", "coordination", "signal"]:
+		var sec: VBoxContainer = fe._vbox(list, 12)
+		sec.name = "Section_" + k
+		_heading(fe, sec, fe.s("brief_" + k))
+		if k == "execution":
+			_paragraphs(fe, m, sec, b.get(k, []), lo.lesson.get("diagrams", {}))
+			fe._spacer_px(sec, 6)
+			_graded(fe, list, lo)
+		else:
+			for p in b.get(k, []):
+				_rich(fe, sec, fill_text(fe, m, fe.tr_label(p)))
+		fe._spacer_px(sec, 6)
 	return card
+
+
+## GRADED ITEMS: the lesson's course items (IafTraining.course), each its label and standard beside an empty box (the
+## debrief grades them).
+static func _graded(fe: Control, list: Control, lo: Dictionary) -> void:
+	var items: Array = lo.lesson.get("items", [])
+	if items.is_empty():
+		return
+	var gv: VBoxContainer = fe._vbox(list, 12)
+	gv.name = "Graded"
+	_heading(fe, gv, fe.s("brief_graded"))
+	for it in items:
+		var row: HBoxContainer = fe._hbox(gv, 12)
+		var box := Panel.new()
+		box.custom_minimum_size = Vector2(18, 18)
+		box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		box.add_theme_stylebox_override("panel", Look.box(Color(0, 0, 0, 0), Look.ACCENT, 2, 2, Vector2.ZERO))
+		var hold: MarginContainer = fe._margin(row, 0, 0)
+		hold.add_theme_constant_override("margin_top", 5)
+		hold.add_child(box)
+		fe._text(row, "%s: %s" % [fe.tr_label(it.label), Look.standard(it.standard, Callable(fe, "s"))], "")
+	fe._spacer_px(gv, 6)
 
 
 ## The arrows (the gamepad's pad: ui_up / ui_down) and Page Up / Down scroll the list with the focus; at its top or

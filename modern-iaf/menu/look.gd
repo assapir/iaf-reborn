@@ -356,6 +356,38 @@ static func group(v: float) -> String:
 	return ("-" if v < 0 else "") + out
 
 
+## A figure of a course item in `unit` (course.json): "1,500 ft", "13°", "90 %", "8:00 min"; `s` the screen's strings
+## (its `u_<unit>`, the unit as it is without one).
+static func figure(v: float, unit: String, s: Callable) -> String:
+	var num := group(v)
+	if unit == "":
+		return num
+	if unit == "deg":
+		return num + "°"
+	if unit == "s" and absf(v) >= 60.0:  # "8:00 min"
+		return "%d:%02d %s" % [int(absf(v)) / 60, int(absf(v)) % 60, s.call("u_min")]
+	var u := str(s.call("u_" + unit))
+	return "%s %s" % [num, unit if u == "u_" + unit else u]
+
+
+## A course standard ({limit, bands, unit, target}: IafTraining.course, the debrief record's `graded`) as the screens
+## write it, its Average band: "at most 25 kt", "at least 100 %", "13° ±1", "±200 ft", or Done for a yes / no item.
+static func standard(std: Dictionary, s: Callable) -> String:
+	var unit := str(std.get("unit", ""))
+	var band := float((std.get("bands", [0, 0, 0]) as Array)[1])
+	match str(std.get("limit", "")):
+		"tol":
+			var t := float(std.get("target", 0))
+			if t == 0.0:
+				return "±" + figure(band, unit, s)
+			return "%s ±%s" % [figure(t, unit, s), group(band)]
+		"min":
+			if unit == "" and band == 1.0:
+				return str(s.call("std_done"))
+			return str(s.call("at_least")) % figure(band, unit, s)
+	return str(s.call("at_most")) % figure(band, unit, s)
+
+
 ## "250° / 8": the wind as pilots read it, direction and speed (its unit beside it, `kt`), from the mission's
 ## wind_from and wind_kt ("000° / 0" when calm).
 static func wind(m: Dictionary) -> String:
