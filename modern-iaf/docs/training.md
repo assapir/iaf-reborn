@@ -884,9 +884,11 @@ circuit's numbers (`ap_landing_step`):
 | 13, 14 | the final and the landing roll | the 6-DoF's real final ([flight-model.md](flight-model.md) §9.6) |
 
 The two turns fly the circle through the jet that meets the line of the next leg, at most 80° of bank in the break and
-60° in the base turn, on a runway of any heading. In a turn the jet flies no slower than its final's speed (13° α) at
-the turn's load factor. The downwind is twice the radius of a 40° bank at the jet's speed of 11° α level, at least 1
-NM: a Sufa with full fuel and 2 t of stores flies it 2.6 km out (inferred). Tried and dropped (28 November 2026): the
+60° in the base turn, on a runway of any heading. In a turn the jet flies no slower than its final's speed (13° α;
+before the gear the circuit's 11° α) at the load factor of the circle it flies, at most a 40° bank's. The base turn's
+speed law keeps that speed, not the circuit's 11° α the other gear-down legs keep, and the final's speed law starts
+from the turn's summed error, so the final begins on speed and flies the jet's on-speed angle of attack. The downwind
+is twice the radius of a 40° bank at the jet's speed of 11° α level, at least 1 NM: a Sufa with full fuel and 2 t of stores flies it 2.6 km out (inferred). Tried and dropped (28 November 2026): the
 1 NM downwind and a perch at 1,500 ft for every jet; the laden Sufa sank into the ground in the base turn at the
 11° α speed, and at a higher speed overshot the final by 4.7 km. The pattern's sources are the manuals' landing sections
 (`modern-iaf/manuals/text/en/f16/ch2/landing.typ`, `f35i/ch2/landing.typ`).
@@ -1206,11 +1208,13 @@ inferred.
 | `airstart_done` | after a flameout: the engine at idle in the air (1, else 0) |
 | `flameout_landing` | after a flameout: a touchdown on a runway (1, else 0) |
 
-Open: the instructor's demonstration (§14) flies its final below the jet's on-speed angle of attack, about 7° to 11.5°
-where the measure asks 13°, because the overhead pattern's base turn rolls out near 200 kt only 1 NM out and the
-final's speed law (flight-model.md §9.6) reaches the on-speed speed only at the threshold. The measure is the lesson's;
-the pattern's speeds are the autopilot's (`iaf_flight::autopilot::OVERHEAD`), a separate item.
-`test_lessons_pattern.gd` therefore checks the final's angle of attack is measured, not its grade.
+The instructor's demonstration (§14) flies its final at the jet's on-speed angle of attack: 13°, and toward 12° as
+the jet nears its full fuel (`Jet::final_alpha_at`, the F-16 manual's "11 or 13 degrees AOA", flight-model.md
+§9.6). The measure grades it against the course's 13°: in `test_lessons_pattern.gd`'s flights of lesson 2.2 the
+demonstration flies 1.2° to 1.3° below it, graded below average. `fm.rs` `overhead_pattern_on_the_sixdof` checks the final's mean angle of attack within 1° of the
+jet's on-speed angle of attack (the Barak, the Sufa light and laden, the Adir at half and full fuel);
+`test_lessons_pattern.gd` checks that no item of lesson 2.2's demonstration, graded as the pilot's, is
+Unsatisfactory.
 
 ### 16.7 Phase 2: the pattern and landing
 

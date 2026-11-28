@@ -1902,11 +1902,15 @@ pub const OVERHEAD: Overhead = Overhead {
     initial_speed: 154.3,
 };
 
+/// The overhead's turns' bank on the 6-DoF, deg (inferred): the downwind's spacing ([`overhead_side`]) and the
+/// load factor the turns' speed allows for ([`turn_onto`]).
+const OVERHEAD_BANK: f32 = 40.0;
+
 /// The overhead's downwind spacing for this jet, m: at least [`OVERHEAD`]'s 1 NM, and on the 6-DoF twice the radius of
-/// a 40° bank at its speed of 11° α level (`ApView::circuit`), so the base turn's half-circle meets the final at the
-/// circuit's α (inferred: a laden Sufa, 11° α at 200 kt, overshot the 1 NM final by 4.7 km).
+/// a 40° bank ([`OVERHEAD_BANK`]) at its speed of 11° α level (`ApView::circuit`), so the base turn's half-circle meets
+/// the final at the circuit's α (inferred: a laden Sufa, 11° α at 200 kt, overshot the 1 NM final by 4.7 km).
 fn overhead_side(v: &ApView) -> f32 {
-    let r = v.circuit.map_or(0.0, |c| c.1.powi(2) / (G * 40f32.to_radians().tan()));
+    let r = v.circuit.map_or(0.0, |c| c.1.powi(2) / (G * OVERHEAD_BANK.to_radians().tan()));
     (2.0 * r).max(OVERHEAD.side)
 }
 
@@ -1926,23 +1930,29 @@ fn turn_onto(l: &mut Laws, q: Vec3, p: Vec3, lim: f32, vt: f32, climb: f32) -> L
     let y = (dx * -uy + dy * ux) as f32;
     let phi = wrap(line - v.att.heading);
     let speed = v.speed.max(1.0);
-    let bank = if phi.abs() < 0.3 {
-        let want = wrap(line + (y / 8.0 / speed).clamp(-0.5, 0.5).asin());
-        (wrap(want - v.att.heading) * l.c.change_head_k - l.c.change_head_beta * v.rates[2]).clamp(-DEG30, DEG30)
-    } else {
-        // The circle tangent to the line, the turn to the jet's own side of it (left of the line a left turn):
-        // r = |y| / (1 − cos φ).
-        let r = (y.abs() / (1.0 - phi.cos()).max(1e-3)).max(1.0);
+    // The circle tangent to the line, the turn to the jet's own side of it (left of the line a left turn):
+    // r = |y| / (1 − cos φ); none within 0.3 rad of the line's heading.
+    let r = (phi.abs() >= 0.3).then(|| (y.abs() / (1.0 - phi.cos()).max(1e-3)).max(1.0));
+    let bank = if let Some(r) = r {
         let b = (speed * speed / (G * r)).atan().min(lim);
         if y > 0.0 { -b } else { b }
+    } else {
+        let want = wrap(line + (y / 8.0 / speed).clamp(-0.5, 0.5).asin());
+        (wrap(want - v.att.heading) * l.c.change_head_k - l.c.change_head_beta * v.rates[2]).clamp(-DEG30, DEG30)
     };
     if phi.abs() < 5f32.to_radians() && y.abs() < 300.0 && v.att.roll.abs() < 5f32.to_radians() {
         return Leaf::Done;
     }
-    // On the 6-DoF never slower than the speed of 11° α level (`ApView::circuit`) at this turn's load factor, 1 / cos
-    // of its bank: the circuit's α in the turn (inferred; at the level speed a laden Sufa sank into the ground in the
-    // descending base turn).
-    let vt = v.final_speed.or(v.circuit.map(|c| c.1)).map_or(vt, |f| vt.max(f / bank.cos().max(0.3).sqrt()));
+    // On the 6-DoF never slower than the speed of the final's α (`ApView::final_speed`; before the gear the
+    // circuit's 11°, `ApView::circuit`) at the load factor n of the circle `r` flown at that speed: tan b = u² / gr
+    // and u² = f² n give n = 1 / √(1 − (f² / gr)²), at most a [`OVERHEAD_BANK`] turn's (inferred; at the level speed a
+    // laden Sufa sank into the ground in the descending base turn). From the circle, not the bank flown: by the bank a
+    // fast jet banked more and was asked to fly faster still (a laden Sufa 240 kt at 56°, its final 185 kt).
+    let vt = v.final_speed.or(v.circuit.map(|c| c.1)).map_or(vt, |f| {
+        let k = r.map_or(0.0, |r| f * f / (G * r));
+        let n = (1.0 / (1.0 - k * k).max(1e-3).sqrt()).min(1.0 / OVERHEAD_BANK.to_radians().cos());
+        vt.max(f * n.sqrt())
+    });
     let thr = l.thr(vt).min(0.7);
     l.throttle(thr);
     let y = l.pitch(climb);
@@ -3662,6 +3672,14 @@ impl Landing {
                 if pos[2] - ((l.ground)(pos[0], pos[1]) as f64) < OVERHEAD.roll_out {
                     climb = climb.max(0.0);
                 }
+                // The base turn's speed is the final's (`turn_onto`: its on-speed α at the turn's load factor), not
+                // the circuit's 11° α the gear-down legs keep: rolled out at that speed the final began 15 kt fast
+                // and flew its 1 NM at 8-10° α.
+                if down.is_some()
+                    && let (Some(f), Some(r)) = (l.v.final_speed, l.real.as_mut())
+                {
+                    r.1 = f;
+                }
                 turn_onto(l, pt[from], pt[to], lim, vt, climb)
             }
             Leg::Skip => Leaf::Done,
@@ -3730,6 +3748,9 @@ impl Landing {
                 13 => {
                     l.brakes(true);
                     l.watch = false;
+                    // The final's speed law starts from the circuit's summed error (the same lever law, `thr_k`): from
+                    // none its 0.7 lever pushed a jet off the overhead's base turn 17 kt faster (the Barak, 153 to 170 kt).
+                    self.final_i = self.thr_i;
                 }
                 _ => {}
             }

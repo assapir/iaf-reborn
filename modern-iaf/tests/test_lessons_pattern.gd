@@ -5,7 +5,7 @@
 #   - lesson 2.2's mission flown in each jet: the player's jet put in the air before the initial, the autopilot flies
 #     the overhead pattern to a stop on the runway (instructor.gd demo, standing in for the pilot), and the recording,
 #     its autopilot column cleared, is graded by the lesson's items (IafTraining.score): each flown, none
-#     Unsatisfactory but the final's angle of attack (the autopilot's final is flown below 13°).
+#     Unsatisfactory (the final at the on-speed angle of attack).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_lessons_pattern.gd --log-file <temp>
 extends "res://../modern-iaf/tests/instructor_base.gd"
@@ -80,9 +80,8 @@ func _overhead(jet: String) -> void:
 	for g in graded:
 		print("%s %s: flown %s, gap %s, %s" % [jet, g.id, g.flown, g.gap, g.grade])
 		check(g.flown != null, "%s: %s flown" % [jet, g.id])
-		# The autopilot flies its own final (below 13°); the other items it flies within their standards.
-		if g.id != "final_aoa_error":
-			check(String(g.grade) != "unsat", "%s: %s graded %s" % [jet, g.id, g.grade])
+		# The autopilot flies every item within its standard, the final at the on-speed angle of attack.
+		check(String(g.grade) != "unsat", "%s: %s graded %s" % [jet, g.id, g.grade])
 
 
 ## A copy of the recording `path` with its autopilot column cleared: the pattern the autopilot flew, graded as the

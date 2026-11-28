@@ -432,7 +432,8 @@ fn overhead_pattern_on_the_sixdof() {
     // instructor's demonstration); the AI flies the Adir at Nevatim (the F-35I instructor's lead). Each flies the
     // steps in order: the initial on the centreline, the break over the touchdown zone, the downwind about 1 NM to the
     // left with the gear down under 300 kt, descending to the perch, the base turn down to the final 1–3.5 km out under
-    // 250 m, then lands on the runway and stops on it, touching at less than the gear's 3.05 m/s.
+    // 250 m, flies the final at the jet's on-speed α ± 1°, then lands on the runway and stops on it, touching at less
+    // than the gear's 3.05 m/s.
     use iaf_flight::airbase::Airbase;
     use iaf_flight::autopilot::{Autopilot, Config, OVERHEAD, Waypoint};
     let Some(dir) = own() else { return println!("skipped: no assets/converted/own") };
@@ -482,6 +483,9 @@ fn overhead_pattern_on_the_sixdof() {
         let (mut steps, mut entered) = (Vec::new(), std::collections::HashMap::new());
         let (mut last_sink, mut touch, mut stop, mut down_left) = (0.0, None, None, f64::MAX);
         let mut gear_kt = f32::NAN;
+        // The final's indicated α, as the lesson's `final_aoa_error` measures it (on final with the gear down, 50 to
+        // 1,000 ft up), and the jet's on-speed α at its mass (`Jet::final_alpha_at`), deg.
+        let (mut aoa, mut on_speed) = (Vec::new(), f64::NAN);
         // The way left to the lineup (`Autopilot::to_go`, the flight's spacing) the tick before the landing begins and
         // the tick after: the same pattern, so within 5 % (the light jets' 1 NM downwind is a laden jet's 2.6 km).
         let (mut go_before, mut go_jump) = (None, None);
@@ -513,6 +517,13 @@ fn overhead_pattern_on_the_sixdof() {
                     down_left = down_left.min(-frame(s.position).1);
                 }
             }
+            if let Fm::SixDof(x) = &fm
+                && ap.phase() == Some(13)
+                && (15.0..305.0).contains(&(s.position.z - z))
+            {
+                aoa.push(x.indicated_aoa());
+                on_speed = x.jet.final_alpha_at(x.mass());
+            }
             if touch.is_none() && s.on_ground {
                 touch = Some((last_sink, frame(s.position)));
             } else if touch.is_none() {
@@ -540,6 +551,13 @@ fn overhead_pattern_on_the_sixdof() {
         assert!(
             (-3500.0..-800.0).contains(&fin.0) && fin.1.abs() < 150.0 && fin.2 < 250.0,
             "{name}: the final {fin:?}"
+        );
+        // The final flies the on-speed α (modern-iaf/docs/training.md §16.6): the base turn ends at the final's speed.
+        let mean = aoa.iter().sum::<f64>() / aoa.len().max(1) as f64;
+        println!("{name}: the final's α {mean:.1}° over {} ticks, on-speed {on_speed:.1}°", aoa.len());
+        assert!(
+            aoa.len() > 300 && (mean - on_speed).abs() < 1.0,
+            "{name}: the final's α {mean:.1}°, on-speed {on_speed:.1}°"
         );
         let (sink, t) = touch.unwrap_or_else(|| panic!("{name}: touched down"));
         assert!(sink < 3.05, "{name}: sink {sink:.2} m/s");
