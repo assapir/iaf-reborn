@@ -69,7 +69,7 @@ The calls are spoken in the AWACS's own voice, in the game's language, and show 
   [Vector to target], [The heading and distance to your target: "Kidon 1, vector 040, 25 miles, target". In a #scr("sec_fly_now") flight the target is your task's; else the nearest hostile group.],
   [Vector home], [The heading and distance to your home base: "... home plate". Dimmed in a flight without a home base.],
   [Vector to #term("tanker")], [The heading and distance to the nearest tanker. With no tanker on the flight the line is dimmed (@tanker).],
-  [Check in], [You join the controller's net: "Kidon 1, radar contact". Check in before the other requests; a training lesson grades it (@mission-list-training).],
+  [Check in], [You join the controller's net: "Kidon 1, radar contact". Check in before the other requests; a training #term("lesson") grades it (@mission-list-training).],
   [Judy], [You have the target on your radar, the data link or in sight and take the intercept over: "Kidon 1, copy".],
 )
 
