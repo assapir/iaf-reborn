@@ -82,11 +82,11 @@
 
 #idx("תחקיר שיעור")#term("שיעור") מתוחקר בשלושה חלקים ממוספרים, לפי סדר התחקיר הצבאי:
 
-+ *#scr("db_happened")*: המפה כמו למעלה. כל תקלה היא עיגול ממוספר במקום שבו קרתה: קודם כל סעיף שקיבל #scr("grade_below") או #scr("grade_unsat"), ואחר כך כל תקלה של הטיסה.
-+ *#scr("db_items")*: שורה לכל סעיף לציון: הסימון שלו (בסעיף עם עיגול, המספר שלו), הסעיף עם הערת המדריך מתחתיו, #scr("col_standard"), #scr("col_flown"), #scr("col_gap") ו#scr("col_grade"). הציונים הם #scr("grade_above"), #scr("grade_average"), #scr("grade_below") (בכתום) ו#scr("grade_unsat") (באדום).
-+ *#scr("db_conclusions")*: הציון של השיעור בשורה, למה טיסה שנכשלה נכשלה, ו#scr("next_time") עם עצה לכל סעיף חלש.
++ *#scr("db_happened")*: המפה כמו למעלה, וכל תקלה מסומנת בה בעיגול ממוספר במקום שבו קרתה: קודם הסעיפים שקיבלו #scr("grade_below") או #scr("grade_unsat"), אחריהם תקלות הטיסה.
++ *#scr("db_items")*: שורה לכל סעיף: הסימון (בסעיף שסומן במפה, מספר העיגול), שם הסעיף והערת המדריך מתחתיו, #scr("col_standard"), #scr("col_flown"), #scr("col_gap") ו#scr("col_grade"). הציונים הם #scr("grade_above"), #scr("grade_average"), #scr("grade_below") (בכתום) ו#scr("grade_unsat") (באדום).
++ *#scr("db_conclusions")*: ציון השיעור, סיבת הכישלון אם נכשל, ו#scr("next_time") עם עצה לכל סעיף חלש.
 
-הציון של השיעור הוא #scr("pass"), #scr("grade_marginal") (עבר, עם סעיף מתחת לממוצע; בחותמת #scr("stamp_marginal")) או #scr("grade_unsat"). #scr("back_missions") עובר לשיעורי השלב, #scr("fly_again") לתדריך של השיעור ו#scr("next_mission") לשיעור הבא במסלול.
+ציון השיעור: #scr("pass"), #scr("grade_marginal") (עבר, עם סעיף מתחת לממוצע; בחותמת #scr("stamp_marginal")) או #scr("grade_unsat"). #scr("back_missions") עובר לשיעורי השלב, #scr("fly_again") לתדריך של השיעור ו#scr("next_mission") לשיעור הבא במסלול.
 
 === היכן התחקיר נשמר <debrief-kept>
 
