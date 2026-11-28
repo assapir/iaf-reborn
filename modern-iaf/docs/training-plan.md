@@ -1,8 +1,9 @@
 # Modern IAF: the training course plan
 
 This is the plan for Modern IAF's training lessons: the course for each jet, what a lesson is, how the instructor
-works, and how a lesson is briefed and graded. It is a plan only. No lesson in it is built yet, and the missions that
-exist today are not part of it. The user decided it in a planning talk on 28 November 2026; the 12 and 13 November
+works, and how a lesson is briefed and graded. The course's data, its grades and its first two screens are built
+(§5); no lesson has a flight yet. The ten earlier training missions are not part of it: the course replaces them in
+the front end (the user, 28 Nov 2026: "The current existing train should be deleted, o/c. It replaces them"). The user decided it in a planning talk on 28 November 2026; the 12 and 13 November
 decisions that still stand are marked with their date.
 
 The pass and fail rules already built are in [training.md](training.md), the briefing and debrief screens in
@@ -283,13 +284,14 @@ mark and colour below reuses one that exists (the user, 28 Nov 2026: "Keep the c
 something"). Anything the existing screens do not have is proposed on the Approvals page and built only on the
 user's yes. The route is Hangar → Missions → Training → a phase → the briefing:
 
-- **The phases:** Training opens a screen of eight phase cards in the Missions screen's card look
-  ([front-end.md](front-end.md) §1): each card has the phase's number, its title and the pilot's progress in it.
-- **A phase's lessons:** a card opens its lessons in today's section-list look: the day lessons, the night lesson and
-  the check ride, each with its last result (Pass, Marginal, Unsatisfactory or not flown).
-- **Changes to existing screens:** the briefing's sections and diagrams (§2.2), the debrief's grades and fault
-  markers (§2.4), the notebook's Lesson tab, and the course's progress in the Pilot screen's logbook (the Hangar's jet
-  card shows none).
+- **The phases (built, Approvals A130):** Training opens a screen of eight phase cards in the Missions screen's card
+  look ([front-end.md](front-end.md) §2.2): each card has the phase's number, its title and the pilot's progress in it.
+- **A phase's lessons (built, Approvals A131):** a card opens its lessons in the section-list look: the day lessons,
+  the night lesson and the check ride, each with what it trains and its best result (Pass, Marginal, Unsatisfactory
+  or not flown yet). A lesson opens nothing yet: its briefing (A132) comes next.
+- **Changes to existing screens:** the briefing's sections and diagrams (§2.2, A132), the debrief's grades and fault
+  markers (§2.4, A133), the notebook's Lesson tab (A134), and the course's progress in the Pilot screen's logbook
+  (A135; the Hangar's jet card shows none).
 
 Each of these is a visible change: a mock-up made from the existing screens' parts goes to the Approvals page before
 it is built. The briefing's diagrams use the look of the sim's existing drawings and the notebook's approved look

@@ -94,7 +94,7 @@
   [#scr("date")], [היום והשעה של הטיסה.],
   [#scr("mission")], [המשימה שהוטסה.],
   [#scr("plane_flown")], [המטוס שהוטס.],
-  [#scr("result")], [#scr("pass") או #scr("fail") (@scoring).],
+  [#scr("result")], [#scr("pass") או #scr("fail").],
 )
 
 מעל הרשימה שני מסננים:

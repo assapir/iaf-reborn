@@ -85,7 +85,7 @@ The jet flies on, and every other key works as from the seat. Click the display'
 - hold #key("Hide pilot's body (hold)"): the body hides while you hold the key;
 - press #key("Hide / show pilot's body"): the body hides until you press the key again.
 
-The body shows again at the start of every flight. In a #term("lesson") that rings the switch to use, the game hides the body by itself while it covers that switch (@notebook-ring).
+The body shows again at the start of every flight.
 
 === Views from outside <views-outside>
 

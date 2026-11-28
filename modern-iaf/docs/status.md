@@ -3,6 +3,17 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The training course's screens (2026-11-28, Approvals A130 and A131; [front-end.md](front-end.md) §2.2,
+  [training-plan.md](training-plan.md) §5):** Missions → Training opens the Hangar jet's course: eight phase cards in
+  two rows of four, each with its number, title and lessons passed of its own, the title line the course's lessons
+  passed of 47, counted per jet (a Marginal counts as passed). A phase opens its lessons, numbered 1.1, 1.2 …, each
+  with its title, one line on what it trains (the course's `line`) and the best grade (Pass, Marginal, Unsatisfactory,
+  Not flown yet), beside them a panel on the lesson under the focus or the pointer. The Missions screen's Training
+  card shows the course's count. The Hangar's jet card shows the last flight only. The ten training missions are
+  listed in no section (the user, 28 Nov 2026: "The current existing train should be deleted, o/c. It replaces
+  them"); their ten files are test fixtures only: the cockpit, weapons, AI and avionics tests start them (and
+  `--mission <id>` for a developer), no player screen lists them. `test_training_phases.gd`, `test_front_end.gd`,
+  `test_hangar.gd`.
 - **Failures a lesson starts (2026-11-28, the training plan's §6):** a mission, a check ride's pick or the dev hook
   starts an engine fire (on the take-off roll or in flight), a flameout, hydraulic system A or B, the main generator,
   both generators (with or without the EPU's automatic start), the FLCS's standby gains or a gear fault, on the F-16D, the F-16I and
@@ -16,7 +27,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   average against its standard, the lesson Pass, Marginal or Unsatisfactory), the debrief record's gap and grade per
   goal, the lesson's grade and the faults with their place on the track, the course logbook (each lesson's best
   attempt, each phase's progress, the next lesson) and the check ride's unannounced emergency (the pick and the time).
-  The screens and the lessons' missions are later items of the plan; today's training missions grade the same way.
+  The training missions grade the same way.
   `course` and `training` tests, `test_training_grades.gd`.
 - **The instructor flies (2026-11-28, [training-plan.md](training-plan.md) §2.3; [training.md](training.md) §14):** the
   overhead pattern on the autopilot (the initial, the break over the touchdown zone, the downwind 1 NM left, the
@@ -1485,6 +1496,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
+- **The training course's lessons (2026-11-28, [training-plan.md](training-plan.md) §5, §6):** no lesson has a flight
+  yet, and a lesson row opens nothing. Next on the Approvals page: the lesson's briefing (A132), the debrief's grades
+  and fault markers (A133), the notebook's Lesson tab (A134), the course's progress in the Pilot screen's logbook
+  (A135). Not started.
 - **More callsigns than Kidon (2026-11-25, the user on Approvals A99, "but later"):** more formation names, one drawn
   at random per mission. Not started.
 - **AI for allies and enemies (2026-11-19, the user's plan session):** the plan is in [ai-plan.md](ai-plan.md): a new
@@ -1494,7 +1509,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   milestone 1 slice 1, no change on screen): the Rust core `crates/iaf-ai` and `IafAi`, the slot loop and the AI's
   6-DoF cases and the flight's collision avoidance ([../../docs/ai.md](../../docs/ai.md) §8.7), tested from Ramon's
   shelters to parked again and with a lead landing away from home. Built (19 Nov, slice 2): the four-ship lesson
-  `ramon_four_ship` (Training, the Sufa): Kidon 1-2 to 1-4 in the next shelters with the player's load, started by the
+  `ramon_four_ship` (the Sufa's; a test fixture, in no front-end section): Kidon 1-2 to 1-4 in the next shelters with the player's load, started by the
   tower's start-up clearance, taxiing in order, a stream take-off, the join-up calling "in position", the slots in the
   player's turns, the commands through `IafAi.command`, RTB, the landing and each parked at its own shelter
   (`modern-iaf/tests/test_four_ship.gd`); 0.17 ms CPU and 0.127 ms GPU per AI jet on the Iris Xe laptop (ai-plan X5).

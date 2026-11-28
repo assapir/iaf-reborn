@@ -5,7 +5,7 @@
 #grid-table(
   (auto, 1fr),
   ([Manual], [What it covers]),
-  [Modern IAF, game manual], [Setup, the menus, the settings, flying a mission, the lessons and how they are scored, the air bases, the #term("tower") and the radio.],
+  [Modern IAF, game manual], [Setup, the menus, the settings, flying a mission, the training course, the air bases, the #term("tower") and the radio.],
   [#other-manual("f16i")], [The F-16I #scr-text("sufa").],
   [#other-manual("f16d")], [The F-16D #scr-text("barak").],
   [#other-manual("f35i")], [The F-35I #scr-text("adir").],

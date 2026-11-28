@@ -1,20 +1,20 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("Air bases")The game has five Israeli Air Force bases, each at its real place, with its real runways, taxiways and aprons. Three of them are the homes of the jets you fly, and the lessons start there.
+#idx("Air bases")The game has five Israeli Air Force bases, each at its real place, with its real runways, taxiways and aprons. Three of them are the homes of the jets you fly, and your flights start there.
 
 === The five bases <airbases-list>
 
 #grid-table(
-  (auto, auto, auto, 1fr, auto),
-  ([Base], [Code], [Elevation], [At home there in the game], [Lessons]),
-  [#idx("Ramon")#scr("base_ramon")], [LLRM], [648 m (2,126 ft)], [The F-16I #scr("sufa"), 201 Squadron "The One".], [The Sufa's three],
-  [#idx("Ramat David")#scr("base_ramat_david")], [LLRD], [56 m (185 ft)], [The F-16D #scr("barak"), 109 Squadron "The Valley".], [The Barak's three],
-  [#idx("Nevatim")#scr("base_nevatim")], [LLNV], [405 m (1,330 ft)], [The F-35I #scr("adir"), 116 Squadron "Lions of the South".], [The Adir's three],
-  [#idx("Hatzerim")#scr("base_hatzerim")], [LLHB], [221 m], [The F-15I #scr("raam"), 69 Squadron "The Hammers". This jet comes in a later version.], [None],
-  [#idx("Tel Nof")#scr("base_tel_nof")], [LLEK], [59 m], [The F-15 #scr("baz"), 133 Squadron "Knights of the Twin Tail". This jet comes in a later version.], [None],
+  (auto, auto, auto, 1fr),
+  ([Base], [Code], [Elevation], [At home there in the game]),
+  [#idx("Ramon")#scr("base_ramon")], [LLRM], [648 m (2,126 ft)], [The F-16I #scr("sufa"), 201 Squadron "The One".],
+  [#idx("Ramat David")#scr("base_ramat_david")], [LLRD], [56 m (185 ft)], [The F-16D #scr("barak"), 109 Squadron "The Valley".],
+  [#idx("Nevatim")#scr("base_nevatim")], [LLNV], [405 m (1,330 ft)], [The F-35I #scr("adir"), 116 Squadron "Lions of the South".],
+  [#idx("Hatzerim")#scr("base_hatzerim")], [LLHB], [221 m], [The F-15I #scr("raam"), 69 Squadron "The Hammers". This jet comes in a later version.],
+  [#idx("Tel Nof")#scr("base_tel_nof")], [LLEK], [59 m], [The F-15 #scr("baz"), 133 Squadron "Knights of the Twin Tail". This jet comes in a later version.],
 )
 
-The code is the base's four-letter ICAO code, as the #term("notebook")'s #scr("nb_data") tab shows it. The lessons are listed in @lessons-list.
+The code is the base's four-letter ICAO code, as the #term("notebook")'s #scr("nb_data") tab shows it.
 
 Ramon lies in the Negev desert in the south. Nevatim and Hatzerim lie near Beersheba. Tel Nof lies in the coastal plain south of Tel Aviv. Ramat David lies in the Jezreel Valley in the north.
 
@@ -47,7 +47,7 @@ The headings in the table are true headings. The jet's compass reads about 1° l
 
 === The runway each tower uses <airbases-takeoff>
 
-#idx("Take-off runway")Each base's #term("tower") sends departures to one runway end. The lessons take off from it.
+#idx("Take-off runway")Each base's #term("tower") sends departures to one runway end. Flights from the base take off from it.
 
 #grid-table(
   (auto, auto, auto),
@@ -61,13 +61,11 @@ The headings in the table are true headings. The jet's compass reads about 1° l
 
 === Where a flight starts <airbases-parking>
 
-#idx("Parking spot")Every #term("lesson") starts with the jet on its parking spot at its home base. The jet stands cold, with its wheels on the concrete (@lessons-start).
+#idx("Parking spot")A flight that starts cold starts with the jet on its parking spot at its home base, its wheels on the concrete (@mission-list-scramble).
 
 #idx("Shelter")At Ramon, Ramat David, Nevatim and Tel Nof, and for the Sufas at Hatzerim, the spot is inside a hardened shelter: the jet stands in the middle of the shelter with its nose to the open door. Each type has four shelters, one for each jet of a flight. At Ramon the Sufas start at the ends of the loop taxiways in the north-east of the base. At Hatzerim the Sufas start by the end of runway 28L, and the F-15Is in a row on an apron by the taxiway.
 
 From the spot a taxi route leads over the taxiways to the take-off runway. Out of a shelter it runs straight out of the door, across the shelter's concrete apron to its loop taxiway, then along the taxiways. The briefing's map draws it as a dashed line (@briefing-map). The signs along it are explained in @ground-signs-signs.
-
-#caution[In a lesson, a jet whose middle leaves the paved surface fails the mission (@scoring-at-once). The aprons, the taxiways, the shelters' pads and the runways are paved. The sand between them is not.]
 
 === The towers and their frequencies <airbases-towers>
 

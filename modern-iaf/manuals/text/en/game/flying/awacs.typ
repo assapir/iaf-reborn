@@ -4,7 +4,7 @@
 
 === The contact calls <awacs-calls>
 
-#idx("Contact call")From one minute into a flight, the AWACS reports an aircraft that is within 35 nautical miles of you. It reports again every 12 seconds while one is there. On the Weapons range (@lesson-range) the calls are about the range's drones. The Start-up and Take-off lessons have no other aircraft, so the AWACS stays silent there.
+#idx("Contact call")From one minute into a flight, the AWACS reports an aircraft that is within 35 nautical miles of you. It reports again every 12 seconds while one is there.
 
 A call sounds like this:
 

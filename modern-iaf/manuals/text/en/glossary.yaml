@@ -39,12 +39,12 @@
 - {term: Setup wizard, means: "The program that downloads the open data and builds the game's data, page by page.", in: [game]}
 - {term: Setup step, means: "One part of the setup wizard's work, with its own row, progress bar and state on the Install page.", in: [game]}
 - {term: STOR HDG, means: "Stored heading: the INS's quick alignment, 90 seconds.", in: [f16i, f16d]}
-- {term: Tower, means: "The air base's controller. In Training missions each phase on the ground waits for the tower's clearance.", in: [game]}
+- {term: Tower, means: "The air base's controller. In a cold start each phase on the ground waits for the tower's clearance.", in: [game]}
 - {term: AWACS, means: "Airborne warning and control system: an aircraft with a large radar whose controller tells pilots by radio where other aircraft are.", in: [game]}
 - {term: Clearance, means: "The tower's permission for one phase of a flight: the engine start, the taxi, entering the runway, the take-off.", in: [game]}
 - {term: Debrief, means: "The screen after a flight: the result, each goal against what was flown, and the flight on a map and graphs.", in: [game]}
 - {term: Holding point, means: "The place on a taxiway, short of the runway, where a jet stops and waits for the tower's line-up clearance.", in: [game]}
-- {term: Lesson, means: "A Training mission. Each jet has three: Start-up, Take-off and Weapons range; the Sufa also a Four-ship.", in: [game]}
+- {term: Lesson, means: "One flight of a jet's training course: Training on the Missions screen holds 47 of them in eight phases.", in: [game]}
 - {term: Loadout, means: "The stores a jet carries on a mission, station by station.", in: [game]}
 - {term: Station, means: "A place under the jet's wing or body, or in a weapon bay, where one store or one rack hangs.", in: [game]}
 - {term: Time allowed, means: "The time from the start of a flight within which a mission's goals must be reached.", in: [game]}

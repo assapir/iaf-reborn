@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("Setup")#idx("Setup wizard")Setup builds the game's data: the terrain, the air bases, the units and weapons, the jets' flight data, the sounds and voices, and the training missions. The #term("Setup wizard") does it page by page. You run it once before the first start, and again whenever you want to add or redo a part.
+#idx("Setup")#idx("Setup wizard")Setup builds the game's data: the terrain, the air bases, the units and weapons, the jets' flight data, the sounds and voices, and the missions. The #term("Setup wizard") does it page by page. You run it once before the first start, and again whenever you want to add or redo a part.
 
 === Before you begin <setup-before>
 
@@ -89,7 +89,7 @@ Setup downloads the Survey of Israel 2015 sheet files that are not on the disk y
   [#stp("step_sim-fm")], [The jets' flight models. Required.], [Nothing. Seconds.],
   [#stp("step_sim-own")], [The sounds, the radio voices and the key table. Required.], [Nothing. Seconds.],
   [#stp("step_sim-airbases")], [The air bases on the terrain, with the coast and the inland water. Required. It waits for the terrain step.], [The OpenStreetMap extracts (450 MB), once. Seconds after the download.],
-  [#stp("step_sim-missions")], [The training missions on the bases. Required. It waits for the air bases and for the units and weapons.], [Nothing. Seconds.],
+  [#stp("step_sim-missions")], [The missions on the bases. Required. It waits for the air bases and for the units and weapons.], [Nothing. Seconds.],
   [#stp("step_sim-scenery")], [The buildings, the trees, the roads and the city lights at night. Without it the game flies over the photo ground alone, and the setting #scr("scenery") is greyed (@settings-graphics). It waits for the air bases.], [The buildings' data. The row shows the download size and the disk use under the step's name.],
   [#stp("step_sim-textures")], [Close-up textures for the ground, the models and the trees. Without it the game draws them with their plain surfaces.], [The ambientCG materials, about 310 MB. The row shows the sizes under the step's name.],
 )

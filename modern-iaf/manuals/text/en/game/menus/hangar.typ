@@ -27,7 +27,7 @@ Two more jets stand in the list, greyed. They come in a later version; until the
 + On the #term("Hangar"), look under #scr("aircraft").
   #then[Each row shows a jet's full name, its squadron's number and its base.]
 + Select a jet's row, or move to it with the arrow keys and press #keycap("Enter").
-  #then[The jet stands in the middle of the screen, carrying its #term("loadout"). The card shows its #scr("squadron_l"), its #scr("base_l") and its #scr("tail_number"), and under #scr("training") how many of its lessons you passed and your last flight on it.]
+  #then[The jet stands in the middle of the screen, carrying its #term("loadout"). The card shows its #scr("squadron_l"), its #scr("base_l") and its #scr("tail_number"), and your last flight on it.]
 + Select #scr("fly").
   #then[The #scr("missions") screen opens for that jet (@mission-list).]
 
@@ -35,7 +35,7 @@ The game remembers the jet. The next start opens the Hangar with it.
 
 === What the choice changes <hangar-effect>
 
-- *The missions.* Each jet has its own missions, from its own base. The #scr("missions") screen lists the picked jet's missions only, and counts only them in its progress.
+- *The training and the missions.* Each jet has its own training course and its own missions, from its own base. The #scr("missions") screen shows the picked jet's only, and counts only them in its progress.
 - *The loadout.* The stores under the jet in the Hangar are the loadout you last set for it, or the missions' own when you set none (@loadout).
 - *The cockpit and the procedures.* Each jet has its own cockpit and its own checklist. They are in the jet's flight manual (@manuals).
 

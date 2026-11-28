@@ -2,7 +2,7 @@
 
 #idx("Debrief")The #term("debrief") opens when a flight ends. It tells you whether the mission passed, shows each goal against what you flew, and lays the whole flight out on a map and three graphs.
 
-#screen("debrief", [The debrief of a passed Take-off #term("lesson").])
+#screen("debrief", [The debrief of a passed take-off.])
 
 === The sheet <debrief-sheet>
 
@@ -30,7 +30,7 @@ The sheet is the paper-coloured card. Its band gives the sortie's number in your
   [✗], [The goal failed.],
 )
 
-A target written with "max" is an upper limit. A target with ± allows that much either way. The goals of each #term("lesson") are explained with the lesson: @lesson-startup, @lesson-takeoff and @lesson-range.
+A target written with "max" is an upper limit. A target with ± allows that much either way.
 
 *#scr("combat")* follows the goals in a flight with combat: that flight's #scr("combat_air_kills"), #scr("combat_ground"), #scr("combat_hits") and #scr("combat_lost"), as on the #scr("pilot") screen (@pilots-combat).
 
@@ -38,7 +38,7 @@ A target written with "max" is an upper limit. A target with ± allows that much
 
 *#scr("next_time")* follows with one tip: what to do differently in the next flight. It addresses the reason of a fail, or else the first goal that is not marked ✓. A flight with every goal met has no tip.
 
-#screen("debrief_fail", [The debrief of a failed lesson.])
+#screen("debrief_fail", [The debrief of a failed flight.])
 
 === The whole flight on the map <debrief-map>
 

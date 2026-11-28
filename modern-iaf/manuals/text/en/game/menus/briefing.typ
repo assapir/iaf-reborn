@@ -2,7 +2,7 @@
 
 #idx("Briefing")The briefing is the screen between the #scr("missions") screen (@mission-list) and the flight. It opens when you pick a mission. A map of the base fills the screen. The mission card lies over it on one side and the mission's text on the other.
 
-#screen("briefing_2012", [The briefing of the Sufa's Take-off #term("lesson") at Ramon.])
+#screen("briefing_2012", [The briefing of a take-off from Ramon in the Sufa.])
 
 === The mission card <briefing-card>
 
@@ -17,25 +17,25 @@ The card holds, from the top:
   [#scr("runway")], [The runway end you take off from and its heading, for example 25R and 246°. The heading is the one the jet's compass shows on that runway. A mission that ends before the take-off shows no runway.],
   [#scr("time")], [The time of day at the start, as four digits: 0800 is eight in the morning.],
   [#scr("wind")], [Where the wind comes from, in degrees, and its speed in knots. 000° and 0 kt is calm.],
-  [#scr("time_allowed")], [The minutes you have from the start of the flight to reach the objectives (@scoring-time).],
+  [#scr("time_allowed")], [The minutes you have from the start of the flight to reach the objectives.],
 )
 
-- *#scr("objectives").* What the game checks, each beside an empty box. The same checks decide the result in the #term("debrief") (@debrief). The last line, #scr("obj_safe"), stands for the things that fail any mission at once (@scoring-at-once).
+- *#scr("objectives").* What the game checks, each beside an empty box. The same checks decide the result in the #term("debrief") (@debrief). The last line, #scr("obj_safe"), stands for the things that fail any mission at once.
 - *#scr("tab_arming").* The stores on the jet in short, the #scr("takeoff_weight") and #scr("edit"). The weight shows in the warning colour when it is over the jet's maximum. A #term("loadout") the jet cannot use in flight shows its reason here in one line (@loadout-rules).
 - *The buttons.* #scr("back"), #scr("tab_arming") and #scr("fly").
 
-#idx("Flights (briefing)")A mission with more than one flight also shows #scr("flights"): one tab for each flight, yours first, marked #scr("your_flight"). Pick a tab to see that flight's jets, task and stores and to bring its route into view on the map. Each lesson has one flight, so its card shows no tabs.
+#idx("Flights (briefing)")A mission with more than one flight also shows #scr("flights"): one tab for each flight, yours first, marked #scr("your_flight"). Pick a tab to see that flight's jets, task and stores and to bring its route into view on the map.
 
 === The mission's text <briefing-text>
 
 The text card has two parts:
 
-- *#scr("learn").* Two or three lines: what the lesson teaches. A mission of another kind shows #scr("purpose") here.
+- *#scr("learn").* Two or three lines: what the #term("lesson") teaches. A mission of another kind shows #scr("purpose") here.
 - *#scr("how").* Numbered paragraphs: what to do, in order, from the first call to the #term("tower") to the last objective. The keys in the text are your own keys, as you set them on the #scr("keys_screen") screen (@keys-joystick). The runway, the heading and the #term("time allowed") are the mission's own figures. A Start-up lesson shows a picture of each switch under its paragraph, with a ring round the switch.
 
 Scroll the text with the mouse wheel. With the keyboard, move the focus to the text and use the arrow keys or #keycap("Page Up") and #keycap("Page Down").
 
-#screen("startup_f16i", [A Start-up lesson's briefing.])
+#screen("startup_f16i", [The briefing of a start-up.])
 
 === The map <briefing-map>
 

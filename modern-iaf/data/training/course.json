@@ -71,67 +71,67 @@
   },
   "phases": [
     {"id": "ground", "title": {"en": "Ground and start-up", "he": "קרקע והתנעה"}, "lessons": [
-      {"id": "cockpit", "title": {"en": "Cockpit and power", "he": "תא הטייס והזנת חשמל"}, "items": ["checklist_items", "tower_calls"]},
-      {"id": "engine", "title": {"en": "Engine start and INS", "he": "התנעת המנוע ויישור INS"}, "items": ["startup_time", "checklist_items", "ins_aligned"]},
-      {"id": "taxi", "title": {"en": "Taxi and radio", "he": "הסעה וקשר"}, "items": ["tower_calls", "taxi_speed", "checklist_items"]},
-      {"id": "night", "kind": "night", "title": {"en": "At night: start-up and taxi", "he": "בלילה: התנעה והסעה"}, "items": ["startup_time", "night_lighting", "taxi_speed"]},
-      {"id": "check", "kind": "check", "title": {"en": "Check ride 1", "he": "טיסת מבחן 1"}}
+      {"id": "cockpit", "title": {"en": "Cockpit and power", "he": "תא הטייס והזנת חשמל"}, "line": {"en": "Battery and main power, the displays, the warning lights, the radio check.", "he": "מצבר וחשמל ראשי, התצוגות, נורות האזהרה, בדיקת קשר."}, "items": ["checklist_items", "tower_calls"]},
+      {"id": "engine", "title": {"en": "Engine start and INS", "he": "התנעת המנוע ויישור INS"}, "line": {"en": "The full start-up with the INS alignment, then the engine shutdown.", "he": "התנעה מלאה עם יישור INS, ואחריה כיבוי המנוע."}, "items": ["startup_time", "checklist_items", "ins_aligned"]},
+      {"id": "taxi", "title": {"en": "Taxi and radio", "he": "הסעה וקשר"}, "line": {"en": "The ground calls, the taxi to the hold point and back, the shutdown.", "he": "קריאות הקרקע, הסעה לנקודת ההמתנה וחזרה, כיבוי המנוע."}, "items": ["tower_calls", "taxi_speed", "checklist_items"]},
+      {"id": "night", "kind": "night", "title": {"en": "At night: start-up and taxi", "he": "בלילה: התנעה והסעה"}, "line": {"en": "The start-up with the cockpit lighting, the taxi by night.", "he": "התנעה עם תאורת תא הטייס, הסעה בלילה."}, "items": ["startup_time", "night_lighting", "taxi_speed"]},
+      {"id": "check", "kind": "check", "title": {"en": "Check ride 1", "he": "טיסת מבחן 1"}, "line": {"en": "Start-up, radio, taxi to the runway, line-up, taxi back, shutdown.", "he": "התנעה, קשר, הסעה למסלול, עלייה למסלול, הסעה חזרה, כיבוי."}}
     ]},
     {"id": "pattern", "title": {"en": "Basic handling, the pattern and landing", "he": "שליטה בסיסית, המראה ונחיתה"}, "lessons": [
-      {"id": "first_flight", "title": {"en": "Take-off and first flight", "he": "המראה וטיסה ראשונה"}, "items": ["max_centreline_offset", "liftoff_speed_error", "gear_up_time", "touchdown_distance", "sink_rate"]},
-      {"id": "overhead", "title": {"en": "The overhead break and landing", "he": "הקפה עם שבירה ונחיתה"}, "items": ["pattern_altitude_error", "final_aoa_error", "touchdown_distance", "landing_centreline"]},
-      {"id": "touch_and_go", "title": {"en": "Touch-and-go and go-around", "he": "נגיעה והמראה, והליכה סביב"}, "items": ["pattern_altitude_error", "final_aoa_error", "go_around_height"]},
-      {"id": "high_aoa", "title": {"en": "High AoA and G", "he": "זווית התקפה גבוהה ועומסים"}, "items": ["airspeed_error", "max_g", "corner_speed_error"]},
-      {"id": "engine_fire", "title": {"en": "Take-off abort and engine fire", "he": "ביטול המראה ואש במנוע"}, "items": ["abort_stopped", "fire_throttle_time", "emergency_checklist"], "emergencies": ["engine_fire_roll", "engine_fire"]},
-      {"id": "flameout", "title": {"en": "Flameout and airstart", "he": "המנוע כבה באוויר: התנעה באוויר"}, "items": ["airstart_done", "flameout_landing", "emergency_checklist"], "emergencies": ["flameout"]},
-      {"id": "night", "kind": "night", "title": {"en": "At night: the pattern and landing", "he": "בלילה: הקפה ונחיתה"}, "items": ["pattern_altitude_error", "final_aoa_error", "touchdown_distance"]},
-      {"id": "check", "kind": "check", "title": {"en": "Check ride 2", "he": "טיסת מבחן 2"}}
+      {"id": "first_flight", "title": {"en": "Take-off and first flight", "he": "המראה וטיסה ראשונה"}, "line": {"en": "Take-off, climb, level turns, a straight-in landing.", "he": "המראה, טיפוס, פניות אופקיות, נחיתה ישירה."}, "items": ["max_centreline_offset", "liftoff_speed_error", "gear_up_time", "touchdown_distance", "sink_rate"]},
+      {"id": "overhead", "title": {"en": "The overhead break and landing", "he": "הקפה עם שבירה ונחיתה"}, "line": {"en": "The instructor flies one pattern, then you.", "he": "הקפה אחת של המדריך, ואחריה הקפות עצמאיות."}, "items": ["pattern_altitude_error", "final_aoa_error", "touchdown_distance", "landing_centreline"]},
+      {"id": "touch_and_go", "title": {"en": "Touch-and-go and go-around", "he": "נגיעה והמראה, והליכה סביב"}, "line": {"en": "Closed patterns, a touch-and-go, a go-around.", "he": "הקפות סגורות, נגיעה והמראה, הליכה סביב."}, "items": ["pattern_altitude_error", "final_aoa_error", "go_around_height"]},
+      {"id": "high_aoa", "title": {"en": "High AoA and G", "he": "זווית התקפה גבוהה ועומסים"}, "line": {"en": "Slow flight, the AoA and G limiters, corner speed.", "he": "טיסה איטית, מגבילי זווית ההתקפה והעומס, מהירות פינה."}, "items": ["airspeed_error", "max_g", "corner_speed_error"]},
+      {"id": "engine_fire", "title": {"en": "Take-off abort and engine fire", "he": "ביטול המראה ואש במנוע"}, "line": {"en": "An engine fire on the roll, and one in flight.", "he": "אש במנוע בריצת ההמראה, ואש במנוע בטיסה."}, "items": ["abort_stopped", "fire_throttle_time", "emergency_checklist"], "emergencies": ["engine_fire_roll", "engine_fire"]},
+      {"id": "flameout", "title": {"en": "Flameout and airstart", "he": "המנוע כבה באוויר: התנעה באוויר"}, "line": {"en": "A flameout, the airstart, the flameout landing.", "he": "המנוע כבה, התנעה באוויר, נחיתה ללא מנוע."}, "items": ["airstart_done", "flameout_landing", "emergency_checklist"], "emergencies": ["flameout"]},
+      {"id": "night", "kind": "night", "title": {"en": "At night: the pattern and landing", "he": "בלילה: הקפה ונחיתה"}, "line": {"en": "Take-off, the pattern and landing by night.", "he": "המראה, הקפה ונחיתה בלילה."}, "items": ["pattern_altitude_error", "final_aoa_error", "touchdown_distance"]},
+      {"id": "check", "kind": "check", "title": {"en": "Check ride 2", "he": "טיסת מבחן 2"}, "line": {"en": "Everything of phases 1 and 2.", "he": "כל שלבים 1 ו-2."}}
     ]},
     {"id": "navigation", "title": {"en": "Navigation and instruments", "he": "ניווט וטיסת מכשירים"}, "lessons": [
-      {"id": "steerpoints", "title": {"en": "Waypoint navigation", "he": "ניווט בנקודות ציון"}, "items": ["steerpoint_miss", "altitude_error", "time_on_target"]},
-      {"id": "low_level", "title": {"en": "Low-level navigation", "he": "ניווט בגובה נמוך"}, "items": ["steerpoint_miss", "low_level_height_error", "time_on_target"]},
-      {"id": "instruments", "title": {"en": "Instrument approach", "he": "גישת מכשירים"}, "items": ["localizer_deviation", "glideslope_deviation", "airspeed_error", "touchdown_distance"]},
-      {"id": "systems", "title": {"en": "Systems failures", "he": "תקלות מערכות"}, "items": ["emergency_checklist", "altitude_error"], "emergencies": ["hydraulic", "gear_fault", "electrical", "epu", "flight_controls"]},
-      {"id": "night", "kind": "night", "title": {"en": "At night: low-level navigation", "he": "בלילה: ניווט בגובה נמוך"}, "items": ["steerpoint_miss", "low_level_height_error"]},
-      {"id": "check", "kind": "check", "night": true, "title": {"en": "Check ride 3", "he": "טיסת מבחן 3"}}
+      {"id": "steerpoints", "title": {"en": "Waypoint navigation", "he": "ניווט בנקודות ציון"}, "line": {"en": "Waypoints at medium altitude with the ICP and the DED.", "he": "נקודות ציון בגובה בינוני עם ה-ICP וה-DED."}, "items": ["steerpoint_miss", "altitude_error", "time_on_target"]},
+      {"id": "low_level", "title": {"en": "Low-level navigation", "he": "ניווט בגובה נמוך"}, "line": {"en": "A route of waypoints at low level.", "he": "מסלול של נקודות ציון בגובה נמוך."}, "items": ["steerpoint_miss", "low_level_height_error", "time_on_target"]},
+      {"id": "instruments", "title": {"en": "Instrument approach", "he": "גישת מכשירים"}, "line": {"en": "In cloud: the TACAN and ILS approaches.", "he": "בעננים: גישות TACAN ו-ILS."}, "items": ["localizer_deviation", "glideslope_deviation", "airspeed_error", "touchdown_distance"]},
+      {"id": "systems", "title": {"en": "Systems failures", "he": "תקלות מערכות"}, "line": {"en": "Hydraulic and electrical failures, flown on the standby instruments.", "he": "תקלות הידראוליות וחשמליות, בטיסה על מכשירי הגיבוי."}, "items": ["emergency_checklist", "altitude_error"], "emergencies": ["hydraulic", "gear_fault", "electrical", "epu", "flight_controls"]},
+      {"id": "night", "kind": "night", "title": {"en": "At night: low-level navigation", "he": "בלילה: ניווט בגובה נמוך"}, "line": {"en": "Low-level navigation by night.", "he": "ניווט בגובה נמוך בלילה."}, "items": ["steerpoint_miss", "low_level_height_error"]},
+      {"id": "check", "kind": "check", "night": true, "title": {"en": "Check ride 3", "he": "טיסת מבחן 3"}, "line": {"en": "Everything of phases 1 to 3, at night.", "he": "כל שלבים 1 עד 3, בלילה."}}
     ]},
     {"id": "formation", "own_check_only": true, "title": {"en": "Formation and flight lead", "he": "מבנה והובלה"}, "lessons": [
-      {"id": "wingman", "title": {"en": "Wingman", "he": "מספר 2"}, "items": ["formation_position", "rejoin_time"]},
-      {"id": "tactical", "title": {"en": "Tactical formation", "he": "מבנה טקטי"}, "items": ["formation_position"]},
-      {"id": "lead_pair", "title": {"en": "Lead a pair", "he": "הובלת זוג"}, "items": ["flight_commands", "flight_landed"]},
-      {"id": "lead_four", "title": {"en": "Lead a four-ship", "he": "הובלת רביעייה"}, "items": ["flight_commands", "flight_landed"]},
-      {"id": "night", "kind": "night", "title": {"en": "At night: formation and the rejoin", "he": "בלילה: מבנה והצטרפות"}, "items": ["formation_position", "rejoin_time"]},
-      {"id": "check", "kind": "check", "title": {"en": "Check ride 4", "he": "טיסת מבחן 4"}}
+      {"id": "wingman", "title": {"en": "Wingman", "he": "מספר 2"}, "line": {"en": "Formation take-off, close and route formation, the rejoin.", "he": "המראה במבנה, מבנה צמוד ומבנה מסע, הצטרפות."}, "items": ["formation_position", "rejoin_time"]},
+      {"id": "tactical", "title": {"en": "Tactical formation", "he": "מבנה טקטי"}, "line": {"en": "Spread formation and the tactical turns.", "he": "מבנה פתוח ופניות טקטיות."}, "items": ["formation_position"]},
+      {"id": "lead_pair", "title": {"en": "Lead a pair", "he": "הובלת זוג"}, "line": {"en": "The element commands, the pair's recovery and landing.", "he": "פקודות הזוג, החזרה והנחיתה של הזוג."}, "items": ["flight_commands", "flight_landed"]},
+      {"id": "lead_four", "title": {"en": "Lead a four-ship", "he": "הובלת רביעייה"}, "line": {"en": "The flight's commands, the take-off and landing order.", "he": "פקודות הרביעייה, סדר ההמראה והנחיתה."}, "items": ["flight_commands", "flight_landed"]},
+      {"id": "night", "kind": "night", "title": {"en": "At night: formation and the rejoin", "he": "בלילה: מבנה והצטרפות"}, "line": {"en": "Formation and the rejoin by night.", "he": "מבנה והצטרפות בלילה."}, "items": ["formation_position", "rejoin_time"]},
+      {"id": "check", "kind": "check", "title": {"en": "Check ride 4", "he": "טיסת מבחן 4"}, "line": {"en": "Formation and flight lead.", "he": "מבנה והובלה."}}
     ]},
     {"id": "ground_attack", "title": {"en": "Air-to-ground", "he": "תקיפה"}, "lessons": [
-      {"id": "ccip", "title": {"en": "Unguided bombs with CCIP", "he": "פצצות לא מונחות ב-CCIP"}, "items": ["bomb_miss", "dive_angle_error", "release_height_error"]},
-      {"id": "strafe", "title": {"en": "Gun strafe", "he": "ירי תותח לקרקע"}, "items": ["strafe_hits", "recovery_height"]},
-      {"id": "guided", "title": {"en": "Guided bombs", "he": "פצצות מונחות"}, "items": ["guided_hits"]},
-      {"id": "night", "kind": "night", "title": {"en": "At night: guided bombs", "he": "בלילה: פצצות מונחות"}, "items": ["guided_hits"]},
-      {"id": "check", "kind": "check", "night": true, "title": {"en": "Check ride 5", "he": "טיסת מבחן 5"}}
+      {"id": "ccip", "title": {"en": "Unguided bombs with CCIP", "he": "פצצות לא מונחות ב-CCIP"}, "line": {"en": "Unguided bombs with CCIP at the range.", "he": "פצצות לא מונחות ב-CCIP במטווח."}, "items": ["bomb_miss", "dive_angle_error", "release_height_error"]},
+      {"id": "strafe", "title": {"en": "Gun strafe", "he": "ירי תותח לקרקע"}, "line": {"en": "Gun strafe at the range.", "he": "ירי תותח לקרקע במטווח."}, "items": ["strafe_hits", "recovery_height"]},
+      {"id": "guided", "title": {"en": "Guided bombs", "he": "פצצות מונחות"}, "line": {"en": "GPS bombs, and laser bombs with the targeting pod.", "he": "פצצות GPS, ופצצות לייזר עם פוד הכוונה."}, "items": ["guided_hits"]},
+      {"id": "night", "kind": "night", "title": {"en": "At night: guided bombs", "he": "בלילה: פצצות מונחות"}, "line": {"en": "GPS and laser bombs at the range by night.", "he": "פצצות GPS ולייזר במטווח בלילה."}, "items": ["guided_hits"]},
+      {"id": "check", "kind": "check", "night": true, "title": {"en": "Check ride 5", "he": "טיסת מבחן 5"}, "line": {"en": "Everything of phases 1 to 5, at night.", "he": "כל שלבים 1 עד 5, בלילה."}}
     ]},
-    {"id": "control", "title": {"en": "AWACS, ground control and the tanker", "he": "בקרה ותדלוק אווירי"}, "lessons": [
-      {"id": "checkin", "title": {"en": "Check-in and the picture", "he": "הצטרפות ל-AWACS ותמונת מצב"}, "items": ["awacs_checkin"]},
-      {"id": "vectors", "title": {"en": "Vectors", "he": "כיוונים"}, "items": ["awacs_checkin", "vector_heading_error"]},
-      {"id": "tanker", "title": {"en": "Air refuelling", "he": "תדלוק אווירי"}, "items": ["tanker_contact_time", "tanker_disconnects", "fuel_taken"]},
-      {"id": "night", "kind": "night", "title": {"en": "At night: the tanker", "he": "בלילה: תדלוק אווירי"}, "items": ["tanker_contact_time", "tanker_disconnects", "fuel_taken"]},
-      {"id": "check", "kind": "check", "title": {"en": "Check ride 6", "he": "טיסת מבחן 6"}}
+    {"id": "control", "title": {"en": "AWACS, ground control, tanker", "he": "בקרה ותדלוק אווירי"}, "lessons": [
+      {"id": "checkin", "title": {"en": "Check-in and the picture", "he": "הצטרפות ל-AWACS ותמונת מצב"}, "line": {"en": "The AWACS check-in, picture calls, bogey dope.", "he": "כניסה לרשת ה-AWACS, קריאות תמונה, בקשת מידע על מטרה."}, "items": ["awacs_checkin"]},
+      {"id": "vectors", "title": {"en": "Vectors", "he": "כיוונים"}, "line": {"en": "Vectors to a contact, the hand-off, the return.", "he": "הכוונה למגע, העברה בין בקרים, חזרה."}, "items": ["awacs_checkin", "vector_heading_error"]},
+      {"id": "tanker", "title": {"en": "Air refuelling", "he": "תדלוק אווירי"}, "line": {"en": "Vectors to the tanker, the join-up, contact, fuel, the disconnect.", "he": "הכוונה למטוס התדלוק, הצטרפות, חיבור, תדלוק, ניתוק."}, "items": ["tanker_contact_time", "tanker_disconnects", "fuel_taken"]},
+      {"id": "night", "kind": "night", "title": {"en": "At night: the tanker", "he": "בלילה: תדלוק אווירי"}, "line": {"en": "The tanker by night.", "he": "תדלוק אווירי בלילה."}, "items": ["tanker_contact_time", "tanker_disconnects", "fuel_taken"]},
+      {"id": "check", "kind": "check", "title": {"en": "Check ride 6", "he": "טיסת מבחן 6"}, "line": {"en": "Everything of phases 1 to 6.", "he": "כל שלבים 1 עד 6."}}
     ]},
     {"id": "air_to_air", "title": {"en": "Air-to-air", "he": "קרב אוויר ויירוט"}, "lessons": [
-      {"id": "drone", "title": {"en": "Intercept a drone", "he": "יירוט מל\"ט"}, "items": ["targets_killed", "shots_in_reach"]},
-      {"id": "bvr", "title": {"en": "BVR against aggressors", "he": "BVR מול מטוסי יריב"}, "items": ["targets_killed", "shots_in_reach", "times_killed"]},
-      {"id": "offensive_bfm", "title": {"en": "Offensive BFM", "he": "BFM התקפי"}, "items": ["tracking_time", "targets_killed", "times_killed"]},
-      {"id": "defensive_bfm", "title": {"en": "Defensive BFM", "he": "BFM הגנתי"}, "items": ["times_killed", "max_g"]},
-      {"id": "enemy_types", "title": {"en": "Against enemy types", "he": "מול מטוסי אויב"}, "items": ["targets_killed", "times_killed"]},
-      {"id": "night", "kind": "night", "title": {"en": "At night: the drone and BVR", "he": "בלילה: מל\"ט ו-BVR"}, "items": ["targets_killed", "shots_in_reach"]},
-      {"id": "check", "kind": "check", "title": {"en": "Check ride 7", "he": "טיסת מבחן 7"}}
+      {"id": "drone", "title": {"en": "Intercept a drone", "he": "יירוט מל\"ט"}, "line": {"en": "Radar search, lock and a missile shot on a drone.", "he": "חיפוש מכ\"ם, נעילה וירי טיל על מל\"ט."}, "items": ["targets_killed", "shots_in_reach"]},
+      {"id": "bvr", "title": {"en": "BVR against aggressors", "he": "BVR מול מטוסי יריב"}, "line": {"en": "BVR shots on aggressor F-16s that manoeuvre.", "he": "ירי BVR על מטוסי F-16 תוקפים מתמרנים."}, "items": ["targets_killed", "shots_in_reach", "times_killed"]},
+      {"id": "offensive_bfm", "title": {"en": "Offensive BFM", "he": "BFM התקפי"}, "line": {"en": "From behind an aggressor: pursuit, the yo-yo, missile and gun.", "he": "מאחורי תוקף: מרדף, יו-יו, טיל ותותח."}, "items": ["tracking_time", "targets_killed", "times_killed"]},
+      {"id": "defensive_bfm", "title": {"en": "Defensive BFM", "he": "BFM הגנתי"}, "line": {"en": "An aggressor behind: the break turn, the defence, the reversal.", "he": "תוקף מאחור: פניית שבירה, התגוננות, היפוך."}, "items": ["times_killed", "max_g"]},
+      {"id": "enemy_types", "title": {"en": "Against enemy types", "he": "מול מטוסי אויב"}, "line": {"en": "BVR and BFM against the enemy fighters.", "he": "BVR ו-BFM מול מטוסי הקרב של האויב."}, "items": ["targets_killed", "times_killed"]},
+      {"id": "night", "kind": "night", "title": {"en": "At night: the drone and BVR", "he": "בלילה: מל\"ט ו-BVR"}, "line": {"en": "The drone intercept and BVR by night.", "he": "יירוט מל\"ט ו-BVR בלילה."}, "items": ["targets_killed", "shots_in_reach"]},
+      {"id": "check", "kind": "check", "title": {"en": "Check ride 7", "he": "טיסת מבחן 7"}, "line": {"en": "Everything of phases 1 to 7.", "he": "כל שלבים 1 עד 7."}}
     ]},
     {"id": "threats", "title": {"en": "Threats and electronic warfare", "he": "איומים ולוחמה אלקטרונית"}, "lessons": [
-      {"id": "rwr", "title": {"en": "The RWR and countermeasures", "he": "RWR ואמצעי נגד"}, "items": ["countermeasure_time", "sam_hits"]},
-      {"id": "defeat_sam", "title": {"en": "Defeat a SAM", "he": "התחמקות מטיל קרקע-אוויר"}, "items": ["sam_hits", "inside_sam_reach"]},
-      {"id": "strike_sam", "title": {"en": "Strike a SAM site", "he": "תקיפת סוללת טילים"}, "items": ["sam_site_destroyed", "sam_hits", "inside_sam_reach"]},
-      {"id": "night", "kind": "night", "title": {"en": "At night: SAM defence", "he": "בלילה: הגנה מטילי קרקע-אוויר"}, "items": ["sam_hits", "countermeasure_time"]},
-      {"id": "check", "kind": "check", "night": true, "title": {"en": "Check ride 8", "he": "טיסת מבחן 8"}}
+      {"id": "rwr", "title": {"en": "The RWR and countermeasures", "he": "RWR ואמצעי נגד"}, "line": {"en": "The threat display, chaff and flares against a SAM.", "he": "תצוגת האיומים, מוץ ונורים מול טיל קרקע-אוויר."}, "items": ["countermeasure_time", "sam_hits"]},
+      {"id": "defeat_sam", "title": {"en": "Defeat a SAM", "he": "התחמקות מטיל קרקע-אוויר"}, "line": {"en": "The notch and terrain masking against a SAM.", "he": "תמרון התחמקות ומיסוך שטח מול טיל קרקע-אוויר."}, "items": ["sam_hits", "inside_sam_reach"]},
+      {"id": "strike_sam", "title": {"en": "Strike a SAM site", "he": "תקיפת סוללת טילים"}, "line": {"en": "Find a SAM site and destroy it with GPS bombs.", "he": "איתור סוללת טילים והשמדתה בפצצות GPS."}, "items": ["sam_site_destroyed", "sam_hits", "inside_sam_reach"]},
+      {"id": "night", "kind": "night", "title": {"en": "At night: SAM defence", "he": "בלילה: הגנה מטילי קרקע-אוויר"}, "line": {"en": "SAM defence by night.", "he": "התגוננות מטילי קרקע-אוויר בלילה."}, "items": ["sam_hits", "countermeasure_time"]},
+      {"id": "check", "kind": "check", "night": true, "title": {"en": "Check ride 8", "he": "טיסת מבחן 8"}, "line": {"en": "The course's last: a full sortie, at night.", "he": "האחרונה בהסבה: גיחה מלאה, בלילה."}}
     ]}
   ]
 }

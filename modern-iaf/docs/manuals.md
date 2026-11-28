@@ -179,13 +179,11 @@ A display's picture is `display("<name>", [caption])`: `pictures/<cockpit>/d_<na
 `fig-d-<name>` (§4).
 
 **The game manual** (`text/en/game/`, a folder a chapter, a file a section). Its chapters: 1 Getting started
-(what you need, setup, starting the game, flying a mission in five steps, the manuals), 2 The menus (the Hangar, pilots and the
-pilot log, jet and base, the Missions screen, the briefing, the Loadout screen and its rules, Settings with every
-option, keys and joystick, language), 3 Flying a mission (loading, views, the pointer, the notebook, the tower and
-the radio flow, the AWACS, pause / time / leaving, the debrief), 4 Missions and training (the lessons in order, one
-section a lesson, "Pass and fail": the game's consequences, which the jets' procedures link to as
-`other("game", "missions-training")`), 5 Air bases, 6 Troubleshooting (setup faults, after an update, the crash
-page, slow flight, keys on a Mac). It is written from the game as built: the code, the data and the docs named in
+(what you need, setup, starting the game, flying a mission in four steps, the manuals), 2 The menus (the Hangar, pilots and the
+pilot log, jet and base, the Missions screen with Training's phases and lessons and Scramble, the briefing, the
+Loadout screen and its rules, Settings with every option, keys and joystick, language), 3 Flying a mission (loading,
+views, the pointer, the notebook, the tower and the radio flow, the AWACS, pause / time / leaving, the debrief), 4 Air
+bases, 5 Troubleshooting (setup faults, after an update, the crash page, slow flight, keys on a Mac). It is written from the game as built: the code, the data and the docs named in
 each section's brief.
 
 | part | rule |

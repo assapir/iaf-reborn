@@ -1,17 +1,17 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("Missions screen")The #scr("missions") screen opens from the #term("Hangar")'s #scr("fly"). It holds the picked jet's missions, in sections.
+#idx("Missions screen")The #scr("missions") screen opens from the #term("Hangar")'s #scr("fly"). It holds the picked jet's training course and its missions, in sections.
 
 #screen("missions", [The #scr("missions") screen: a card for each section.])
 
 === The sections <mission-list-sections>
 
-Each section is a card with its number, its title and, at its foot, your progress in it: how many of its missions you passed, and a bar.
+Each section is a card with its number, its title and, at its foot, your progress in it: how many of its lessons or missions you passed, and a bar.
 
 #grid-table(
   (auto, 1fr),
   ([Section], [What it holds]),
-  [#scr("sec_training")#idx("Training")], [Each jet's three lessons from its home base: #scr("kind_startup"), #scr("kind_takeoff") and the weapons range (@lessons).],
+  [#scr("sec_training")#idx("Training")], [The picked jet's training course: its eight phases and their lessons (@mission-list-training). The card counts the course's lessons you passed.],
   [#scr("sec_campaign")#idx("Campaign")], [Comes in a later version. The card is greyed and marked #scr("coming_later").],
   [#scr("sec_single")#idx("Single missions")], [Comes in a later version. The card is greyed and marked #scr("coming_later").],
   [#scr("sec_fly_now")#idx("Scramble")], [A quick fight against an enemy drawn at random, with the task given by the #term("AWACS") (@mission-list-scramble). The card shows no progress.],
@@ -19,34 +19,31 @@ Each section is a card with its number, its title and, at its foot, your progres
 
 A greyed card takes no click and no focus.
 
-=== A section's list <mission-list-rows>
+=== Training: the phases <mission-list-training>
 
-Selecting #scr("sec_training") opens its list: the picked jet's missions in order, numbered from 1.
+#idx("Training")#idx("Phases")Selecting #scr("sec_training") opens the picked jet's training course: 47 lessons in eight phases, flown in order. The title line shows how many of the course's lessons you passed, for example #strong(scr-text("passed_of").replace("%d", "5", count: 1).replace("%d", "47", count: 1)).
 
-#screen("section", [The list of #scr("sec_training"), with the panel on the mission under the focus.])
+The eight phases stand as cards in two rows of four. Each card shows the phase's number, its title and, at its foot, how many of the phase's lessons you passed, with a bar. A #term("lesson") counts as passed with #scr("pass") or #scr("grade_marginal"). Each jet keeps its own count.
+
+Select a card, or press #keycap("Enter") on it, to open the phase's lessons.
+
+=== A phase's lessons <mission-list-lessons>
+
+#idx("Lessons")The list's title is the phase's number and title, for example #strong(scr-text("phase_n").replace("%d", "2")), with how many of its lessons you passed. Each row is one lesson: the day lessons, then the night lesson, then the check ride.
 
 #grid-table(
   (auto, 1fr),
   ([Part of a row], [What it shows]),
-  [The number and the title], [The mission's place in the section and its name.],
-  [The line under the title], [The base and what the mission trains.],
-  [The last result], [#scr("pass") with your best time, #scr("fail"), or #scr("not_flown").],
-  [#scr("next_up")], [The mark on the mission to fly next: the one after the mission you flew last. After the section's last mission it is the first one you have not passed. With every mission passed, no row is marked.],
+  [The number], [The phase and the lesson: 2.1 is the first lesson of phase 2.],
+  [The title and the line under it], [The lesson's name and what it trains.],
+  [The grade], [Your best grade in the lesson: #scr("pass"), #scr("grade_marginal") or #scr("grade_unsat"); #scr("not_flown") before your first flight of it.],
 )
 
-The panel beside the list tells more about the mission under the focus or the pointer: its number and title, #scr("learn"), its base, #scr("time_allowed"), #scr("last_result") with its day, and #scr("best_time").
+The panel beside the list tells more about the lesson under the focus or the pointer: its number (#strong(scr-text("lesson_n").replace("%d.%d", "2.1"))), its title, #scr("learn") and #scr("last_result") with its day.
 
-=== Starting a mission <mission-list-fly>
+A lesson's row opens nothing yet: the lessons' briefings and flights come in a later version.
 
-#idx("Mission, starting")
-+ On the #scr("missions") screen, select a section.
-  #then[The section's list opens. The mission marked #scr("next_up") has the focus.]
-+ Select a mission's row, or press #keycap("Enter") on it.
-  #then[The mission's briefing opens (@briefing).]
-+ Select #scr("fly") on the briefing.
-  #then[The mission loads (@loading).]
-
-#scr("back") or #keycap("Esc") goes one screen back: from the list to the #scr("missions") screen, from there to the Hangar.
+#scr("back") or #keycap("Esc") goes one screen back: from the lessons to the phases, from the phases to the #scr("missions") screen, from there to the Hangar.
 
 === Scramble <mission-list-scramble>
 

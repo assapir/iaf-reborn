@@ -8,7 +8,8 @@ The scoring core (item E3a, plan.md) reads a recorded flight and a training miss
 debrief's numbers. It is pure Rust. Since item E3b (2026-11-03) the game runs both training missions without the front
 end: the jet parked cold, one start command (§7), the radio menu and the tower (§8), scoring at the mission's end with
 the debrief record and the pilot log (§9), and a probe that flies both missions for each jet (§10). The front end
-(item E2, [front-end.md](front-end.md)) shows the record as its debrief sheet.
+(item E2, [front-end.md](front-end.md)) shows the record as its debrief sheet. The front end lists none of these
+missions: its Training is the course (§13); the missions are flown by the automated tests and `--mission <id>`.
 
 ```sh
 cargo run -p iaf-tools --bin iaf-training -- score <flight.jsonl> modern-iaf/data/missions/ramon_takeoff.json [airbases-dir] [--json debrief.json]
@@ -782,14 +783,17 @@ with the gear up and sank into the ground at "landing step 5" (the 1998 landing 
 ## 13. The course, the grades and the logbook
 The course of each jet ([training-plan.md](training-plan.md) §3) is data, `modern-iaf/data/training/course.json`,
 built into the library and read by `crates/iaf-tools/src/course.rs` (module `course`). Its rules are the one place
-every screen and the flight read the course, the grades and the logbook from. No lesson of the course has a mission yet: the
-training missions of §3 fly as before, outside the course.
+every screen and the flight read the course, the grades and the logbook from. The front end's Training screens show
+it ([front-end.md](front-end.md) §2.2). No lesson of the course has a mission yet. The training missions of §3 are
+listed in no front-end section (the user, 28 Nov 2026: "The current existing train should be deleted, o/c. It
+replaces them"): their files stay for the automated tests and `--mission <id>` runs.
 
 ### 13.1 The course
 - `jets`: per jet's unit id (`f16d`, `f16i`, `f35i`) its home base and where its instructor flies (`back_seat`, or
   `lead`: a second F-35I).
 - `phases`: the eight phases in order, each with `id`, `title` (`{"en", "he"}`) and `lessons`. A lesson has `id`,
-  `title`, `kind` (`day` by default, `night`, `check`), `items` (its graded items' ids), `emergencies` (the ones it
+  `title`, `line` (`{"en", "he"}`: one line on what it trains, the lesson list's), `kind` (`day` by default, `night`,
+  `check`), `items` (its graded items' ids), `emergencies` (the ones it
   teaches) and `missions` (`{jet: readable mission id}`, the mission that flies it). A check ride has `night: true`
   when it is flown at night (check rides 3, 5 and 8). A phase with `own_check_only` (the formation phase) keeps its
   skills to its own check ride. A lesson's key is `<phase>.<lesson>` (`pattern.overhead`).

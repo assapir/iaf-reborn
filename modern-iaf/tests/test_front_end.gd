@@ -494,7 +494,7 @@ func jet_missions(fe: Control) -> void:
 	)
 	fe.show_page("hangar")
 	await frames(2)
-	check(_has(fe.find_child("JetCard", true, false), "0 of 3 passed"), "jets: the Hangar card: the Barak's progress")
+	check(not _has_part(fe.find_child("JetCard", true, false), " passed"), "jets: the Hangar card: no progress")
 	# A mission flies in its own jet: the compiled data as it is, its unit picked.
 	check(fly_gd.prepare(2012), "jets: Ramon's take-off prepared")
 	check(s.sim_jet == "f16i" and not s.mission_files_override[0].data.has("readable"), "jets: flown in the Sufa")
@@ -714,7 +714,7 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	await frames(2)
 	check(s.sim_jet == "f16i" and s.f16_variant == "sufa", "%s: the Sufa picked (sim_jet, the F-16 switch)" % lang)
 	check(fe.find_child("Campaign", true, false) == null, "%s: hangar: no campaign button (Missions has it)" % lang)
-	check(_has(fe, "2 מתוך 4 עברו" if he else "2 of 4 passed"), "%s: hangar: the Sufa's own progress" % lang)
+	check(not _has_part(fe, "מתוך" if he else " passed"), "%s: hangar: no course progress (the logbook has it)" % lang)
 	fe.find_child("Fly", true, false).pressed.emit()
 	await frames(2)
 	await _missions_checks(fe, lang)
@@ -1800,7 +1800,9 @@ func _missions_checks(fe: Control, lang: String) -> void:
 		(row_x.call("training") > row_x.call("fly_now")) == he,
 		"%s: missions: the sections from the inline start" % lang
 	)
-	check(_has(fe, "2 מתוך 4 עברו" if he else "2 of 4 passed"), "%s: missions: Training's progress" % lang)
+	check(
+		_has(fe, "0 מתוך 47 עברו" if he else "0 of 47 passed"), "%s: missions: Training's progress: the course" % lang
+	)
 	# A card: its number, title and progress (or Coming later); no subtitle, no list of what it holds (2026-11-16).
 	var tr: Control = fe.find_child("Section_training", true, false)
 	var texts := func(c: Control) -> Array: return _labels(c).filter(func(x): return x != "")
@@ -1838,7 +1840,12 @@ func _missions_checks(fe: Control, lang: String) -> void:
 	await frames(2)
 	(fe.find_child("Section_training", true, false) as Button).pressed.emit()
 	await frames(2)
-	check(fe.page == "section" and fe.missions.size() == 4, "%s: Training lists the Sufa's four missions" % lang)
+	check(fe.page == "phases", "%s: Training opens the course's phases" % lang)
+	# The list's own checks on the tests' training missions (category "training", in no section).
+	fe.section = "training"
+	fe.show_page("section")
+	await frames(2)
+	check(fe.page == "section" and fe.missions.size() == 4, "%s: the list: the Sufa's four test missions" % lang)
 	var rows: Array = fe.find_child("List", true, false).get_children()
 	var status := func(i: int) -> String: return str(rows[i].find_child("Status", true, false).text)
 	check(status.call(0).begins_with("עבר" if he else "Pass"), "%s: list: the start-up passed" % lang)
@@ -1881,12 +1888,12 @@ func _missions_checks(fe: Control, lang: String) -> void:
 	back.pressed.emit()
 	await frames(2)
 	check(fe.page == "missions", "%s: list: Back opens the Missions screen" % lang)
-	(fe.find_child("Section_training", true, false) as Button).pressed.emit()
+	fe.show_page("section")
 	await frames(2)
 	key(fe, KEY_ESCAPE)
 	await frames(2)
 	check(fe.page == "missions", "%s: Esc on the list: the Missions screen" % lang)
-	(fe.find_child("Section_training", true, false) as Button).pressed.emit()
+	fe.show_page("section")
 	await frames(2)
 
 

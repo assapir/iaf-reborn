@@ -163,6 +163,8 @@ pub struct Lesson {
     /// Flown at night: the night lesson, and the check rides that say so.
     pub night: bool,
     pub title: Value,
+    /// What it trains, one line for the lesson list.
+    pub line: Value,
     /// Its graded items' ids (a check ride: `Course::items`).
     pub items: Vec<String>,
     /// The emergencies it teaches.
@@ -282,6 +284,7 @@ impl Course {
                 lessons.push(Lesson {
                     night: kind == Kind::Night || l["night"] == true,
                     title: label(&l["title"], &key)?,
+                    line: label(&l["line"], &format!("{key}: \"line\""))?,
                     id,
                     kind,
                     items,
@@ -416,6 +419,7 @@ impl Course {
                             "kind": match l.kind { Kind::Day => "day", Kind::Night => "night", Kind::Check => "check" },
                             "night": l.night,
                             "title": l.title,
+                            "line": l.line,
                             "mission": l.missions.get(jet).cloned().unwrap_or(Value::Null),
                             "items": items,
                             "emergencies": emergencies,
@@ -530,6 +534,7 @@ mod tests {
         for jet in ["f16d", "f16i", "f35i"] {
             let j = c.to_json(jet).unwrap();
             assert_eq!(j["phases"].as_array().unwrap().len(), 8);
+            assert!(j["phases"][1]["lessons"][1]["line"]["he"].is_string(), "each lesson's line for the list");
         }
         assert!(c.to_json("f15").is_none());
         // The plan: the existing missions are not part of the course.

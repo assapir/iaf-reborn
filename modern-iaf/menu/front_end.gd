@@ -127,12 +127,14 @@ const PREFS := [
 ]
 ## The Missions screen's sections (front-end.md §2, the user's menu flow of 15 Nov): [id, the missions' `category`]; a
 ## section without missions is greyed. Scramble (§2.1, id fly_now) is the jet's Scramble start (category fly_now) and
-## opens its own screen (free_combat_page.gd).
-const SECTIONS := [["training", "training"], ["campaign", "campaign"], ["single", "single"], ["fly_now", "fly_now"]]
+## opens its own screen (free_combat_page.gd). Training is the jet's course (training-plan.md §5), no missions'
+## category: the missions of category "training" are the tests' and --mission's, listed in no section.
+const SECTIONS := [["training", ""], ["campaign", "campaign"], ["single", "single"], ["fly_now", "fly_now"]]
 ## The screen each breadcrumb opens (_header).
 const CRUMB_PAGES := {
 	"hangar": "hangar",
 	"missions": "missions",
+	"sec_training": "phases",
 	"preferences": "prefs",
 	"devices": "prefs",  # the Keys and Joystick screens' crumb: the Preferences on their section
 	"pilot_log": "log",
@@ -142,12 +144,14 @@ const CRUMB_PAGES := {
 	"manuals": "manuals"
 }
 ## The screens that show the picked jet: the Hangar opens in their place before the first pick.
-const NEEDS_JET := ["missions", "section", "mission", "arming", "free"]
+const NEEDS_JET := ["missions", "section", "mission", "arming", "free", "phases", "lessons"]
 ## Esc on each screen goes here (the Hangar's: the Quit prompt).
 const BACK := {
 	"missions": "hangar",
 	"section": "missions",
 	"free": "missions",
+	"phases": "missions",
+	"lessons": "phases",
 	"mission": "section",
 	"arming": "mission",
 	"prefs": "hangar",
@@ -173,6 +177,8 @@ var setup_strings := {}
 var section := "training"
 var missions: Array = []
 var mission_i := 0
+## The Training phase picked on the phases screen (its index), the lesson list's.
+var phase_i := 0
 var record := {}
 ## The screen More stats (combat_page.gd) was opened from: "pilot" the logbook, "debrief" the sheet; its Back.
 var combat_from := "pilot"
@@ -599,7 +605,7 @@ func _body(inline := 96, top := 112, bottom := 112) -> MarginContainer:
 
 ## The Hangar (front-end.md §1, the user's A25, 2026-11-13): the sim's first screen, in place of Home, Pick a plane and
 ## the jet's Training page. The jets at the inline start, the picked one turning in 3D in the middle with its full
-## name faint behind it, its card at the inline end: the squadron and base, facts, the training's progress and Fly,
+## name faint behind it, its card at the inline end: the squadron and base, facts, the last flight and Fly,
 ## which opens the Missions screen. The jet picked is the one flown or picked last, else the first (no jet unpicked).
 func _page_hangar() -> void:
 	if jet().is_empty():
@@ -814,10 +820,11 @@ func jet_stores(j: Dictionary, lo = null) -> Dictionary:
 	return out
 
 
-## The picked jet's card: its name, squadron and base, its facts, the training's progress and Fly, which opens the
-## Missions screen.
+## The picked jet's card: its name, squadron and base, its facts, the last flight on it and Fly, which opens the
+## Missions screen. The course's progress is in the Pilot screen's logbook only (Approvals A135).
 func _jet_card(j: Dictionary) -> void:
-	var training := section_missions("training")
+	# The sim's missions built (the jet's Scramble start).
+	var built := not section_missions("fly_now").is_empty()
 	var card := PanelContainer.new()
 	card.name = "JetCard"
 	add_child(card)
@@ -842,36 +849,23 @@ func _jet_card(j: Dictionary) -> void:
 		var val := _text(cell, f[1], "Fact")
 		val.add_theme_font_size_override("font_size", 28)
 	facts.add_child(row)
-	# The training: passed of all, the bar, the last flight on this jet.
+	# The last flight on this jet.
 	var tbox := PanelContainer.new()
 	tbox.name = "Training"
 	tbox.add_theme_stylebox_override("panel", Look.box(Color(0, 0, 0, 0), Look.LINE, 1, 6, Vector2(16, 14)))
 	v.add_child(tbox)
 	var tv := _vbox(tbox, 8)
-	if training.is_empty():
-		# No missions (the sim's data not built): what is missing and the setup command, in place of the progress.
+	if not built:
+		# No missions (the sim's data not built): what is missing and the setup command, in place of the last flight.
 		_setup_note(tv)
-	var th := _hbox(tv, 10)
-	th.visible = not training.is_empty()
-	_label(th, s("sec_training"), "Strong")
-	_spacer(th)
-	var passed := passed_count(training)
-	_label(th, s("passed_of") % [passed, training.size()], "Small").size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var bar := ProgressBar.new()
-	bar.show_percentage = false
-	bar.custom_minimum_size.y = 8
-	bar.max_value = maxi(training.size(), 1)
-	bar.value = passed
-	tv.add_child(bar)
-	bar.visible = th.visible
 	var last := _label(tv, last_flight(j), "Small")
 	last.name = "LastFlight"
-	last.visible = th.visible
+	last.visible = built
 	var go := _button(v, s("fly"), "Fly", func(): show_page("missions"))
 	go.name = "Fly"
 	go.custom_minimum_size.y = 76
 	_focus = go
-	if training.is_empty():
+	if not built:
 		# Disabled, drawn dim (its plain box) and out of the focus: the picked jet takes it.
 		go.disabled = true
 		go.focus_mode = Control.FOCUS_NONE
@@ -944,8 +938,8 @@ func section_crumbs() -> Array:
 
 ## The Missions screen (front-end.md §2, the user's menu flow of 15 Nov): a card per section (SECTIONS), its number and
 ## title, at its foot the pilot's progress; a section without missions greyed, "Coming later", out of the focus and
-## without a click (no subtitle or contents list: the user, 2026-11-16). Enter or a click opens the section's list;
-## Back (Esc) the Hangar.
+## without a click (no subtitle or contents list: the user, 2026-11-16). Training's progress is the jet's course
+## (course_book). Enter or a click opens the section's list (Training: its phases); Back (Esc) the Hangar.
 func _page_missions() -> void:
 	var j := jet()
 	_header(["hangar", full_name(j), "missions"])
@@ -956,31 +950,25 @@ func _page_missions() -> void:
 	# The cards' own height, the row in the middle of the room under the title.
 	row.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_SHRINK_CENTER
 	var cards := []
+	var built := false  # the sim's missions built (the course is in the library)
 	for sec in SECTIONS:
 		var list := section_missions(sec[1]) if sec[1] != "" else []
-		var b := Button.new()
+		var progress := []
+		if sec[0] == "training":
+			# The course of the Hangar's jet (training-plan.md §5): its phases' lessons passed of all.
+			var book := course_book()
+			progress = [0, 0]
+			for ph in book.get("phases", []):
+				progress = [progress[0] + int(ph.passed), progress[1] + int(ph.lessons_n)]
+			list = book.get("phases", [])
+		else:
+			built = built or not list.is_empty()
+			if not list.is_empty() and sec[0] != "fly_now":
+				progress = [passed_count(list), list.size()]
+		var b := _section_card(row, SECTIONS.find(sec) + 1, s("sec_" + sec[0]), progress)
 		b.name = "Section_" + sec[0]
-		b.theme_type_variation = "Card"
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.custom_minimum_size.y = 320
-		row.add_child(b)
-		var cv := _vbox(_margin(b, 32, 30), 14)
-		cv.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		var h3 := _label(cv, "%02d" % (SECTIONS.find(sec) + 1), "Num")
-		h3.add_theme_font_size_override("font_size", 36)
-		_label(cv, s("sec_" + sec[0]), "H2")
-		_spacer(cv, true)  # the progress (or Coming later) at the card's foot
-		if not list.is_empty() and sec[0] != "fly_now":
-			var passed := passed_count(list)
-			_label(cv, s("passed_of") % [passed, list.size()], "Small")
-			var bar := ProgressBar.new()
-			bar.show_percentage = false
-			bar.custom_minimum_size.y = 8
-			bar.max_value = list.size()
-			bar.value = passed
-			cv.add_child(bar)
-		for c in b.find_children("*", "Control", true, false):
-			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var cv: VBoxContainer = b.get_child(0).get_child(0)
 		if list.is_empty():
 			# Not built yet: greyed, "Coming later", no click and no focus (as the Hangar's coming jets).
 			var soon := _hbox(cv, 0)
@@ -996,7 +984,7 @@ func _page_missions() -> void:
 				_focus = b
 	var back := back_button()
 	_footer("", [], false, [back])
-	if cards.is_empty():
+	if not built:
 		# The sim's data not built: what is missing and the setup command.
 		row.visible = false
 		_setup_note(v).custom_minimum_size.x = 900
@@ -1013,7 +1001,253 @@ func open_section(id: String) -> void:
 	section = id
 	if id == "fly_now":
 		FreeCombatPage.reset()  # 0800 today on each opening
-	show_page("free" if id == "fly_now" else "section")
+	show_page({"fly_now": "free", "training": "phases"}.get(id, "section"))
+
+
+## A card in the Missions screen's look (front-end.md §2) in `parent`: its number `n`, its title and, with
+## `progress` [passed, of], the "passed" line and bar at its foot. The texts go in the card's
+## MarginContainer > VBoxContainer; they take no pointer.
+func _section_card(parent: Control, n: int, title: String, progress: Array) -> Button:
+	var b := Button.new()
+	b.theme_type_variation = "Card"
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(b)
+	var cv := _vbox(_margin(b, 32, 30), 14)
+	cv.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_label(cv, "%02d" % n, "Num").add_theme_font_size_override("font_size", 36)
+	var h2 := _label(cv, title, "H2")
+	h2.name = "CardTitle"
+	h2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	h2.custom_minimum_size.x = 200
+	_spacer(cv, true)  # the progress (or Coming later) at the card's foot
+	if not progress.is_empty():
+		_label(cv, s("passed_of") % progress, "Small").name = "Passed"
+		var bar := ProgressBar.new()
+		bar.show_percentage = false
+		bar.custom_minimum_size.y = 8
+		bar.max_value = maxi(int(progress[1]), 1)
+		bar.value = progress[0]
+		cv.add_child(bar)
+	for c in b.find_children("*", "Control", true, false):
+		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return b
+
+
+# --- Training: the course (training-plan.md §5) -----------------------------------------------------------------------
+
+
+## The Hangar jet's course (IafTraining.course) with the pilot's logbook of it (IafPilotLog.course_logbook) folded
+## in: per phase its `passed` and `lessons`, per lesson its `best` grade ("pass", "marginal", "unsat" or null) and its
+## `date`. {} for a jet without a course.
+func course_book() -> Dictionary:
+	var course = JSON.parse_string(IafTraining.course(Settings.sim_jet))
+	var book = JSON.parse_string(IafPilotLog.course_logbook(Settings.records_db(), Settings.pilot(), Settings.sim_jet))
+	if not course is Dictionary:
+		return {}
+	var phases: Array = course.phases
+	for i in phases.size():
+		var ph: Dictionary = phases[i]
+		var mine: Dictionary = book.phases[i] if book is Dictionary else {}
+		ph.passed = int(mine.get("passed", 0))
+		ph.lessons_n = ph.lessons.size()
+		var res: Array = mine.get("results", [])
+		for k in ph.lessons.size():
+			var r: Dictionary = res[k] if k < res.size() else {}
+			ph.lessons[k].best = r.get("best")
+			ph.lessons[k].date = r.get("date")
+	return course
+
+
+## A label of the course data ({"en", "he"}) in the screen's language.
+func tr_label(d) -> String:
+	return str(d.get("he" if he() else "en", "")) if d is Dictionary else ""
+
+
+## Training (training-plan.md §5, Approvals A130): the jet's eight phases as the Missions screen's cards, two rows of
+## four, each with its number, title and the lessons passed of its own. A card opens the phase's lessons; Back (Esc)
+## the Missions screen.
+func _page_phases() -> void:
+	var j := jet()
+	_header(["hangar", full_name(j), "missions", "sec_training"])
+	var v := _vbox(_body(96, 104, 100), 16)
+	var book := course_book()
+	var phases: Array = book.get("phases", [])
+	var total := [0, 0]
+	for ph in phases:
+		total = [total[0] + int(ph.passed), total[1] + int(ph.lessons_n)]
+	_title(v, s("sec_training"), s("passed_of") % total)
+	var grid := GridContainer.new()
+	grid.name = "Phases"
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 28)
+	grid.add_theme_constant_override("v_separation", 20)
+	grid.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_SHRINK_CENTER
+	v.add_child(grid)
+	var cards := []
+	for i in phases.size():
+		var ph: Dictionary = phases[i]
+		var b := _section_card(grid, i + 1, tr_label(ph.title), [int(ph.passed), int(ph.lessons_n)])
+		b.name = "Phase%d" % (i + 1)
+		# ponytail: fixed row heights for the course's titles (three lines at most in the first row, two in the second);
+		# a longer title needs a taller row here.
+		b.custom_minimum_size.y = 390 if i < 4 else 330
+		b.pressed.connect(open_phase.bind(i))
+		cards.append(b)
+	var back := back_button()
+	_footer("", [], false, [back])
+	if cards.is_empty():
+		_focus = back
+		return
+	_chain(cards + [back])
+	for i in cards.size():
+		if i >= cards.size() - 4:
+			_nb(cards[i], {"bottom": back})
+	_nb(back, {"top": cards[mini(phase_i, cards.size() - 1)]})
+	_focus = cards[mini(phase_i, cards.size() - 1)]
+
+
+## Opens phase `i`'s lessons.
+func open_phase(i: int) -> void:
+	phase_i = i
+	show_page("lessons")
+
+
+## A phase's lessons (Approvals A131): the section list's rows, numbered phase.lesson, each with its title, what it
+## trains and the pilot's best grade on it (Pass and Marginal in the pass chip, Unsatisfactory in the fail chip, else
+## Not flown yet); beside them the side panel on the lesson under the focus or the pointer. Back (Esc) the phases.
+func _page_lessons() -> void:
+	var j := jet()
+	var phases: Array = course_book().get("phases", [])
+	if phases.is_empty():
+		show_page("missions")
+		return
+	phase_i = clampi(phase_i, 0, phases.size() - 1)
+	var ph: Dictionary = phases[phase_i]
+	_header(["hangar", full_name(j), "sec_training", s("phase_n") % (phase_i + 1)])
+	var title := "%s · %s" % [s("phase_n") % (phase_i + 1), tr_label(ph.title)]
+	var frame := _list_frame(title, s("passed_of") % [ph.passed, ph.lessons_n], 6)
+	var side: PanelContainer = frame[1]
+	var rows := []
+	for i in ph.lessons.size():
+		var le: Dictionary = ph.lessons[i]
+		var n := "%d.%d" % [phase_i + 1, i + 1]
+		var r := _list_row(frame[0], "Lesson%d" % (i + 1), n, tr_label(le.title), tr_label(le.line), 80, 6)
+		var b: Button = r[0]
+		b.focus_entered.connect(_lesson_side.bind(side, i, le))
+		b.mouse_entered.connect(_lesson_side.bind(side, i, le))
+		var tx := s("not_flown") if le.best == null else grade_text(str(le.best))
+		_row_status(r[1], 210, tx, le.best != null, str(le.best) != "unsat")
+		rows.append(b)
+	_list_footer(rows)
+	_focus = rows[0]
+	_lesson_side(side, 0, ph.lessons[0])
+
+
+## A lesson's grade ("pass", "marginal", "unsat") in words.
+func grade_text(id: String) -> String:
+	return s("pass") if id == "pass" else s("grade_" + id)
+
+
+## The side panel on the lesson list for lesson `i` (`le`): its number and title, what it trains, the pilot's best
+## grade with its day.
+func _lesson_side(side: PanelContainer, i: int, le: Dictionary) -> void:
+	if side.has_meta("lesson") and int(side.get_meta("lesson")) == i:
+		return
+	side.set_meta("lesson", i)
+	for c in side.get_children():
+		side.remove_child(c)
+		c.queue_free()
+	var v := _vbox(side, 16)
+	v.name = "SideBox"
+	_label(v, s("lesson_n") % [phase_i + 1, i + 1], "H3").add_theme_font_size_override("font_size", 17)
+	_text(v, tr_label(le.title), "H2").name = "SideTitle"
+	BriefingPage._heading(self, v, s("learn"))
+	var line := BriefingPage._rich(self, v, tr_label(le.line))
+	line.name = "SideLine"
+	line.add_theme_color_override("default_color", Look.ACCENT_TEXT)
+	_spacer_px(v, 4)
+	_rule(v, Look.LINE)
+	var grid := GridContainer.new()
+	grid.name = "SideFacts"
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 24)
+	grid.add_theme_constant_override("v_separation", 14)
+	v.add_child(grid)
+	_label(grid, s("last_result"), "Small").size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var last := s("not_flown") if le.best == null else "%s · %s" % [grade_text(str(le.best)), day_text(str(le.date))]
+	var val := _label(grid, last, "Row")
+	val.name = "Side_last_result"
+	val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+
+## The list screens' frame (a section's list, a phase's lessons) under the top bar: the title with `sub`, the scrolled
+## list ("List", `gap` px between its rows) and the side panel beside it ("Side"). [the list, the side panel].
+func _list_frame(title: String, sub: String, gap: int) -> Array:
+	var cols := _hbox(_body(96, 130, 130), 56)
+	var v := _vbox(cols, 26)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title(v, title, sub)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(scroll)
+	var list := _vbox(scroll, gap)
+	list.name = "List"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var side := PanelContainer.new()
+	side.name = "Side"
+	side.add_theme_stylebox_override("panel", Look.box(Color(Look.PANEL, 0.94), Look.LINE, 1, 6, Vector2(32, 28)))
+	side.custom_minimum_size.x = 560
+	cols.add_child(side)
+	return [list, side]
+
+
+## A row of the list screens in `list`, `h` px tall with `pad` px above and below: its number `n`, its title and
+## `line` under it. [the row's button, its HBoxContainer for the chips at its end].
+func _list_row(list: Control, id: String, n: String, title: String, line: String, h: int, pad: int) -> Array:
+	var b := Button.new()
+	b.name = id
+	b.theme_type_variation = "JetRow"
+	b.custom_minimum_size.y = h
+	list.add_child(b)
+	var hb := _hbox(_margin(b, 24, pad), 22)
+	hb.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var num := _label(hb, n, "Num")
+	num.custom_minimum_size.x = 56
+	num.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var tv := _vbox(hb, 0)
+	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_label(tv, title, "JetName")
+	_label(tv, line, "Small")
+	return [b, hb]
+
+
+## A list row's result at its end, `w` px wide ("Status"): `text` in a chip (`ok`: the pass look) with `chip`, else
+## as small text (not flown).
+func _row_status(hb: HBoxContainer, w: int, text: String, chip: bool, ok: bool) -> void:
+	var box := _hbox(hb, 0)
+	box.custom_minimum_size.x = w
+	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if chip:
+		_chip(box, text, ok).name = "Status"
+	else:
+		_label(box, text, "Small").name = "Status"
+
+
+## The list screens' foot: the rows' texts take no pointer, the footer's Back, Tab through the rows to Back, the
+## arrows up and down the rows only.
+func _list_footer(rows: Array) -> void:
+	for b in rows:
+		for c in b.find_children("*", "Control", true, false):
+			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var back := back_button()
+	_footer("", [], false, [back])
+	_chain(rows + [back])
+	for i in rows.size():
+		_nb(rows[i], {"left": rows[i], "right": rows[i]})
+	_nb(rows[-1], {"bottom": back})
+	_nb(back, {"top": rows[-1]})
 
 
 ## A section's list (front-end.md §2): the Hangar jet's missions of the section in order (section_missions), numbered
@@ -1030,75 +1264,38 @@ func _page_section() -> void:
 		return
 	var j := jet()
 	_header(section_crumbs().slice(0, 2) + ["sec_" + section])
-	var cols := _hbox(_body(96, 130, 130), 56)
-	var v := _vbox(cols, 26)
-	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_title(
-		v,
+	var frame := _list_frame(
 		s("sec_" + section),
-		"%s · %s" % [s("passed_of") % [passed_count(missions), missions.size()], s("flown_in") % full_name(j)]
+		"%s · %s" % [s("passed_of") % [passed_count(missions), missions.size()], s("flown_in") % full_name(j)],
+		10
 	)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	v.add_child(scroll)
-	var list := _vbox(scroll, 10)
-	list.name = "List"
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var side := PanelContainer.new()
-	side.name = "Side"
-	side.add_theme_stylebox_override("panel", Look.box(Color(Look.PANEL, 0.94), Look.LINE, 1, 6, Vector2(32, 28)))
-	side.custom_minimum_size.x = 560
-	cols.add_child(side)
+	var side: PanelContainer = frame[1]
 	# Every mission passed: no Next, the first one focused.
 	var all_passed := passed_count(missions) == missions.size()
 	var next := -1 if all_passed else next_index()
 	var rows := []
 	for i in missions.size():
 		var m: Dictionary = missions[i]
-		var b := Button.new()
-		b.name = "Mission%d" % (i + 1)
-		b.theme_type_variation = "JetRow"
-		b.custom_minimum_size.y = 96
+		var line := "%s · %s" % [s("base_" + base_of(m)), s("desc_" + kind(m))]
+		var r := _list_row(frame[0], "Mission%d" % (i + 1), str(i + 1), title_of(m), line, 96, 12)
+		var b: Button = r[0]
+		var h: HBoxContainer = r[1]
 		b.toggle_mode = true
 		b.button_pressed = i == next  # the next one tinted as a picked jet
 		b.pressed.connect(open_mission.bind(i))
 		b.focus_entered.connect(_side.bind(side, m))
 		b.mouse_entered.connect(_side.bind(side, m))
-		list.add_child(b)
-		var h := _hbox(_margin(b, 24, 12), 22)
-		h.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		var n := _label(h, str(i + 1), "Num")
-		n.custom_minimum_size.x = 56
-		n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		var tv := _vbox(h, 0)
-		tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		_label(tv, title_of(m), "JetName")
-		_label(tv, "%s · %s" % [s("base_" + base_of(m)), s("desc_" + kind(m))], "Small")
 		if i == next:
 			_chip(h, s("next_up"), true).name = "NextUp"
-		var chip := _hbox(h, 0)
-		chip.custom_minimum_size.x = 190
-		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		var st := status(m)
-		if st < 0:
-			_label(chip, s("not_flown"), "Small").name = "Status"
-		else:
-			var tx := s("pass" if st == 1 else "fail")
+		var tx := s("not_flown")
+		if st >= 0:
+			tx = s("pass" if st == 1 else "fail")
 			if st == 1 and best_time(m) > 0:
 				tx += " · " + clock(best_time(m))
-			_chip(chip, tx, st == 1).name = "Status"
-		for c in b.find_children("*", "Control", true, false):
-			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_row_status(h, 190, tx, st >= 0, st == 1)
 		rows.append(b)
-	var back := back_button()
-	_footer("", [], false, [back])
-	_chain(rows + [back])
-	for i in rows.size():
-		_nb(rows[i], {"left": rows[i], "right": rows[i]})
-	_nb(rows[-1], {"bottom": back})
-	_nb(back, {"top": rows[-1]})
+	_list_footer(rows)
 	_focus = rows[maxi(next, 0)]
 	_side(side, missions[maxi(next, 0)])
 

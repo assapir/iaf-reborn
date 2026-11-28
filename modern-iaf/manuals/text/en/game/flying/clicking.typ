@@ -19,7 +19,7 @@
 
 A click moves one position, so a switch of three positions needs two clicks to go from one end to the other. The main power switch of the Sufa and the Barak goes from OFF through BATT to MAIN PWR: two clicks. Its key sets it to MAIN PWR at once.
 
-In a #term("lesson") the #term("notebook") tells you when a switch stands one click short (@notebook-hints).
+The #term("notebook") tells you when a switch stands one click short (@notebook-hints).
 
 === What takes no mouse <clicking-not>
 

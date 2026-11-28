@@ -29,9 +29,11 @@ the line or the theme changes.
 
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
-| Hangar | the first screen (§12): the jets at the inline start, the picked one in 3D in the middle (the player looks at it from any side) with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Fly to the Missions screen); Settings and the pilot in the top bar, Attributions, Manuals and Quit at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
-| Missions | the Hangar's Fly (§2): a card per section, Training, Campaign, Single missions and Scramble, each with its number, its title and the pilot's progress in it; a section without missions greyed, "Coming later", out of the focus, without a click; Scramble (§2.1) shows no progress; the footer's Back (Esc) | ![Missions](pictures/front-end/missions_en.webp) | ![Missions, Hebrew](pictures/front-end/missions_he.webp) |
-| A section's list | the Hangar jet's missions of the section in order, numbered 1, 2 …: the title, the base and what it trains, the last result (Pass with the best time, Fail, Not flown yet); the next one to fly marked Next, tinted and focused (every mission passed: no Next, the first focused); beside the list a panel on the mission under the focus or the pointer (§2); the footer's Back (Esc) | ![Training](pictures/front-end/section_en.webp) | ![Training, Hebrew](pictures/front-end/section_he.webp) |
+| Hangar | the first screen (§12): the jets at the inline start, the picked one in 3D in the middle (the player looks at it from any side) with its full name faint behind it, its card at the inline end (squadron and base, facts, the last flight on the jet, Fly to the Missions screen); Settings and the pilot in the top bar, Attributions, Manuals and Quit at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
+| Missions | the Hangar's Fly (§2): a card per section, Training, Campaign, Single missions and Scramble, each with its number, its title and the pilot's progress in it (Training: the jet's course, lessons passed of 47); a section without missions greyed, "Coming later", out of the focus, without a click; Scramble (§2.1) shows no progress; the footer's Back (Esc) | ![Missions](pictures/front-end/missions_en.webp) | ![Missions, Hebrew](pictures/front-end/missions_he.webp) |
+| Training | Training on the Missions screen (§2.2): the Hangar jet's course as eight phase cards in two rows of four, each with its number, its title and its lessons passed of all; under the title the course's lessons passed of all; a card opens its lessons; the footer's Back (Esc) | ![Training](pictures/front-end/training_en.webp) | ![Training, Hebrew](pictures/front-end/training_he.webp) |
+| A phase's lessons | a phase card (§2.2): the phase's lessons numbered 1.1, 1.2 …, each with its title, one line on what it trains and the pilot's best grade (Pass, Marginal, Unsatisfactory, Not flown yet); beside the list a panel on the lesson under the focus or the pointer; the footer's Back (Esc) | ![A phase's lessons](pictures/front-end/lessons_en.webp) | ![A phase's lessons, Hebrew](pictures/front-end/lessons_he.webp) |
+| A section's list | Campaign's and Single missions' list (none built yet): the Hangar jet's missions of the section in order, numbered 1, 2 …: the title, the base and what it trains, the last result (Pass with the best time, Fail, Not flown yet); the next one to fly marked Next, tinted and focused (every mission passed: no Next, the first focused); beside the list a panel on the mission under the focus or the pointer (§2); the footer's Back (Esc) | ![A section's list](pictures/front-end/section_en.webp) | ![A section's list, Hebrew](pictures/front-end/section_he.webp) |
 | Briefing | the briefing, map first (§10): the map over the screen, opened on the base and the route with the pins; the mission card (the facts, the objectives, the Arming summary with Edit, Back to the section's list, Arming, Fly: Edit and Arming open the Loadout screen §10.1); what you will learn and how to fly it, the keys as bound; the map's chips | ![Briefing](pictures/front-end/mission_en.webp) | ![Briefing, Hebrew](pictures/front-end/mission_he.webp) |
 | Settings | the search; the sections Graphics, Language, Updates (Updates on start: Ask / Always download / Never, ../../docs/release.md §7), Sound and Devices with their counts at the inline start; the picked one's settings beside them as segmented buttons, switches and sliders, Graphics with its Preset row and a cost chip per row; the pane at the inline end on the hovered setting (§14; none on Updates: the game manual explains it, the user 25 Nov 2026); Devices has the afterburner detent (§9.2); the footer's Defaults, Export settings file / Import settings file (below) and Back to the hangar | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the sheet at the inline start (Plane flown, From, Time, Mission, Result; the goals with the target, the flown figure and ✓ / !; Remarks with "Next time:"), at the inline end the whole flight on the map and the flight's graphs (§13); Pilot log, Export flight data (below), Back to missions, Fly again, Next mission (§2) | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
@@ -43,7 +45,7 @@ the line or the theme changes.
 | More stats | the Pilot screen → More stats (every combat flight; a debrief's More stats shows that flight): air kills and ground targets by type, the weapons fired and their hits (missiles, bombs, the gun's rounds), the jets lost by cause as counts, how many of them were the flight's other jets, the ejections; from the Pilot screen also each combat flight; the footer's Back (Esc) (§3) | ![More stats](pictures/front-end/more_stats_en.webp) | ![More stats, Hebrew](pictures/front-end/more_stats_he.webp) |
 | Manuals | the four manuals' list ("מדריכים" in Hebrew; [manuals.md](manuals.md)); with the game in Hebrew the game manual's row opens its Hebrew edition (`manuals.json` `of`, `lang`), the jets' rows the English manuals, and the line under the title says so; the Hangar's foot opens it, a row opens its PDF in the system's PDF viewer (`OS.shell_open`; the PDFs of a source checkout, `modern-iaf/manuals/pdf/`), a row whose file is missing is greyed; the footer's Back (Esc) | ![Manuals](pictures/front-end/manuals_en.webp) | ![Manuals, Hebrew](pictures/front-end/manuals_he.webp) |
 | Attributions | the game's version under the title ("Version 0.2.0-nightly.…", "dev" in the checkout; docs/release.md §3); the setup wizard's list of sources and licences, the jet models with them; the Hangar's foot opens it ("קרדיטים ורישיונות" in Hebrew); the arrows and Page Up / Down scroll it (Down at its end reaches Back), and with the focus the list wears the rows' accent ring (look.gd `ListScroll`; none until 2026-11-16); the footer's Back (Esc) | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
-| Hangar without data | a fresh install before `./modern-iaf-setup` (no training missions): the card says what is missing and the command (`./modern-iaf-setup`; Windows `.\modern-iaf-setup.ps1`), in place of the training's progress; Fly greyed and out of the focus, the picked jet focused; the F-16s' still pictures (§12) | ![Hangar without data](pictures/front-end/nodata_hangar_en.webp) | ![Hangar without data, Hebrew](pictures/front-end/nodata_hangar_he.webp) |
+| Hangar without data | a fresh install before `./modern-iaf-setup` (no missions built): the card says what is missing and the command (`./modern-iaf-setup`; Windows `.\modern-iaf-setup.ps1`), in place of the last flight; Fly greyed and out of the focus, the picked jet focused; the F-16s' still pictures (§12) | ![Hangar without data](pictures/front-end/nodata_hangar_en.webp) | ![Hangar without data, Hebrew](pictures/front-end/nodata_hangar_he.webp) |
 | Loadout | Edit on the briefing's Arming summary (§10.1): the jet from beneath with a callout per station, the loadouts (the mission's, the pilot's saved ones), the take-off weight and the stores; Reset to the mission's, Briefing, Fly | ![Loadout](pictures/front-end/loadout_f16i_en.webp) | ![Loadout, Hebrew](pictures/front-end/loadout_f16i_he.webp) |
 | Missions without data | the same note under the title, every section greyed; the Hangar crumb focused | ![Missions without data](pictures/front-end/nodata_missions_en.webp) | ![Missions without data, Hebrew](pictures/front-end/nodata_missions_he.webp) |
 
@@ -84,7 +86,7 @@ Keys: Enter picks the focused control, Esc goes one screen back (on the Hangar i
 the arrow keys and Tab move the focus. The bottom bar holds a credit where a screen shows one (the Map's) and the
 screen's buttons; it shows no key hints (the user, 2026-11-09: "this is
 obvious and people will use mouse anyway"). Every breadcrumb in the top bar but the current one opens its
-screen (the jet's name: the Missions screen, on the Missions screen itself the Hangar; Training: the section's list; the
+screen (the jet's name: the Missions screen, on the Missions screen itself the Hangar; Training: the phases; a section: its list; the
 mission: its briefing); the picks are kept.
 
 | screen | English | Hebrew |
@@ -105,19 +107,22 @@ Missions, the Settings and Attributions to the Hangar, the loadout screen to the
 list. The breadcrumbs: Hangar · the jet (Missions) · the section (its list) · the mission (the briefing) · Arming (the
 loadout screen) or Debrief.
 
-- **The sections** (`SECTIONS` in `front_end.gd`): Training, Campaign, Single missions and Scramble, each holding the
-  Hangar jet's missions of its `category` (the readable mission's: `training`, `campaign`, `single`). A card, 320 px
+- **The sections** (`SECTIONS` in `front_end.gd`): Training, Campaign, Single missions and Scramble. Training holds
+  the Hangar jet's course (§2.2); Campaign and Single missions hold the jet's missions of their `category` (the
+  readable mission's: `campaign`, `single`); Scramble is the jet's Scramble start (category `fly_now`). A card, 320 px
   high, the row of cards in the middle of the room under the title, shows its number and title and at its foot the
-  pilot's progress ("2 of 2 passed" and a bar). A section without missions is greyed, marked "Coming later" / "יגיע
-  בהמשך", no click and no focus. Today Training holds each jet's start-up, take-off and weapons range ([training.md](training.md) §3.4), Scramble
-  each jet's Scramble start (category `fly_now`; its card has no progress and opens the Scramble screen, §2.1) and the
-  other two are greyed.
-  Until 2026-11-16 a card also had a subtitle and a "What it holds" list (Training's missions and its lessons coming
-  later, the greyed sections what they would hold); the user removed them ("remove the subtitles and what it holds").
+  pilot's progress ("0 of 47 passed" and a bar). Training's progress is the course's lessons passed of all, counted
+  per jet (`IafPilotLog.course_logbook`, a Marginal counted as passed); it is open whenever the jet has a course and
+  opens the phases (§2.2). Scramble's card has no progress and opens the Scramble screen (§2.1). A section without
+  missions is greyed, marked "Coming later" / "יגיע בהמשך", no click and no focus: today Campaign and Single missions.
+  A card has no subtitle and no "What it holds" list (the user, 2026-11-16: "remove the subtitles and what it holds").
+- **The training missions** (category `training`: each base's start-up, take-off and weapons range, and Ramon's
+  four-ship) are listed in no section (the user, 28 November 2026: "The current existing train should be deleted,
+  o/c. It replaces them"). Their files stay for the automated tests and `--mission <id>` runs
+  ([training.md](training.md) §13).
 - **Each jet's own missions** (the user, 15 November 2026: "you should show only the same plane missions"): a
   section lists only the missions whose start is in the Hangar's jet (the readable mission's `start.unit`), numbered
-  1, 2 … after that filter; the Sufa's Training is Ramon's start-up, take-off and weapons range. The statuses, Next, "N of M passed",
-  the Hangar card's progress and the side panel count that jet's missions only. A mission is flown in its own jet
+  1, 2 … after that filter. The statuses, Next, "N of M passed" and the side panel count that jet's missions only. A mission is flown in its own jet
   (`flight/fly.gd` `start(menu id)`); the debrief's Next mission is the next one of the flown mission's jet.
 - **A section's list:** the missions in menu-id order with their last result (`IafPilotLog.summary`: Pass with the best
   time, Fail, Not flown yet). The next one to fly is the one after the last one flown, the first when none was; once
@@ -234,6 +239,28 @@ placed in flight ([../../docs/ai.md](../../docs/ai.md) §23).
   miles, free to engage") and again every minute while its target lives. It is not scored and stores no sortie; it
   ends from the pause menu, back to the Hangar.
 - **Checks:** `modern-iaf/tests/test_free_combat.gd`.
+
+### 2.2 Training: the phases and a phase's lessons
+
+Training on the Missions screen opens the Hangar jet's training course ([training-plan.md](training-plan.md) §5;
+the course's data and logbook: [training.md](training.md) §13). Both screens use the existing screens' parts: the
+Missions screen's cards and the section list's rows and side panel (Approvals A130 and A131, 28 November 2026).
+
+- **The phases** (`_page_phases`): the crumbs Hangar · the jet · Missions · Training; the title Training with the
+  course's lessons passed of all beside it ("0 of 47 passed", the same 47 for each jet). Under it the eight phases as
+  the Missions screen's cards, two rows of four: each with its number (01–08), its title from the course
+  (`IafTraining.course`, in the screen's language) and at its foot its lessons passed of its own with the bar. A
+  lesson counts as passed with a Pass or a Marginal, per jet (`IafPilotLog.course_logbook`). Enter or a click opens
+  the phase's lessons; Back (Esc) goes to the Missions screen. The focus returns to the phase last opened.
+- **A phase's lessons** (`_page_lessons`): the crumbs Hangar · the jet · Training · Phase N; the title "Phase N · its
+  title" with its lessons passed of all. The rows, in the section list's look, are numbered phase.lesson (1.1, 1.2 …):
+  the lesson's title, under it one line on what it trains (the course's `line`), and the pilot's best grade at the
+  inline end: Pass or Marginal in the pass chip, Unsatisfactory in the fail chip, else "Not flown yet". Beside the list
+  a panel on the lesson under the focus or the pointer: "Lesson p.l", the title, "What you will learn" (the line) and
+  "Last result" (the best grade and its day, else "Not flown yet"). A lesson row opens nothing yet: its briefing
+  (A132) comes next. Back (Esc) goes to the phases.
+- **Checks:** `modern-iaf/tests/test_training_phases.gd` (English and Hebrew: the phases' names and counts, each
+  jet's own count, the rows' numbers, lines and chips, the side panel following the focus, Back and Esc).
 
 ## 3. The data it reads
 
@@ -417,8 +444,9 @@ the Hangar (2026-11-13). The finish list's F8 deleted them with their Attributio
 
 - `modern-iaf/tests/test_front_end.gd` walks the Hangar → Missions → Training → the briefing → the debrief of a stored
   record (the sample flight scored, §13; then a record from before the goals) → Back to missions, Fly again, Next mission in English and Hebrew: the texts, each jet's card with its
-  squadron, the four sections (Training open and focused with what it holds and the lessons coming later, the others greyed,
-  "Coming later", without focus or click), the footer's Back with Esc, the Sufa's three missions with their statuses (the range not flown: Next), the
+  squadron, the four sections (Training open and focused with the course's count, Campaign and Single missions greyed,
+  "Coming later", without focus or click), Training opening the phases, the footer's Back with Esc; the section list on the
+  tests' training missions: the Sufa's missions with their statuses (the range not flown: Next), the
   next one marked and focused, the side panel following the focus, the layout direction; each jet's own missions
   (numbered 1, 2, the Barak's own progress and Next, Next mission by the flown mission's jet);
   the plane pick; the Ra'am's and the Baz's rows greyed and not pickable; the Settings' controls and the live language switch; the Pilot log
@@ -456,7 +484,7 @@ the Hangar (2026-11-13). The finish list's F8 deleted them with their Attributio
   inside it only), of every start-up and take-off; the Sufa's and the F-35I's stores.
 - `modern-iaf/tests/test_hangar.gd` checks the Hangar (§12) in English and Hebrew: the first screen, the jet picked
   last (else the first) picked, the five rows with the full names, the F-15s greyed with no focus and no text, a click
-  picking the Barak (the F-16 switch) and the Adir with their cards and models, the card's facts and training,
+  picking the Barak (the F-16 switch) and the Adir with their cards and models, the card's facts and no training progress,
   no campaign button, Settings and the pilot in the top bar, the focus order by Tab and the arrows, the mirrored sides,
   Fly to the Missions screen and the Hangar crumb back, Esc's quit prompt, the jet's view (still
   when left alone; a drag orbiting it, the camera above and below the jet within the limits; the wheel and − zooming to
@@ -938,7 +966,9 @@ How the flight reads it:
 
 A row of a section's list opens its mission's briefing (the user, 2026-11-09: "briefing, with map, when selecting a
 mission"), map first since 2026-11-14 (the approved mock r3_briefing, the user's A25 round 3: "the briefing is
-amazing"). The crumb reads "Hangar · F-16I Sufa · Training · Take-off". The map fills the screen under the bars;
+amazing"). The crumb reads "Hangar · F-16I Sufa · Training · Take-off". This section's examples and pictures are
+the tests' training missions, which no front-end section lists (§2); a course lesson's briefing (Approvals A132)
+opens here once built. The map fills the screen under the bars;
 over it sit two cards and the map's chips (`menu/briefing_page.gd` lays them out):
 
 **The mission card** at the inline start (the left in English, the right in Hebrew), 600 px wide:
@@ -1377,7 +1407,7 @@ round 3 of the menu ideas (`r3_hangar_en.png`, `r3_hangar_he.png`, outside the r
 | the top bar | the logo (§4) and the Hangar crumb; Settings (the gear and the word; "הגדרות") and the pilot (the nickname, the name under it, the picture or initials: one button to the Pilot screen) at the inline end |
 | the jets | at the inline start under "Aircraft" / "מטוסים": the full name ("F-16I Sufa"), the squadron's number and the base; the Ra'am and the Baz greyed (§2). A click, or Enter on the focused row, picks the jet; the arrows move between the rows and on to the card |
 | the jet | in the middle, standing still in its start view; the player looks at it from any side (below); its full name in large faint letters behind it; no help line (the user: "it should be obvious you can use the mouse") |
-| the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then the training (passed of all, the bar, the last flight on the jet), Fly (focused on entry; opens the Missions screen, §2; the greyed Missions and campaign button went with it). Without missions (the sim's data not built) the training's box says so with the command `./modern-iaf-setup` on a line of its own (Windows: `.\modern-iaf-setup.ps1`) and Fly is greyed, out of the focus |
+| the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then the last flight on the jet, Fly (focused on entry; opens the Missions screen, §2). The card shows no training progress: the course's progress belongs in the Pilot screen's logbook (Approvals A135, not built yet). Without missions (the sim's data not built) the box says so with the command `./modern-iaf-setup` on a line of its own (Windows: `.\modern-iaf-setup.ps1`) and Fly is greyed, out of the focus |
 | the foot | Attributions at the inline start: the models' credits live there (`docs/credits.md`; the FlightGear F-16 is GPL, the F-35I CC BY 4.0, neither asks for a line on the screen) |
 
 **The jet's view** is `shared/aircraft/turntable.gd`: the flight's own model through `AircraftModel.create` (the same

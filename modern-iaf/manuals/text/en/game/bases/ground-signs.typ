@@ -40,8 +40,6 @@ Where a yellow sign and a red sign would stand close together, they form one row
 
 #idx("Holding point")#idx("Hold short")The #term("holding point") is where a taxiway meets its runway. The red holding sign marks it, 90 m from the runway's centreline. To hold short means to stop there and wait.
 
-#caution[In a #term("lesson"), a jet that enters the runway before the tower's line-up clearance fails the mission (@scoring-clearances). Stop at the red sign. Request the line-up (@tower-ground). Enter after the tower's answer.]
-
 The briefing's map marks the holding point of your route with a pin (@briefing-map). The tower answers a line-up request when you are at the holding point or near it. From farther back it answers "hold position".
 
 === Lining up <ground-signs-lineup>
@@ -86,4 +84,4 @@ Where the pavement before a runway's start carries yellow chevrons, it is not pa
 
 Dark streaks of tyre rubber mark the part of the runway where jets touch down.
 
-In the air the painted runways show from far away. On the take-off roll, a jet whose middle leaves the runway's width fails a Take-off lesson (@lesson-takeoff-fails).
+In the air the painted runways show from far away.

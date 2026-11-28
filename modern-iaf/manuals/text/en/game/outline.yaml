@@ -2,7 +2,7 @@
 # see: links to the jets' manuals, [manual, section id]. The jets' manuals link to these ids: keep them.
 title: "Modern IAF"
 subtitle: Game manual
-scope: "It describes the game around the jets: installing and setting it up, the menus, the missions and how they are scored, the air bases, the tower and the radio. Each jet's own manual describes that jet completely."
+scope: "It describes the game around the jets: installing and setting it up, the menus, the training course and the missions, the air bases, the tower and the radio. Each jet's own manual describes that jet completely."
 chapters:
 - id: start
   title: "Getting started"
@@ -41,15 +41,9 @@ chapters:
   - {id: debrief, title: "The debrief", file: game/flying/debrief.typ}
 - id: missions-training
   title: "Missions and training"
-  intro: "The game's side of flying a jet: the lessons in order, what each teaches, and what passes or fails it."
+  intro: "The training fight against an aggressor."
   sections:
-  - {id: lessons, title: "The lessons in order", file: game/missions-training/lessons.typ}
-  - {id: lesson-startup, title: "Start-up", file: game/missions-training/lesson-startup.typ}
-  - {id: lesson-takeoff, title: "Take-off", file: game/missions-training/lesson-takeoff.typ}
-  - {id: lesson-range, title: "Weapons range", file: game/missions-training/lesson-range.typ}
-  - {id: lesson-four-ship, title: "Four-ship", file: game/missions-training/lesson-four-ship.typ}
   - {id: training-fight, title: "Training fight", file: game/missions-training/training-fight.typ}
-  - {id: scoring, title: "Pass and fail", file: game/missions-training/scoring.typ}
 - id: bases
   title: "Air bases"
   intro: "The ground the jets work from."

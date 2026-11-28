@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("Tower")#idx("Radio calls")On the ground every phase of a #term("lesson") waits for the #term("tower"): the engine start, the taxi, entering the runway and the take-off. You ask, the tower answers, and its answer is your #term("clearance"). This section gives the calls in order. What the game does when you move without a clearance is in @scoring-clearances.
+#idx("Tower")#idx("Radio calls")On the ground every phase of a cold start waits for the #term("tower"): the engine start, the taxi, entering the runway and the take-off. You ask, the tower answers, and its answer is your #term("clearance"). This section gives the calls in order.
 
 Each jet's manual gives the procedure between the calls: the #other("f16i", "cold-start"), the #other("f16d", "cold-start") and the #other("f35i", "cold-start") for the start and the take-off; the #other("f16i", "landing"), the #other("f16d", "landing") and the #other("f35i", "landing") for the landing.
 
@@ -32,8 +32,6 @@ The tower that answers is the base nearest to you, within about 18 km.
 
 #idx("Start-up clearance")#idx("Taxi clearance")#idx("Line-up clearance")#idx("Take-off clearance")Your callsign is Kidon 1 (kidon style: the first flight is Kidon 1, the next Kidon 2, and a flight's jets are Kidon 1-1, 1-2 and so on). The runway in the tower's answers is the runway in use: your mission's runway, or its other end when the wind blows from behind it (@tower-wind).
 
-#caution[A phase started before the tower's clearance fails a Training mission at once. Make each call, and wait for the answer in the right-hand column, before you do what it clears (@scoring-clearances).]
-
 + With the engine off, on your parking spot, press #key("Call the tower"), then #keycap("1").
   #then[The tower answers "Kidon 1, cleared to start", and your pilot reads it back: "Cleared to start, Kidon 1". You may start the engine.]
 + Start the jet by its checklist (@notebook-checklist). Wait for the engine at idle and the avionics up.
@@ -59,7 +57,7 @@ Once you have a clearance, you keep it, also when you shut the engine down and s
 + Enter the runway and taxi down its centreline to its far end (a backtrack).
 + Turn round on the centreline at the far end, facing down the runway, and ask for take-off.
 
-In a four-ship lesson each wingman waits at the holding point until the jet ahead of it is in the air, then backtracks in its turn. A wind of exactly 90° off, or under 5 knots, keeps the mission's runway. The missions of this version are flown with the wind calm, so the tower names the mission's runway.
+In a four-ship flight each wingman waits at the holding point until the jet ahead of it is in the air, then backtracks in its turn. A wind of exactly 90° off, or under 5 knots, keeps the mission's runway. The missions of this version are flown with the wind calm, so the tower names the mission's runway.
 
 === The tower's other answers <tower-answers>
 
@@ -69,8 +67,8 @@ In a four-ship lesson each wingman waits at the holding point until the jet ahea
   ["hold position"], [The tower cannot clear the call now. You have no clearance. Typical causes: a taxi request with the engine not running; a line-up request far from the runway or with the runway in use. Mend the cause and call again.],
   ["negative, hold position, request ... first"], [You skipped a call: take-off before line-up, line-up before taxi, or taxi before start-up. Make the call the tower names, then this one.],
   ["line up runway ..." in answer to a take-off request], [You asked for take-off before you were lined up. This clears the line-up only. Line up, then request take-off again.],
-  ["you are on runway ..., the assigned runway is ..."], [You lined up on a runway end that is not the one the tower named. Taxi off it and go to the assigned runway. A take-off roll on the wrong runway fails the mission.],
-  ["engine start without clearance", "taxi without clearance", "runway entry without clearance", "take-off without clearance"], [You did the thing before its clearance. In a Training mission the mission has failed.],
+  ["you are on runway ..., the assigned runway is ..."], [You lined up on a runway end that is not the one the tower named. Taxi off it and go to the assigned runway.],
+  ["engine start without clearance", "taxi without clearance", "runway entry without clearance", "take-off without clearance"], [You did the thing before its clearance.],
 )
 
 A wrong or repeated call costs nothing. A repeated call gets its answer again.
@@ -84,7 +82,7 @@ A wrong or repeated call costs nothing. A repeated call gets its answer again.
 
 The tower has no calls for you yet for joining the pattern, the final approach or a go-around.
 
-#idx("Wingmen, landing calls")In a four-ship lesson you also hear the tower talk to your wingmen as each comes home: "Kidon 1-2, cleared to land runway ..." as it turns onto its final approach and "Kidon 1-2, welcome back, taxi to parking" after its landing roll. Each answers with its callsign. These calls need nothing from you (@lesson-four-ship-home).
+#idx("Wingmen, landing calls")In a four-ship flight you also hear the tower talk to your wingmen as each comes home: "Kidon 1-2, cleared to land runway ..." as it turns onto its final approach and "Kidon 1-2, welcome back, taxi to parking" after its landing roll. Each answers with its callsign. These calls need nothing from you.
 
 === The frequencies: the RADIO tab <tower-radio>
 
@@ -119,7 +117,7 @@ The lines and the voices are in the game's language (@language).
 
 === Commands to your wingmen <radio-flight>
 
-#idx("Wingmen")#idx("Radio menu")In a four-ship lesson you fly as Kidon 1-1 and lead Kidon 1-2, 1-3 and 1-4. Kidon 1-2 flies on you; Kidon 1-4 flies on Kidon 1-3, who leads the second pair. You command them from the same menu; four commands also have a key of their own (below the table).
+#idx("Wingmen")#idx("Radio menu")In a four-ship flight you fly as Kidon 1-1 and lead Kidon 1-2, 1-3 and 1-4. Kidon 1-2 flies on you; Kidon 1-4 flies on Kidon 1-3, who leads the second pair. You command them from the same menu; four commands also have a key of their own (below the table).
 
 + Press #key("Call the tower").
   #then[The list shows 1 Tower, 2 Wingmen and 3 #term("AWACS"). The tower's calls are under 1, the AWACS's requests under 3 (@awacs-requests). With a #term("tanker") on the flight, 4 Tanker follows (@tanker).]

@@ -69,7 +69,7 @@ One term for each thing. "In use" means the sim's Hebrew strings or docs already
 | Training (the menu) | אימון | in use (the front end's strings) |
 | A jet's course | הסבה (for example "הסבה לסופה") | "שנה של הסבה והכשרה מבצעית"[^mako-after]; the "לסופה" form is ours |
 | A phase | שלב | the IAF's recruiting site names the flight course's "שלבי הכשרה", second-hand[^iaf-recruits] |
-| A lesson | שיעור | in use (the game manual's training chapters, `modern-iaf/manuals/text/he/game/missions-training/`) |
+| A lesson | שיעור | in use (the Training screens' strings, `lesson_n` in `modern-iaf/menu/strings_he.json`) |
 | A sortie | גיחה | ynet on two F-15 pilots, "הפלה בגיחה הראשונה" (`docs/ai.md`, footnote `ynet-uav`) |
 | A check ride | טיסת מבחן | the flight course's "טיסות מבחן" in the Efroni, second-hand[^mako-course] |
 | The briefing | תדריך | in use (the briefing screen) |
@@ -99,7 +99,7 @@ The phase names built from these terms (ours, inferred, each from the terms abov
 | 3 Navigation and instruments | ניווט וטיסת מכשירים |
 | 4 Formation and flight lead | מבנה והובלה |
 | 5 Air-to-ground | תקיפה |
-| 6 AWACS, ground control and the tanker | בקרה ותדלוק אווירי |
+| 6 AWACS, ground control, tanker | בקרה ותדלוק אווירי |
 | 7 Air-to-air | קרב אוויר ויירוט |
 | 8 Threats and electronic warfare | איומים ולוחמה אלקטרונית |
 

@@ -23,7 +23,7 @@
   #then[Only the steps whose inputs changed run. Most of them take seconds. The terrain step rebuilds from the downloaded files when its own inputs changed.]
 + Select #stp("start_game") on the #stp("page_done") page.
 
-#note[The game does not run setup's steps by itself as long as the training missions exist. Open setup after every update, so that no step is left behind.]
+#note[The game does not run setup's steps by itself as long as the missions exist. Open setup after every update, so that no step is left behind.]
 
 === New keys, sounds or voices that are missing <after-update-own>
 
@@ -34,9 +34,9 @@
 
 When the row reads #stp("state_up_to_date") and the fault stays, tick #stp("row_redo") on the row and select #stp("install") (@setup-faults-again).
 
-=== The Hangar says that there are no training missions <after-update-no-missions>
+=== The Hangar says that there are no missions <after-update-no-missions>
 
-#idx("No training missions")The #term("Hangar")'s card, or the #scr("missions") screen, reads: #scr-text("no_missions") Under it the screen names a setup command; use the setup entry instead (@setup-start). #scr("fly") and the sections are greyed.
+#idx("No missions")The #term("Hangar")'s card, or the #scr("missions") screen, reads: #scr-text("no_missions") Under it the screen names a setup command; use the setup entry instead (@setup-start). #scr("fly") and the sections are greyed.
 
 #screen("nodata_missions", [The #scr("missions") screen without the game's data.], width: 80%)
 
@@ -46,7 +46,7 @@ The cause: the step #stp("step_sim-missions") has not been built, or its data wa
 + Open "Modern IAF — Setup" (@setup-start).
 + Select #stp("install") on the #stp("page_install") page and wait for the #stp("page_done") page.
 + Select #stp("start_game").
-  #then[The Hangar's card shows the training's progress, and #scr("fly") is alive.]
+  #then[The Hangar's card shows the last flight on the jet, and #scr("fly") is alive.]
 
 === The first flight after an update loads slowly <after-update-slow>
 

@@ -15,14 +15,14 @@
   ("PilotBlock", [The pilot], [Your nickname, your name and your picture, as one button. It opens the #scr("pilot") screen, and from there the #scr("pilot_log") (@pilots).]),
   ("Jets", [#scr("aircraft")], [The jets. Selecting one picks it for every later screen (@hangar). The jets that come in a later version are greyed.]),
   ("Turntable", [The jet], [The picked jet, with the stores of its #term("loadout"). You can look at it from any side (@main-menu-jet).]),
-  ("JetCard", [The card], [The picked jet's #scr("squadron_l"), #scr("base_l") and #scr("tail_number"); then #scr("training"): how many of the jet's lessons are passed, and the last flight on the jet with its result.]),
+  ("JetCard", [The card], [The picked jet's #scr("squadron_l"), #scr("base_l") and #scr("tail_number"); then the last flight on the jet with its result.]),
   ("Fly", [#scr("fly")], [Opens the #scr("missions") screen for the picked jet: Training and the other sections (@mission-list). It is picked when the Hangar opens, so #keycap("Enter") goes straight on.]),
   ("credits", [#scr("credits")], [Opens the list of the game's sources and their licences, with the game's version under the title. The arrow keys scroll it. The same list is in @attributions.]),
   ("manuals", [#scr("manuals")], [Opens the list of the four manuals (@manuals-screen).]),
   ("quit", [#scr("quit")], [Asks #scr("quit_q"), then closes the game (@start-game-quit).]),
 )
 
-When the game's data is not built, the card says so in place of the training's progress, names a setup command (use the setup entry instead, @setup-start), and #scr("fly") is greyed (@after-update-no-missions).
+When the game's data is not built, the card says so in place of the last flight, names a setup command (use the setup entry instead, @setup-start), and #scr("fly") is greyed (@after-update-no-missions).
 
 === Looking at the jet <main-menu-jet>
 

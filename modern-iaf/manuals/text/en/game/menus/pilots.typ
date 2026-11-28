@@ -94,7 +94,7 @@ On the first start the game opens the screen #scr("first_pilot") before the Hang
   [#scr("date")], [The day and the time of the flight.],
   [#scr("mission")], [The mission flown.],
   [#scr("plane_flown")], [The jet flown.],
-  [#scr("result")], [#scr("pass") or #scr("fail") (@scoring).],
+  [#scr("result")], [#scr("pass") or #scr("fail").],
 )
 
 Two filters stand over the list:

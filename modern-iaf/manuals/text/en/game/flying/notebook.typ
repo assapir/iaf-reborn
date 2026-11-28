@@ -11,7 +11,7 @@
 + Press #key("Checklist notebook") again.
   #then[The notebook goes back to the thigh.]
 
-A Start-up #term("lesson") starts with the notebook raised at its #scr("nb_startup") tab. Every other flight starts with it stowed. In your first Start-up lesson a help line stands over the raised notebook with the keys of this section.
+A flight starts with the notebook stowed.
 
 === The tabs <notebook-tabs>
 
@@ -53,7 +53,7 @@ Each item of the card shows its line, how to do it (the clicks, the waits), and 
   [A tick], [The item is done: its switch stands where the card wants it. Put the switch back, and the tick goes.],
   [A yellow band with an arrow], [#idx("Yellow band")The item to do now. The page turns by itself to keep it in view.],
   [A small ring (○)], [#idx("Read and acknowledge")An item you read and acknowledge. Its line reads: #scr-text("nb_ack"). The game ticks nothing for it and never makes it the item to do now.],
-  [A red line under an item], [The jet refused the step, and why. In a lesson such a fault fails the mission (@scoring-order).],
+  [A red line under an item], [The jet refused the step, and why.],
 )
 
 An item done ahead of its turn is ticked. The yellow band stays on the earlier item until you do it.
@@ -69,17 +69,3 @@ An item done ahead of its turn is ticked. The yellow band stays on the earlier i
 - #scr-text("nb_hint_selftest")
 
 Other hint lines count for you: the engine's #term("RPM") so far while the starter turns it, the switches of a group that are still off, the seconds left of the #term("INS") alignment.
-
-=== The ring round the control <notebook-ring>
-
-#idx("Ring round a control")In a Training lesson the game also shows you where the item's control is. It draws a sky-blue outline round the switch of the item on the yellow band, in the cockpit itself.
-
-#screen("notebook_training", [A lesson: the ring in the cockpit and the notebook beside it.])
-
-- The ring carries the same words as the hint line.
-- For an item that waits on a gauge, the ring goes round the gauge too, with the value to watch for.
-- When the control is out of view, an arrow at the edge of the screen points toward it, with the item's line. Turn the head that way (@views-cockpit).
-- When the raised notebook would cover the ring, the notebook slides aside.
-- When the pilot's body covers the ringed switch, the body hides (@views-body).
-
-Click the ringed switch (@clicking-rule), or press the item's key.

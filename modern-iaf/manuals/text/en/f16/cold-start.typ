@@ -35,7 +35,7 @@ The sim models this procedure in part. It ticks the steps it can check. A step m
 - *The checklist.* #key("Checklist notebook") raises the #term("notebook"). Its CHECKLIST tab shows the same steps as this section, ticks each one the sim sees done, and marks the current step in yellow. See the #other("game", "notebook").
 - *The controls.* A click moves a switch one position; a held click holds a test switch. Many steps also have a key, shown in the Key column. See the #other("game", "clicking").
 - *Clearances.* Four points of this procedure need a clearance: the engine start, the taxi, the line-up and the take-off. How to ask for one, and what follows a move made without it, is in the #other("game", "tower").
-- *In the sim.* This section says what each action does to the jet. How the sim marks the procedure is in the #other("game", "missions-training").
+- *In the sim.* This section says what each action does to the jet.
 
 #idx("Clearances")The procedure has eight phases. Seven are sections of the checklist card; the take-off itself is flown, not read.
 
