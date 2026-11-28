@@ -446,6 +446,7 @@ pub(crate) fn sim_io(id: &str, ctx: &SimCtx) -> Option<(PathBuf, Vec<PathBuf>)> 
             // The furniture too: a parking spot in a shelter takes the shelter's place (airbases.md §5).
             vec![
                 data.join("missions"),
+                data.join("ranges"),
                 data.join("db"),
                 data.join("airbases"),
                 data.join("parking.json"),

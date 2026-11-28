@@ -1,0 +1,38 @@
+{
+  "id": "ovda",
+  "about": "The training range by Ovda (modern-iaf/docs/training-plan.md §1, data-formats.md §5.2): the air-to-ground and threat lessons' one range. Compiled by iaf-sim missions into ranges.json; a mission names it with \"range\".",
+  "name": {"en": "Ovda range", "he": "מטווח עובדה"},
+  "area": [[30.06, 34.8], [30.18, 34.8], [30.18, 34.95], [30.06, 34.95]],
+  "circle": {"lat": 30.09, "lon": 34.86, "rings_m": [25, 50, 100], "unit": "target_t72", "name": "Bull"},
+  "strafe": {"lat": 30.085, "lon": 34.885, "heading": 270, "count": 4, "spacing_m": 30, "unit": "target_ural", "name": "Strafe"},
+  "sites": [
+    {"kind": "s300", "name": "Site 1", "lat": 30.16, "lon": 34.84, "heading": 180},
+    {"kind": "tor", "name": "Site 2", "lat": 30.14, "lon": 34.91, "heading": 180},
+    {"kind": "zsu", "name": "Site 3", "lat": 30.12, "lon": 34.88, "heading": 180}
+  ],
+  "control": {"callsign": {"en": "Range", "he": "מטווח"}, "uhf_mhz": 263.75},
+  "sources": {
+    "area": "inferred",
+    "circle.lat": "inferred",
+    "circle.lon": "inferred",
+    "circle.rings_m": "inferred",
+    "strafe.lat": "inferred",
+    "strafe.lon": "inferred",
+    "strafe.heading": "inferred",
+    "strafe.spacing_m": "inferred",
+    "sites": "inferred, bf21",
+    "control.callsign": "inferred",
+    "control.uhf_mhz": "inferred"
+  },
+  "notes": {
+    "area": "open desert 15 to 30 km north of Ovda, 20 km inside the border: the range's real name and place are not published (searched 28 Nov 2026); the training centre by Ovda has live-fire ranges with ground targets and SAM threats (key-aero, second-hand)",
+    "circle": "a T-72 hulk as the bull, the score rings round it (not drawn): real ranges score a bomb by its distance from the bull",
+    "strafe": "a row of four truck hulks across the run-in from the east, standing in for strafe panels",
+    "sites": "the sim's own S-300, Tor-M1 and ZSU-23-4 sites stand in for the range's threat emitters (Blue Flag 2021 simulated the SA-2, SA-3, SA-6, SA-8 and the Pantsir, bf21, second-hand)",
+    "control": "no IAF range control's callsign or frequency is published: the callsign is the plain word, the frequency invented like the notebook's"
+  },
+  "footnotes": {
+    "key-aero": "Key.aero, Knights of the Negev, quoted by a search engine (the site refuses automated access; second-hand), https://www.key.aero/article/knights-negev",
+    "bf21": "Janes, Wide range of SAMs simulated during exercise Blue Flag in Israel (2021), quoted by a search engine (paywalled; second-hand), https://www.janes.com/defence-news/wide-range-of-sams-simulated-during-exercise-blue-flag-in-israel/"
+  }
+}
