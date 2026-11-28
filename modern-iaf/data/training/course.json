@@ -55,7 +55,7 @@
     "strafe_hits": {"label": {"en": "Gun hits on the target", "he": "פגיעות התותח במטרה"}, "standard": {"limit": "min", "bands": [30, 20, 10], "unit": "%"}},
     "recovery_height": {"label": {"en": "Lowest height after the pass", "he": "הגובה הנמוך ביותר אחרי המעבר"}, "standard": {"limit": "min", "bands": [500, 300, 200], "unit": "ft"}},
     "guided_hits": {"label": {"en": "Guided bombs on the target", "he": "פצצות מונחות שפגעו במטרה"}, "standard": {"limit": "min", "bands": [100, 100, 50], "unit": "%"}},
-    "awacs_checkin": {"label": {"en": "Checked in with the AWACS", "he": "דיווח הצטרפות ל-AWACS"}, "standard": {"limit": "min", "bands": [1, 1, 1], "unit": ""}},
+    "awacs_checkin": {"label": {"en": "Checked in with the AWACS", "he": "כניסה לרשת ה-AWACS"}, "standard": {"limit": "min", "bands": [1, 1, 1], "unit": ""}},
     "vector_heading_error": {"label": {"en": "Vector flown", "he": "טיסה בכיוון שנמסר"}, "standard": {"limit": "tol", "target": 0, "bands": [5, 10, 20], "unit": "deg"}},
     "tanker_contact_time": {"label": {"en": "Time from the tanker's join-up to contact", "he": "הזמן מההצטרפות למטוס התדלוק עד המגע"}, "standard": {"limit": "max", "bands": [120, 240, 360], "unit": "s"}},
     "tanker_disconnects": {"label": {"en": "Unplanned disconnects", "he": "ניתוקים לא מתוכננים"}, "standard": {"limit": "max", "bands": [0, 1, 2], "unit": ""}},

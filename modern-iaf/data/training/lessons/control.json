@@ -1,0 +1,2249 @@
+{
+  "about": "Phase 6's lessons (AWACS, ground control and the tanker): per lesson its missions by jet, the briefing's sections, the notebook's Lesson tab and the instructor's calls (modern-iaf/docs/training.md §16, §16.9). Read by crates/iaf-tools/src/course.rs. The AWACS's requests and answers are docs/ai.md §24; the tanker, the boom operator and the join-up are modern-iaf/docs/research/air-refuelling.md §4 and §8, the AIR REFUEL checks the notebook's (training.md §11). The tanker's figures are tanker.rs's; no jet figure is written here.",
+  "diagrams": {
+    "awacs_braa": {
+      "title": {
+        "en": "A group in the AWACS's words",
+        "he": "מבנה במילים של ה-AWACS"
+      },
+      "points": [
+        {
+          "en": "You",
+          "he": "כידון 1",
+          "hold": {
+            "en": "checked in · 20,000 ft",
+            "he": "בתוך הרשת · 20,000 רגל"
+          }
+        },
+        {
+          "en": "The group",
+          "he": "המבנה",
+          "hold": {
+            "en": "bearing 040 · 30 miles · 20 thousand · hot",
+            "he": "כיוון 040 · 30 מייל · גובה 20 אלף · מתקרב"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                45,
+                98
+              ],
+              [
+                45,
+                80
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                88,
+                12
+              ],
+              [
+                76,
+                28
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            45,
+            80
+          ],
+          [
+            76,
+            28
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              66,
+              58
+            ],
+            "en": "bearing 040",
+            "he": "כיוון 040"
+          },
+          {
+            "at": [
+              68,
+              66
+            ],
+            "en": "30 miles",
+            "he": "30 מייל"
+          },
+          {
+            "at": [
+              84,
+              38
+            ],
+            "en": "hot: at you",
+            "he": "מתקרב: האף לעבר כידון 1"
+          }
+        ]
+      }
+    },
+    "vector_intercept": {
+      "title": {
+        "en": "Vectors to a contact and the hand-off",
+        "he": "כיוונים אל מגע והעברת היירוט"
+      },
+      "points": [
+        {
+          "en": "Vector",
+          "he": "כיוון",
+          "hold": {
+            "en": "turn onto it at once · within 5°",
+            "he": "פנייה אליו מיד · בתוך 5°"
+          }
+        },
+        {
+          "en": "Vector again",
+          "he": "כיוון שוב",
+          "hold": {
+            "en": "each minute, after each turn",
+            "he": "כל דקה, אחרי כל פנייה"
+          }
+        },
+        {
+          "en": "Judy",
+          "he": "Judy",
+          "hold": {
+            "en": "radar, data link or sight",
+            "he": "מכ\"ם, קישור הנתונים או עין"
+          }
+        },
+        {
+          "en": "Behind it",
+          "he": "מאחוריו",
+          "hold": {
+            "en": "2 NM, no closer",
+            "he": "2 מייל, לא קרוב יותר"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                50,
+                98
+              ],
+              [
+                50,
+                80
+              ],
+              [
+                62,
+                56
+              ],
+              [
+                70,
+                38
+              ],
+              [
+                64,
+                25
+              ],
+              [
+                56,
+                18
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                30,
+                15
+              ],
+              [
+                92,
+                15
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            50,
+            80
+          ],
+          [
+            62,
+            56
+          ],
+          [
+            70,
+            38
+          ],
+          [
+            56,
+            18
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              84,
+              8
+            ],
+            "en": "contact",
+            "he": "מגע"
+          }
+        ]
+      }
+    },
+    "tanker_join": {
+      "title": {
+        "en": "The join-up on the tanker",
+        "he": "ההצטרפות למטוס התדלוק"
+      },
+      "points": [
+        {
+          "en": "Vector to tanker",
+          "he": "כיוון למטוס התדלוק",
+          "hold": {
+            "en": "29,000 ft: 1,000 ft below",
+            "he": "29,000 רגל: 1,000 רגל מתחת"
+          }
+        },
+        {
+          "en": "Within 1 NM",
+          "he": "בתוך מייל",
+          "hold": {
+            "en": "his speed · small overtake",
+            "he": "המהירות שלו · סגירה קטנה"
+          }
+        },
+        {
+          "en": "Pre-contact",
+          "he": "טרום מגע",
+          "hold": {
+            "en": "behind and below the boom",
+            "he": "מאחורי הבום ומתחתיו"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                12,
+                96
+              ],
+              [
+                28,
+                76
+              ],
+              [
+                44,
+                56
+              ],
+              [
+                50,
+                42
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                50,
+                34
+              ],
+              [
+                50,
+                4
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            12,
+            96
+          ],
+          [
+            44,
+            56
+          ],
+          [
+            50,
+            42
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              60,
+              18
+            ],
+            "en": "tanker · 30,000 ft · 480 kt",
+            "he": "מטוס תדלוק · 30,000 רגל · 480 קשר"
+          }
+        ]
+      },
+      "side": {
+        "paths": [
+          {
+            "track": [
+              [
+                4,
+                30
+              ],
+              [
+                40,
+                62
+              ],
+              [
+                70,
+                64
+              ],
+              [
+                86,
+                68
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                90,
+                76
+              ],
+              [
+                100,
+                76
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            4,
+            30
+          ],
+          [
+            62,
+            63
+          ],
+          [
+            86,
+            68
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              52,
+              74
+            ],
+            "en": "1,000 ft below",
+            "he": "1,000 רגל מתחת"
+          }
+        ]
+      }
+    },
+    "tanker_positions": {
+      "title": {
+        "en": "The tanker's positions",
+        "he": "העמדות ליד מטוס התדלוק"
+      },
+      "points": [
+        {
+          "en": "Observation",
+          "he": "תצפית",
+          "hold": {
+            "en": "left wing · waiting",
+            "he": "כנף שמאל · המתנה"
+          }
+        },
+        {
+          "en": "Pre-contact",
+          "he": "טרום מגע",
+          "hold": {
+            "en": "stable · door open",
+            "he": "יציב · דלת פתוחה"
+          }
+        },
+        {
+          "en": "Contact",
+          "he": "מגע",
+          "hold": {
+            "en": "2–3 kt closure · fly to the green",
+            "he": "2–3 קשר סגירה · טיסה אל הירוק"
+          }
+        },
+        {
+          "en": "Right wing",
+          "he": "כנף ימין",
+          "hold": {
+            "en": "full · door closed",
+            "he": "מלא · דלת סגורה"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                50,
+                96
+              ],
+              [
+                50,
+                78
+              ],
+              [
+                50,
+                64
+              ],
+              [
+                62,
+                58
+              ],
+              [
+                76,
+                42
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                50,
+                56
+              ],
+              [
+                50,
+                6
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            24,
+            42
+          ],
+          [
+            50,
+            78
+          ],
+          [
+            50,
+            64
+          ],
+          [
+            76,
+            42
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              58,
+              20
+            ],
+            "en": "tanker",
+            "he": "מטוס תדלוק"
+          }
+        ]
+      },
+      "side": {
+        "paths": [
+          {
+            "track": [
+              [
+                2,
+                54
+              ],
+              [
+                44,
+                60
+              ],
+              [
+                60,
+                66
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                66,
+                80
+              ],
+              [
+                100,
+                80
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [],
+        "notes": [
+          {
+            "at": [
+              66,
+              70
+            ],
+            "en": "boom",
+            "he": "בום"
+          },
+          {
+            "at": [
+              80,
+              92
+            ],
+            "en": "director lights",
+            "he": "נורות ההכוונה"
+          }
+        ]
+      }
+    }
+  },
+  "lessons": {
+    "checkin": {
+      "missions": {
+        "f16d": "f16d_control_checkin",
+        "f16i": "f16i_control_checkin",
+        "f35i": "f35i_control_checkin"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: a climb to 20,000 ft over the work area, the check-in with the AWACS, a picture and a bogey dope, and the return home on the controller's vector.",
+            "he": "ברק אחד, {base}, מסלול {runway}, יום. טיפוס ל-20,000 רגל מעל אזור העבודה, כניסה לרשת ה-AWACS, תמונת מצב ומגע קרוב, וחזרה בכיוון מהבקר."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: a climb to 20,000 ft over the work area, the check-in with the AWACS, a picture and a bogey dope, and the return home on the controller's vector.",
+            "he": "סופה אחת, {base}, מסלול {runway}, יום. טיפוס ל-20,000 רגל מעל אזור העבודה, כניסה לרשת ה-AWACS, תמונת מצב ומגע קרוב, וחזרה בכיוון מהבקר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: a climb to 20,000 ft over the work area, the check-in with the AWACS, a picture and a bogey dope, and the return home on the controller's vector.",
+            "he": "אדיר אחד, {base}, מסלול {runway}, יום. טיפוס ל-20,000 רגל מעל אזור העבודה, כניסה לרשת ה-AWACS, תמונת מצב ומגע קרוב, וחזרה בכיוון מהבקר."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can check in with the AWACS, ask for the picture and the nearest group, and read its answers: the groups, their bearing, range, altitude and aspect.",
+            "he": "בסיום התרגול הזה תדעו להיכנס לרשת ה-AWACS, לבקש תמונת מצב ואת המגע הקרוב, ולקרוא את התשובות (מבנים, כיוון, טווח, גובה וזווית), תוך כניסה לרשת לפני כל בקשה אחרת."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "Two groups of target drones, hostile for the exercise: a pair at 22,000 ft and a single at 15,000 ft, 20 to 40 NM from the work area, on racetracks. They carry no weapons.",
+            "he": "שני מבנים של מטרות מל\"ט, עוינים לצורכי התרגיל: זוג ב-22,000 רגל ויחיד ב-15,000 רגל, 20 עד 40 מייל מאזור העבודה, במסלולים סגורים. ללא חימוש."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower on the radio. The AWACS controller, Eitam, on the radio.",
+            "he": "כידון 1: {jet}, המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר. עיטם (בקר מוטס) בקשר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Two F-35I: Kidon 1, yours, and the instructor's, Kidon 2, which joins you after the take-off and talks on the radio. {base} tower on the radio. The AWACS controller, Eitam, on the radio.",
+            "he": "כידון 1: אדיר. כידון 2: אדיר המדריך, מצטרף אחרי ההמראה, בקשר. מגדל {base} בקשר. עיטם (בקר מוטס) בקשר."
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The work area is the steerpoint, 20,000 ft.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. פתיחה קרה בעמדת החניה. אזור העבודה: נקודת הציון, 20,000 רגל."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "Start-up, taxi and take-off as taught: the checklist ({key:118}), the tower for the start-up, the taxi and the line-up ({key:47:1}), runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ולקבל מהמגדל אישור להתנעה, להסעה ולהתיישרות ({key:47:1}) למסלול {runway}."
+          },
+          {
+            "at": "lineup",
+            "en": "Take-off at military power, gear up once climbing, then climb to the steerpoint.",
+            "he": "יש להמריא בדחף צבאי, לאסוף את כן הנסע בטיפוס ולטפס לנקודת הציון."
+          },
+          {
+            "diagram": "awacs_braa",
+            "en": "Check in with the AWACS once level: the radio menu's AWACS page ({key:47:3}), Check in. Eitam answers \"radar contact\": from then on the controller works with you. Check in before any other request.",
+            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"יש מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
+          },
+          {
+            "diagram": "awacs_braa",
+            "en": "The picture: AWACS page, Picture. The answer names the number of groups, then each one: \"group bearing 040, 30 miles, 20 thousand, hot, hostile\": the bearing from you, the range in nautical miles, the altitude in thousands of feet, and its aspect (hot: coming at you; flank, beam, drag).",
+            "he": "יש לבקש תמונת מצב (דף ה-AWACS, תמונת מצב). התשובה מונה את המבנים, ואחר כך כל מבנה: \"מבנה, כיוון 040, 30 מייל, גובה עשרים אלף, מתקרב, עוין\": כיוון מהמטוס, טווח במייל ימי, גובה באלפי רגל וזווית (מתקרב, באלכסון, בניצב, מתרחק)."
+          },
+          {
+            "en": "The bogey dope: AWACS page, Bogey dope: the nearest group alone, in the same words. Ask again after a turn and compare.",
+            "he": "יש לבקש את המגע הקרוב (דף ה-AWACS, המגע הקרוב): המבנה הקרוב בלבד, באותן מילים. אחרי פנייה יש לבקש שוב ולהשוות."
+          },
+          {
+            "en": "Back to {base}: ask the AWACS for a vector home ({key:47:3}, Vector home) and fly it; then the tower for landing ({key:47:1}), the overhead or a straight-in to a full stop, the taxi to the shelter and the shutdown. The lesson ends with the engine off on the spot.",
+            "he": "לחזרה ל{base} יש לבקש כיוון לבסיס מה-AWACS ({key:47:3}, כיוון לבסיס) ולטוס בו, לקרוא למגדל לנחיתה ({key:47:1}), לנחות בהקפה עם שבירה או בגישה ישירה עד עצירה מלאה, להסיע לדת\"ק ולכבות. התרגול מסתיים כשהמנוע כבוי בעמדה."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Stay above 10,000 ft and within 20 NM of the steerpoint; the drones fly 2,000 ft or more from your altitude. Bingo: the fuel to fly home and land with the reserve. \"Knock it off\" from either seat ends the exercise.",
+            "he": "יש להישאר מעל 10,000 רגל ועד 20 מייל מנקודת הציון; המל\"טים טסים 2,000 רגל לפחות מגובה הטיסה. בדלק בינגו, הדלק לחזרה ולנחיתה עם רזרבה, יש לחזור. \"סיום קרב\" מכל מושב מסיים את התרגיל."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Stay above 10,000 ft and within 20 NM of the steerpoint; the drones fly 2,000 ft or more from your altitude. Bingo: the fuel to fly home and land with the reserve. \"Knock it off\" from either jet ends the exercise.",
+            "he": "יש להישאר מעל 10,000 רגל ועד 20 מייל מנקודת הציון; המל\"טים טסים 2,000 רגל לפחות מגובה הטיסה. בדלק בינגו, הדלק לחזרה ולנחיתה עם רזרבה, יש לחזור. \"סיום קרב\" מכל מטוס מסיים את התרגיל."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}). The AWACS: Eitam, on the radio menu's AWACS page ({key:47:3}). The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base}: תדרים בדף הקשר בפנקס ({key:118}). AWACS: עיטם, בדף ה-AWACS בתפריט הקשר ({key:47:3}). המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the instructor Kidon 2. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}). The AWACS: Eitam, on the radio menu's AWACS page ({key:47:3}). The instructor on the tower's frequency. Code word: \"knock it off\".",
+            "he": "אותות קריאה: כידון 1; המדריך כידון 2. קרקע ומגדל {base}: תדרים בדף הקשר בפנקס ({key:118}). AWACS: עיטם, בדף ה-AWACS בתפריט הקשר ({key:47:3}). המדריך בתדר המגדל. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Start-up, taxi, take-off, runway {runway}",
+          "he": "יש להתניע, להסיע ולהמריא, מסלול {runway}",
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          }
+        },
+        {
+          "en": "Climb to the steerpoint",
+          "he": "יש לטפס לנקודת הציון"
+        },
+        {
+          "en": "AWACS: Check in",
+          "he": "יש להיכנס לרשת ה-AWACS",
+          "wait": {
+            "en": "\"radar contact\"",
+            "he": "\"יש מגע מכ\"מי\""
+          },
+          "diagram": "awacs_braa"
+        },
+        {
+          "en": "AWACS: Picture",
+          "he": "יש לבקש תמונת מצב",
+          "wait": {
+            "en": "the groups: bearing, range, altitude, aspect",
+            "he": "המבנים: כיוון, טווח, גובה, זווית"
+          },
+          "diagram": "awacs_braa"
+        },
+        {
+          "en": "AWACS: Bogey dope",
+          "he": "יש לבקש את המגע הקרוב",
+          "wait": {
+            "en": "the nearest group",
+            "he": "המבנה הקרוב"
+          }
+        },
+        {
+          "en": "AWACS: Vector home; fly the heading",
+          "he": "יש לבקש כיוון לבסיס ולטוס בו"
+        },
+        {
+          "en": "Tower: landing; full stop; shelter; shut down",
+          "he": "יש לקרוא למגדל, לנחות עד עצירה מלאה, להסיע לדת\"ק ולכבות",
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          }
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today we work with the AWACS. We climb out, check in with Eitam, take a picture, and come home on his vector.",
+              "he": "היום נעבוד עם ה-AWACS. נטפס, ניכנס לרשת של עיטם, נקבל תמונת מצב ונחזור בכיוון שלו."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start up by the checklist. We call the tower first.",
+              "he": "נתניע לפי הבד\"ח. קודם נקרא למגדל."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "taxi_f35",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "idle",
+            "item:seat_arm"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Here we run the before-take-off checks, then line up on {rwy}.",
+              "he": "כאן נבצע בדיקות לפני המראה, ואחר כך נתיישר על מסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "All set. We take off and climb to the steerpoint, twenty thousand. Once we're level, we check in with Eitam.",
+              "he": "הכול מוכן. נמריא ונטפס לנקודת הציון, עשרים אלף. כשנתיישר, ניכנס לרשת של עיטם."
+            }
+          ]
+        },
+        {
+          "id": "picture",
+          "when": [
+            "called:awacs:checkin"
+          ],
+          "lines": [
+            {
+              "en": "He has us. Now let's ask for the picture and listen: how many groups, then where each one is.",
+              "he": "עיטם רואה אותנו. עכשיו נבקש תמונת מצב ונקשיב: כמה מבנים, ואיפה כל אחד."
+            }
+          ]
+        },
+        {
+          "id": "dope",
+          "when": [
+            "called:awacs:picture"
+          ],
+          "lines": [
+            {
+              "en": "Let's find them on our displays. Then a bogey dope: just the nearest group.",
+              "he": "נמצא אותם בתצוגות. אחר כך נבקש את המגע הקרוב: רק המבנה הקרוב."
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "when": [
+            "called:awacs:bogey_dope"
+          ],
+          "lines": [
+            {
+              "en": "Nice. Let's turn a little and ask again, and watch the bearing change. Then we ask for a vector home.",
+              "he": "יפה. נפנה מעט ונבקש שוב, ונראה איך הכיוון משתנה. אחר כך נבקש כיוון לבסיס."
+            }
+          ]
+        },
+        {
+          "id": "land",
+          "when": [
+            "called:awacs:vector_home"
+          ],
+          "lines": [
+            {
+              "en": "Let's fly that heading home and call the tower for landing.",
+              "he": "נטוס בכיוון הזה הביתה ונקרא למגדל לנחיתה."
+            }
+          ]
+        },
+        {
+          "id": "landed",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nicely done. We clear the runway, taxi in and shut down.",
+              "he": "יפה מאוד. נפנה את המסלול, נסיע לדת\"ק ונכבה."
+            }
+          ]
+        }
+      ]
+    },
+    "vectors": {
+      "missions": {
+        "f16d": "f16d_control_vectors",
+        "f16i": "f16i_control_vectors",
+        "f35i": "f35i_control_vectors"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: the check-in with the AWACS, its vectors to a contact until you have it, the hand-off of the intercept (\"judy\"), and the return home on its vector.",
+            "he": "ברק אחד, {base}, מסלול {runway}, יום. כניסה לרשת ה-AWACS, כיוונים אל מגע עד שהוא אצלנו, העברת היירוט (\"Judy\"), וחזרה בכיוון מהבקר."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: the check-in with the AWACS, its vectors to a contact until you have it, the hand-off of the intercept (\"judy\"), and the return home on its vector.",
+            "he": "סופה אחת, {base}, מסלול {runway}, יום. כניסה לרשת ה-AWACS, כיוונים אל מגע עד שהוא אצלנו, העברת היירוט (\"Judy\"), וחזרה בכיוון מהבקר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: the check-in with the AWACS, its vectors to a contact until you have it, the hand-off of the intercept (\"judy\"), and the return home on its vector.",
+            "he": "אדיר אחד, {base}, מסלול {runway}, יום. כניסה לרשת ה-AWACS, כיוונים אל מגע עד שהוא אצלנו, העברת היירוט (\"Judy\"), וחזרה בכיוון מהבקר."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can fly a controller's vectors to within sight of a contact, hold each heading within 5°, take the intercept over with \"judy\", and fly the vector home.",
+            "he": "בסיום התרגול הזה תדעו לטוס בכיווני הבקר אל מגע עד שהוא בטווח ראייה, לקבל את היירוט ב-\"Judy\" ולטוס בכיוון לבסיס, תוך החזקת כל כיוון בתוך 5°."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "One target drone, hostile for the exercise, at 15,000 ft on a long straight racetrack. It does not manoeuvre and carries no weapons.",
+            "he": "מטרת מל\"ט אחת, עוינת לצורכי התרגיל, ב-15,000 רגל, במסלול סגור ארוך וישר. ללא תמרון וללא חימוש."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower on the radio. The AWACS controller, Eitam, on the radio.",
+            "he": "כידון 1: {jet}, המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר. עיטם (בקר מוטס) בקשר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Two F-35I: Kidon 1, yours, and the instructor's, Kidon 2, which joins you after the take-off and talks on the radio. {base} tower on the radio. The AWACS controller, Eitam, on the radio.",
+            "he": "כידון 1: אדיר. כידון 2: אדיר המדריך, מצטרף אחרי ההמראה, בקשר. מגדל {base} בקשר. עיטם (בקר מוטס) בקשר."
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The work area is the steerpoint, 20,000 ft; the drone is 20 to 40 NM beyond it.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. פתיחה קרה בעמדת החניה. אזור העבודה: נקודת הציון, 20,000 רגל; המל\"ט 20 עד 40 מייל מעבר לה."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "Start-up, taxi and take-off as taught: the checklist ({key:118}), the tower for the start-up, the taxi and the line-up ({key:47:1}), runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ולקבל מהמגדל אישור להתנעה, להסעה ולהתיישרות ({key:47:1}) למסלול {runway}."
+          },
+          {
+            "at": "lineup",
+            "en": "Take-off at military power, gear up once climbing, then climb to the steerpoint.",
+            "he": "יש להמריא בדחף צבאי, לאסוף את כן הנסע בטיפוס ולטפס לנקודת הציון."
+          },
+          {
+            "diagram": "awacs_braa",
+            "en": "Check in with the AWACS once level: the radio menu's AWACS page ({key:47:3}), Check in. Eitam answers \"radar contact\": from then on the controller works with you. Check in before any other request.",
+            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"יש מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
+          },
+          {
+            "diagram": "vector_intercept",
+            "en": "The vector: AWACS page, Vector to target. The answer is a heading and a range: \"vector 040, 30 miles, target\". Turn onto the heading at once and hold it within 5°; ask again every minute or so, and after each turn: the contact moves.",
+            "he": "יש לבקש כיוון למטרה (דף ה-AWACS, כיוון למטרה); התשובה היא כיוון וטווח, \"כיוון 040, 30 מייל, מטרה\". יש לפנות לכיוון מיד, להחזיק אותו בתוך 5° ולבקש שוב בערך כל דקה ואחרי כל פנייה, כי המגע זז."
+          },
+          {
+            "diagram": "vector_intercept",
+            "en": "The hand-off: once the contact is on your radar, the data link or in sight, call \"judy\" (AWACS page, Judy): you take the intercept over. Close to 2 NM behind it, no closer.",
+            "he": "כשהמגע במכ\"ם, בקישור הנתונים או בטווח ראייה, יש לקרוא \"Judy\" (דף ה-AWACS, Judy): היירוט עובר לטייס. יש לסגור עד 2 מייל מאחורי המגע, לא קרוב יותר."
+          },
+          {
+            "en": "Back to {base}: ask the AWACS for a vector home ({key:47:3}, Vector home) and fly it; then the tower for landing ({key:47:1}), the overhead or a straight-in to a full stop, the taxi to the shelter and the shutdown. The lesson ends with the engine off on the spot.",
+            "he": "לחזרה ל{base} יש לבקש כיוון לבסיס מה-AWACS ({key:47:3}, כיוון לבסיס) ולטוס בו, לקרוא למגדל לנחיתה ({key:47:1}), לנחות בהקפה עם שבירה או בגישה ישירה עד עצירה מלאה, להסיע לדת\"ק ולכבות. התרגול מסתיים כשהמנוע כבוי בעמדה."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Stay above 10,000 ft and at least 2,000 ft above or below the drone until judy; no closer than 2 NM to it. Bingo: the fuel to fly home and land with the reserve. \"Knock it off\" from either seat ends the exercise.",
+            "he": "יש להישאר מעל 10,000 רגל, ו-2,000 רגל לפחות מעל המל\"ט או מתחתיו עד ה-Judy, ולא להתקרב אליו מ-2 מייל. בדלק בינגו, הדלק לחזרה ולנחיתה עם רזרבה, יש לחזור. \"סיום קרב\" מכל מושב מסיים את התרגיל."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Stay above 10,000 ft and at least 2,000 ft above or below the drone until judy; no closer than 2 NM to it. Bingo: the fuel to fly home and land with the reserve. \"Knock it off\" from either jet ends the exercise.",
+            "he": "יש להישאר מעל 10,000 רגל, ו-2,000 רגל לפחות מעל המל\"ט או מתחתיו עד ה-Judy, ולא להתקרב אליו מ-2 מייל. בדלק בינגו, הדלק לחזרה ולנחיתה עם רזרבה, יש לחזור. \"סיום קרב\" מכל מטוס מסיים את התרגיל."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}). The AWACS: Eitam, on the radio menu's AWACS page ({key:47:3}). The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base}: תדרים בדף הקשר בפנקס ({key:118}). AWACS: עיטם, בדף ה-AWACS בתפריט הקשר ({key:47:3}). המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the instructor Kidon 2. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}). The AWACS: Eitam, on the radio menu's AWACS page ({key:47:3}). The instructor on the tower's frequency. Code word: \"knock it off\".",
+            "he": "אותות קריאה: כידון 1; המדריך כידון 2. קרקע ומגדל {base}: תדרים בדף הקשר בפנקס ({key:118}). AWACS: עיטם, בדף ה-AWACS בתפריט הקשר ({key:47:3}). המדריך בתדר המגדל. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Start-up, taxi, take-off, runway {runway}",
+          "he": "יש להתניע, להסיע ולהמריא, מסלול {runway}",
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          }
+        },
+        {
+          "en": "Climb to the steerpoint",
+          "he": "יש לטפס לנקודת הציון"
+        },
+        {
+          "en": "AWACS: Check in",
+          "he": "יש להיכנס לרשת ה-AWACS",
+          "wait": {
+            "en": "\"radar contact\"",
+            "he": "\"יש מגע מכ\"מי\""
+          },
+          "diagram": "awacs_braa"
+        },
+        {
+          "en": "AWACS: Vector to target; hold it within 5°",
+          "he": "יש לבקש כיוון למטרה ולהחזיק אותו בתוך 5°",
+          "wait": {
+            "en": "\"vector …, target\"",
+            "he": "\"כיוון …, מטרה\""
+          },
+          "diagram": "vector_intercept"
+        },
+        {
+          "en": "Ask again each minute and after each turn",
+          "he": "יש לבקש שוב כל דקה ואחרי כל פנייה"
+        },
+        {
+          "en": "Radar, data link or eyes on it: AWACS: Judy",
+          "he": "כשהמגע במכ\"ם, בקישור הנתונים או בעין, יש לקרוא Judy",
+          "diagram": "vector_intercept"
+        },
+        {
+          "en": "Close to 2 NM behind it",
+          "he": "יש לסגור עד 2 מייל מאחוריו"
+        },
+        {
+          "en": "AWACS: Vector home; fly the heading",
+          "he": "יש לבקש כיוון לבסיס ולטוס בו"
+        },
+        {
+          "en": "Tower: landing; full stop; shelter; shut down",
+          "he": "יש לקרוא למגדל, לנחות עד עצירה מלאה, להסיע לדת\"ק ולכבות",
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          }
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today Eitam steers us to a contact. We fly his headings until we have it, then we call judy.",
+              "he": "היום עיטם יכוון אותנו אל מגע. נטוס בכיוונים שלו עד שנראה אותו, ואז נקרא Judy."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start up by the checklist. We call the tower first.",
+              "he": "נתניע לפי הבד\"ח. קודם נקרא למגדל."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "taxi_f35",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "idle",
+            "item:seat_arm"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Here we run the before-take-off checks, then line up on {rwy}.",
+              "he": "כאן נבצע בדיקות לפני המראה, ואחר כך נתיישר על מסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "Off we go. We climb to the steerpoint and check in with Eitam.",
+              "he": "יוצאים לדרך. נטפס לנקודת הציון וניכנס לרשת של עיטם."
+            }
+          ]
+        },
+        {
+          "id": "vector",
+          "when": [
+            "called:awacs:checkin"
+          ],
+          "lines": [
+            {
+              "en": "Let's ask for a vector to the target. We turn onto it right away and hold it within five degrees.",
+              "he": "נבקש כיוון למטרה. נפנה אליו מיד ונחזיק אותו בתוך חמש מעלות."
+            }
+          ]
+        },
+        {
+          "id": "again",
+          "when": [
+            "called:awacs:vector_target"
+          ],
+          "lines": [
+            {
+              "en": "Every minute or so, and after every turn, we ask again. Keep an eye on the radar and the data link.",
+              "he": "בערך כל דקה, ואחרי כל פנייה, נבקש שוב. נשים עין על המכ\"ם ועל קישור הנתונים."
+            }
+          ]
+        },
+        {
+          "id": "judy",
+          "when": [
+            "called:awacs:judy"
+          ],
+          "lines": [
+            {
+              "en": "Judy. It's our intercept now. We close to two miles behind him, no closer, then ask for a vector home.",
+              "he": "Judy. היירוט שלנו עכשיו. נסגור עד שני מייל מאחוריו, לא קרוב יותר, ואחר כך נבקש כיוון לבסיס."
+            }
+          ]
+        },
+        {
+          "id": "land",
+          "when": [
+            "called:awacs:vector_home"
+          ],
+          "lines": [
+            {
+              "en": "Let's fly that heading home and call the tower for landing.",
+              "he": "נטוס בכיוון הזה הביתה ונקרא למגדל לנחיתה."
+            }
+          ]
+        },
+        {
+          "id": "landed",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nicely done. We clear the runway, taxi in and shut down.",
+              "he": "יפה מאוד. נפנה את המסלול, נסיע לדת\"ק ונכבה."
+            }
+          ]
+        }
+      ]
+    },
+    "tanker": {
+      "missions": {
+        "f16d": "f16d_control_tanker",
+        "f16i": "f16i_control_tanker",
+        "f35i": "f35i_control_tanker"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: the AWACS's vector to the tanker, the join-up, contact, fuel to full and the disconnect, then home.",
+            "he": "ברק אחד, {base}, מסלול {runway}, יום. כיוון מה-AWACS למטוס התדלוק, הצטרפות, מגע, דלק עד מלא, ניתוק וחזרה."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: the AWACS's vector to the tanker, the join-up, contact, fuel to full and the disconnect, then home.",
+            "he": "סופה אחת, {base}, מסלול {runway}, יום. כיוון מה-AWACS למטוס התדלוק, הצטרפות, מגע, דלק עד מלא, ניתוק וחזרה."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: the AWACS's vector to the tanker, the join-up, contact, fuel to full and the disconnect, then home.",
+            "he": "אדיר אחד, {base}, מסלול {runway}, יום. כיוון מה-AWACS למטוס התדלוק, הצטרפות, מגע, דלק עד מלא, ניתוק וחזרה."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can find the tanker on the controller's vector, join it, fly to the contact position and hold it on the boom until your tanks are full, without an unplanned disconnect.",
+            "he": "בסיום התרגול הזה תדעו לאתר את מטוס התדלוק בכיוון מהבקר, להצטרף אליו, לטוס לעמדת המגע ולהחזיק אותה על הבום עד מכלים מלאים, תוך עמידה בזמנים וללא ניתוק לא מתוכנן."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower on the radio. The AWACS controller, Eitam, and the tanker, a KC-46A Gideon, on the radio.",
+            "he": "כידון 1: {jet}, המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר. עיטם (בקר מוטס) ומטוס התדלוק, KC-46A גדעון, בקשר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Two F-35I: Kidon 1, yours, and the instructor's, Kidon 2, which joins you after the take-off and talks on the radio. {base} tower on the radio. The AWACS controller, Eitam, and the tanker, a KC-46A Gideon, on the radio.",
+            "he": "כידון 1: אדיר. כידון 2: אדיר המדריך, מצטרף אחרי ההמראה, בקשר. מגדל {base} בקשר. עיטם (בקר מוטס) ומטוס התדלוק, KC-46A גדעון, בקשר."
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The tanker flies a left-hand racetrack at 30,000 ft and 480 kt; the steerpoint lies on its inbound leg.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. פתיחה קרה בעמדת החניה. מטוס התדלוק במסלול סגור שמאלי, 30,000 רגל, 480 קשר; נקודת הציון על הרגל הנכנסת."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "Start-up, taxi and take-off as taught: the checklist ({key:118}), the tower for the start-up, the taxi and the line-up ({key:47:1}), runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ולקבל מהמגדל אישור להתנעה, להסעה ולהתיישרות ({key:47:1}) למסלול {runway}."
+          },
+          {
+            "at": "lineup",
+            "en": "Take-off at military power, gear up once climbing, then climb to the steerpoint.",
+            "he": "יש להמריא בדחף צבאי, לאסוף את כן הנסע בטיפוס ולטפס לנקודת הציון."
+          },
+          {
+            "diagram": "awacs_braa",
+            "en": "Check in with the AWACS once level: the radio menu's AWACS page ({key:47:3}), Check in. Eitam answers \"radar contact\": from then on the controller works with you. Check in before any other request.",
+            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"יש מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
+          },
+          {
+            "diagram": "tanker_join",
+            "en": "Find the tanker: ask the AWACS for a vector to the tanker ({key:47:3}, Vector to tanker) and fly it, climbing to 29,000 ft, 1,000 ft below the tanker's track (30,000 ft). The tanker is also on the radar and the data link.",
+            "he": "יש לבקש מה-AWACS כיוון למטוס התדלוק ({key:47:3}, כיוון למטוס התדלוק), לטוס בו ולטפס ל-29,000 רגל, 1,000 רגל מתחת למסלול מטוס התדלוק (30,000 רגל). מטוס התדלוק מופיע גם במכ\"ם ובקישור הנתונים."
+          },
+          {
+            "en": "Call the tanker on the radio menu's Tanker page ({key:47:4}), Request refuelling, and wait for \"cleared pre-contact\". The AIR REFUEL page of the notebook holds the checks: MASTER ARM off and the refuelling door open.",
+            "he": "יש לבקש תדלוק ממטוס התדלוק ({key:47:4}, בקשת תדלוק), להמתין ל\"אישור לעמדת טרום מגע\" ולבצע את הבדיקות בדף התדלוק האווירי בפנקס: MASTER ARM כבוי ודלת התדלוק פתוחה."
+          },
+          {
+            "diagram": "tanker_positions",
+            "en": "The join-up: close from behind and below, with a small overtake, matching the tanker's speed as you come within 1 NM; then up to the pre-contact position, 15 m behind the boom's nozzle and a little below it, wings level with the tanker's.",
+            "he": "יש לסגור מאחור ומלמטה במהירות סגירה קטנה, להשוות מהירות בתוך מייל אחד ולעלות לעמדת טרום מגע: 15 מטר מאחורי פיית הבום ומעט מתחתיה, כנפיים מקבילות לכנפי מטוס התדלוק."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Open the refuelling door ({key:259}; the F-16's AIR REFUEL switch to OPEN, the RDY lamp lit). Held steady at pre-contact, the boom operator calls \"cleared contact\".",
+            "he": "יש לפתוח את דלת התדלוק ({key:259}; מתג AIR REFUEL ב-OPEN, נורת RDY דולקת) ולהחזיק יציב בטרום מגע עד \"אישור למגע\" מהבומר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Open the refuelling door ({key:259}; the PCD's FUEL portal shows AR DOOR OPEN). Held steady at pre-contact, the boom operator calls \"cleared contact\".",
+            "he": "יש לפתוח את דלת התדלוק ({key:259}; בפורטל FUEL ב-PCD מופיע AR DOOR OPEN) ולהחזיק יציב בטרום מגע עד \"אישור למגע\" מהבומר."
+          },
+          {
+            "diagram": "tanker_positions",
+            "en": "Contact: move forward slowly, about 2 to 3 kt faster than the tanker, to the contact position; the boom operator flies the boom into the receptacle. Then hold the position by the pilot director lights under the tanker's belly: the lit lamp says which way to move, up or down, forward or aft; the green centre is the place.",
+            "he": "יש להתקדם לאט לעמדת המגע, 2 עד 3 קשר מהר ממטוס התדלוק; הבומר מכניס את הבום לפתח התדלוק. אחר כך יש להחזיק את העמדה לפי נורות ההכוונה בבטן מטוס התדלוק: הנורה הדולקת מראה לאן לזוז, והמרכז הירוק הוא העמדה."
+          },
+          {
+            "en": "Take fuel to full: the boom operator disconnects and calls \"refuelling complete, cleared right wing\". Drop back, move to the tanker's right wing, then close the door ({key:259}). A disconnect before full (the boom's limits left, or a breakaway): back to pre-contact and wait to be cleared again. The disconnect button ({key:260}) ends the contact at once.",
+            "he": "יש לתדלק עד שהבומר מנתק וקורא \"התדלוק הושלם, אישור לכנף ימין\", ואז לסגת, לעבור לכנף ימין ולסגור את הדלת ({key:259}). בניתוק לפני מלא (יציאה ממגבלות הבום או ניתוק חירום) יש לחזור לטרום מגע ולהמתין לאישור חדש. לחצן הניתוק ({key:260}) מסיים את המגע מיד."
+          },
+          {
+            "en": "Back to {base}: ask the AWACS for a vector home ({key:47:3}, Vector home) and fly it; then the tower for landing ({key:47:1}), the overhead or a straight-in to a full stop, the taxi to the shelter and the shutdown. The lesson ends with the engine off on the spot.",
+            "he": "לחזרה ל{base} יש לבקש כיוון לבסיס מה-AWACS ({key:47:3}, כיוון לבסיס) ולטוס בו, לקרוא למגדל לנחיתה ({key:47:1}), לנחות בהקפה עם שבירה או בגישה ישירה עד עצירה מלאה, להסיע לדת\"ק ולכבות. התרגול מסתיים כשהמנוע כבוי בעמדה."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Stay 1,000 ft below the tanker's altitude until you are behind it; never above it or ahead of its wing. \"Breakaway\" from the boom operator: power back and descend straight ahead, away from the boom. Bingo: the fuel to fly home and land with the reserve; without contact by then, go home. \"Knock it off\" from either seat ends the exercise.",
+            "he": "יש להישאר 1,000 רגל מתחת לגובה מטוס התדלוק עד ההגעה מאחוריו, ולעולם לא מעליו או לפני הכנף. ב\"ניתוק חירום\" מהבומר יש להוריד כוח ולרדת ישר קדימה, הרחק מהבום. בדלק בינגו, הדלק לחזרה ולנחיתה עם רזרבה, יש לחזור גם בלי מגע. \"סיום קרב\" מכל מושב מסיים את התרגיל."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Stay 1,000 ft below the tanker's altitude until you are behind it; never above it or ahead of its wing. \"Breakaway\" from the boom operator: power back and descend straight ahead, away from the boom. Bingo: the fuel to fly home and land with the reserve; without contact by then, go home. \"Knock it off\" from either jet ends the exercise.",
+            "he": "יש להישאר 1,000 רגל מתחת לגובה מטוס התדלוק עד ההגעה מאחוריו, ולעולם לא מעליו או לפני הכנף. ב\"ניתוק חירום\" מהבומר יש להוריד כוח ולרדת ישר קדימה, הרחק מהבום. בדלק בינגו, הדלק לחזרה ולנחיתה עם רזרבה, יש לחזור גם בלי מגע. \"סיום קרב\" מכל מטוס מסיים את התרגיל."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}). The AWACS: Eitam, on the radio menu's AWACS page ({key:47:3}). The tanker: Gideon, on the radio menu's Tanker page ({key:47:4}) once it is in the air. The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base}: תדרים בדף הקשר בפנקס ({key:118}). AWACS: עיטם, בדף ה-AWACS בתפריט הקשר ({key:47:3}). מטוס תדלוק: גדעון, בדף מטוס התדלוק בתפריט הקשר ({key:47:4}), מרגע שהוא באוויר. המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the instructor Kidon 2. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}). The AWACS: Eitam, on the radio menu's AWACS page ({key:47:3}). The tanker: Gideon, on the radio menu's Tanker page ({key:47:4}) once it is in the air. The instructor on the tower's frequency. Code word: \"knock it off\".",
+            "he": "אותות קריאה: כידון 1; המדריך כידון 2. קרקע ומגדל {base}: תדרים בדף הקשר בפנקס ({key:118}). AWACS: עיטם, בדף ה-AWACS בתפריט הקשר ({key:47:3}). מטוס תדלוק: גדעון, בדף מטוס התדלוק בתפריט הקשר ({key:47:4}), מרגע שהוא באוויר. המדריך בתדר המגדל. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Start-up, taxi, take-off, runway {runway}",
+          "he": "יש להתניע, להסיע ולהמריא, מסלול {runway}",
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          }
+        },
+        {
+          "en": "Climb to the steerpoint",
+          "he": "יש לטפס לנקודת הציון"
+        },
+        {
+          "en": "AWACS: Check in",
+          "he": "יש להיכנס לרשת ה-AWACS",
+          "wait": {
+            "en": "\"radar contact\"",
+            "he": "\"יש מגע מכ\"מי\""
+          },
+          "diagram": "awacs_braa"
+        },
+        {
+          "en": "AWACS: Vector to tanker; climb to 29,000 ft",
+          "he": "יש לבקש כיוון למטוס התדלוק ולטפס ל-29,000 רגל",
+          "diagram": "tanker_join"
+        },
+        {
+          "en": "Tanker: Request refuelling",
+          "he": "יש לבקש תדלוק ממטוס התדלוק",
+          "wait": {
+            "en": "\"cleared pre-contact\"",
+            "he": "\"אישור לעמדת טרום מגע\""
+          }
+        },
+        {
+          "en": "AIR REFUEL page: MASTER ARM off; door open",
+          "he": "יש לכבות MASTER ARM ולפתוח את הדלת, לפי דף התדלוק האווירי"
+        },
+        {
+          "en": "Join-up: within 1 NM, the tanker's speed; pre-contact",
+          "he": "יש להצטרף, להשוות מהירות בתוך מייל ולעלות לטרום מגע",
+          "wait": {
+            "en": "\"cleared contact\"",
+            "he": "\"אישור למגע\""
+          },
+          "diagram": "tanker_positions"
+        },
+        {
+          "en": "Forward 2-3 kt to contact; hold by the lights",
+          "he": "יש להתקדם ב-2-3 קשר למגע ולהחזיק לפי הנורות",
+          "wait": {
+            "en": "\"contact\"",
+            "he": "\"מגע\""
+          },
+          "diagram": "tanker_positions"
+        },
+        {
+          "en": "Fuel to full; right wing; door closed",
+          "he": "יש לתדלק עד מלא, לעבור לכנף ימין ולסגור את הדלת",
+          "wait": {
+            "en": "\"refuelling complete\"",
+            "he": "\"התדלוק הושלם\""
+          }
+        },
+        {
+          "en": "AWACS: Vector home; fly the heading",
+          "he": "יש לבקש כיוון לבסיס ולטוס בו"
+        },
+        {
+          "en": "Tower: landing; full stop; shelter; shut down",
+          "he": "יש לקרוא למגדל, לנחות עד עצירה מלאה, להסיע לדת\"ק ולכבות",
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          }
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today we refuel in the air. Eitam takes us to the tanker, we join up, plug in and fill up.",
+              "he": "היום נתדלק באוויר. עיטם יביא אותנו למטוס התדלוק, נצטרף, נתחבר ונמלא."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start up by the checklist. We call the tower first.",
+              "he": "נתניע לפי הבד\"ח. קודם נקרא למגדל."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "taxi_f35",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "idle",
+            "item:seat_arm"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Here we run the before-take-off checks, then line up on {rwy}.",
+              "he": "כאן נבצע בדיקות לפני המראה, ואחר כך נתיישר על מסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "Off we go. We climb toward the steerpoint and check in with Eitam.",
+              "he": "יוצאים לדרך. נטפס לכיוון נקודת הציון וניכנס לרשת של עיטם."
+            }
+          ]
+        },
+        {
+          "id": "find",
+          "when": [
+            "called:awacs:checkin"
+          ],
+          "lines": [
+            {
+              "en": "Now let's ask Eitam for a vector to the tanker, and climb to two nine thousand.",
+              "he": "עכשיו נבקש מעיטם כיוון למטוס התדלוק ונטפס ל-29,000."
+            }
+          ]
+        },
+        {
+          "id": "request",
+          "when": [
+            "called:awacs:vector_tanker"
+          ],
+          "lines": [
+            {
+              "en": "Let's call the tanker and ask for fuel. Then master arm off and the door open, by the notebook.",
+              "he": "נקרא למטוס התדלוק ונבקש תדלוק. אחר כך MASTER ARM כבוי ודלת פתוחה, לפי הפנקס."
+            }
+          ]
+        },
+        {
+          "id": "join",
+          "when": [
+            "tanker:joined"
+          ],
+          "lines": [
+            {
+              "en": "Inside a mile. We match his speed and ease up to pre-contact, behind and a little below the boom. Small corrections.",
+              "he": "בתוך מייל. נשווה מהירות ונעלה בעדינות לטרום מגע, מאחורי הבום ומעט מתחתיו. תיקונים קטנים."
+            }
+          ]
+        },
+        {
+          "id": "contact",
+          "when": [
+            "tanker:cleared_contact"
+          ],
+          "lines": [
+            {
+              "en": "We're cleared in. Gently forward, two or three knots. Eyes on the director lights, and we fly to the green.",
+              "he": "קיבלנו אישור למגע. קדימה בעדינות, שניים-שלושה קשר. העיניים על נורות ההכוונה, ונטוס אל הירוק."
+            }
+          ]
+        },
+        {
+          "id": "in_contact",
+          "when": [
+            "tanker:contact"
+          ],
+          "lines": [
+            {
+              "en": "Contact. Let's hold it right there, small and smooth. He'll fill us up.",
+              "he": "מגע. נחזיק בדיוק כאן, תנועות קטנות ורכות. הבומר ימלא אותנו."
+            }
+          ]
+        },
+        {
+          "id": "done",
+          "when": [
+            "tanker:complete"
+          ],
+          "lines": [
+            {
+              "en": "We're full. Let's drop back, move to the right wing and close the door. Then a vector home.",
+              "he": "מלאים. נסוג, נעבור לכנף ימין ונסגור את הדלת. אחר כך נבקש כיוון לבסיס."
+            }
+          ]
+        },
+        {
+          "id": "land",
+          "when": [
+            "called:awacs:vector_home"
+          ],
+          "lines": [
+            {
+              "en": "Let's fly that heading home and call the tower for landing.",
+              "he": "נטוס בכיוון הזה הביתה ונקרא למגדל לנחיתה."
+            }
+          ]
+        },
+        {
+          "id": "landed",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nicely done. We clear the runway, taxi in and shut down.",
+              "he": "יפה מאוד. נפנה את המסלול, נסיע לדת\"ק ונכבה."
+            }
+          ]
+        }
+      ]
+    },
+    "night": {
+      "missions": {
+        "f16d": "f16d_control_night",
+        "f16i": "f16i_control_night",
+        "f35i": "f35i_control_night"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by night: the AWACS's vector to the tanker, the join-up, contact, fuel to full and the disconnect, then home.",
+            "he": "ברק אחד, {base}, מסלול {runway}, לילה. כיוון מה-AWACS למטוס התדלוק, הצטרפות, מגע, דלק עד מלא, ניתוק וחזרה."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by night: the AWACS's vector to the tanker, the join-up, contact, fuel to full and the disconnect, then home.",
+            "he": "סופה אחת, {base}, מסלול {runway}, לילה. כיוון מה-AWACS למטוס התדלוק, הצטרפות, מגע, דלק עד מלא, ניתוק וחזרה."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by night: the AWACS's vector to the tanker, the join-up, contact, fuel to full and the disconnect, then home.",
+            "he": "אדיר אחד, {base}, מסלול {runway}, לילה. כיוון מה-AWACS למטוס התדלוק, הצטרפות, מגע, דלק עד מלא, ניתוק וחזרה."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can find the tanker on the controller's vector, join it, fly to the contact position and hold it on the boom until your tanks are full, without an unplanned disconnect. By night, on its lights.",
+            "he": "בסיום התרגול הזה תדעו לאתר בלילה את מטוס התדלוק בכיוון מהבקר, להצטרף אליו לפי האורות שלו, לטוס לעמדת המגע ולהחזיק אותה על הבום עד מכלים מלאים, תוך עמידה בזמנים וללא ניתוק לא מתוכנן."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower on the radio. The AWACS controller, Eitam, and the tanker, a KC-46A Gideon, on the radio.",
+            "he": "כידון 1: {jet}, המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר. עיטם (בקר מוטס) ומטוס התדלוק, KC-46A גדעון, בקשר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Two F-35I: Kidon 1, yours, and the instructor's, Kidon 2, which joins you after the take-off and talks on the radio. {base} tower on the radio. The AWACS controller, Eitam, and the tanker, a KC-46A Gideon, on the radio.",
+            "he": "כידון 1: אדיר. כידון 2: אדיר המדריך, מצטרף אחרי ההמראה, בקשר. מגדל {base} בקשר. עיטם (בקר מוטס) ומטוס התדלוק, KC-46A גדעון, בקשר."
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Night, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The tanker flies a left-hand racetrack at 30,000 ft and 480 kt; the steerpoint lies on its inbound leg.",
+            "he": "לילה, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. פתיחה קרה בעמדת החניה. מטוס התדלוק במסלול סגור שמאלי, 30,000 רגל, 480 קשר; נקודת הציון על הרגל הנכנסת."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "Start-up, taxi and take-off as taught: the checklist ({key:118}), the tower for the start-up, the taxi and the line-up ({key:47:1}), runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ולקבל מהמגדל אישור להתנעה, להסעה ולהתיישרות ({key:47:1}) למסלול {runway}."
+          },
+          {
+            "at": "lineup",
+            "en": "Take-off at military power, gear up once climbing, then climb to the steerpoint.",
+            "he": "יש להמריא בדחף צבאי, לאסוף את כן הנסע בטיפוס ולטפס לנקודת הציון."
+          },
+          {
+            "diagram": "awacs_braa",
+            "en": "Check in with the AWACS once level: the radio menu's AWACS page ({key:47:3}), Check in. Eitam answers \"radar contact\": from then on the controller works with you. Check in before any other request.",
+            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"יש מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "By night the tanker shows its navigation lights and its flashing strobe; the director lights are lit. Join on the lights from below and behind, slower than by day; the goggles help to find it.",
+            "he": "בלילה מטוס התדלוק מציג אורות ניווט ואור הבהוב, ונורות ההכוונה דולקות. יש להצטרף על האורות, מלמטה ומאחור ולאט יותר מביום; המשקפות עוזרות באיתור."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "By night the tanker shows its navigation lights and its flashing strobe; the director lights are lit. Join on the lights from below and behind, slower than by day; the helmet's DAS night picture helps to find it.",
+            "he": "בלילה מטוס התדלוק מציג אורות ניווט ואור הבהוב, ונורות ההכוונה דולקות. יש להצטרף על האורות, מלמטה ומאחור ולאט יותר מביום; תמונת הלילה של DAS בקסדה עוזרת באיתור."
+          },
+          {
+            "diagram": "tanker_join",
+            "en": "Find the tanker: ask the AWACS for a vector to the tanker ({key:47:3}, Vector to tanker) and fly it, climbing to 29,000 ft, 1,000 ft below the tanker's track (30,000 ft). The tanker is also on the radar and the data link.",
+            "he": "יש לבקש מה-AWACS כיוון למטוס התדלוק ({key:47:3}, כיוון למטוס התדלוק), לטוס בו ולטפס ל-29,000 רגל, 1,000 רגל מתחת למסלול מטוס התדלוק (30,000 רגל). מטוס התדלוק מופיע גם במכ\"ם ובקישור הנתונים."
+          },
+          {
+            "en": "Call the tanker on the radio menu's Tanker page ({key:47:4}), Request refuelling, and wait for \"cleared pre-contact\". The AIR REFUEL page of the notebook holds the checks: MASTER ARM off and the refuelling door open.",
+            "he": "יש לבקש תדלוק ממטוס התדלוק ({key:47:4}, בקשת תדלוק), להמתין ל\"אישור לעמדת טרום מגע\" ולבצע את הבדיקות בדף התדלוק האווירי בפנקס: MASTER ARM כבוי ודלת התדלוק פתוחה."
+          },
+          {
+            "diagram": "tanker_positions",
+            "en": "The join-up: close from behind and below, with a small overtake, matching the tanker's speed as you come within 1 NM; then up to the pre-contact position, 15 m behind the boom's nozzle and a little below it, wings level with the tanker's.",
+            "he": "יש לסגור מאחור ומלמטה במהירות סגירה קטנה, להשוות מהירות בתוך מייל אחד ולעלות לעמדת טרום מגע: 15 מטר מאחורי פיית הבום ומעט מתחתיה, כנפיים מקבילות לכנפי מטוס התדלוק."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Open the refuelling door ({key:259}; the F-16's AIR REFUEL switch to OPEN, the RDY lamp lit). Held steady at pre-contact, the boom operator calls \"cleared contact\".",
+            "he": "יש לפתוח את דלת התדלוק ({key:259}; מתג AIR REFUEL ב-OPEN, נורת RDY דולקת) ולהחזיק יציב בטרום מגע עד \"אישור למגע\" מהבומר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Open the refuelling door ({key:259}; the PCD's FUEL portal shows AR DOOR OPEN). Held steady at pre-contact, the boom operator calls \"cleared contact\".",
+            "he": "יש לפתוח את דלת התדלוק ({key:259}; בפורטל FUEL ב-PCD מופיע AR DOOR OPEN) ולהחזיק יציב בטרום מגע עד \"אישור למגע\" מהבומר."
+          },
+          {
+            "diagram": "tanker_positions",
+            "en": "Contact: move forward slowly, about 2 to 3 kt faster than the tanker, to the contact position; the boom operator flies the boom into the receptacle. Then hold the position by the pilot director lights under the tanker's belly: the lit lamp says which way to move, up or down, forward or aft; the green centre is the place.",
+            "he": "יש להתקדם לאט לעמדת המגע, 2 עד 3 קשר מהר ממטוס התדלוק; הבומר מכניס את הבום לפתח התדלוק. אחר כך יש להחזיק את העמדה לפי נורות ההכוונה בבטן מטוס התדלוק: הנורה הדולקת מראה לאן לזוז, והמרכז הירוק הוא העמדה."
+          },
+          {
+            "en": "Take fuel to full: the boom operator disconnects and calls \"refuelling complete, cleared right wing\". Drop back, move to the tanker's right wing, then close the door ({key:259}). A disconnect before full (the boom's limits left, or a breakaway): back to pre-contact and wait to be cleared again. The disconnect button ({key:260}) ends the contact at once.",
+            "he": "יש לתדלק עד שהבומר מנתק וקורא \"התדלוק הושלם, אישור לכנף ימין\", ואז לסגת, לעבור לכנף ימין ולסגור את הדלת ({key:259}). בניתוק לפני מלא (יציאה ממגבלות הבום או ניתוק חירום) יש לחזור לטרום מגע ולהמתין לאישור חדש. לחצן הניתוק ({key:260}) מסיים את המגע מיד."
+          },
+          {
+            "en": "Back to {base}: ask the AWACS for a vector home ({key:47:3}, Vector home) and fly it; then the tower for landing ({key:47:1}), the overhead or a straight-in to a full stop, the taxi to the shelter and the shutdown. The lesson ends with the engine off on the spot.",
+            "he": "לחזרה ל{base} יש לבקש כיוון לבסיס מה-AWACS ({key:47:3}, כיוון לבסיס) ולטוס בו, לקרוא למגדל לנחיתה ({key:47:1}), לנחות בהקפה עם שבירה או בגישה ישירה עד עצירה מלאה, להסיע לדת\"ק ולכבות. התרגול מסתיים כשהמנוע כבוי בעמדה."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Stay 1,000 ft below the tanker's altitude until you are behind it; never above it or ahead of its wing. \"Breakaway\" from the boom operator: power back and descend straight ahead, away from the boom. Bingo: the fuel to fly home and land with the reserve; without contact by then, go home. \"Knock it off\" from either seat ends the exercise.",
+            "he": "יש להישאר 1,000 רגל מתחת לגובה מטוס התדלוק עד ההגעה מאחוריו, ולעולם לא מעליו או לפני הכנף. ב\"ניתוק חירום\" מהבומר יש להוריד כוח ולרדת ישר קדימה, הרחק מהבום. בדלק בינגו, הדלק לחזרה ולנחיתה עם רזרבה, יש לחזור גם בלי מגע. \"סיום קרב\" מכל מושב מסיים את התרגיל."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Stay 1,000 ft below the tanker's altitude until you are behind it; never above it or ahead of its wing. \"Breakaway\" from the boom operator: power back and descend straight ahead, away from the boom. Bingo: the fuel to fly home and land with the reserve; without contact by then, go home. \"Knock it off\" from either jet ends the exercise.",
+            "he": "יש להישאר 1,000 רגל מתחת לגובה מטוס התדלוק עד ההגעה מאחוריו, ולעולם לא מעליו או לפני הכנף. ב\"ניתוק חירום\" מהבומר יש להוריד כוח ולרדת ישר קדימה, הרחק מהבום. בדלק בינגו, הדלק לחזרה ולנחיתה עם רזרבה, יש לחזור גם בלי מגע. \"סיום קרב\" מכל מטוס מסיים את התרגיל."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}). The AWACS: Eitam, on the radio menu's AWACS page ({key:47:3}). The tanker: Gideon, on the radio menu's Tanker page ({key:47:4}) once it is in the air. The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base}: תדרים בדף הקשר בפנקס ({key:118}). AWACS: עיטם, בדף ה-AWACS בתפריט הקשר ({key:47:3}). מטוס תדלוק: גדעון, בדף מטוס התדלוק בתפריט הקשר ({key:47:4}), מרגע שהוא באוויר. המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the instructor Kidon 2. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}). The AWACS: Eitam, on the radio menu's AWACS page ({key:47:3}). The tanker: Gideon, on the radio menu's Tanker page ({key:47:4}) once it is in the air. The instructor on the tower's frequency. Code word: \"knock it off\".",
+            "he": "אותות קריאה: כידון 1; המדריך כידון 2. קרקע ומגדל {base}: תדרים בדף הקשר בפנקס ({key:118}). AWACS: עיטם, בדף ה-AWACS בתפריט הקשר ({key:47:3}). מטוס תדלוק: גדעון, בדף מטוס התדלוק בתפריט הקשר ({key:47:4}), מרגע שהוא באוויר. המדריך בתדר המגדל. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Start-up, taxi, take-off, runway {runway}",
+          "he": "יש להתניע, להסיע ולהמריא, מסלול {runway}",
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          }
+        },
+        {
+          "en": "Climb to the steerpoint",
+          "he": "יש לטפס לנקודת הציון"
+        },
+        {
+          "en": "AWACS: Check in",
+          "he": "יש להיכנס לרשת ה-AWACS",
+          "wait": {
+            "en": "\"radar contact\"",
+            "he": "\"יש מגע מכ\"מי\""
+          },
+          "diagram": "awacs_braa"
+        },
+        {
+          "en": "AWACS: Vector to tanker; climb to 29,000 ft",
+          "he": "יש לבקש כיוון למטוס התדלוק ולטפס ל-29,000 רגל",
+          "diagram": "tanker_join"
+        },
+        {
+          "en": "Tanker: Request refuelling",
+          "he": "יש לבקש תדלוק ממטוס התדלוק",
+          "wait": {
+            "en": "\"cleared pre-contact\"",
+            "he": "\"אישור לעמדת טרום מגע\""
+          }
+        },
+        {
+          "en": "AIR REFUEL page: MASTER ARM off; door open",
+          "he": "יש לכבות MASTER ARM ולפתוח את הדלת, לפי דף התדלוק האווירי"
+        },
+        {
+          "en": "Join-up: within 1 NM, the tanker's speed; pre-contact",
+          "he": "יש להצטרף, להשוות מהירות בתוך מייל ולעלות לטרום מגע",
+          "wait": {
+            "en": "\"cleared contact\"",
+            "he": "\"אישור למגע\""
+          },
+          "diagram": "tanker_positions"
+        },
+        {
+          "en": "Forward 2-3 kt to contact; hold by the lights",
+          "he": "יש להתקדם ב-2-3 קשר למגע ולהחזיק לפי הנורות",
+          "wait": {
+            "en": "\"contact\"",
+            "he": "\"מגע\""
+          },
+          "diagram": "tanker_positions"
+        },
+        {
+          "en": "Fuel to full; right wing; door closed",
+          "he": "יש לתדלק עד מלא, לעבור לכנף ימין ולסגור את הדלת",
+          "wait": {
+            "en": "\"refuelling complete\"",
+            "he": "\"התדלוק הושלם\""
+          }
+        },
+        {
+          "en": "AWACS: Vector home; fly the heading",
+          "he": "יש לבקש כיוון לבסיס ולטוס בו"
+        },
+        {
+          "en": "Tower: landing; full stop; shelter; shut down",
+          "he": "יש לקרוא למגדל, לנחות עד עצירה מלאה, להסיע לדת\"ק ולכבות",
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          }
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Tonight we refuel in the air. Eitam takes us to the tanker, we join up on its lights, plug in and fill up.",
+              "he": "הלילה נתדלק באוויר. עיטם יביא אותנו למטוס התדלוק, נצטרף לפי האורות, נתחבר ונמלא."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start up by the checklist. We call the tower first.",
+              "he": "נתניע לפי הבד\"ח. קודם נקרא למגדל."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "taxi_f35",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "idle",
+            "item:seat_arm"
+          ],
+          "lines": [
+            {
+              "en": "Engine's good. Let's call the tower and taxi to runway {rwy}.",
+              "he": "המנוע תקין. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Here we run the before-take-off checks, then line up on {rwy}.",
+              "he": "כאן נבצע בדיקות לפני המראה, ואחר כך נתיישר על מסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "Off we go. We climb toward the steerpoint and check in with Eitam.",
+              "he": "יוצאים לדרך. נטפס לכיוון נקודת הציון וניכנס לרשת של עיטם."
+            }
+          ]
+        },
+        {
+          "id": "find",
+          "when": [
+            "called:awacs:checkin"
+          ],
+          "lines": [
+            {
+              "en": "Now let's ask Eitam for a vector to the tanker, and climb to two nine thousand.",
+              "he": "עכשיו נבקש מעיטם כיוון למטוס התדלוק ונטפס ל-29,000."
+            }
+          ]
+        },
+        {
+          "id": "request",
+          "when": [
+            "called:awacs:vector_tanker"
+          ],
+          "lines": [
+            {
+              "en": "Let's call the tanker and ask for fuel. Then master arm off and the door open, by the notebook.",
+              "he": "נקרא למטוס התדלוק ונבקש תדלוק. אחר כך MASTER ARM כבוי ודלת פתוחה, לפי הפנקס."
+            }
+          ]
+        },
+        {
+          "id": "join",
+          "when": [
+            "tanker:joined"
+          ],
+          "lines": [
+            {
+              "en": "Inside a mile. We match his speed and ease up to pre-contact, behind and a little below the boom. Small corrections.",
+              "he": "בתוך מייל. נשווה מהירות ונעלה בעדינות לטרום מגע, מאחורי הבום ומעט מתחתיו. תיקונים קטנים."
+            }
+          ]
+        },
+        {
+          "id": "contact",
+          "when": [
+            "tanker:cleared_contact"
+          ],
+          "lines": [
+            {
+              "en": "We're cleared in. Gently forward, two or three knots. Eyes on the director lights, and we fly to the green.",
+              "he": "קיבלנו אישור למגע. קדימה בעדינות, שניים-שלושה קשר. העיניים על נורות ההכוונה, ונטוס אל הירוק."
+            }
+          ]
+        },
+        {
+          "id": "in_contact",
+          "when": [
+            "tanker:contact"
+          ],
+          "lines": [
+            {
+              "en": "Contact. Let's hold it right there, small and smooth. He'll fill us up.",
+              "he": "מגע. נחזיק בדיוק כאן, תנועות קטנות ורכות. הבומר ימלא אותנו."
+            }
+          ]
+        },
+        {
+          "id": "done",
+          "when": [
+            "tanker:complete"
+          ],
+          "lines": [
+            {
+              "en": "We're full. Let's drop back, move to the right wing and close the door. Then a vector home.",
+              "he": "מלאים. נסוג, נעבור לכנף ימין ונסגור את הדלת. אחר כך נבקש כיוון לבסיס."
+            }
+          ]
+        },
+        {
+          "id": "land",
+          "when": [
+            "called:awacs:vector_home"
+          ],
+          "lines": [
+            {
+              "en": "Let's fly that heading home and call the tower for landing.",
+              "he": "נטוס בכיוון הזה הביתה ונקרא למגדל לנחיתה."
+            }
+          ]
+        },
+        {
+          "id": "landed",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nicely done. We clear the runway, taxi in and shut down.",
+              "he": "יפה מאוד. נפנה את המסלול, נסיע לדת\"ק ונכבה."
+            }
+          ]
+        }
+      ]
+    },
+    "check": {
+      "missions": {
+        "f16d": "f16d_control_check",
+        "f16i": "f16i_control_check",
+        "f35i": "f35i_control_check"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: check ride 6. The start-up, the take-off, the check-in with the AWACS and the picture, the vector to the tanker, a refuelling to full, and the vector home to a full-stop landing.",
+            "he": "ברק אחד, {base}, מסלול {runway}, יום. טיסת מבחן 6. התנעה, המראה, כניסה לרשת ה-AWACS ותמונת מצב, כיוון למטוס התדלוק, תדלוק עד מלא, כיוון לבסיס ונחיתה לעצירה מלאה."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: check ride 6. The start-up, the take-off, the check-in with the AWACS and the picture, the vector to the tanker, a refuelling to full, and the vector home to a full-stop landing.",
+            "he": "סופה אחת, {base}, מסלול {runway}, יום. טיסת מבחן 6. התנעה, המראה, כניסה לרשת ה-AWACS ותמונת מצב, כיוון למטוס התדלוק, תדלוק עד מלא, כיוון לבסיס ונחיתה לעצירה מלאה."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet} from {base}, runway {runway}, by day: check ride 6. The start-up, the take-off, the check-in with the AWACS and the picture, the vector to the tanker, a refuelling to full, and the vector home to a full-stop landing.",
+            "he": "אדיר אחד, {base}, מסלול {runway}, יום. טיסת מבחן 6. התנעה, המראה, כניסה לרשת ה-AWACS ותמונת מצב, כיוון למטוס התדלוק, תדלוק עד מלא, כיוון לבסיס ונחיתה לעצירה מלאה."
+          }
+        ],
+        "target": [
+          {
+            "en": "This flight checks everything from phases 1 to 6 but the formation phase's. The instructor gives no calls in flight; the notebook stays with you. One emergency already taught may come, unannounced.",
+            "he": "בסיום התרגול הזה תדעו לבצע את שלבים 1 עד 6, מלבד שלב המבנים, ללא עזרה, תוך עמידה בגבולות של כל תרגול. המדריך לא נותן הנחיות בטיסה, הפנקס זמין, וחירום אחד שכבר נלמד עלול להגיע בלי הודעה."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "Two groups of target drones, hostile for the exercise, for the picture. They carry no weapons.",
+            "he": "שני מבנים של מטרות מל\"ט, עוינים לצורכי התרגיל, לתמונת המצב. ללא חימוש."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower on the radio. The AWACS controller, Eitam, and the tanker, a KC-46A Gideon, on the radio.",
+            "he": "כידון 1: {jet}, המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר. עיטם (בקר מוטס) ומטוס התדלוק, KC-46A גדעון, בקשר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Two F-35I: Kidon 1, yours, and the instructor's, Kidon 2, which joins you after the take-off and talks on the radio. {base} tower on the radio. The AWACS controller, Eitam, and the tanker, a KC-46A Gideon, on the radio.",
+            "he": "כידון 1: אדיר. כידון 2: אדיר המדריך, מצטרף אחרי ההמראה, בקשר. מגדל {base} בקשר. עיטם (בקר מוטס) ומטוס התדלוק, KC-46A גדעון, בקשר."
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. The work area is the first steerpoint, 20,000 ft; the tanker's racetrack at 30,000 ft, its inbound leg the second steerpoint.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. פתיחה קרה בעמדת החניה. אזור העבודה: נקודת הציון הראשונה, 20,000 רגל. מטוס התדלוק במסלול סגור ב-30,000 רגל; הרגל הנכנסת היא נקודת הציון השנייה."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "Start-up, taxi and take-off as taught: the checklist ({key:118}), the tower for the start-up, the taxi and the line-up ({key:47:1}), runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ולקבל מהמגדל אישור להתנעה, להסעה ולהתיישרות ({key:47:1}) למסלול {runway}."
+          },
+          {
+            "at": "lineup",
+            "en": "Take-off at military power, gear up once climbing, then climb to the steerpoint.",
+            "he": "יש להמריא בדחף צבאי, לאסוף את כן הנסע בטיפוס ולטפס לנקודת הציון."
+          },
+          {
+            "diagram": "awacs_braa",
+            "en": "Check in with the AWACS once level: the radio menu's AWACS page ({key:47:3}), Check in. Eitam answers \"radar contact\": from then on the controller works with you. Check in before any other request.",
+            "he": "בגובה הטיסה יש להיכנס לרשת ה-AWACS ({key:47:3}, כניסה לרשת) ולהמתין לתשובת עיטם, \"יש מגע מכ\"מי\"; מכאן הבקר עובד מולנו. יש להיכנס לרשת לפני כל בקשה אחרת."
+          },
+          {
+            "diagram": "tanker_positions",
+            "en": "At the work area: the picture (AWACS page, Picture). Then the vector to the tanker, the join-up and the refuelling to full, as in lesson 6.3.",
+            "he": "באזור העבודה יש לבקש תמונת מצב (דף ה-AWACS), ואחר כך כיוון למטוס התדלוק, להצטרף ולתדלק עד מלא, כמו בתרגול 6.3."
+          },
+          {
+            "en": "An emergency: fly the jet first, then the notebook's EMERGENCY page; tell the tower, and land as the checklist says.",
+            "he": "בחירום יש להטיס קודם את המטוס, אחר כך לפעול לפי דף החירום בפנקס, להודיע למגדל ולנחות לפי הבד\"ח."
+          },
+          {
+            "en": "Back to {base}: ask the AWACS for a vector home ({key:47:3}, Vector home) and fly it; then the tower for landing ({key:47:1}), the overhead or a straight-in to a full stop, the taxi to the shelter and the shutdown. The lesson ends with the engine off on the spot.",
+            "he": "לחזרה ל{base} יש לבקש כיוון לבסיס מה-AWACS ({key:47:3}, כיוון לבסיס) ולטוס בו, לקרוא למגדל לנחיתה ({key:47:1}), לנחות בהקפה עם שבירה או בגישה ישירה עד עצירה מלאה, להסיע לדת\"ק ולכבות. התרגול מסתיים כשהמנוע כבוי בעמדה."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "The rules of lessons 6.1 and 6.3: above 10,000 ft in the work area, 1,000 ft below the tanker until behind it. Bingo: the fuel to fly home and land with the reserve. \"Knock it off\" from either seat ends the exercise.",
+            "he": "יש לשמור על כללי תרגולים 6.1 ו-6.3: מעל 10,000 רגל באזור העבודה, ו-1,000 רגל מתחת למטוס התדלוק עד ההגעה מאחוריו. בדלק בינגו, הדלק לחזרה ולנחיתה עם רזרבה, יש לחזור. \"סיום קרב\" מכל מושב מסיים את התרגיל."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "The rules of lessons 6.1 and 6.3: above 10,000 ft in the work area, 1,000 ft below the tanker until behind it. Bingo: the fuel to fly home and land with the reserve. \"Knock it off\" from either jet ends the exercise.",
+            "he": "יש לשמור על כללי תרגולים 6.1 ו-6.3: מעל 10,000 רגל באזור העבודה, ו-1,000 רגל מתחת למטוס התדלוק עד ההגעה מאחוריו. בדלק בינגו, הדלק לחזרה ולנחיתה עם רזרבה, יש לחזור. \"סיום קרב\" מכל מטוס מסיים את התרגיל."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}). The AWACS: Eitam, on the radio menu's AWACS page ({key:47:3}). The tanker: Gideon, on the radio menu's Tanker page ({key:47:4}) once it is in the air. The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base}: תדרים בדף הקשר בפנקס ({key:118}). AWACS: עיטם, בדף ה-AWACS בתפריט הקשר ({key:47:3}). מטוס תדלוק: גדעון, בדף מטוס התדלוק בתפריט הקשר ({key:47:4}), מרגע שהוא באוויר. המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the instructor Kidon 2. {base} ground and tower: the frequencies are on the notebook's RADIO page ({key:118}). The AWACS: Eitam, on the radio menu's AWACS page ({key:47:3}). The tanker: Gideon, on the radio menu's Tanker page ({key:47:4}) once it is in the air. The instructor on the tower's frequency. Code word: \"knock it off\".",
+            "he": "אותות קריאה: כידון 1; המדריך כידון 2. קרקע ומגדל {base}: תדרים בדף הקשר בפנקס ({key:118}). AWACS: עיטם, בדף ה-AWACS בתפריט הקשר ({key:47:3}). מטוס תדלוק: גדעון, בדף מטוס התדלוק בתפריט הקשר ({key:47:4}), מרגע שהוא באוויר. המדריך בתדר המגדל. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Start-up, taxi, take-off, runway {runway}",
+          "he": "יש להתניע, להסיע ולהמריא, מסלול {runway}",
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          }
+        },
+        {
+          "en": "Climb to the steerpoint",
+          "he": "יש לטפס לנקודת הציון"
+        },
+        {
+          "en": "AWACS: Check in",
+          "he": "יש להיכנס לרשת ה-AWACS",
+          "wait": {
+            "en": "\"radar contact\"",
+            "he": "\"יש מגע מכ\"מי\""
+          },
+          "diagram": "awacs_braa"
+        },
+        {
+          "en": "AWACS: Picture",
+          "he": "יש לבקש תמונת מצב",
+          "diagram": "awacs_braa"
+        },
+        {
+          "en": "AWACS: Vector to tanker; climb to 29,000 ft",
+          "he": "יש לבקש כיוון למטוס התדלוק ולטפס ל-29,000 רגל",
+          "diagram": "tanker_join"
+        },
+        {
+          "en": "Tanker: Request refuelling",
+          "he": "יש לבקש תדלוק ממטוס התדלוק",
+          "wait": {
+            "en": "\"cleared pre-contact\"",
+            "he": "\"אישור לעמדת טרום מגע\""
+          }
+        },
+        {
+          "en": "AIR REFUEL page: MASTER ARM off; door open",
+          "he": "יש לכבות MASTER ARM ולפתוח את הדלת, לפי דף התדלוק האווירי"
+        },
+        {
+          "en": "Join-up: within 1 NM, the tanker's speed; pre-contact",
+          "he": "יש להצטרף, להשוות מהירות בתוך מייל ולעלות לטרום מגע",
+          "wait": {
+            "en": "\"cleared contact\"",
+            "he": "\"אישור למגע\""
+          },
+          "diagram": "tanker_positions"
+        },
+        {
+          "en": "Forward 2-3 kt to contact; hold by the lights",
+          "he": "יש להתקדם ב-2-3 קשר למגע ולהחזיק לפי הנורות",
+          "wait": {
+            "en": "\"contact\"",
+            "he": "\"מגע\""
+          },
+          "diagram": "tanker_positions"
+        },
+        {
+          "en": "Fuel to full; right wing; door closed",
+          "he": "יש לתדלק עד מלא, לעבור לכנף ימין ולסגור את הדלת",
+          "wait": {
+            "en": "\"refuelling complete\"",
+            "he": "\"התדלוק הושלם\""
+          }
+        },
+        {
+          "en": "AWACS: Vector home; fly the heading",
+          "he": "יש לבקש כיוון לבסיס ולטוס בו"
+        },
+        {
+          "en": "Tower: landing; full stop; shelter; shut down",
+          "he": "יש לקרוא למגדל, לנחות עד עצירה מלאה, להסיע לדת\"ק ולכבות",
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          }
+        }
+      ]
+    }
+  }
+}

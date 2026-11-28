@@ -16,6 +16,7 @@ const LESSONS: &[(&str, &str)] = &[
     ("ground", include_str!("../../../modern-iaf/data/training/lessons/ground.json")),
     ("pattern", include_str!("../../../modern-iaf/data/training/lessons/pattern.json")),
     ("formation", include_str!("../../../modern-iaf/data/training/lessons/formation.json")),
+    ("control", include_str!("../../../modern-iaf/data/training/lessons/control.json")),
 ];
 
 /// The briefing's sections in their order (training-plan.md §2.2): each a list of paragraphs.
@@ -51,11 +52,17 @@ pub const TESTS: [&str; 20] = [
 /// `cleared:<phase>` (the tower's clearance, training::CLEARANCES), `called:<radio call id>` (the pilot made the call),
 /// `failure:<id>` (the flight's failure `<id>` started, training.md §15), and the figures held at least: `alt:<ft>`
 /// (the altitude above the field), `aoa:<deg>` (the angle of attack), `g:<g>` (the load factor), and
-/// `lead_order:<order>` (the AI lead gave the order: iaf_ai::LEAD_CALLS without "lead_").
-pub const ARG_TESTS: [&str; 8] = ["item", "cleared", "called", "failure", "alt", "aoa", "g", "lead_order"];
+/// `lead_order:<order>` (the AI lead gave the order: iaf_ai::LEAD_CALLS without "lead_"), and `tanker:<event>` (the
+/// tanker's event for the player's jet, one of `TANKER_EVENTS`).
+pub const ARG_TESTS: [&str; 9] = ["item", "cleared", "called", "failure", "alt", "aoa", "g", "lead_order", "tanker"];
 
 /// The argument tests whose argument is a number.
 const NUMBER_TESTS: [&str; 3] = ["alt", "aoa", "g"];
+
+/// The tanker's events for the player's jet (`shared/ai/tanker.gd`, the flight's `tanker` events): within 1 NM of it
+/// (`joined`), then the boom operator's calls (`iaf_ai::tanker::Event`).
+pub const TANKER_EVENTS: [&str; 7] =
+    ["joined", "cleared_precontact", "cleared_contact", "contact", "disconnect", "breakaway", "complete"];
 
 /// An item's grade on the US Navy's flight-training scale (training-plan.md §2.4), worst first.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -395,6 +402,7 @@ fn check_text(v: &Value, what: &str, jets: &Value) -> Result<()> {
 /// A test's name is one of `TESTS`, or `<one of ARG_TESTS>:<argument>`.
 pub fn test_ok(t: &str) -> bool {
     match t.split_once(':') {
+        Some(("tanker", a)) => TANKER_EVENTS.contains(&a),
         Some((k, a)) => {
             ARG_TESTS.contains(&k) && !a.is_empty() && (!NUMBER_TESTS.contains(&k) || a.parse::<f64>().is_ok())
         }
@@ -941,8 +949,13 @@ mod tests {
             "close_up",
             "spread_out",
         ];
+        // The AWACS page's requests (docs/ai.md §24.5) and the tanker's request (§25).
+        let awacs =
+            ["picture", "bogey_dope", "declare", "vector_target", "vector_home", "vector_tanker", "checkin", "judy"];
         let radio = |r: &str| {
             tower.contains(&r)
+                || r == "tanker"
+                || r.strip_prefix("awacs:").is_some_and(|a| awacs.contains(&a))
                 || r.split_once(':')
                     .is_some_and(|(c, n)| commands.contains(&c) && n.parse::<u8>().is_ok_and(|n| n <= 5))
         };

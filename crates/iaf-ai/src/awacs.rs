@@ -1,8 +1,8 @@
 //! Modern IAF's AWACS controller (docs/ai.md §24): the player's requests by the radio menu's AWACS page (picture,
-//! bogey dope, declare, a vector to the target, home or the tanker), answered in NATO brevity from the controller's
-//! sensor: the Eitam's radar where it flies, or the 1998 game's virtual AWACS round the player where the flight has no
-//! Eitam. A lost Eitam ends the service. The host gathers the contacts and says the lines (`shared/audio/radio.gd`).
-//! World frame X east, Y north, Z up, metres.
+//! bogey dope, declare, a vector to the target, home or the tanker, the check-in and the pilot's judy), answered in
+//! NATO brevity from the controller's sensor: the Eitam's radar where it flies, or the 1998 game's virtual AWACS round
+//! the player where the flight has no Eitam. A lost Eitam ends the service. The host gathers the contacts and says the
+//! lines (`shared/audio/radio.gd`). World frame X east, Y north, Z up, metres.
 
 use crate::flight::flat;
 use crate::{site, sort};
@@ -73,6 +73,10 @@ pub enum Request {
     VectorTarget,
     VectorHome,
     VectorTanker,
+    /// The pilot checks in on the controller's net (training-plan.md §3, phase 6).
+    CheckIn,
+    /// JUDY: the pilot has the target on the radar or in sight and takes the intercept over (the hand-off).
+    Judy,
 }
 
 /// Why a request cannot be made now (the menu shows its line off with this reason).
@@ -264,7 +268,8 @@ pub fn check(sensor: Sensor, req: Request, ask: &Ask, contacts: &[Contact]) -> R
 ///   miles, 20 thousand, hot, hostile."); "Kidon 1, clean." when it sees none;
 /// - bogey dope: the nearest group's BRAA ("Kidon 1, group bearing …"), or clean;
 /// - declare: the locked track's identity ("Kidon 1, hostile."), or clean when the sensor does not see it;
-/// - vector: "Kidon 1, vector 040, 25 miles, target / home plate / tanker." (clean for a target when there is none).
+/// - vector: "Kidon 1, vector 040, 25 miles, target / home plate / tanker." (clean for a target when there is none);
+/// - check-in: "Kidon 1, radar contact."; judy: "Kidon 1, copy." (the intercept handed to the pilot).
 pub fn answer(sensor: Sensor, req: Request, ask: &Ask, contacts: &[Contact]) -> Answer {
     if check(sensor, req, ask, contacts).is_err() {
         return Answer::default();
@@ -328,6 +333,8 @@ pub fn answer(sensor: Sensor, req: Request, ask: &Ask, contacts: &[Contact]) -> 
                 Some(t) => vector(t.pos, "AWX_TANKER"),
             }
         }
+        Request::CheckIn => Answer { lines: vec![("AWX_CHECKIN", vec![cs])], named: vec![] },
+        Request::Judy => Answer { lines: vec![("AWX_COPY", vec![cs])], named: vec![] },
     }
 }
 
@@ -445,6 +452,10 @@ mod tests {
         assert_eq!(t.lines[0].1[3], "AWX_TANKER");
         tanker.tanker = false;
         assert_eq!(check(Sensor::Virtual, Request::VectorTanker, &q, &[tanker]), Err(Refusal::NoTanker));
+        // The check-in and judy: answered whatever the sensor sees.
+        assert_eq!(answer(Sensor::Virtual, Request::CheckIn, &q, &[]).lines, [("AWX_CHECKIN", vec!["Alpha_r".into()])]);
+        assert_eq!(answer(Sensor::Virtual, Request::Judy, &q, &[]).lines, [("AWX_COPY", vec!["Alpha_r".into()])]);
+        assert_eq!(check(Sensor::Lost, Request::CheckIn, &q, &cs), Err(Refusal::Lost));
         // Lost: everything refused and unanswered.
         assert_eq!(check(Sensor::Lost, Request::Picture, &q, &cs), Err(Refusal::Lost));
         assert!(answer(Sensor::Lost, Request::Picture, &q, &cs).lines.is_empty());

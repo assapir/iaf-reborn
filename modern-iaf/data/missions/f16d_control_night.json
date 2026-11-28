@@ -1,0 +1,88 @@
+{
+  "category": "training",
+  "time": "21:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16d",
+    "base": "Ramat David",
+    "at": "parking",
+    "elevation_m": 56
+  },
+  "runway": "27",
+  "tanker": {
+    "kind": "kc46",
+    "anchor": [
+      636818,
+      3552440
+    ],
+    "course": 10.0
+  },
+  "route": [
+    {
+      "lat": 32.51003,
+      "lon": 34.53574,
+      "alt_m": 8839,
+      "speed_kmh": 800
+    }
+  ],
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "the night lesson after dark (training-plan.md §1)",
+    "wind_kt": "calm (inferred)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "runway": "the base's runway the take-off missions use; the tower turns it into the wind",
+    "training.time_budget_s": "the start-up, the taxi, the flight out, the lesson's work, the return and the shutdown with time to spare (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.end": "the lesson ends with the jet back on its spot and the engine off (training.md §16.3)",
+    "tanker": "a KC-46A Gideon on its racetrack over the sea west of the Carmel coast: the inbound leg from 32.1N 34.45E (the anchor, UTM 36N m) on course 10 (grid; inferred)",
+    "route": "the lesson's steerpoints: the tanker's inbound leg at 29,000 ft, 1,000 ft below the track"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLRD elevation 185 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f16d_control_night",
+  "menu_id": 3641,
+  "lesson": "control.night",
+  "title": {
+    "en": "At night: the tanker",
+    "he": "בלילה: תדלוק אווירי"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "calls": [],
+    "checklist": [],
+    "time_budget_s": 4500,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

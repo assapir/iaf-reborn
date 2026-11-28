@@ -2546,6 +2546,8 @@ BRAA relative to the specified FRIENDLY aircraft"[^brevity]), since the sim has 
 | Vector to target | VECTOR: "Alter heading to indicated" | "Kidon 1, vector 040, 25 miles, target.": Scramble's task target (its nearest, as the task call), else the nearest hostile group; none: clean |
 | Vector home | HOME PLATE: "Home airfield or ship" | "Kidon 1, vector 220, 60 miles, home plate.": the flight's home base |
 | Vector to tanker | | "Kidon 1, vector 130, 40 miles, tanker.": the nearest friendly tanker (§25: an entity marked `tanker`); with none on the flight the line is off: "No tanker in the air" |
+| Check in | a plain-language call: the pilot joins the controller's net | "Kidon 1, radar contact.": the pilot joins the controller's net (a training lesson grades it first of the requests, modern-iaf/docs/training.md §16.9) |
+| Judy | JUDY: "Aircrew has taken control of the intercept and only requires situation awareness information"[^brevity] | "Kidon 1, copy.": the hand-off of the intercept to the pilot; never refused but with the Eitam lost |
 
 - **The words.** A group is any contacts within 3 NM of each other ("Any number of air CONTACTS within 3 nautical
   miles in azimuth and range of each other"[^brevity]; `sort::groups`, as the sort's); hostile when any of its
@@ -2657,7 +2659,8 @@ player, the 1998 rule), nothing once it is lost; the virtual sphere where the fl
 
 The first page's third line, AWACS (the same in Hebrew, the game manual's term), opens the page
 (`sim_flight.gd` `AWACS_ITEMS`): 1 Picture, 2 Bogey dope, 3 Declare, 4 Vector to target, 5 Vector home, 6 Vector to
-tanker (Hebrew: תמונת מצב, המגע הקרוב, זיהוי, כיוון למטרה, כיוון לבסיס, כיוון למטוס התדלוק). A request that
+tanker, 7 Check in, 8 Judy (Hebrew: תמונת מצב, המגע הקרוב, זיהוי, כיוון למטרה, כיוון לבסיס, כיוון למטוס התדלוק,
+כניסה לרשת, Judy: no Hebrew word for JUDY was found, searched 28 November 2026, so it stays in Latin letters). A request that
 cannot be made now is dimmed and takes no click (`radio.gd awacs_refusal`, `IafAwacs.refusal`: the Eitam lost, no
 radar lock for Declare, no tanker, no home base); no line says why (the user, 25 Nov 2026: "no need to write why
 something is disabled, this goes in game manual"), the game manual's AWACS section does. A pick is the pilot's call, printed in both languages and said by the pilot's voice ("Eitam, Kidon 1,
@@ -2669,8 +2672,9 @@ the answer (`radio.gd awacs_request`), recorded as a `radio` event `awacs:<reque
 voice, a man or a woman by the flight's cast (Kokoro `am_fenrir` or `af_bella`; Hebrew `jonathan` or `yael`), each word a particle: `AWX_GROUP_W`, `AWX_CLEAN`,
 `AWX_GROUPS1`–`9`, `AWX_ALT01`–`10` and fives to `AWX_ALT50`, the aspects, the identities, `AWX_VECTOR010`–`360`,
 `MILES100`–`150` by tens with `MILES200` and `MILES250`, `AWX_HOME_PLATE`, `AWX_TANKER`, `AWX_THREAT`,
-`AWX_RETROGRADE`, `AWX_COMMIT`; the templates `AWX_PICTURE`, `AWX_GROUP`, `AWX_BRAA`, `AWX_CLEAN`, `AWX_DECLARE`,
-`AWX_VECTOR`, `AWX_HELP`. The pilot's `EITAM_P` and the six `REQ_AWX_*` in the pilot's voice (Hebrew `ariel` or
+`AWX_RETROGRADE`, `AWX_COMMIT`, `AWX_RADAR_CONTACT`, `AWX_COPY`; the templates `AWX_PICTURE`, `AWX_GROUP`, `AWX_BRAA`,
+`AWX_CLEAN`, `AWX_DECLARE`, `AWX_VECTOR`, `AWX_HELP`, `AWX_CHECKIN`, `AWX_COPY`. The pilot's `EITAM_P` and the eight
+`REQ_AWX_*` in the pilot's voice (Hebrew `ariel` or
 `shira`).
 
 ### 24.6 Tests and status
@@ -2717,6 +2721,13 @@ part (`crates/iaf-ai/src/tanker.rs`, `flight.rs`; `shared/ai/tanker.gd`):
   tanker and flies 20 NM away again leaves its queue. Test: `crates/iaf-ai/tests/refuel.rs` (a 6-DoF Sufa from 2 km
   behind to full, the contact
   held into the tanker's turn), `modern-iaf/tests/test_air_refuel.gd` (the four-ship).
+- **The recording** (`tanker.gd _record`): the boom operator's calls to the player's jet go into the flight's recording
+  as `tanker` events (`call`: `cleared_precontact`, `cleared_contact`, `contact` with the tanks' room `room_kg`,
+  `disconnect` with its reason `why` and the fuel given so far `kg`, `breakaway`, `complete`), with `joined` the first
+  time the jet comes within 1 NM of the tanker (inferred); a training lesson grades them (modern-iaf/docs/training.md
+  §16.9).
+- **Its lights:** the navigation lights and the strobe of every Modern IAF jet (`NightLights.add_lights_on` on the
+  model's outermost points), for the night tanker lesson.
 
 ## 26. Modern IAF's training fight against an aggressor (ours)
 
@@ -2796,7 +2807,7 @@ Open questions in this document:
 [^ni-beast]: The National Interest, "The F-35 Has a 'Beast Mode' (But There's a Catch)", https://nationalinterest.org/node/180849 (external hardpoints "drastically increase" the radar cross-section; second-hand: as quoted by a search engine on 2026-11-19).
 [^hamichlol-rwr]: Hamichlol, "מקלט התרעת מכ"ם", https://www.hamichlol.org.il/%D7%9E%D7%A7%D7%9C%D7%98_%D7%94%D7%9E%D7%96%D7%94%D7%99%D7%A8_%D7%91%D7%A4%D7%A0%D7%99_%D7%9E%D7%9B%22%D7%9D (a search radar's warning "ואחריה נעילה ומעקב"; read as quoted by a search engine on 2026-11-19, second-hand).
 [^mako-102]: Mako, "pzm-magazine", on the 102 Squadron's air-combat training, https://www.mako.co.il/pzm-magazine/Article-1c3f6f796402d61027.htm (a good pilot "תוקף ומתחמק מטילי נ"מ"; read as quoted by a search engine on 2026-11-19, second-hand).
-[^brevity]: Wikipedia, "Multiservice tactical brevity code", https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code (SPIKE, MUD, DEFENDING, BREAK, CONTACT, SPLIT, read 2026-11-19; GROUP, AZIMUTH, RANGE, SORT, TARGETED, WEAPONS FREE, read 2026-11-23; PICTURE, BOGEY DOPE, DECLARE, BRAA, BOGEY, HOSTILE, FRIENDLY, CLEAN, HOT, FLANK, BEAM, DRAG, VECTOR, HOME PLATE, THREAT, RETROGRADE, COMMIT, read 2026-11-25; KILL "In training, shooters are TALLY at assessed missile timeout", KNOCK-IT-OFF "Cease all air combat maneuvers, attacks, activities, or exercises (training use only)", FOX "Simulated or actual launch of air-to-air weapon", read 2026-11-28).
+[^brevity]: Wikipedia, "Multiservice tactical brevity code", https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code (SPIKE, MUD, DEFENDING, BREAK, CONTACT, SPLIT, read 2026-11-19; GROUP, AZIMUTH, RANGE, SORT, TARGETED, WEAPONS FREE, read 2026-11-23; PICTURE, BOGEY DOPE, DECLARE, BRAA, BOGEY, HOSTILE, FRIENDLY, CLEAN, HOT, FLANK, BEAM, DRAG, VECTOR, HOME PLATE, THREAT, RETROGRADE, COMMIT, read 2026-11-25; KILL "In training, shooters are TALLY at assessed missile timeout", KNOCK-IT-OFF "Cease all air combat maneuvers, attacks, activities, or exercises (training use only)", FOX "Simulated or actual launch of air-to-air weapon", JUDY, read 2026-11-28).
 [^w-shahed]: Wikipedia, "HESA Shahed 136", https://en.wikipedia.org/wiki/HESA_Shahed_136 (length 3.5 m, span 2.5 m, mass 200 kg, about 185 km/h; "typically fired in multiples from a launch rack"; "extra-low" altitude flight; read 2026-11-19).
 [^csis-shahed]: CSIS Missile Defense Project, "Shahed-131 and 136", https://missilethreat.csis.org/missile/shahed-131-and-136/ ("approximately 180 km per hour"; read 2026-11-19).
 [^ar-shahed]: Army Recognition, "Shahed-136 loitering munition kamikaze suicide drone technical data", https://armyrecognition.com/military-products/army/unmanned-systems/unmanned-aerial-vehicles/shahed-136-loitering-munition-kamikaze-suicide-drone-technical-data ("It can fly at an altitude from 60 to 4,000 m"; read 2026-11-19).

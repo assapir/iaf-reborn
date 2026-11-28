@@ -47,6 +47,7 @@ chapters:
   - {id: course-pattern, title: "שלב 2: שליטה בסיסית, המראה ונחיתה", file: game/missions-training/course-pattern.typ}
   - {id: course-formation, title: "שלב 4: מבנה והובלה", file: game/missions-training/course-formation.typ}
   - {id: instructor, title: "המדריך", file: game/missions-training/instructor.typ}
+  - {id: course-control, title: "שלב 6: בקרה ותדלוק אווירי", file: game/missions-training/course-control.typ}
   - {id: training-fight, title: "קרב אימון", file: game/missions-training/training-fight.typ}
 - id: bases
   title: "בסיסים"

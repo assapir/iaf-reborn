@@ -1007,6 +1007,10 @@ pub fn compile_mission(
         let new: Vec<i64> =
             mission_edit::spawned(&m).filter_map(|e| e["0x1e"].as_i64()).filter(|i| !before.contains(i)).collect();
         m = mission_edit::set_role(m, &new, 2);
+        // `known`: an enemy the player's side knows, so the AWACS calls it hostile (docs/ai.md §24.1) and vectors to it.
+        if d["known"] == true {
+            m = crate::mission_intel::set_known(m, &new, true);
+        }
     }
     // Targets (role 1) and SAM sites (red, neutral role), each optionally on a ground route.
     let template = skeleton()["entities"]["items"][0].clone();

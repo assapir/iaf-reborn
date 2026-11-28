@@ -1066,6 +1066,11 @@ comes from; null for an item of the whole flight), the debrief's pin; `comment`,
 | `ins_aligned` | 1 when the INS step reached NAV aligned before the taxi (moving 10 m), else 0; a jet whose lesson asks for no `ins` item (the F-35I): its self test's end |
 | `taxi_speed` | the highest ground speed on the ground, kt; placed at it |
 | `night_lighting` | 1 when the night items the mission asks for (`interior_lights`, `hmd_night`) are ticked, else 0 |
+| `awacs_checkin` | 1 when the first request to the AWACS was the check-in (`awacs:checkin`), else 0 |
+| `vector_heading_error` | each vector the AWACS gave (the heading in its answer): the mean distance of the jet's heading from it in the air, 30 to 90 s after it or to the next request; the mean over the vectors, deg (the times inferred) |
+| `tanker_contact_time` | from the join-up (the tanker's `joined`) to the first `contact`, s |
+| `tanker_disconnects` | the breakaways and the disconnects off the boom's limits (not `full`, `button` or `door`) |
+| `fuel_taken` | the fuel the boom gave of the room in the tanks at the first contact (the planned offload: the tanks full), %, at most 100 |
 
 An item without its measure here reads as not flown (Unsatisfactory): a phase adds its items' measures with its
 lessons.
@@ -1114,9 +1119,11 @@ engine (§17.2, with its figures).
 
 The flight's tests read `ai_flights.gd flight_facts()`: `IafAi.facts` (`iaf_ai::Flight::facts`: `in_slot`, `joined`,
 `landed`) and the lead's orders given.
+| `called:<call>` | the pilot made the radio call `<call>` (§8; the AWACS's `awacs:<request>`, the tanker's request `tanker`) |
+| `tanker:<event>` | the tanker's event for the player's jet came: `joined` (within 1 NM), `cleared_precontact`, `cleared_contact`, `contact`, `disconnect`, `breakaway`, `complete` ([../../docs/ai.md](../../docs/ai.md) §25) |
 
 A mission's `end` takes the tests the scorer reads from the recording (`training::END_TESTS`): `power_off`,
-`engine_off`, `idle`, `aligned`, `parked` (stopped within 30 m of the start), `item:` and `called:`. A phase that
+`engine_off`, `idle`, `aligned`, `parked` (stopped within 30 m of the start), `item:`, `called:` and `tanker:`. A phase that
 needs a new test (a steerpoint reached, a kill, the tanker's contact) adds its name to `course.rs` `TESTS` (or an
 argument test to `ARG_TESTS`), its rule to the call engine (and to `training::holds` for an end) and its row here.
 
@@ -1173,7 +1180,6 @@ The loader refuses a diagram without a title, points or a top view, a view witho
 points (a side view may have none), a coordinate off the frame, a text without both languages, and a lesson naming a
 diagram its file does not have. `course.rs` `a_diagram_is_checked` holds the overhead break as its example: the
 initial, the break, downwind, the final turn and the touchdown over runway 25R, with the side view's 1,500 ft.
-
 ### 16.6 The flown items
 
 A lesson's graded items are measured from the flight's recording (`training.rs` `measure` and `flown`) against the
@@ -1321,6 +1327,40 @@ items.
     using approximately 70 degrees AOB", 300 KIAS; "the inside man waits until the outside man is nose on"; the call
     "[Call sign], Tac right/left"), https://navyflightmanuals.tpub.com/P-1221/Tac-Turn-27.htm
 
+### 16.9 Phase 6
+
+The five lessons of [training-plan.md](training-plan.md) §3, phase 6 (`lessons/control.json`, the missions
+`<jet>_control_<lesson>`, menu ids 3611–3653), each for the three jets from their home bases, cold and dark on the
+parking spot, the wind calm, the sky clear. Each takes off, flies its work and lands back to the spot with the engine
+off (`end`: `parked`, `engine_off`).
+
+| Lesson | Time | Steerpoints | Others in the sky | Graded |
+|--------|------|-------------|-------------------|--------|
+| 6.1 Check-in and the picture | 08:00 | the work area, 20,000 ft | two drone groups, known (hostile) | `awacs_checkin` |
+| 6.2 Vectors | 08:00 | the work area | one drone on a long straight racetrack | `awacs_checkin`, `vector_heading_error` |
+| 6.3 Air refuelling | 08:00 | the tanker's inbound leg, 29,000 ft | a KC-46A on its track | `tanker_contact_time`, `tanker_disconnects`, `fuel_taken` |
+| 6.4 At night | 21:00 | as 6.3 | as 6.3 | as 6.3 |
+| 6.5 Check ride 6 | 08:00 | both | the drone groups and the tanker | the phases' items (§13.1) |
+
+- **The AWACS** is the virtual controller (no Eitam in the sky, [../../docs/ai.md](../../docs/ai.md) §24.1), Eitam on
+  the radio. The lessons use its page's Check in and Judy ([../../docs/ai.md](../../docs/ai.md) §24.2): the hand-off
+  of 6.2 is JUDY, the controller handing the intercept to the pilot once the pilot has the contact (inferred: the
+  plan's "hand-off" read as the AI plan's C3, [ai-plan.md](ai-plan.md) §7).
+- **The drones** are the range's target drones (`drone_f16`, the route brain) with `known` (data-formats.md §5), so
+  the controller calls them hostile and vectors to them. They carry no weapons.
+- **The tanker** is the mission's `tanker` ([research/air-refuelling.md](research/air-refuelling.md) §8): for Ramat
+  David a track over the sea west of the Carmel coast, for Ramon and Nevatim one track over the Negev between the two
+  (inferred). Its events and lights: [../../docs/ai.md](../../docs/ai.md) §25.
+- **No jet figure** is in the lesson texts (bingo is "the fuel to fly home and land with the reserve"); the tanker's
+  figures are its track's.
+- **The diagrams** are the file's (§16.5): `awacs_braa` (a group's bearing, range, altitude and aspect), `vector_intercept` (the
+  vectors, the hand-off, 2 NM behind), `tanker_join` (from below and behind to within 1 NM), `tanker_positions` (the
+  observation, pre-contact and contact positions, the pilot director lights).
+
+`modern-iaf/tests/test_course_control.gd` checks the content for each jet, loads every lesson, and flies 6.3 in each
+jet from beside the tanker through the check-in, the vector, the request, pre-contact, contact and full, then checks
+its graded items. The budgets (60 minutes for 6.1, 75 for 6.2 to 6.4, 90 for the check ride) are inferred.
+
 ## 17. The instructor's calls
 The instructor's calls in flight ([training-plan.md](training-plan.md) §2.3) are data: each lesson's `calls` in its
 phase's lesson file (§16.1), read by `crates/iaf-tools/src/calls.rs` (module `calls`, the call engine). The game runs
@@ -1367,6 +1407,8 @@ the wind) along its centreline and across it. Every figure is inferred.
 | `alt:<ft>` | in the air at least `<ft>` above the field's elevation |
 | `aoa:<deg>` | in the air at an angle of attack of at least `<deg>` |
 | `g:<g>` | in the air at a load factor of at least `<g>` |
+| `called:<call>` | the pilot made the radio menu's call `<call>` (`sim_flight.gd` `called`, §8; an AWACS request answered `awacs:<request>`, the tanker's request `tanker`) |
+| `tanker:<event>` | the tanker's event for the player's jet came (`tanker.gd` `player_events`, §16.3) |
 
 ### 17.3 In the game
 `sim_flight.gd` starts the calls when the mission flies a course lesson (`IafCalls.lesson_of`: the lesson's

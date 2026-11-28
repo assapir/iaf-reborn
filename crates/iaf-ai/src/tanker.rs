@@ -477,6 +477,7 @@ impl Tanker {
         let too_close = target[2] < self.spec.ext.0 - BREAKAWAY.0 || target[0] < self.spec.elev.0 - BREAKAWAY.1;
         if matches!(self.head, RxState::Cleared { .. }) && near && too_close {
             if self.boom == Boom::Contact {
+                self.why = "breakaway".into();
                 ev.push(Event::Disconnect(id));
             }
             self.head = RxState::BrokeAway;

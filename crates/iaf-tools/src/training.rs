@@ -1597,8 +1597,8 @@ fn startup(f: &Flight, mission: String, budget: f64) -> Debrief {
 const FORMATION_IN_M: f64 = 50.0;
 
 /// The tests a lesson's `end` may name: the ones `holds` reads from the recording (training.md §16.3).
-pub const END_TESTS: [&str; 8] =
-    ["power_off", "engine_off", "idle", "aligned", "parked", "item", "called", "flight_landed"];
+pub const END_TESTS: [&str; 9] =
+    ["power_off", "engine_off", "idle", "aligned", "parked", "item", "called", "flight_landed", "tanker"];
 
 /// The card items that set the cockpit for the night (data/checklists: the F-16s' interior lights, the F-35I's HMD).
 const NIGHT_ITEMS: [&str; 2] = ["interior_lights", "hmd_night"];
@@ -1644,6 +1644,7 @@ fn holds(f: &Flight, i: usize, test: &str, count: usize) -> bool {
             let flew = s[..=i].iter().any(|y| !y.on_ground);
             x.on_ground && flew && landed.len() + 1 >= count
         }
+        "tanker" => f.events.iter().filter(before).any(|e| e["event"] == "tanker" && e["call"] == arg),
         _ => false,
     }
 }
@@ -1828,6 +1829,11 @@ fn measure(f: &Flight, id: &str, mission: &Value, r: &Rules, calls: &[String]) -
             let k = (0..s.len()).filter(|k| s[*k].on_ground).max_by(|a, b| s[*a].speed_kt.total_cmp(&s[*b].speed_kt));
             (k.map(|k| s[k].speed_kt), k)
         }
+        "awacs_checkin" => whole(Some(awacs_checkin(f))),
+        "vector_heading_error" => whole(vector_heading_error(f)),
+        "tanker_contact_time" => whole(tanker_contact_time(f)),
+        "tanker_disconnects" => whole(tanker_disconnects(f)),
+        "fuel_taken" => whole(fuel_taken(f)),
         _ => (None, None),
     }
 }
@@ -2056,6 +2062,92 @@ fn flown(
         }
         _ => none,
     }
+}
+
+/// The flight's AWACS requests (the `radio` events `awacs:<request>`, docs/ai.md §24.5): (time, request, answer).
+fn awacs_calls(f: &Flight) -> impl Iterator<Item = (f64, &str, &str)> {
+    f.events.iter().filter_map(|e| {
+        let r = e["call"].as_str()?.strip_prefix("awacs:")?;
+        (e["event"] == "radio").then(|| (e["t"].as_f64().unwrap_or(0.0), r, e["answer"].as_str().unwrap_or("")))
+    })
+}
+
+/// `awacs_checkin`: 1 when the pilot checked in with the AWACS before any other request to it, else 0.
+fn awacs_checkin(f: &Flight) -> f64 {
+    if awacs_calls(f).next().is_some_and(|c| c.1 == "checkin") { 1.0 } else { 0.0 }
+}
+
+/// A vector is flown from this long after it was given (the turn onto it) to this long after, or to the next AWACS
+/// request, s (inferred: a turn of 180° at 3°/s takes a minute).
+const VECTOR_FROM_S: f64 = 30.0;
+const VECTOR_TO_S: f64 = 90.0;
+
+/// `vector_heading_error`: over each vector the controller gave (an answer with its heading, "vector 040"), the mean
+/// distance of the jet's heading from it in the air while it is flown (`VECTOR_FROM_S` to `VECTOR_TO_S` after it, to
+/// the next request); the mean over the vectors, deg. None without a vector flown.
+fn vector_heading_error(f: &Flight) -> Option<f64> {
+    let calls: Vec<(f64, &str, &str)> = awacs_calls(f).collect();
+    let mut per = vec![];
+    for (k, &(t, req, answer)) in calls.iter().enumerate() {
+        // The heading, the answer's first three-digit number ("Kidon 1, vector 040, 25 miles, target.").
+        let Some(h) = req.starts_with("vector_").then(|| vector_of(answer)).flatten() else { continue };
+        let end = calls.get(k + 1).map_or(t + VECTOR_TO_S, |c| c.0.min(t + VECTOR_TO_S));
+        let errs: Vec<f64> = f
+            .samples
+            .iter()
+            .filter(|x| !x.on_ground && x.t >= t + VECTOR_FROM_S && x.t <= end)
+            .map(|x| angle(x.heading, h).abs())
+            .collect();
+        if !errs.is_empty() {
+            per.push(errs.iter().sum::<f64>() / errs.len() as f64);
+        }
+    }
+    (!per.is_empty()).then(|| per.iter().sum::<f64>() / per.len() as f64)
+}
+
+/// The heading a vector's answer names: its first run of exactly three digits.
+fn vector_of(answer: &str) -> Option<f64> {
+    answer.split(|c: char| !c.is_ascii_digit()).find(|w| w.len() == 3).and_then(|w| w.parse().ok())
+}
+
+/// The tanker's events for the player (`tanker` events, shared/ai/tanker.gd): (time, call, the event).
+fn tanker_events(f: &Flight) -> impl Iterator<Item = (f64, &str, &Value)> {
+    f.events
+        .iter()
+        .filter(|e| e["event"] == "tanker")
+        .map(|e| (e["t"].as_f64().unwrap_or(0.0), e["call"].as_str().unwrap_or(""), e))
+}
+
+/// `tanker_contact_time`: from the join-up (within 1 NM of the tanker) to the boom's first contact, s.
+fn tanker_contact_time(f: &Flight) -> Option<f64> {
+    let joined = tanker_events(f).find(|e| e.1 == "joined")?.0;
+    Some(tanker_events(f).find(|e| e.1 == "contact" && e.0 >= joined)?.0 - joined)
+}
+
+/// The disconnects the pilot planned: the tanks full, the disconnect button, the door closed (`iaf_ai::tanker`'s
+/// reason, the event's `why`).
+const PLANNED_DISCONNECTS: [&str; 3] = ["full", "button", "door"];
+
+/// `tanker_disconnects`: the unplanned ones, a breakaway or the boom's envelope left; a breakaway's own disconnect
+/// (the same moment) counts once. None before the first contact.
+fn tanker_disconnects(f: &Flight) -> Option<f64> {
+    tanker_events(f).find(|e| e.1 == "contact")?;
+    let breakaways: Vec<f64> = tanker_events(f).filter(|e| e.1 == "breakaway").map(|e| e.0).collect();
+    let limits = tanker_events(f).filter(|e| {
+        e.1 == "disconnect"
+            && !PLANNED_DISCONNECTS.contains(&e.2["why"].as_str().unwrap_or(""))
+            && !breakaways.iter().any(|t| (t - e.0).abs() < 0.5)
+    });
+    Some((breakaways.len() + limits.count()) as f64)
+}
+
+/// `fuel_taken`: the fuel the boom gave (the last disconnect's `kg`, the sum so far) of the room the jet had at its
+/// first contact (`room_kg`: the planned offload is the tanks filled), %, at most 100 (the burn while in contact adds
+/// room). None before the first contact.
+fn fuel_taken(f: &Flight) -> Option<f64> {
+    let room = tanker_events(f).find(|e| e.1 == "contact")?.2["room_kg"].as_f64()?;
+    let given = tanker_events(f).filter(|e| e.1 == "disconnect").filter_map(|e| e.2["kg"].as_f64()).fold(0.0, f64::max);
+    (room > 0.0).then(|| (100.0 * given / room).min(100.0))
 }
 
 /// A weapons range: the recorder's `kill` events by the player, air (`"air": true`) and ground, against `need` [air,
@@ -3530,5 +3622,65 @@ mod tests {
         // A finished run does not end twice.
         r.finish(true, f64::INFINITY);
         assert!(!r.score_failed());
+    }
+
+    /// Phase 6's items (training.md §16.9): the AWACS check-in first, the vectors flown, the tanker's join-up to
+    /// contact, the unplanned disconnects and the fuel taken, from the recording's `radio` and `tanker` events.
+    #[test]
+    fn the_controller_and_tanker_items_read_the_events() {
+        let air = |t: f64, heading: f64| Sample { t, heading, engine: true, fuel_kg: 2000.0, ..Default::default() };
+        let mut f = Flight {
+            samples: (0..300).map(|t| air(t as f64, if t < 100 { 90.0 } else { 44.0 })).collect(),
+            ..Default::default()
+        };
+        let radio =
+            |t: f64, call: &str, answer: &str| json!({"t": t, "event": "radio", "call": call, "answer": answer});
+        f.events = vec![
+            radio(10.0, "awacs:checkin", "Kidon 1, radar contact."),
+            radio(20.0, "awacs:picture", "Kidon 1, single group."),
+            radio(60.0, "awacs:vector_target", "Kidon 1, vector 040, 25 miles, target."),
+        ];
+        assert_eq!(awacs_checkin(&f), 1.0);
+        // The vector from 30 s after it to 90 s: 90° to 99 s (50° off), then 44° (4° off).
+        let e = vector_heading_error(&f).unwrap();
+        assert!((e - (10.0 * 50.0 + 51.0 * 4.0) / 61.0).abs() < 1e-9, "{e}");
+        assert_eq!(vector_of("כידון 1, כיוון 360, 100 מייל, מטרה."), Some(360.0));
+        f.events.insert(0, radio(5.0, "awacs:picture", ""));
+        assert_eq!(awacs_checkin(&f), 0.0, "a request before the check-in");
+        // The tanker: joined at 200 s, contact at 290 s; a breakaway (with its disconnect), a disconnect off the
+        // envelope, then full.
+        assert_eq!((tanker_contact_time(&f), tanker_disconnects(&f), fuel_taken(&f)), (None, None, None));
+        let tk = |t: f64, call: &str, more: Value| {
+            let mut e = json!({"t": t, "event": "tanker", "call": call});
+            e.as_object_mut().unwrap().extend(more.as_object().unwrap().clone());
+            e
+        };
+        f.events.extend([
+            tk(200.0, "joined", json!({})),
+            tk(290.0, "contact", json!({"room_kg": 1500.0})),
+            tk(300.0, "disconnect", json!({"why": "full", "kg": 200.0})),
+            tk(300.0, "breakaway", json!({})),
+            tk(330.0, "contact", json!({"room_kg": 1400.0})),
+            tk(
+                340.0,
+                "disconnect",
+                json!({"why": "limits: elevation 41.0° azimuth 0.0° extension 3.00 m", "kg": 500.0}),
+            ),
+            tk(360.0, "disconnect", json!({"why": "full", "kg": 1540.0})),
+            tk(360.0, "complete", json!({"kg": 1540.0})),
+        ]);
+        assert_eq!(tanker_contact_time(&f), Some(90.0));
+        assert_eq!(tanker_disconnects(&f), Some(2.0));
+        assert_eq!(fuel_taken(&f), Some(100.0), "the tanks filled, the burn's room too");
+        let early: Vec<Value> = f.events.iter().filter(|e| e["t"].as_f64() < Some(345.0)).cloned().collect();
+        f.events = early;
+        assert!((fuel_taken(&f).unwrap() - 100.0 * 500.0 / 1500.0).abs() < 1e-9);
+        let rec =
+            Flight { samples: vec![air(0.0, 0.0), air(400.0, 0.0)], events: f.events.clone(), ..Default::default() };
+        assert!(
+            holds(&rec, 1, "tanker:contact", 1)
+                && !holds(&rec, 0, "tanker:joined", 1)
+                && !holds(&rec, 1, "tanker:complete", 1)
+        );
     }
 }

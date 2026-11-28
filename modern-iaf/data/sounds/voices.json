@@ -5970,6 +5970,22 @@
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
+      "file": "awx_radar_contact.ogg",
+      "voice": "awacs",
+      "say": "radar contact",
+      "mode": "particle",
+      "say_he": "יש מגע מכ\"מי",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "awx_copy.ogg",
+      "voice": "awacs",
+      "say": "copy",
+      "mode": "particle",
+      "say_he": "קיבלתי",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
       "file": "awx_tanker.ogg",
       "voice": "awacs",
       "say": "tanker",
@@ -6445,9 +6461,39 @@
       "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
     },
     {
+      "file": "plt_req_awx_checkin.ogg",
+      "voice": "pilot",
+      "say": "Checking in.",
+      "mode": "helmet",
+      "say_he": "כניסה לרשת.",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
+      "file": "plt_req_awx_judy.ogg",
+      "voice": "pilot",
+      "say": "Judy.",
+      "mode": "helmet",
+      "say_he": "ג'ודי.",
+      "note": "the AWACS controller (docs/ai.md §24); the Hebrew line as its table"
+    },
+    {
       "file": "plt_eitam_kidon1_vector_tanker.ogg",
       "voice": "pilot",
       "say": "Eitam, [Kidon](/kidˈOn/) one, request vector to tanker.",
+      "mode": "helmet",
+      "note": "the player's call to the AWACS, whole (docs/ai.md §24)"
+    },
+    {
+      "file": "plt_eitam_kidon1_checkin.ogg",
+      "voice": "pilot",
+      "say": "Eitam, [Kidon](/kidˈOn/) one, checking in.",
+      "mode": "helmet",
+      "note": "the player's call to the AWACS, whole (docs/ai.md §24)"
+    },
+    {
+      "file": "plt_eitam_kidon1_judy.ogg",
+      "voice": "pilot",
+      "say": "Eitam, [Kidon](/kidˈOn/) one, judy.",
       "mode": "helmet",
       "note": "the player's call to the AWACS, whole (docs/ai.md §24)"
     },
@@ -10859,6 +10905,16 @@
       "text": "home plate",
       "text_he": "בסיס האם"
     },
+    "AWX_RADAR_CONTACT": {
+      "file": "awx_radar_contact.ogg",
+      "text": "radar contact",
+      "text_he": "יש מגע מכ\"מי"
+    },
+    "AWX_COPY": {
+      "file": "awx_copy.ogg",
+      "text": "copy",
+      "text_he": "קיבלתי"
+    },
     "AWX_TANKER": {
       "file": "awx_tanker.ogg",
       "text": "tanker",
@@ -11164,6 +11220,26 @@
       "text": "Eitam, Kidon 1, request vector to tanker",
       "text_he": "עיטם, כידון 1, בקשת כיוון למטוס התדלוק"
     },
+    "REQ_AWX_CHECKIN": {
+      "file": "plt_req_awx_checkin.ogg",
+      "text": "checking in",
+      "text_he": "כניסה לרשת"
+    },
+    "EITAM_P+,+ALPHA_P+,+REQ_AWX_CHECKIN": {
+      "file": "plt_eitam_kidon1_checkin.ogg",
+      "text": "Eitam, Kidon 1, checking in",
+      "text_he": "עיטם, כידון 1, כניסה לרשת"
+    },
+    "REQ_AWX_JUDY": {
+      "file": "plt_req_awx_judy.ogg",
+      "text": "judy",
+      "text_he": "Judy"
+    },
+    "EITAM_P+,+ALPHA_P+,+REQ_AWX_JUDY": {
+      "file": "plt_eitam_kidon1_judy.ogg",
+      "text": "Eitam, Kidon 1, judy",
+      "text_he": "עיטם, כידון 1, Judy"
+    },
     "TNK_KIDON1": {
       "file": "tnk_kidon1.ogg",
       "text": "Kidon 1",
@@ -11431,6 +11507,8 @@
     "AWX_DECLARE": "%S1 , %S2",
     "AWX_VECTOR": "%S1 , %S2 , %S3 , %S4",
     "AWX_HELP": "%S1 , AWX_THREAT , AWX_GROUP_W %S2 , %S3 , %S4 , AWX_RETROGRADE , AWX_COMMIT",
+    "AWX_CHECKIN": "%S1 , AWX_RADAR_CONTACT",
+    "AWX_COPY": "%S1 , AWX_COPY",
     "TNK_CALL": "%S1 , %S2",
     "TNK_CALL3": "%S1 , %S2 , %S3",
     "ACFT_RADIO_CHECK": "%S1 , READ_FIVE",

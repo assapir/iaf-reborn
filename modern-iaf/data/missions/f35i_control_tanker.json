@@ -1,0 +1,88 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f35i",
+    "base": "Nevatim",
+    "at": "parking",
+    "elevation_m": 405
+  },
+  "runway": "26L",
+  "tanker": {
+    "kind": "kc46",
+    "anchor": [
+      677904,
+      3353478
+    ],
+    "course": 10.0
+  },
+  "route": [
+    {
+      "lat": 30.71003,
+      "lon": 34.9341,
+      "alt_m": 8839,
+      "speed_kmh": 800
+    }
+  ],
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "by day (training-plan.md §1: check ride 6 by day)",
+    "wind_kt": "calm (inferred)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "runway": "the base's runway the take-off missions use; the tower turns it into the wind",
+    "training.time_budget_s": "the start-up, the taxi, the flight out, the lesson's work, the return and the shutdown with time to spare (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.end": "the lesson ends with the jet back on its spot and the engine off (training.md §16.3)",
+    "tanker": "a KC-46A Gideon on its racetrack over the Negev, between Ramon and Nevatim: the inbound leg from 30.3N 34.85E (the anchor, UTM 36N m) on course 10 (grid; inferred)",
+    "route": "the lesson's steerpoints: the tanker's inbound leg at 29,000 ft, 1,000 ft below the track"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f35i_control_tanker",
+  "menu_id": 3633,
+  "lesson": "control.tanker",
+  "title": {
+    "en": "Air refuelling",
+    "he": "תדלוק אווירי"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "calls": [],
+    "checklist": [],
+    "time_budget_s": 4500,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

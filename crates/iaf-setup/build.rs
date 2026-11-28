@@ -50,6 +50,7 @@ fn main() {
         "modern-iaf/data/training/lessons/ground.json",
         "modern-iaf/data/training/lessons/pattern.json",
         "modern-iaf/data/training/lessons/formation.json",
+        "modern-iaf/data/training/lessons/control.json",
         "tools/install-launcher.sh",
         "tools/windows/install-launcher.ps1",
     ];

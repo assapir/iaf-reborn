@@ -38,6 +38,8 @@ fn request(id: &str) -> Option<Request> {
         "vector_target" => Request::VectorTarget,
         "vector_home" => Request::VectorHome,
         "vector_tanker" => Request::VectorTanker,
+        "checkin" => Request::CheckIn,
+        "judy" => Request::Judy,
         _ => return None,
     })
 }

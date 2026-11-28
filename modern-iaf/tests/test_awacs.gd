@@ -168,7 +168,7 @@ func _eitam(tv: Node) -> void:
 	sim.set_open(true)
 	sim.choose(3)
 	var off: Dictionary = sim._off()
-	check(off.size() == 6, "Eitam down: every request off (%s)" % off)
+	check(off.size() == sim.AWACS_ITEMS.size(), "Eitam down: every request off (%s)" % off)
 	sim.set_open(false)
 	check(r.awacs_request("picture").is_empty(), "Eitam down: no answer")
 	if ews != null:
@@ -196,18 +196,18 @@ func _tanker(tv: Node, sim: Node) -> void:
 	check(t.begins_with("Kidon 1, vector ") and t.ends_with("tanker"), "vector to tanker (%s)" % t)
 
 
-## The AWACS page in `lang`: the six requests, Declare and the tanker off (dimmed, no reason line).
+## The AWACS page in `lang`: the eight requests, Declare and the tanker off (dimmed, no reason line).
 func _page(sim: Node, lang: String) -> void:
 	sim.set_open(true)
 	sim.choose(3)
 	check(sim.page == "awacs", "%s: AWACS opens its page (%s)" % [lang, sim.page])
-	check(sim.shown == sim.AWACS_ITEMS.map(func(x): return x[0]), "%s: the six requests %s" % [lang, sim.shown])
+	check(sim.shown == sim.AWACS_ITEMS.map(func(x): return x[0]), "%s: the eight requests %s" % [lang, sim.shown])
 	var off: Dictionary = sim._off()
 	check(off.keys() == [2, 5], "%s: Declare and the tanker off (%s)" % [lang, off])
 	var buttons: Array = sim.ui.menu_box.get_children().filter(func(c): return c is Button)
 	var dim: Array = range(buttons.size()).filter(func(i): return buttons[i].disabled)
 	check(dim == [2, 5], "%s: just those two dimmed (%s)" % [lang, dim])
-	check(sim.ui.menu_texts().size() == 1 + 6 + 1, "%s: no reason line (%s)" % [lang, sim.ui.menu_texts()])
+	check(sim.ui.menu_texts().size() == 1 + 8 + 1, "%s: no reason line (%s)" % [lang, sim.ui.menu_texts()])
 	var text: String = sim.menu_text()
 	var label: String = sim.AWACS_ITEMS[0][2 if lang == "he" else 1]
 	check(label in text, "%s: the page's lines (%s)" % [lang, text])

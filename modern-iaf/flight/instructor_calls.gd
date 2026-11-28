@@ -66,6 +66,7 @@ func _process(delta: float) -> void:
 			"flight_joined": bool(fl.get("joined", false)),
 			"flight_landed": bool(fl.get("landed", false)),
 			"lead_orders": PackedStringArray(fl.get("orders", [])),
+			"tanker": host.tanker.player_events if host.get("tanker") != null else PackedStringArray(),
 		}
 	)
 

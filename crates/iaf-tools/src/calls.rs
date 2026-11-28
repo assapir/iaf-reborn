@@ -98,6 +98,8 @@ pub enum Test {
     FlightLanded,
     /// The AI lead gave the order (`iaf_ai::LEAD_CALLS` without "lead_").
     LeadOrder(String),
+    /// The tanker's event for the player's jet came (`course::TANKER_EVENTS`, training.md §16.3).
+    Tanker(String),
 }
 
 impl Test {
@@ -137,6 +139,7 @@ impl Test {
                     }
                 }
                 Some(("lead_order", a)) if !a.is_empty() => Test::LeadOrder(a.into()),
+                Some(("tanker", a)) if course::TANKER_EVENTS.contains(&a) => Test::Tanker(a.into()),
                 _ => bail!("calls: \"{t}\" is no test"),
             },
         })
@@ -322,6 +325,8 @@ pub struct Now {
     pub flight_joined: bool,
     pub flight_landed: bool,
     pub lead_orders: Vec<String>,
+    /// The tanker's events for the player's jet so far (`course::TANKER_EVENTS`).
+    pub tanker: Vec<String>,
 }
 
 /// A line said: its call, its clip, its English and Hebrew subtitles.
@@ -458,6 +463,7 @@ impl Calls {
             Test::FlightJoined => s.flight_joined,
             Test::FlightLanded => s.flight_landed,
             Test::LeadOrder(o) => s.lead_orders.contains(o),
+            Test::Tanker(e) => s.tanker.contains(e),
         }
     }
 
@@ -521,10 +527,16 @@ mod tests {
             assert!(Test::of(t).is_ok(), "{t}");
         }
         let args = ["item:batt", "cleared:taxi", "called:radio_check", "failure:flameout", "alt:9500", "aoa:15", "g:7"];
-        for t in args.into_iter().chain(["called:fingertip:0", "lead_order:tac_right"]) {
+        for t in args.into_iter().chain([
+            "called:fingertip:0",
+            "lead_order:tac_right",
+            "called:awacs:checkin",
+            "tanker:contact",
+        ]) {
             assert!(Test::of(t).is_ok(), "{t}");
         }
         assert!(Test::of("cleared:landing").is_err() && Test::of("nope").is_err() && Test::of("aoa:x").is_err());
+        assert!(Test::of("tanker:nope").is_err());
         assert_eq!(runway_words("25R"), ["two five right".to_string(), "25 right".into(), "25 ימין".into()]);
         assert_eq!(runway_words("07L")[0], "seven left");
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/airbases");
@@ -592,6 +604,24 @@ mod tests {
         c.tick(&n);
         n.failures.push("engine_fire".into());
         assert_eq!(c.tick(&n).len(), 1, "the flight's fire");
+    }
+
+    /// Phase 6's lessons (control.json) open in each jet: their AWACS `called:` and `tanker:` tests are known.
+    #[test]
+    fn the_control_lessons_calls_open() {
+        let b = ramon();
+        for l in ["checkin", "vectors", "tanker", "night"] {
+            for jet in ["f16d", "f16i", "f35i"] {
+                let c = Calls::open(&format!("control.{l}"), jet, &b, "", true).unwrap();
+                assert!(!c.left().is_empty(), "control.{l} {jet}");
+            }
+        }
+        let t = Test::of("tanker:contact").unwrap();
+        let c = Calls::open("control.tanker", "f16i", &b, "", true).unwrap();
+        let mut n = Now::default();
+        assert!(!c.holds(&t, &n));
+        n.tanker.push("contact".into());
+        assert!(c.holds(&t, &n));
     }
 
     /// A lesson of the overhead pattern flown as a script of frames: every call in order, each once, at its step.

@@ -12,6 +12,7 @@ const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const Gltf := preload("res://shared/util/gltf.gd")
 const DamageModel := preload("res://shared/mission/damage_model.gd")
 const ArDoor := preload("res://shared/aircraft/ar_door.gd")
+const NightLights := preload("res://shared/terrain/night_lights.gd")
 const CLASS_AIRCRAFT := 0x1c
 ## Each kind's model and the callsign the radio uses (radio.gd TANKERS).
 const MODELS := {
@@ -25,6 +26,9 @@ const DISC_S := 3.0
 ## its way from farther out stays in the queue.
 const LEAVE_M := 37_000.0
 const GONE_M := 5_000.0
+## The player's jet has joined the tanker once this close to it (a training lesson's join-up, training.md §16.9;
+## inferred: 1 NM), m.
+const JOIN_M := 1852.0
 ## The pilot director lights: each row's five lamps, forward to aft (elevation U..D, telescope F..A), their size and
 ## spacing, m; the colours: the striped green centre, then amber, then red (the KC-10's, research §3), lit and dark.
 const PDL_LAMP := Vector3(0.35, 0.08, 0.5)
@@ -53,6 +57,11 @@ var _now := 0.0
 ## The receivers that have come within LEAVE_M.
 var _reached := {}
 var _doors := {}  # the AI receivers' models with their doors open -> their aircraft definitions
+var _joined := false  # the player's jet has come within JOIN_M
+var _given := 0.0  # the fuel given to the player's jet, kg
+## The events for the player's jet so far (`_record`; the instructor's `tanker:` tests, training.md §16.3).
+var player_events := PackedStringArray()
+var _strobe: Node3D  # the anti-collision light (NightLights, with the navigation lights), null without
 ## Tests: the player's jet held where a test puts it: a Callable(delta) giving {position, velocity, forward, right, up}
 ## (scene) at this frame's end; null: its flight model's state.
 var test_player_state = null
@@ -101,6 +110,9 @@ func _build() -> void:
 			if at != null:
 				at.add_child(m)
 			_pdl[r].append(m)
+	# The navigation lights and the strobe, as every jet's in Modern IAF (aircraft_model.gd; the night tanker lesson).
+	if NightLights.detailed():
+		_strobe = NightLights.add_lights_on(model, MODELS[kind], null)
 	var e := {"0x1e": -900, "0x2bc": kind, "0x2c6": -1, "0x2d0": _player_side(), "0x2e4": 0.0, "0x2ee": 0.0}
 	ent = MissionRuntime.entity(e, "tanker", -1, false)
 	ent.merge({"klass": CLASS_AIRCRAFT, "type_code": -1, "coll_radius": 20.0, "max_extent": 30.0, "node": model}, true)
@@ -159,6 +171,9 @@ func frame(delta: float) -> void:
 		var f = _flight_of(int(fuel[0]), ai)
 		if f != null:
 			f.add_fuel(float(fuel[1]))
+		if int(fuel[0]) == _player_id():
+			_given += float(fuel[1])
+	_join()
 	_events(out.events, String(out.get("why", "")))
 	host.ar_disconnect = false
 	if fa != null:
@@ -179,6 +194,9 @@ func _shot_down() -> void:
 	_asked.clear()
 	contact_id = 0
 	host.tanker = null
+	if _strobe != null:
+		_strobe.get_parent().get_node("NavLights").visible = false
+		_strobe.visible = false
 	var xf := model.global_transform
 	model.reparent(host)
 	model.global_transform = xf
@@ -305,6 +323,8 @@ func _events(events: Array, why := "") -> void:
 				_disc_until[id] = _now + DISC_S
 				if why != "" and name == "disconnect":
 					print("tanker: %d disconnected (%s)" % [id, why])
+		if id == _player_id():
+			_record(name, why)
 		if host.get("radio") != null and host.radio.has_method("tanker_call"):
 			host.radio.tanker_call(kind, name, id)
 
@@ -325,6 +345,31 @@ func _ai_stations(ai, fa) -> void:
 			fa.set_refuel(n, tk.slot(n, _receptacle_of(m[1])))
 
 
+## The player's jet within JOIN_M of the tanker the first time: recorded (`joined`).
+func _join() -> void:
+	if _joined or host.get("flight") == null:
+		return
+	var at: Vector3 = host.rig.position if test_player_state == null else test_player_state.call(0.0).position
+	if at.distance_to(tk.pose().position) < JOIN_M:
+		_joined = true
+		_record("joined", "")
+
+
+## The tanker's event `name` for the player's jet in the flight's recording (training.md §16.9): a disconnect with its
+## reason (`why`) and the fuel given so far (`kg`), a contact with the room in the tanks (`room_kg`).
+func _record(name: String, why: String) -> void:
+	player_events.append(name)
+	if not host.has_method("_log_event"):
+		return
+	var e := {"event": "tanker", "call": name}
+	match name:
+		"disconnect", "complete":
+			e.merge({"why": why, "kg": snappedf(_given, 0.1)})
+		"contact":
+			e["room_kg"] = snappedf(float(host.flight.fuel_room()), 0.1)
+	host._log_event(host._log_st, e)
+
+
 # --- the model -----------------------------------------------------------------------------------------------------
 
 
@@ -343,6 +388,8 @@ func _place_model() -> void:
 		for i in 5:
 			var mat: StandardMaterial3D = _pdl[r][i].material_override
 			mat.albedo_color = PDL_LIT[i] if i == lit else Color(0.15, 0.15, 0.15)
+	if _strobe != null:
+		_strobe.visible = NightLights.strobe_on(_now, 0.0)
 	if host.get("runtime") != null:
 		ent.world = host.scene_to_world(pose.position)
 		ent.alt = ent.world.z

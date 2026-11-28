@@ -13,6 +13,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   its nose, the sides swapped). The items `formation_position`, `rejoin_time`, `flight_commands` and
   `flight_landed` are measured from the recording. `crates/iaf-ai/tests/lead.rs`, `modern-iaf/tests/test_formation_lessons.gd`.
   The lead's talk to the tower is not voiced.
+- **Phase 6's lessons (2026-11-28, [training-plan.md](training-plan.md) §3 phase 6; [training.md](training.md) §16.9):**
+  the AWACS check-in and picture, the vectors to a contact with the hand-off (JUDY), air refuelling, the tanker at
+  night and check ride 6, for the Barak, the Sufa and the Adir from their home bases (15 missions, menu ids
+  3611–3653); the AWACS page's Check in and Judy with their voices; the tanker's events for the player in the
+  recording and its navigation lights and strobe; the phase's five graded items measured from the recording; a
+  mission's drones can be known to the player. The instructor's calls wait on the tanker's events
+  (the call engine's `tanker:` test). `course`, `training` and `calls` tests, `iaf-ai awacs`, `test_course_control.gd`.
 - **The instructor's calls in flight (2026-11-28, [training-plan.md](training-plan.md) §2.3;
   [training.md](training.md) §17):** each lesson's calls as data, fired in order by the flight's state in Rust (any
   number of calls on a step, any number of lines in a call), the start-up calls left out once phase 1 is passed, none

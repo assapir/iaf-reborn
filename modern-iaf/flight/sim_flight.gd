@@ -49,6 +49,8 @@ const AWACS_ITEMS := [
 	["vector_target", "Vector to target", "כיוון למטרה", "request vector to target", "בקשת כיוון למטרה"],
 	["vector_home", "Vector home", "כיוון לבסיס", "request vector home", "בקשת כיוון לבסיס"],
 	["vector_tanker", "Vector to tanker", "כיוון למטוס התדלוק", "request vector to tanker", "בקשת כיוון למטוס התדלוק"],
+	["checkin", "Check in", "כניסה לרשת", "checking in", "כניסה לרשת"],
+	["judy", "Judy", "Judy", "judy", "Judy"],
 ]
 ## The tanker's page (only while the flight has a tanker, shared/ai/tanker.gd; the user, 25 Nov 2026: "it should be in
 ## coms, if available (not for every mission) and ask and get approval to start"): the one call, its words in
@@ -725,6 +727,8 @@ func awacs_pick(id: String) -> Array:
 	var lines := ["Eitam, %s, %s" % [said_cs, it[3]], "עיטם, %s, %s" % [said_cs.replace("Kidon", "כידון"), it[4]]]
 	r.bilingual(lines[0], lines[1])
 	var out: Array = r.awacs_request(id, lines[1 if _he() else 0])
+	if not out.is_empty():
+		called.append("awacs:" + id)
 	var answer := " ".join(out.map(func(p): return String(p.text)))
 	host._log_event(host._log_st, {"event": "radio", "call": "awacs:" + id, "answer": answer})
 	return out
@@ -780,6 +784,7 @@ func request_refuelling() -> void:
 	r.say("PILOT_CALL", [addr, cs + "_P", "REQ_REFUEL"], [], false, lines[1 if _he() else 0])
 	r.play_wav("radio_gap.ogg")
 	t.request(t._player_id())
+	called.append("tanker")
 	host._log_event(host._log_st, {"event": "radio", "call": "tanker", "answer": "request"})
 
 
