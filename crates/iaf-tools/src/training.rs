@@ -21,6 +21,7 @@ use anyhow::{Context, Result, bail, ensure};
 use serde_json::{Map, Value, json};
 
 use crate::combat_log;
+use crate::course::{self, Grade, LessonGrade, Limit, Standard};
 use crate::sim;
 use crate::sim_bases::{self, Base};
 
@@ -60,6 +61,13 @@ pub const LINED_UP_DEG: f64 = 30.0;
 const STRINGS: &[(&str, &str, &str)] = &[
     ("pass", "Pass", "עבר"),
     ("fail", "Fail", "נכשל"),
+    ("grade_unsat", "Unsatisfactory", "לא מספק"),
+    ("grade_below", "Below average", "מתחת לממוצע"),
+    ("grade_average", "Average", "ממוצע"),
+    ("grade_above", "Above average", "מעל לממוצע"),
+    ("lesson_unsat", "Unsatisfactory", "לא מספק"),
+    ("lesson_marginal", "Marginal", "גבולי"),
+    ("lesson_pass", "Pass", "עבר"),
     ("startup", "Start-up", "התנעה"),
     ("takeoff", "Take-off", "המראה"),
     ("range", "Weapons range", "מטווח"),
@@ -630,6 +638,24 @@ pub struct Debrief {
     pub checks: Vec<Check>,
     /// The flight's combat record (`combat_log::count`), `{}` without combat.
     pub combat: Value,
+    /// The faults with their place on the track, in time order.
+    pub faults: Vec<Fault>,
+    /// The course lesson the mission flies (`course::Course::lesson_of`, its key), None outside the course.
+    pub lesson: Option<String>,
+}
+
+/// A fault of the flight (a fail reason's id) with its place on the track: its time from the start (s) and the
+/// sample's place there (the engine frame, m).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Fault {
+    pub id: &'static str,
+    pub t: f64,
+    pub at: [f64; 2],
+}
+
+/// The fault `id` at sample `i` of `s`.
+fn fault(s: &[Sample], i: usize, id: &'static str) -> Fault {
+    Fault { id, t: s[i].t - s[0].t, at: [s[i].x, s[i].y] }
 }
 
 /// A figure of a goal: a value with its unit, a name ("25R"), or neither (not reached).
@@ -691,6 +717,41 @@ pub struct Check {
     pub mark: Mark,
 }
 
+impl Check {
+    /// The standard its grade is read against (course::Standard): its tolerance, half of it Above average and
+    /// twice it Below average; an upper limit, half of it Above average; the lift-off speed within LIFTOFF_WARN_KT
+    /// of the reference, half of it Above average; a count at least the target, fewer Below average. None for a
+    /// name ("25R"). Inferred.
+    pub fn standard(&self) -> Option<Standard> {
+        let t = self.target.value?;
+        let (limit, bands) = match self.bound {
+            Bound::Tol(tol) => (Limit::Tol(t), [tol / 2.0, tol, 2.0 * tol]),
+            Bound::Max => (Limit::Max, [t / 2.0, t, t]),
+            Bound::Exact if self.id == "goal_liftoff" => {
+                (Limit::Tol(t), [LIFTOFF_WARN_KT / 2.0, LIFTOFF_WARN_KT, f64::INFINITY])
+            }
+            Bound::Exact => (Limit::Min, [t, t, 0.0]),
+        };
+        Some(Standard { limit, bands, unit: self.target.unit.to_string() })
+    }
+
+    /// Its grade: the standard's, at least Average when met, at most Below average off the mark, Unsatisfactory when
+    /// failed; a name: Above average when met.
+    pub fn grade(&self) -> Grade {
+        let g = self.standard().map_or(Grade::AboveAverage, |s| s.grade(self.flown.value));
+        match self.mark {
+            Mark::Ok => g.max(Grade::Average),
+            Mark::Warn => g.min(Grade::BelowAverage),
+            Mark::Fail => Grade::Unsatisfactory,
+        }
+    }
+
+    /// The gap: the flown value less what should have been flown; None for a name or nothing flown.
+    pub fn gap(&self) -> Option<f64> {
+        self.standard().zip(self.flown.value).map(|(s, f)| s.gap(f))
+    }
+}
+
 /// The string `id` in language `lang` (0 English, 1 Hebrew) with each "{}" filled from `args` in turn.
 fn fill(id: &str, lang: usize, args: &[String]) -> String {
     let t = STRINGS.iter().find(|s| s.0 == id).map_or("?", |s| if lang == 0 { s.1 } else { s.2 });
@@ -707,8 +768,13 @@ fn fill(id: &str, lang: usize, args: &[String]) -> String {
 impl Debrief {
     /// The record the debrief page renders: values, units, and every string it names in English and Hebrew.
     pub fn to_json(&self) -> Value {
-        let mut ids: Vec<&str> = vec![if self.pass { "pass" } else { "fail" }, self.kind];
+        let grade = self.grade();
+        let lesson_id = format!("lesson_{}", grade.id());
+        let grade_ids: Vec<String> = self.checks.iter().map(|c| format!("grade_{}", c.grade().id())).collect();
+        let mut ids: Vec<&str> = vec![if self.pass { "pass" } else { "fail" }, self.kind, &lesson_id];
+        ids.extend(grade_ids.iter().map(String::as_str));
         ids.extend(&self.reasons);
+        ids.extend(self.faults.iter().map(|f| f.id));
         ids.extend(self.items.iter().flat_map(|i| [Some(i.id), i.note]).flatten());
         let strings = |lang: usize| -> Map<String, Value> {
             STRINGS
@@ -746,12 +812,27 @@ impl Debrief {
                     "target": target,
                     "flown": c.flown.to_json(),
                     "mark": match c.mark { Mark::Ok => "ok", Mark::Warn => "warn", Mark::Fail => "fail" },
+                    "gap": c.gap().map(|g| (g * 10.0).round() / 10.0),
+                    "grade": c.grade().id(),
                 })
             }).collect::<Vec<_>>(),
             "next": self.next().map(|(id, args)| json!({"en": fill(id, 0, &args), "he": fill(id, 1, &args)})),
             "strings": {"en": strings(0), "he": strings(1)},
             "combat": self.combat,
+            "grade": grade.id(),
+            "lesson": self.lesson,
+            "faults": self.faults.iter().map(|f| json!({
+                "id": f.id,
+                "t": (f.t * 10.0).round() / 10.0,
+                "at": [(f.at[0] * 10.0).round() / 10.0, (f.at[1] * 10.0).round() / 10.0],
+            })).collect::<Vec<_>>(),
         })
+    }
+
+    /// The lesson's grade (course::lesson_grade): from the flight's pass and its checks' grades.
+    pub fn grade(&self) -> LessonGrade {
+        let grades: Vec<Grade> = self.checks.iter().map(Check::grade).collect();
+        course::lesson_grade(self.pass, &grades)
     }
 
     /// The "Next time" remark: the tip for the reason that failed it first, else for the first goal not met; None
@@ -874,6 +955,22 @@ pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Deb
     if let Some(reason) = failed {
         d.fail_first(reason);
     }
+    let s = &flight.samples;
+    for e in &flight.events {
+        let Some(id) = hard_fail(std::slice::from_ref(e)) else { continue };
+        let t = e["t"].as_f64().unwrap_or(s[0].t);
+        d.faults.push(fault(s, s.partition_point(|x| x.t < t).min(s.len() - 1), id));
+    }
+    // Each fault once, at its first time.
+    d.faults.sort_by(|a, b| a.t.total_cmp(&b.t));
+    let mut seen = vec![];
+    d.faults.retain(|f| {
+        !seen.contains(&f.id) && {
+            seen.push(f.id);
+            true
+        }
+    });
+    d.lesson = course::course().lesson_of(mission["start"]["unit"].as_str().unwrap_or(""), &d.mission);
     if flight.cut_lines > 0 {
         d.items.push(item("cut_lines", Some(flight.cut_lines as f64), ""));
     }
@@ -1404,6 +1501,8 @@ fn startup(f: &Flight, mission: String, budget: f64) -> Debrief {
         goals: vec![],
         checks,
         combat: json!({}),
+        faults: vec![],
+        lesson: None,
     }
 }
 
@@ -1480,6 +1579,8 @@ fn range(f: &Flight, mission: String, need: [usize; 2], budget: f64) -> Debrief 
         goals: vec![],
         checks,
         combat: json!({}),
+        faults: vec![],
+        lesson: None,
     }
 }
 
@@ -1591,6 +1692,8 @@ fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -
             goals: vec![],
             checks,
             combat: json!({}),
+            faults: vec![],
+            lesson: None,
         };
     };
     let (roll, k) = roll_start(s, lift, rw);
@@ -1600,10 +1703,13 @@ fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -
     let (s_roll, _) = rw.local(s[roll].x, s[roll].y);
     let (s_lift, _) = rw.local(s[lift].x, s[lift].y);
     let moved = s.iter().position(|x| x.speed_kt > 1.0).unwrap_or(roll).min(roll);
+    let mut faults = vec![];
     if !rw.on(s[roll].x, s[roll].y) || s_lift <= s_roll {
         reasons.push("wrong_runway");
-    } else if rolls.iter().any(|x| !rw.on(x.x, x.y)) {
+        faults.push(fault(s, roll, "wrong_runway"));
+    } else if let Some(off) = rolls.iter().position(|x| !rw.on(x.x, x.y)) {
         reasons.push("excursion");
+        faults.push(fault(s, roll + off, "excursion"));
     }
     let rot = rotation(s, roll, lift).map(|i| s[i].speed_kt);
     let gear_up = s[lift..].iter().find(|x| !x.gear && !x.on_ground);
@@ -1673,6 +1779,8 @@ fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -
         goals: vec![],
         checks,
         combat: json!({}),
+        faults,
+        lesson: None,
     }
 }
 
@@ -2240,6 +2348,34 @@ mod tests {
         let d = scored(&text, "ramon_takeoff");
         assert_eq!(d.reasons, ["excursion"]);
         assert!(value(&d, "max_centreline_offset") > 22.6);
+        // The fault's place: the first sample of the roll off the runway, on the track's frame.
+        let f = &d.faults[0];
+        assert_eq!(f.id, "excursion");
+        let off = d.checks.iter().find(|c| c.id == "goal_centreline").unwrap();
+        assert_eq!(off.grade(), Grade::Unsatisfactory);
+        assert_eq!(d.grade(), LessonGrade::Unsatisfactory);
+        let j = d.to_json();
+        assert_eq!(j["faults"][0]["id"], "excursion");
+        assert!(j["faults"][0]["t"].as_f64().unwrap() > 70.0 && j["faults"][0]["at"].as_array().unwrap().len() == 2);
+    }
+
+    #[test]
+    fn the_faults_are_placed_on_the_track_once_each() {
+        let text = with(
+            &takeoff(CLEAN).0,
+            &[
+                json!({"t": 40.0, "event": "hit"}),
+                json!({"t": 45.0, "event": "hit"}),
+                json!({"t": 75.0, "event": "crash"}),
+            ],
+        );
+        let d = scored(&text, "ramon_takeoff");
+        assert_eq!(d.faults.iter().map(|f| f.id).collect::<Vec<_>>(), ["damage", "crash"]);
+        let f = parse_flight(&text).unwrap();
+        let at = f.samples.iter().find(|x| x.t >= 40.0).unwrap();
+        assert_eq!((d.faults[0].t, d.faults[0].at), (at.t - f.samples[0].t, [at.x, at.y]));
+        assert_eq!(d.grade(), LessonGrade::Unsatisfactory, "a crash fails the lesson");
+        assert_eq!(d.to_json()["strings"]["he"]["damage"], fill("damage", 1, &[]));
     }
 
     #[test]
@@ -2493,6 +2629,18 @@ mod tests {
             ]
         );
         let j = d.to_json();
+        // Each goal graded against its standard: what should have been flown, what was, the gap and the grade.
+        let grades: Vec<&str> = j["checks"].as_array().unwrap().iter().map(|c| c["grade"].as_str().unwrap()).collect();
+        assert_eq!(grades[4], "below", "the lift-off off the mark");
+        assert!(grades.iter().enumerate().all(|(i, g)| i == 4 || ["average", "above"].contains(g)), "{grades:?}");
+        let lift = &j["checks"][4];
+        let gap = lift["flown"]["value"].as_f64().unwrap() - lift["target"]["value"].as_f64().unwrap();
+        assert_eq!(lift["gap"].as_f64(), Some(gap));
+        assert!(j["checks"][0]["gap"].is_null(), "a runway's name has no gap");
+        assert_eq!(j["grade"], "marginal");
+        assert!(j["lesson"].is_null(), "the existing missions are no course lesson");
+        assert_eq!(j["strings"]["he"]["lesson_marginal"], "גבולי");
+        assert_eq!(j["strings"]["en"]["grade_below"], "Below average");
         assert_eq!(j["checks"][0]["label"]["en"], "Take off from runway 25R");
         assert_eq!(j["checks"][2]["target"]["tol"], 10.0);
         assert_eq!(j["checks"][3]["target"]["max"], true);
@@ -2536,6 +2684,8 @@ mod tests {
             goals: vec![],
             checks: vec![],
             combat: json!({}),
+            faults: vec![],
+            lesson: None,
         };
         assert_eq!(d("no_liftoff").next().map(|n| n.0), Some("next_liftoff"));
         assert_eq!(d("no_start").next().map(|n| n.0), Some("next_start"));

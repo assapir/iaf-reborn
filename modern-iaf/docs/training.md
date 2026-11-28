@@ -213,6 +213,15 @@ mission still passes; `fail`). A record from before `checks` shows its `goals` i
 | start-up | idle with the avionics up within the time budget; the card items the lesson names ticked (§12) |
 | take-off | the runway (the mission's against the one rolled on), within the time budget (the first airborne sample with the gear up on the heading), the gear up on the runway heading (± `heading_tolerance_deg`), the centreline offset over the roll (at most half the runway's width; `fail` on an excursion), the lift-off speed against the reference (`warn` beyond 10 kt, inferred: the reference table's own step), the tower calls (one each for the start-up and the taxi, two for the take-off; `warn` when fewer) |
 
+Each check also has `gap` (the flown value less what should have been flown, in the target's unit; null for a name
+or nothing flown) and `grade` (§13.2). The record's `grade` is the lesson's grade (`pass`, `marginal`, `unsat`),
+`lesson` the course lesson the mission flies (§13.1; null outside the course) and `faults` the faults with their place
+on the track: each `id` (a fail reason), `t` (s from the start) and `at` (the engine frame, [x, y], the track's frame
+§4.1), in time order, each fault once, at its first time. The faults are the §3.0 events (the ejection, the crash,
+damage, off the pavement, a phase without clearance, a checklist fault), the runway excursion (the roll's first sample
+off the runway) and the wrong runway (the roll's start). The grades' names are in `strings` (`grade_<id>`,
+`lesson_<id>`).
+
 `next` is the tip for the reason that failed the flight first (off the pavement, an excursion, the wrong runway, no
 lift-off, no engine start, a phase without clearance), else for the first check not `ok` (the lift-off: "Start the
 rotation at" the reference less 10 kt, inferred), none when all are met.
@@ -768,6 +777,77 @@ after the take-off opened it for the rest of the flight; a climb above 3,000 ft 
 (2026-11-18): the autopilot's NAV to a landing waypoint as the test's pilot. With the Sufa it slowed to 151 kt at idle
 with the gear up and sank into the ground at "landing step 5" (the 1998 landing circuit lands the 6-DoF jets since
 2026-11-18, [flight-model.md](flight-model.md) §9.6; the test keeps its own pilot).
+
+## 13. The course, the grades and the logbook
+The course of each jet ([training-plan.md](training-plan.md) §3) is data, `modern-iaf/data/training/course.json`,
+built into the library and read by `crates/iaf-tools/src/course.rs` (module `course`). Its rules are the one place
+every screen and the flight read the course, the grades and the logbook from. No lesson of the course has a mission yet: the
+training missions of §3 fly as before, outside the course.
+
+### 13.1 The course
+- `jets`: per jet's unit id (`f16d`, `f16i`, `f35i`) its home base and where its instructor flies (`back_seat`, or
+  `lead`: a second F-35I).
+- `phases`: the eight phases in order, each with `id`, `title` (`{"en", "he"}`) and `lessons`. A lesson has `id`,
+  `title`, `kind` (`day` by default, `night`, `check`), `items` (its graded items' ids), `emergencies` (the ones it
+  teaches) and `missions` (`{jet: readable mission id}`, the mission that flies it). A check ride has `night: true`
+  when it is flown at night (check rides 3, 5 and 8). A phase with `own_check_only` (the formation phase) keeps its
+  skills to its own check ride. A lesson's key is `<phase>.<lesson>` (`pattern.overhead`).
+- `items`: each graded item's `label` and `standard` (§13.2).
+- `emergencies`: each emergency's `label`, `at` (the moment its time counts from: `roll`, the take-off roll's start,
+  or `airborne`, the lift-off), `window_s` (from, to after that moment) and `jets` (the jets it is taught in; none:
+  every jet). The systems lesson teaches every jet an electrical failure and a flight control fault, the F-16s a
+  hydraulic failure and the flight on the EPU, and the F-35I, which has no EPU and no central hydraulics for its
+  flight controls, a landing gear fault ([research/training.md](research/training.md) §2).
+
+The course has 31 day lessons, 8 night lessons and 8 check rides. A check ride grades every item of its phase's and
+the earlier phases' lessons, without the formation phase's except in its own check ride. The loader refuses an item
+or emergency not in the lists, a lesson without an item (check rides excepted), a phase that does not end with its one
+check ride, and a jet without a course in `missions` or `jets`. Every standard is inferred: no published IAF
+standard was found ([training-plan.md](training-plan.md) §7). The Hebrew names use the terms of
+[research/training.md](research/training.md) §3; the phases' names are its table's.
+
+### 13.2 The grades
+A standard has `limit` and three `bands`: the limits of Above average, Average and Below average, in that order; past
+the last one the item is Unsatisfactory, and an item not flown is Unsatisfactory too.
+
+| `limit` | the flown value | what should have been flown | the gap |
+|---|---|---|---|
+| `max` | at most each band | the Average band | flown − that band |
+| `min` | at least each band (the bands fall) | the Average band | flown − that band |
+| `tol` | its distance from `target` at most each band (degrees: the shorter way round) | `target` | flown − `target` |
+
+The goals of today's missions (§4) are graded by the same rule, their standard taken from the goal: a tolerance gives
+half of it for Above average, the tolerance for Average and twice it for Below average; an upper limit gives half of
+it for Above average and itself for Average; the lift-off speed is graded within 5, 10 and any kt of the reference; a
+count (tower calls, kills, card items) at least its target is Above average, fewer is Below average. A goal met is at
+least Average, a goal off its mark at most Below average, a failed goal Unsatisfactory; the runway, a name, is Above
+average when met (inferred).
+
+The lesson's grade ([training-plan.md](training-plan.md) §2.4): Unsatisfactory when the flight failed (§3.0, a fail
+rule) or an item is Unsatisfactory; Marginal when an item is Below average; else Pass. Marginal counts as passed.
+
+### 13.3 The logbook
+`pilot_log::course_logbook` (`IafPilotLog.course_logbook(db, pilot, jet)`, [storage.md](storage.md) §5) reads the
+pilot's sorties in the jet whose record names a `lesson`, oldest first, and answers per phase `id`, `passed` (lessons
+passed), `lessons`, `next` (its first lesson not passed, or null) and `results`: per lesson its `key`, `best` (the best
+attempt's grade, the latest of equals; null before the first), that attempt's `date` and `attempts`. The course's
+`next` is its first lesson not passed in course order. Every lesson stays open to fly; `next` only names it.
+
+### 13.4 The check ride's emergency
+From check ride 2 on, a check ride gives one emergency already taught, at a random time
+([training-plan.md](training-plan.md) §2.5): `Course::check_ride_emergency(jet, key, seed)` (`IafTraining.check_ride_emergency(jet, lesson, seed)`)
+picks one of the emergencies the lessons of this phase and the earlier ones teach in that jet, and a time inside its window after
+its moment, from `seed` (the same seed, the same pick). It answers the emergency, its moment and the time after it;
+none for check ride 1 or a lesson that is no check ride. The failures themselves are a later item of the plan.
+
+### 13.5 The calls and checks
+`IafTraining.course(jet)` answers the jet's course for the screens (each lesson's `key`, `kind`, `night`, `title`,
+`mission`, its graded items with their `label` and `standard`, and its emergencies); null for a jet without one.
+`cargo test -p iaf-tools --lib course` checks the course against the plan (8 phases; 31, 8 and 8 lessons; the night
+check rides), the check rides' items, the grades of each `limit`, the lesson's grade, the logbook and the emergency's
+pick; `training::tests` the goals' grades, gaps and the lesson grade of the sample take-off, and the faults' places;
+`pilot_log::tests::course_logbook_of_the_jet` the logbook from the database. `modern-iaf/tests/test_training_grades.gd`
+flies ramon_startup, ends it through `sim_flight.gd`'s score and store, and checks the stored record and the calls.
 
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon

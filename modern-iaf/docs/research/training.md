@@ -84,6 +84,11 @@ One term for each thing. "In use" means the sim's Hebrew strings or docs already
 | Low level | גובה נמוך | [radio-terms.md](radio-terms.md) |
 | Air refuelling, the tanker | תדלוק אווירי, מטוס תדלוק | in use |
 | Training area | אזור האימון | in use ("יציאה מאזור האימון") |
+| Flameout | כיבוי מנוע (the engine "שכבה באוויר") | mako on fighter squadrons' training: "מנוע שכבה באוויר", second-hand[^mako-drills] |
+| Flight control fault | תקלת בקרת טיסה | ours, inferred: open (no Hebrew source found) |
+| Go-around | הליכה סביב | in use (`modern-iaf/manuals/text/he/terms.yaml`) |
+| Wingman | מספר 2 | in use (`terms.yaml`) |
+| The grades (Unsatisfactory, Below average, Average, Above average; Pass, Marginal) | לא מספק, מתחת לממוצע, ממוצע, מעל לממוצע; עבר, גבולי | ours, inferred: no IAF grading scale was found ([training-plan.md](../training-plan.md) §2.4) |
 
 The phase names built from these terms (ours, inferred, each from the terms above):
 
@@ -119,6 +124,8 @@ noun), the threat lessons and electronic warfare; "שליטה בסיסית", "ט
 [^aviationist-2025]: The Aviationist, "Hydraulic Fluid Contamination and Ice Buildup Led to January F-35A Crash in
     Alaska", 26 August 2025, read 28 November 2026,
     https://theaviationist.com/2025/08/26/eielson-january-2025-f-35-crash-aib-report/
+[^mako-drills]: mako, an article on the fighter squadrons' training ("מנוע שכבה באוויר, אש במטוס ועוד"), second-hand,
+    https://www.mako.co.il/pzm-magazine/Article-1c3f6f796402d61027.htm
 [^iaf-recruits]: IAF recruiting site, "קורס טיס", second-hand,
     https://recruits.iaf.co.il/2464-he/IAF.aspx?tabid=2467
 [^mako-course]: mako, "הדרך לכנפיים: קורס טיס", second-hand,

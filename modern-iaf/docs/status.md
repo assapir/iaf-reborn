@@ -3,6 +3,14 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The training course's records and rules (2026-11-28, [training-plan.md](training-plan.md) §2.4, §2.5, §3;
+  [training.md](training.md) §13):** each jet's course as data (eight phases, 31 day lessons, 8 night lessons, 8
+  check rides, each lesson's graded items with their standard), the grades in Rust (each item Unsatisfactory to Above
+  average against its standard, the lesson Pass, Marginal or Unsatisfactory), the debrief record's gap and grade per
+  goal, the lesson's grade and the faults with their place on the track, the course logbook (each lesson's best
+  attempt, each phase's progress, the next lesson) and the check ride's unannounced emergency (the pick and the time).
+  The screens and the lessons' missions are later items of the plan; today's training missions grade the same way.
+  `course` and `training` tests, `test_training_grades.gd`.
 - **Hidden state machines, clarity: the start-up switches and the canopy (2026-11-25, the audit's #10 and #11):**
   MAIN PWR, the JFS and RDR ALT are each one position in the flight model, and the canopy's travel, its switch, the
   lock lever and the Canopy key's sequence moved into the flight model ([cockpit.md](cockpit.md) §5.2, §5.6); the

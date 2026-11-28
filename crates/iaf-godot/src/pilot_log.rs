@@ -104,6 +104,13 @@ impl IafPilotLog {
         text(with(&db, |c| pilot_log::logbook(c, pilot, &units)))
     }
 
+    /// The training course's logbook of jet `jet` as JSON (`pilot_log::course_logbook`, modern-iaf/docs/training.md
+    /// §13): each lesson's best attempt, each phase's progress, the next lesson; "null" for a jet without a course.
+    #[func]
+    fn course_logbook(db: GString, pilot: i64, jet: GString) -> GString {
+        text(with(&db, |c| pilot_log::course_logbook(c, pilot, &jet.to_string())))
+    }
+
     /// The combat logbook as JSON (`pilot_log::combat`): `sortie` > 0 that sortie's record (the debrief), else the sum
     /// of the pilot's (the Pilot screen): {totals, kills, ground, weapons, lost, ejected, wingmen_lost[, flights]}.
     #[func]

@@ -2,6 +2,7 @@
 //! live check that ends a training run at once on a fail, and the score at its end on the flight's recording.
 
 use godot::prelude::*;
+use iaf_tools::course;
 use iaf_tools::training::{self, Now, Watch};
 use std::path::Path;
 
@@ -180,6 +181,23 @@ impl IafTraining {
             Err(e) => serde_json::json!({ "error": format!("{e:#}") }),
         };
         GString::from(out.to_string().as_str())
+    }
+
+    /// Jet `jet`'s training course as JSON text (`course::Course::to_json`, modern-iaf/docs/training.md §13): its
+    /// phases and lessons with their graded items and standards; "null" for a jet without a course.
+    #[func]
+    fn course(jet: GString) -> GString {
+        let v = course::course().to_json(&jet.to_string()).unwrap_or_default();
+        GString::from(v.to_string().as_str())
+    }
+
+    /// The unannounced emergency of the check ride `lesson` (its key) in jet `jet` as JSON text, `{"id", "at", "after_s"}`
+    /// (`course::Course::check_ride_emergency`; `seed` makes the pick), "null" for none.
+    #[func]
+    fn check_ride_emergency(jet: GString, lesson: GString, seed: i64) -> GString {
+        let e = course::course().check_ride_emergency(&jet.to_string(), &lesson.to_string(), seed as u64);
+        let v = e.map_or(serde_json::Value::Null, |(id, at, t)| serde_json::json!({"id": id, "at": at, "after_s": t}));
+        GString::from(v.to_string().as_str())
     }
 
     /// The debrief's view of the recording `flight` (`training::track_files`; its roll on the take-off runway of the

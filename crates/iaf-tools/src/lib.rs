@@ -6,6 +6,7 @@ pub mod bc1;
 pub mod briefing;
 pub mod combat_log;
 pub mod convert;
+pub mod course;
 pub mod devices;
 pub mod exe;
 pub mod extract;

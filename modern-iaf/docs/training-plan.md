@@ -298,11 +298,14 @@ it is built. The briefing's diagrams use the look of the sim's existing drawings
 
 ## 6. What the lessons need
 
-The courses need these capabilities. A builder checks each against [status.md](status.md) before a phase is built:
+The course's records and rules are built: the course as data, the grades, the debrief record's grades and faults,
+the logbook and the check ride's emergency pick ([training.md](training.md) §13). The courses need these
+capabilities. A builder checks each against [status.md](status.md) before a phase is built:
 
 - the briefing in the IDF order, with a drawn diagram for every manoeuvre; a Lesson tab in the notebook with the
   same diagrams;
-- a grade for each item and fault markers on the debrief's track;
+- a grade for each item and fault markers on the debrief's track (the record holds both, [training.md](training.md)
+  §13; the debrief page shows them once its mock-up is approved);
 - the instructor's "what's next" calls, paced by the player's actions, and their script;
 - the overhead-break demonstration: the instructor flies the player's jet;
 - time acceleration on the ground after phase 1;

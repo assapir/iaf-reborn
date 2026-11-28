@@ -328,6 +328,24 @@ pub fn logbook(c: &Connection, pilot: i64, units: &Map<String, Value>) -> Result
     Ok(Value::Array(out))
 }
 
+/// The training course's logbook of jet `jet` (`course::Course::logbook`): the pilot's sorties in that jet whose
+/// debrief names a course lesson (`lesson`) with its grade (`grade`), oldest first. Null for a jet without a course.
+pub fn course_logbook(c: &Connection, pilot: i64, jet: &str) -> Result<Value> {
+    let course = crate::course::course();
+    if !course.jets.contains_key(jet) {
+        return Ok(Value::Null);
+    }
+    let mut q = c.prepare(
+        "SELECT json_extract(debrief, '$.lesson'), json_extract(debrief, '$.grade'), date FROM sorties
+         WHERE pilot = ?1 AND plane = ?2 AND json_valid(debrief) AND json_extract(debrief, '$.lesson') IS NOT NULL
+         ORDER BY date, id",
+    )?;
+    let rows = q.query_map(params![pilot, jet], |r| {
+        Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?.unwrap_or_default(), r.get::<_, String>(2)?))
+    })?;
+    Ok(course.logbook(&rows.collect::<rusqlite::Result<Vec<_>>>()?))
+}
+
 /// The combat logbook (`combat_log`): with `sortie` that sortie's record, else the sum of the pilot's sorties. Its
 /// `totals` (`combat_log::totals`) and lists (`combat_log::lists`); without `sortie` also `flights`, the sorties
 /// with combat newest first: `id`, `date`, `mission_id`, `mission`, `plane`, `air_kills`, `ground`, `lost`.
@@ -760,6 +778,31 @@ mod tests {
         assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["nickname"], "Viper");
         // Another pilot's log stays.
         assert_eq!(sorties(&c, 3).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn course_logbook_of_the_jet() {
+        let d = temp("course");
+        let c = open(&d.join("modern-iaf.sqlite")).unwrap();
+        let lesson = |lesson: &str, grade: &str, date: &str, plane: &str| {
+            let mut r = flown("x", grade != "unsat", date, 60.0, plane);
+            r["lesson"] = json!(lesson);
+            r["grade"] = json!(grade);
+            r
+        };
+        log_sortie(&c, DEFAULT_PILOT, 1, &lesson("ground.cockpit", "unsat", "2026-11-28T08:00:00", "f16i")).unwrap();
+        log_sortie(&c, DEFAULT_PILOT, 1, &lesson("ground.cockpit", "pass", "2026-11-28T09:00:00", "f16i")).unwrap();
+        log_sortie(&c, DEFAULT_PILOT, 1, &lesson("ground.engine", "pass", "2026-11-28T10:00:00", "f35i")).unwrap();
+        // Outside the course: no lesson.
+        log_sortie(&c, DEFAULT_PILOT, 2012, &flown("ramon_takeoff", true, "2026-11-28T11:00:00", 60.0, "f16i"))
+            .unwrap();
+        let book = course_logbook(&c, DEFAULT_PILOT, "f16i").unwrap();
+        assert_eq!(book["phases"][0]["results"][0]["best"], "pass");
+        assert_eq!(book["phases"][0]["results"][0]["attempts"], 2);
+        assert_eq!(book["phases"][0]["passed"], 1);
+        assert_eq!(book["next"], "ground.engine", "the F-35I's sortie counts for its own course");
+        assert_eq!(course_logbook(&c, DEFAULT_PILOT, "f35i").unwrap()["next"], "ground.cockpit");
+        assert_eq!(course_logbook(&c, DEFAULT_PILOT, "f15").unwrap(), Value::Null);
     }
 
     /// Only pilots with a name are listed; a new pilot takes the next free id.
