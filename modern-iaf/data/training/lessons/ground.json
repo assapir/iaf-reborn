@@ -1,0 +1,97 @@
+{
+  "about": "Phase 1's lessons (Ground and start-up): per lesson its missions by jet, the briefing's sections, the notebook's Lesson tab and the instructor's calls (modern-iaf/docs/training.md §15). Read by crates/iaf-tools/src/course.rs. The procedures are the jets' checklist cards (data/checklists) and training.md §7; the briefing's texts take {jet}, {base}, {runway} and {key:<record>[:<pick>]}, the calls' lines {rwy}.",
+  "lessons": {
+    "cockpit": {
+      "missions": {"f16d": "f16d_ground_cockpit", "f16i": "f16i_ground_cockpit", "f35i": "f35i_ground_cockpit"},
+      "briefing": {
+        "mission": [
+          {"en": "Kidon 1, one {jet} at {base}, by day: the cockpit of a cold jet on its parking spot, brought to electrical power and back. The engine is not started.", "he": "כידון 1, {jet} אחד ב{base}, ביום: תא הטייס של מטוס קר בעמדת החניה, הזנת חשמל וכיבוי. המנוע לא מותנע."}
+        ],
+        "target": [
+          {"jets": ["f16d", "f16i"], "en": "After this lesson you can set the cockpit for the start in the checklist's order, bring the jet to battery and main power, test the warning lights, check the radio with the tower and power the jet down.", "he": "אחרי השיעור הזה אפשר להכין את תא הטייס להתנעה לפי סדר הבד\"ח, להזין חשמל ממצבר ומחשמל ראשי, לבדוק את נוריות האזהרה, לבצע בדיקת קשר עם המגדל ולכבות את החשמל."},
+          {"jets": ["f35i"], "en": "After this lesson you can set the cockpit for the start in the checklist's order, bring the jet to power on the battery and the IPP, bring up the displays and the helmet, read the cautions, check the radio with the tower and power the jet down.", "he": "אחרי השיעור הזה אפשר להכין את תא הטייס להתנעה לפי סדר הבד\"ח, להזין חשמל מהמצבר ומה-IPP, להעלות את התצוגות ואת הקסדה, לקרוא את האזהרות, לבצע בדיקת קשר עם המגדל ולכבות את החשמל."}
+        ],
+        "enemy": [
+          {"en": "None.", "he": "אין."}
+        ],
+        "our_forces": [
+          {"jets": ["f16d", "f16i"], "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower on the radio.", "he": "{jet} אחד, כידון 1, והמדריך במושב האחורי באינטרקום. מגדל {base} בקשר."},
+          {"jets": ["f35i"], "en": "Two F-35I: Kidon 1, yours, and the instructor's on the next spot, on the radio. {base} tower on the radio.", "he": "שני מטוסי F-35I: כידון 1, שלכם, ומטוס המדריך בעמדה הסמוכה, בקשר. מגדל {base} בקשר."}
+        ],
+        "weather_area": [
+          {"en": "Day, the wind calm, the sky clear. The jet stands cold on its parking spot at {base}, the canopy up. The lesson stays on the spot.", "he": "יום, רוח שקטה, שמיים בהירים. המטוס עומד קר בעמדת החניה ב{base}, החופה פתוחה. השיעור כולו בעמדה."}
+        ],
+        "execution": [
+          {"jets": ["f16d", "f16i"], "at": "start", "en": "BEFORE STARTING ENGINE, from the top of the card: EPU at NORM, ENG FEED at NORM, FUEL MASTER at MASTER, LE FLAPS at AUTO, AIR SOURCE at NORM, MASTER ARM at OFF, the gear handle at DN. Each switch answers a click in the 3D cockpit; the notebook ({key:118}) ticks each item as it is set.", "he": "BEFORE STARTING ENGINE, מראש הכרטיס: ‏EPU ב-NORM, ‏ENG FEED ב-NORM, ‏FUEL MASTER ב-MASTER, ‏LE FLAPS ב-AUTO, ‏AIR SOURCE ב-NORM, ‏MASTER ARM ב-OFF, ידית כן הנסע ב-DN. כל מתג עונה ללחיצה בתא הטייס התלת-ממדי; הפנקס ({key:118}) מסמן כל סעיף שבוצע."},
+          {"jets": ["f16d", "f16i"], "switches": ["main_power"], "en": "MAIN PWR to BATT, one click: the FLCS RLY light comes on. Hold FLCS PWR TEST at TEST: the FLCS PWR lights come on; let go. Then MAIN PWR one more click, to MAIN PWR: the lamps and the engine gauges are live on the battery. The displays and the HUD stay dark: they need the engine's generators, the next lesson.", "he": "MAIN PWR ל-BATT, לחיצה אחת: נורית FLCS RLY נדלקת. להחזיק את FLCS PWR TEST ב-TEST: נוריות FLCS PWR נדלקות; לשחרר. אחר כך עוד לחיצה על MAIN PWR, ל-MAIN PWR: הנוריות ומדי המנוע פועלים על המצבר. התצוגות והתע\"ל נשארים כבויים: הם צריכים את הגנרטורים של המנוע, בשיעור הבא."},
+          {"jets": ["f16d", "f16i"], "en": "The warning lights, on the TEST panel: FIRE & OHEAT DETECT one click, ENG FIRE and OVERHEAT light, one more click back; MAL & IND LTS held, every lamp lights, let go.", "he": "נוריות האזהרה, בלוח TEST: ‏FIRE & OHEAT DETECT לחיצה אחת, ‏ENG FIRE ו-OVERHEAT נדלקות, עוד לחיצה חזרה; ‏MAL & IND LTS בהחזקה, כל הנוריות נדלקות, לשחרר."},
+          {"jets": ["f35i"], "at": "start", "en": "BEFORE STARTING ENGINE, from the top of the card: the survival kit and loose items, PARKING BRAKE ON, MASTER ARM SAFE, the gear's alternate handle at NORM, the landing and taxi light OFF, the gear handle DN. Each switch answers a click in the 3D cockpit; the notebook ({key:118}) ticks each item as it is set.", "he": "BEFORE STARTING ENGINE, מראש הכרטיס: ערכת ההישרדות וחפצים רופפים, ‏PARKING BRAKE ב-ON, ‏MASTER ARM ב-SAFE, ידית החלופה של כן הנסע ב-NORM, אור הנחיתה וההסעה ב-OFF, ידית כן הנסע ב-DN. כל מתג עונה ללחיצה בתא הטייס התלת-ממדי; הפנקס ({key:118}) מסמן כל סעיף שבוצע."},
+          {"jets": ["f35i"], "switches": ["main_power", "starter"], "en": "BATT to ON, one click: the lamps come alive and the 90 s self test starts. Then IPP to ON, one click: the IPP runs up in 10 s and the display lights 3 s later. The IPP powers the jet without the engine.", "he": "BATT ל-ON, לחיצה אחת: הנוריות נדלקות והבדיקה העצמית של 90 שניות מתחילה. אחר כך IPP ל-ON, לחיצה אחת: ה-IPP מאיץ תוך 10 שניות והתצוגה נדלקת 3 שניות אחר כך. ה-IPP מזין את המטוס בחשמל בלי המנוע."},
+          {"jets": ["f35i"], "en": "The displays: the HMD knob to AUTO or DAY, the HMD and display brightness set. Wait for the self test to end: the helmet then shows the steering. Read the cautions: none lit, MASTER CAUTION out.", "he": "התצוגות: בורר HMD ל-AUTO או ל-DAY, בהירות הקסדה והתצוגה מכוונת. להמתין לסיום הבדיקה העצמית: הקסדה מציגה אז את נתוני הניווט. לקרוא את האזהרות: אין, MASTER CAUTION כבויה."},
+          {"en": "The radio check: call the tower ({key:47:5}), \"{base} tower, Kidon 1, radio check\"; wait for \"Kidon 1, read you five\".", "he": "בדיקת קשר: קריאה למגדל ({key:47:5}), \"מגדל {base}, כידון 1, בדיקת קשר\"; להמתין ל\"כידון 1, שומע אותך חמש\"."},
+          {"jets": ["f16d", "f16i"], "en": "Power down: MAIN PWR to OFF (a click goes round to OFF). The lesson ends when the jet is dark.", "he": "כיבוי החשמל: MAIN PWR ל-OFF (לחיצה מסובבת אותו עד OFF). השיעור מסתיים כשהמטוס כבוי."},
+          {"jets": ["f35i"], "en": "Power down: IPP to OFF, then BATT to OFF. The lesson ends when the jet is dark.", "he": "כיבוי החשמל: IPP ל-OFF, ואז BATT ל-OFF. השיעור מסתיים כשהמטוס כבוי."}
+        ],
+        "coordination": [
+          {"en": "The engine stays off and the jet stays on its spot, the parking brake on. An engine turned without the tower's clearance ends the lesson as a fail.", "he": "המנוע נשאר כבוי והמטוס נשאר בעמדה, בלם החניה מופעל. סיבוב המנוע ללא אישור המגדל מסיים את השיעור בכישלון."}
+        ],
+        "signal": [
+          {"jets": ["f16d", "f16i"], "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the intercom.", "he": "אות קריאה כידון 1. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס. המדריך באינטרקום."},
+          {"jets": ["f35i"], "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the radio, on the tower's frequency.", "he": "אות קריאה כידון 1. קרקע ומגדל {base}: התדרים בדף הקשר בפנקס. המדריך בקשר, בתדר המגדל."}
+        ]
+      },
+      "lesson_tab": [
+        {"en": "BEFORE STARTING ENGINE: the card from the top", "he": "BEFORE STARTING ENGINE: הכרטיס מההתחלה"},
+        {"jets": ["f16d", "f16i"], "en": "MAIN PWR – BATT; FLCS PWR TEST held", "he": "MAIN PWR – ‏BATT; ‏FLCS PWR TEST בהחזקה", "wait": {"en": "the FLCS PWR lights on", "he": "נוריות FLCS PWR דולקות"}},
+        {"jets": ["f16d", "f16i"], "en": "MAIN PWR – MAIN PWR", "he": "MAIN PWR – ‏MAIN PWR", "wait": {"en": "the lamps and engine gauges live; the displays stay dark", "he": "הנוריות ומדי המנוע פועלים; התצוגות כבויות"}},
+        {"jets": ["f16d", "f16i"], "en": "FIRE & OHEAT DETECT; MAL & IND LTS", "he": "FIRE & OHEAT DETECT; ‏MAL & IND LTS", "wait": {"en": "every lamp lights", "he": "כל הנוריות נדלקות"}},
+        {"jets": ["f35i"], "en": "BATT – ON; IPP – ON", "he": "BATT – ‏ON; ‏IPP – ‏ON", "wait": {"en": "the IPP 10 s, the display 3 s later", "he": "ה-IPP 10 שנ', התצוגה 3 שנ' אחריו"}},
+        {"jets": ["f35i"], "en": "HMD – AUTO or DAY; brightness set", "he": "HMD – ‏AUTO או DAY; כיוון בהירות", "wait": {"en": "the self test, 90 s from BATT", "he": "הבדיקה העצמית, 90 שנ' מ-BATT"}},
+        {"jets": ["f35i"], "en": "Cautions – none lit", "he": "אזהרות – אין"},
+        {"en": "Tower: radio check", "he": "מגדל: בדיקת קשר", "wait": {"en": "\"read you five\"", "he": "\"שומע אותך חמש\""}},
+        {"jets": ["f16d", "f16i"], "en": "MAIN PWR – OFF", "he": "MAIN PWR – ‏OFF", "wait": {"en": "the jet dark: the end", "he": "המטוס כבוי: הסוף"}},
+        {"jets": ["f35i"], "en": "IPP – OFF; BATT – OFF", "he": "IPP – ‏OFF; ‏BATT – ‏OFF", "wait": {"en": "the jet dark: the end", "he": "המטוס כבוי: הסוף"}}
+      ],
+      "calls": [
+        {"id": "intro", "when": ["start"], "lines": [
+          {"en": "Today: the cockpit and power. No engine today. We set the cockpit, bring up the power, test the lights and check the radio.", "he": "היום: תא הטייס והחשמל. בלי מנוע היום. מכינים את תא הטייס, מזינים חשמל, בודקים נוריות ובודקים קשר."},
+          {"en": "Follow the checklist: before starting engine, from the top. Take your time and read each line.", "he": "לפי הבד\"ח: לפני התנעת המנוע, מההתחלה. בלי למהר, לקרוא כל שורה."}
+        ]},
+        {"id": "batt", "jets": ["f16d", "f16i"], "when": ["item:batt"], "lines": [
+          {"en": "Battery's on. Now the FLCS power test: hold the switch at TEST, watch the FLCS PWR lights come on, then let go.", "he": "המצבר פועל. עכשיו בדיקת חשמל ה-FLCS: להחזיק את המתג ב-TEST, לראות שנוריות FLCS PWR נדלקות, ולשחרר."}
+        ]},
+        {"id": "main_power", "jets": ["f16d", "f16i"], "when": ["item:flcs_pwr_test"], "lines": [
+          {"en": "Good. Main power next: one more click on MAIN PWR.", "he": "טוב. הבא: חשמל ראשי, עוד לחיצה על MAIN PWR."}
+        ]},
+        {"id": "dark_displays", "jets": ["f16d", "f16i"], "when": ["item:main_power"], "lines": [
+          {"en": "You're on the battery now. The lamps and the engine gauges work; the displays and the HUD wait for the generators, once the engine runs.", "he": "עכשיו על המצבר. הנוריות ומדי המנוע פועלים; התצוגות והתע\"ל מחכים לגנרטורים, כשהמנוע יעבוד."},
+          {"en": "Next: the warning lights on the test panel. Fire and overheat detect first, then malfunction and indicator lights.", "he": "הבא: נוריות האזהרה בלוח הבדיקות. קודם FIRE & OHEAT DETECT, אחר כך MAL & IND LTS."}
+        ]},
+        {"id": "ipp", "jets": ["f35i"], "when": ["item:main_power"], "lines": [
+          {"en": "Battery's on, and the self test is running. Next: the IPP. It gives you power without the engine.", "he": "המצבר פועל, והבדיקה העצמית רצה. הבא: ה-IPP. הוא מזין חשמל בלי המנוע."}
+        ]},
+        {"id": "displays", "jets": ["f35i"], "when": ["item:starter"], "lines": [
+          {"en": "IPP running. When the display comes up, set the helmet to auto and the brightness, then wait out the self test.", "he": "ה-IPP פועל. כשהתצוגה עולה, הקסדה ל-AUTO וכיוון הבהירות, ואז להמתין לסוף הבדיקה העצמית."}
+        ]},
+        {"id": "cautions", "jets": ["f35i"], "when": ["item:hmd"], "lines": [
+          {"en": "Now read the cautions. Nothing should be lit; clear the master caution once you've read it.", "he": "עכשיו לקרוא את האזהרות. שום נורית לא אמורה לדלוק; לאפס את MASTER CAUTION אחרי הקריאה."}
+        ]},
+        {"id": "radio", "jets": ["f16d", "f16i"], "when": ["item:fire_test", "item:mal_ind_test"], "lines": [
+          {"en": "Lights checked. Now the radio: call the tower for a radio check.", "he": "הנוריות נבדקו. עכשיו הקשר: קריאה למגדל לבדיקת קשר."}
+        ]},
+        {"id": "radio_f35", "jets": ["f35i"], "when": ["item:icaw"], "lines": [
+          {"en": "Cautions clear. Now the radio: call the tower for a radio check.", "he": "אין אזהרות. עכשיו הקשר: קריאה למגדל לבדיקת קשר."}
+        ]},
+        {"id": "power_down", "jets": ["f16d", "f16i"], "when": ["called:radio_check"], "lines": [
+          {"en": "The radio works. That's the cockpit up. Now power down: main power to off.", "he": "הקשר תקין. תא הטייס מוכן. עכשיו כיבוי: חשמל ראשי ל-OFF."}
+        ]},
+        {"id": "power_down_f35", "jets": ["f35i"], "when": ["called:radio_check"], "lines": [
+          {"en": "The radio works. That's the cockpit up. Now power down: the IPP off, then the battery off.", "he": "הקשר תקין. תא הטייס מוכן. עכשיו כיבוי: IPP ל-OFF, ואז המצבר ל-OFF."}
+        ]},
+        {"id": "end", "when": ["power_off"], "new": true, "lines": [
+          {"en": "Jet's dark. That's the lesson. Next time we start the engine.", "he": "המטוס כבוי. זה השיעור. בפעם הבאה מתניעים את המנוע."}
+        ]}
+      ]
+    }
+  }
+}

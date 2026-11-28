@@ -743,7 +743,29 @@ fn texts(f: &File, k: &str) -> Result<Value> {
 /// will learn"), and `how`, the explanation of what to do and how, its paragraphs in order (`[{"en", "he", "at",
 /// "switches"}]`; `at`, optional, the place the paragraph is done at, the map's pins: `training::STEP_PLACES`;
 /// `switches`, optional, start-up step ids whose switch pictures follow the paragraph).
+///
+/// A course lesson's mission (`lesson`, training.md §16.2) has no briefing of its own: the lesson file's sections for
+/// the mission's jet, with `purpose` the Target's paragraph and `how` the Execution's (the page's mission card until
+/// the sections' page is built).
 fn briefing(f: &File) -> Result<Value> {
+    if let Some(key) = f.v["lesson"].as_str() {
+        ensure!(f.v["briefing"].is_null(), "{}: a lesson's mission takes its briefing from the lesson file", f.name);
+        let jet = f.v["start"]["unit"].as_str().unwrap_or("");
+        let c = crate::course::course();
+        let id = f.v["id"].as_str().unwrap_or("");
+        ensure!(
+            c.lesson_of(jet, id).as_deref() == Some(key),
+            "{}: lesson {key} does not name this mission for {jet} (data/training/lessons)",
+            f.name
+        );
+        let lesson = c.to_json(jet).and_then(|j| {
+            j["phases"].as_array()?.iter().flat_map(|p| p["lessons"].as_array().cloned().unwrap_or_default()).find(|l| l["key"] == key)
+        });
+        let sections = lesson.map(|l| l["briefing"].clone()).unwrap_or_default();
+        let purpose = sections["target"][0].clone();
+        ensure!(purpose["en"].is_string(), "{}: lesson {key} has no briefing for {jet}", f.name);
+        return Ok(json!({"lesson": key, "sections": sections, "purpose": purpose, "how": sections["execution"]}));
+    }
     let b = &f.v["briefing"];
     for lang in ["en", "he"] {
         ensure!(b["purpose"][lang].is_string(), "{}: \"briefing.purpose\" needs \"{lang}\"", f.name);

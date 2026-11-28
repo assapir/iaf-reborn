@@ -963,6 +963,97 @@ Tests: `failures.rs` (unit), `crates/iaf-flight/tests/sixdof.rs` `failures::*` (
 `iaf-tools` `lesson_failures_are_checked` and `course_emergencies_are_flight_failures`, `modern-iaf/tests/test_failures.gd` (one case per failure, by the dev hook,
 on the Barak and the Adir).
 
+## 16. A lesson's content
+
+Every lesson of the course ([training-plan.md](training-plan.md) §3) is made of two kinds of data: one mission file
+per jet, and the lesson's content in its phase's lesson file. `crates/iaf-tools/src/course.rs` reads the lesson files
+with `course.json` and checks them; `IafTraining.course(jet)` gives each lesson its content for that jet.
+
+| What | Where | Holds |
+|------|-------|-------|
+| the course | `data/training/course.json` | the phases, the lessons, the graded items and their standards, the emergencies (§13) |
+| the lesson's content | `data/training/lessons/<phase id>.json` | per lesson: `missions`, `briefing`, `lesson_tab`, `calls` (§16.1) |
+| the mission | `data/missions/<jet>_<phase id>_<lesson id>.json` | the jet's start, time, weather, flights, targets and the pass rules (§16.2) |
+
+A phase's file is named in `course.rs` `LESSONS` and in the stamps' sources (`crates/iaf-setup/build.rs` `SOURCES`,
+`stamp.rs`). Every phase has its own file, so the phases are built in parallel without touching each other's data.
+
+### 16.1 The lesson file
+
+```json
+{"about": "…", "lessons": {"cockpit": {
+  "missions": {"f16d": "f16d_ground_cockpit", "f16i": "f16i_ground_cockpit", "f35i": "f35i_ground_cockpit"},
+  "briefing": {"mission": [P], "target": [P], "enemy": [P], "our_forces": [P], "weather_area": [P],
+               "execution": [P], "coordination": [P], "signal": [P]},
+  "lesson_tab": [{"en", "he", "wait"?, "jets"?, "diagram"?}],
+  "calls": [{"id", "when": [test], "new"?, "startup"?, "jets"?, "lines": [{"en", "he"}]}]
+}}}
+```
+
+- **`P`, a paragraph:** `{"en", "he", "jets"?}`. `jets` lists the jets it is for; without it, every jet. One list
+  can hold the F-16s' paragraph and the F-35I's side by side. An Execution paragraph may also have `at` (the
+  briefing map's pin from it on: `start`, `hold`, `lineup`), `switches` (start-up step ids whose switch pictures
+  follow it) and `diagram` (a diagram's id, the drawing of a manoeuvre: [training-plan.md](training-plan.md) §2.2).
+- **`briefing`:** the eight sections of [training-plan.md](training-plan.md) §2.2 in their order, each at least one
+  paragraph for every jet. The screen adds the lesson's graded items with their standards under Execution from the
+  course (§13), so the file does not repeat them. A check ride's briefing says that an emergency may come, not which.
+- **`lesson_tab`:** the notebook's Lesson tab, the steps in order in the notebook's step shape (`wait`: the state to
+  wait for, `{"en", "he"}`), with a `diagram` beside a step that has one.
+- **`calls`:** the instructor's calls in order ([training-plan.md](training-plan.md) §2.3): a call fires when the
+  call before it has fired and every test of its `when` holds; with `new` its tests must first fail after the call
+  before it; `startup` leaves it out once the pilot has passed phase 1; `jets` as a paragraph's. Its `lines` are
+  said one after the other, by the intercom in the F-16s and the radio in the F-35I. A check ride has no calls.
+- **Texts** take `{jet}` (the jet's name), `{base}` (the mission's base), `{runway}` (the runway in use) and
+  `{key:<record>}` / `{key:<record>:<pick>}` (a key as bound, with the radio menu's number); a call's lines `{rwy}`
+  (the runway, spoken). Hebrew follows `modern-iaf/manuals/text/he/terms.yaml` and the checklist cards' own step
+  names.
+
+The loader refuses a section missing or unknown, a paragraph without both languages, a `jets` naming no jet of the
+course, an Execution `at` or switch it does not know, a call id twice, a test it does not know (§16.3), a call in a
+check ride, and a lesson file naming a lesson its phase does not have.
+
+### 16.2 The lesson's mission
+
+A lesson's mission is a mission file ([data-formats.md](data-formats.md) §5) with:
+
+- `id` `<jet>_<phase id>_<lesson id>` and `menu_id` 3000 + 100 × phase + 10 × lesson + jet (F-16D 1, F-16I 2,
+  F-35I 3): lesson 1.1 in the Sufa is 3112;
+- `lesson`, the lesson's key (`ground.cockpit`): the briefing comes from the lesson file, so the mission has no
+  `briefing` of its own;
+- `category` `training`, `start` at the jet's home base (§13.1), `time` (a night lesson and the night check rides
+  after dark), `wind_kt`, `wind_from`, and whatever the lesson flies with: `flights` (wingmen, aggressors, the
+  tanker), `drones`, `targets`, `sam_sites`, `route`, `loadout`;
+- `training.kind` `lesson` and its rules: `end` (tests, §16.3: the lesson ends once each has failed at least once
+  since the start and all hold at once), `clearances` (§3.3), `calls` (the radio calls it asks for, the
+  `tower_calls` item's count), `checklist` (the card items it asks for, the `checklist_items` item's count), and
+  `time_budget_s`, `end_hold_s`, `goals` as every mission's. A check ride's emergency comes from §13.4.
+
+### 16.3 The tests
+
+A call's `when` and a mission's `end` name tests of the flight's state. Each has its rule in the instructor's call
+engine.
+
+| Test | Holds when |
+|------|------------|
+| `start` | always: the lesson's start |
+| `idle` | the engine at idle or above |
+| `aligned` | the INS aligned |
+| `hold_point` | on the ground, stopped at the runway's holding point |
+| `lined_up` | on the ground, stopped on the runway in use, lined up |
+| `initial`, `over_runway`, `downwind`, `final_turn`, `final` | in the air on that part of the overhead pattern (§14) |
+| `touchdown_zone` | low over the touchdown zone |
+| `climb_out` | in the air past the threshold, climbing |
+| `slowed` | on the ground on the runway, slowed to taxi speed |
+| `parked` | on the ground, stopped at the spot the flight started from |
+| `engine_off` | the engine stopped |
+| `power_off` | no electrical power: the jet dark |
+| `item:<id>` | the checklist card's item `<id>` ticked (§12) |
+| `cleared:<phase>` | the tower's clearance for `startup`, `taxi` or `takeoff` given (§3.3) |
+| `called:<call>` | the pilot made the radio call `<call>` (§8) |
+
+A phase that needs a new test (a steerpoint reached, a kill, the tanker's contact) adds its name to `course.rs`
+`TESTS` (or an argument test to `ARG_TESTS`), its rule to the call engine and its row here.
+
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II", Specifications (F-35A): empty weight 29,300 lb (13,290 kg), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
