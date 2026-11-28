@@ -15,6 +15,7 @@ extends Node
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const Kneeboard := preload("kneeboard.gd")
 const FreeCombat := preload("free_combat.gd")
+const Range := preload("range.gd")
 const Tanker := preload("res://shared/ai/tanker.gd")
 const Card := preload("card.gd")
 const FlightUi := preload("flight_ui.gd")
@@ -292,6 +293,8 @@ func _ready() -> void:
 		_failures_plan = readable.get("failures", [])
 		if String(readable.get("category", "")) == "fly_now":
 			add_child(FreeCombat.new(host, host.radio.runway_base))  # Scramble's enemy and task (front-end.md §2.1)
+		if sim.get("range") is Dictionary:
+			add_child(Range.new(host, sim.range, bool(sim.get("range_threats", false))))  # data-formats.md §5.2
 	if not rules.is_empty():
 		trainer = ClassDB.instantiate("IafTraining")
 		var err: String = trainer.open(_readable(), Settings.disk_path("res://data/airbases"))

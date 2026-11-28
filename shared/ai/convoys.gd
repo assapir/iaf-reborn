@@ -101,19 +101,29 @@ func _blast(p: Vector3, _kind: String) -> void:
 
 
 func _entity(d: Dictionary, side: int) -> Dictionary:
-	var rec: Dictionary = Settings.load_json("res://data/db/units/%s.json" % d.id)
 	_n += 1
-	var e := {"0x1e": -_n, "0x2bc": String(rec.get("label", d.id)), "0x2e4": d.pos.x, "0x2ee": d.pos.y}
-	e.merge({"0x2f8": d.pos.z, "0x2d0": side, "0x302": d.heading})
-	var ent := MissionRuntime.entity(e, "convoy:%d" % _n, -1, false)
+	var ent := vehicle(host, String(d.id), "convoy:%d" % _n, -_n, d.pos, d.heading, side)
+	ent.convoy = true
+	_place(ent, d)
+	return ent
+
+
+## A ground vehicle of the unit record `id` (modern-iaf/data/db/units) as a mission entity `key` (its id `n`, below
+## the compiled ones) at `pos` (world), facing `heading` (degrees) on `side`: its model, strength and size from the
+## record, so the sensors, the weapons and the scorer take it as any ground unit. Also the range's hulks (range.gd).
+static func vehicle(h: Node, id: String, key: String, n: int, pos: Vector3, heading: float, side: int) -> Dictionary:
+	var rec: Dictionary = Settings.load_json("res://data/db/units/%s.json" % id)
+	var e := {"0x1e": n, "0x2bc": String(rec.get("label", id)), "0x2e4": pos.x, "0x2ee": pos.y}
+	e.merge({"0x2f8": pos.z, "0x2d0": side, "0x302": heading})
+	var ent := MissionRuntime.entity(e, key, -1, false)
 	var obj := {"0x5aa": VEHICLE, "0x56e": float(rec.get("strength", 600)), "0x564": float(rec.get("radius_m", 3.5))}
-	obj["0x514"] = String(d.id)  # the record's id: the combat logbook's type
+	obj["0x514"] = id  # the record's id: the combat logbook's type
 	obj["0x58c"] = 1
 	MissionRuntime._init_damage(ent, obj)
-	ent.convoy = true
 	var model = Gltf.model(Gltf.objects_path(String(rec.get("model", ""))))
 	ent.node = Gltf.instance(model) if model != null else Node3D.new()
-	host.add_child(ent.node)
-	host.runtime.entities[ent.key] = ent
-	_place(ent, d)
+	h.add_child(ent.node)
+	h.runtime.entities[ent.key] = ent
+	h.mission_entity_moved(ent)
+	ent.node.rotation.y = -deg_to_rad(heading)
 	return ent

@@ -799,6 +799,81 @@ fn briefing(f: &File) -> Result<Value> {
     Ok(b.clone())
 }
 
+/// The site kinds `air_defence.gd` spawns (`iaf_ai::site::Kind::from_name`).
+const SITE_KINDS: [&str; 5] = ["s300", "tor", "zsu", "strela", "igla"];
+/// The figures of a range file that need a source (data-formats.md §5.2).
+const RANGE_FIGURES: [&str; 11] = [
+    "area",
+    "circle.lat",
+    "circle.lon",
+    "circle.rings_m",
+    "strafe.lat",
+    "strafe.lon",
+    "strafe.heading",
+    "strafe.spacing_m",
+    "sites",
+    "control.callsign",
+    "control.uhf_mhz",
+];
+
+/// One compiled range (`data/ranges/<id>.json`, modern-iaf/docs/data-formats.md §5.2) in the sim's frame (UTM 36N,
+/// grid headings): `id`, `name`, `area` [[x, y]], `circle` {`at`, `rings_m`}, `targets` [{`unit`, `name`, `at`,
+/// `heading`}: the bull at the circle's centre, then the strafe row across the run-in], `sites` [{`kind`, `name`,
+/// `at`, `heading`}], `control` {`callsign`, `uhf_mhz`}.
+pub fn compile_range(f: &File, db: &Db) -> Result<Value> {
+    check_sources(f, &RANGE_FIGURES)?;
+    let id = text(f, "id")?;
+    texts(f, "name")?;
+    for lang in ["en", "he"] {
+        ensure!(f.v["control"]["callsign"][lang].is_string(), "{}: control.callsign needs \"{lang}\"", f.name);
+    }
+    let area = f.v["area"].as_array().filter(|a| a.len() >= 3);
+    let area = area.with_context(|| format!("{}: \"area\" needs at least three [lat, lon]", f.name))?;
+    let area: Vec<Value> = area
+        .iter()
+        .map(|p| match (p[0].as_f64(), p[1].as_f64()) {
+            (Some(lat), Some(lon)) => Ok(json!(sim_bases::utm36n(lon, lat).map(f64::round))),
+            _ => bail!("{}: an area point must be [lat, lon]", f.name),
+        })
+        .collect::<Result<_>>()?;
+    let heading = |p: &Value| {
+        sim_bases::grid_heading(
+            p["lon"].as_f64().unwrap_or(0.0),
+            p["lat"].as_f64().unwrap_or(0.0),
+            p["heading"].as_f64().unwrap_or(0.0),
+        )
+    };
+    let unit = |p: &Value| -> Result<String> {
+        let u = p["unit"].as_str().unwrap_or("");
+        db.unit(u).with_context(|| f.name.clone())?;
+        Ok(u.to_string())
+    };
+    let c = &f.v["circle"];
+    let at = place(c, &format!("{} circle", f.name))?;
+    let mut targets = vec![json!({"unit": unit(c)?, "name": c["name"].as_str().unwrap_or("Bull"),
+        "at": at.map(f64::round), "heading": 0.0})];
+    // The strafe row: `count` hulks `spacing_m` apart, centred on its point, square to the run-in's heading.
+    let s = &f.v["strafe"];
+    let [sx, sy] = place(s, &format!("{} strafe", f.name))?;
+    let (h, n, gap) = (heading(s), s["count"].as_u64().unwrap_or(1), s["spacing_m"].as_f64().unwrap_or(30.0));
+    let across = (h + 90.0).to_radians();
+    for k in 0..n {
+        let off = (k as f64 - (n - 1) as f64 / 2.0) * gap;
+        targets.push(json!({"unit": unit(s)?, "name": format!("{} {}", s["name"].as_str().unwrap_or("Strafe"), k + 1),
+            "at": [(sx + off * across.sin()).round(), (sy + off * across.cos()).round()], "heading": h.round()}));
+    }
+    let mut sites = vec![];
+    for (k, p) in f.v["sites"].as_array().into_iter().flatten().enumerate() {
+        let kind = p["kind"].as_str().unwrap_or("");
+        ensure!(SITE_KINDS.contains(&kind), "{}: sites[{k}]: kind \"{kind}\" is not one of {SITE_KINDS:?}", f.name);
+        sites.push(json!({"kind": kind, "name": p["name"].as_str().map_or(format!("Site {}", k + 1), String::from),
+            "at": place(p, &f.name)?.map(f64::round), "heading": heading(p).round()}));
+    }
+    Ok(json!({"id": id, "name": f.v["name"], "area": area,
+        "circle": {"at": at.map(f64::round), "rings_m": c["rings_m"]}, "targets": targets, "sites": sites,
+        "control": f.v["control"]}))
+}
+
 /// One compiled mission file from a readable one.
 /// `bases`: the airbases (sim_bases::load); `ground`: the theatre's height at a point, None without it (the
 /// start's `elevation_m` then stands).
@@ -1065,12 +1140,24 @@ pub fn missions(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     let mut height = |x: f64, y: f64| ground.as_mut().and_then(|g| g.ground_height(x, y));
     let out = assets.join(MISSIONS_DIR);
     let mut list = Map::new();
+    // The ranges (data/ranges): ranges.json beside the missions, and in each mission that names one (`range`).
+    let mut ranges = Map::new();
+    for f in read_dir(&data.join("ranges"))? {
+        let r = compile_range(&f, &db)?;
+        ensure!(ranges.insert(text(&f, "id")?.to_string(), r).is_none(), "{}: range id {} is taken", f.name, f.v["id"]);
+    }
+    write(&out.join("ranges.json"), &serde_json::to_string(&ranges)?)?;
     let files = read_dir(&data.join("missions"))?;
     let mut ids = HashSet::new();
     for f in &files {
         check(cancel)?;
         ensure!(ids.insert(text(f, "id")?.to_lowercase()), "{}: mission id {} is taken", f.name, f.v["id"]);
-        let m = compile_mission(f, &db, &bases, &mut height)?;
+        let mut m = compile_mission(f, &db, &bases, &mut height)?;
+        if let Some(r) = f.v["range"].as_str() {
+            let r = ranges.get(r).with_context(|| format!("{}: no range \"{r}\" in data/ranges", f.name))?;
+            m["sim"]["range"] = r.clone();
+            m["sim"]["range_threats"] = json!(f.v["range_threats"].as_bool().unwrap_or(false));
+        }
         if let Some(note) = m["sim"]["note"].as_str() {
             pr.warn(&format!("missions: {}: {note}", m["name"].as_str().unwrap_or("")));
         }
@@ -1796,6 +1883,34 @@ mod tests {
         let m = compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap();
         let c = mission_edit::conditions(&m, &Value::Null);
         assert_eq!(c["keep_alive"], json!([{"id": 1, "name": "Player1"}]), "{c}");
+    }
+
+    /// The Ovda range compiles: its bull and strafe row stand inside its area, the row 30 m apart, every site of a
+    /// kind air_defence.gd spawns.
+    #[test]
+    fn the_ovda_range_compiles_inside_its_area() {
+        let db = Db::read(&data()).unwrap();
+        let v = serde_json::from_slice(&std::fs::read(data().join("ranges/ovda.json")).unwrap()).unwrap();
+        let r = compile_range(&File { name: "ovda".into(), v }, &db).unwrap();
+        let xy = |p: &Value| [p[0].as_f64().unwrap(), p[1].as_f64().unwrap()];
+        let area: Vec<[f64; 2]> = r["area"].as_array().unwrap().iter().map(xy).collect();
+        let (lo, hi) = area.iter().fold(([f64::MAX; 2], [f64::MIN; 2]), |(lo, hi), p| {
+            ([lo[0].min(p[0]), lo[1].min(p[1])], [hi[0].max(p[0]), hi[1].max(p[1])])
+        });
+        let inside = |[x, y]: [f64; 2]| (lo[0]..hi[0]).contains(&x) && (lo[1]..hi[1]).contains(&y);
+        let t = r["targets"].as_array().unwrap();
+        assert_eq!(t.len(), 5, "the bull and four strafe hulks");
+        let sites = r["sites"].as_array().unwrap();
+        assert_eq!(sites.len(), 3);
+        for p in t.iter().chain(sites) {
+            assert!(inside(xy(&p["at"])), "{p} outside the area");
+        }
+        let (a, b) = (xy(&t[1]["at"]), xy(&t[2]["at"]));
+        assert!(((a[0] - b[0]).hypot(a[1] - b[1]) - 30.0).abs() < 1.5, "{a:?} {b:?}");
+        let mut v: Value =
+            serde_json::from_slice(&std::fs::read(data().join("ranges/ovda.json")).unwrap()).unwrap();
+        v["sites"][0]["kind"] = json!("patriot");
+        assert!(compile_range(&File { name: "ovda".into(), v }, &db).is_err(), "an unknown site kind is refused");
     }
 
     /// The briefing's flights ride in `sim`: the two-flight sample (modern-iaf/tests/data, not a shipped mission) names
