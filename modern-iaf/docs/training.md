@@ -789,7 +789,7 @@ with the gear up and sank into the ground at "landing step 5" (the 1998 landing 
 The course of each jet ([training-plan.md](training-plan.md) §3) is data, `modern-iaf/data/training/course.json`,
 built into the library and read by `crates/iaf-tools/src/course.rs` (module `course`). Its rules are the one place
 every screen and the flight read the course, the grades and the logbook from. The front end's Training screens show
-it ([front-end.md](front-end.md) §2.2). Each lesson's content and missions are in its phase's lesson file (§16); phase 1 has them. The training missions of §3 are
+it ([front-end.md](front-end.md) §2.2). Each lesson's content and missions are in its phase's lesson file (§16); phases 1 and 7 have them. The training missions of §3 are
 listed in no front-end section (the user, 28 Nov 2026: "The current existing train should be deleted, o/c. It
 replaces them"): their files stay for the automated tests and `--mission <id>` runs.
 
@@ -1071,6 +1071,10 @@ comes from; null for an item of the whole flight), the debrief's pin; `comment`,
 | `tanker_contact_time` | from the join-up (the tanker's `joined`) to the first `contact`, s |
 | `tanker_disconnects` | the breakaways and the disconnects off the boom's limits (not `full`, `button` or `door`) |
 | `fuel_taken` | the fuel the boom gave of the room in the tanks at the first contact (the planned offload: the tanks full), %, at most 100 |
+| `targets_killed` | the % of the lesson's targets shot down by the player: its drones (the recording's own `kill` of an aircraft) and one aggressor in each engagement of its round (`sim_kill` by the player) |
+| `shots_in_reach` | the % of the player's air-to-air missiles (`shot`) fired with the target's range inside the missile's DLZ then |
+| `times_killed` | the aggressor's simulated kills of the player and real shoot-downs (`sim_kill` by the aggressor, `shot_down`) |
+| `tracking_time` | the player's gun tracking time over the round's engagements (`engagement`'s `tracked_s`), s |
 
 An item without its measure here reads as not flown (Unsatisfactory): a phase adds its items' measures with its
 lessons.
@@ -1122,6 +1126,9 @@ The flight's tests read `ai_flights.gd flight_facts()`: `IafAi.facts` (`iaf_ai::
 | `called:<call>` | the pilot made the radio call `<call>` (§8; the AWACS's `awacs:<request>`, the tanker's request `tanker`) |
 | `tanker:<event>` | the tanker's event for the player's jet came: `joined` (within 1 NM), `cleared_precontact`, `cleared_contact`, `contact`, `disconnect`, `breakaway`, `complete` ([../../docs/ai.md](../../docs/ai.md) §25) |
 | `steerpoint:<n>` | in the air within 1 NM of the route's steerpoint `<n>` (1 the first) |
+| `fight_on` | the lesson's aggressor round has started (§16.11) |
+| `fight_done` | the round's last engagement has ended |
+| `kills:<n>` | the player has shot down at least `n`: drones, and the aggressor by simulated shots |
 
 A mission's `end` takes the tests the scorer reads from the recording (`training::END_TESTS`): `power_off`,
 `engine_off`, `idle`, `aligned`, `parked` (stopped within 30 m of the start), `item:`, `called:` and `tanker:`. A phase that
@@ -1409,6 +1416,57 @@ dry ([../../docs/rendering.md](../../docs/rendering.md) §10).
 and flies lesson 3.1's route in the Barak and the Sufa on the NAV autopilot to its grades (the autopilot sinks about 500 ft in its turns and flies 382 kt, so only the steerpoints' distance is held to a grade). Open: the F-35I's route on the player's NAV autopilot, which bleeds to 165 kt in the first turn and stalls (the player's autopilot on the Adir's 6-DoF; the Adir's own tests fly the AI's autopilot); `training::tests::navigation_items_are_measured`
 the items from synthetic flights; `calls::tests::the_steerpoint_and_failure_calls_fire_at_their_step` the calls.
 
+### 16.11 Phase 7: air-to-air
+
+The seven lessons of [training-plan.md](training-plan.md) §3, phase 7, each for the three jets at their home bases
+(`lessons/air_to_air.json`, the missions `<jet>_air_to_air_<lesson>`, menu ids 3711–3773), cold and dark on the
+spot, the wind calm, the sky clear. Each flies the full sortie: start-up, take-off, the training area, the way home,
+the landing and the shutdown; each ends `parked`, `engine_off`. After phase 1 the instructor names only the next
+exercise; a lesson's only start-up call is left out once phase 1 is passed.
+
+| Lesson | Time | What is in the area | Graded |
+|--------|------|---------------------|--------|
+| 7.1 Intercept a drone | 08:00 | two drones (`drone_f16`, brain `drone`) on racetracks round steerpoint 1, 15,000 and 20,000 ft | `targets_killed`, `shots_in_reach` |
+| 7.2 BVR against aggressors | 08:00 | Red 1, a Sufa with AIM-120s: `bvr`, `bvr` | `targets_killed`, `shots_in_reach`, `times_killed` |
+| 7.3 Offensive BFM | 08:00 | Red 1: `offensive` three times | `tracking_time`, `targets_killed`, `times_killed` |
+| 7.4 Defensive BFM | 08:00 | Red 1: `defensive` three times | `times_killed`, `max_g` |
+| 7.5 Against enemy types | 08:00 | Red 1, a MiG-29A: `bvr`, `high_aspect` | `targets_killed`, `times_killed` |
+| 7.6 At night | 21:00 | a drone round steerpoint 1, then Red 1 with AIM-120s: `bvr` round steerpoint 2 | `targets_killed`, `shots_in_reach` |
+| 7.7 Check ride 7 | 08:00 | Red 1 with AIM-120s: `bvr`, `offensive`, `defensive`; the full card, the tower's four calls | phases 1 to 7 |
+
+- **The area.** Steerpoint 1 holds the drones, steerpoint 2 the fight, 40 to 90 km from the base: west of Ramat
+  David over the sea, south of Ramon and Nevatim over the Negev (inferred: the IAF's own areas are not public).
+- **The round** is the mission's `aggressor` ([data-formats.md](data-formats.md) §5): `sim_flight.gd` starts it
+  once the jet flies within 10 NM of steerpoint 2 above the training floor ("fight's on", `IafAggressor.fights_on`);
+  both jets are then put at the first set-up in the air ([../../docs/ai.md](../../docs/ai.md) §26). A lesson's round
+  flies its set-ups once: after the last "knock it off" the aggressor stays out of the fight and the player flies
+  home.
+- **The load:** each jet's air-to-air load, fixed (`fixed_loadout`): the Barak four AIM-120 and two AIM-9M, the
+  Sufa its real long-range load (two AIM-120, two Python 5, three tanks), the Adir four AIM-120 and two AIM-9X.
+- **The shots.** Drones are shot down for real with MASTER ARM at ARM. In the fight the F-16s use SIMULATE, the
+  F-35I ARM; every shot at Red 1 is simulated either way.
+- **The recording** gets the player's air-to-air launches (`shot`, with the target's range and the DLZ) and the
+  round's `fight`, `sim_kill` and `engagement` events ([../../docs/blackbox.schema.json](../../docs/blackbox.schema.json)),
+  which the items of §16.2 read. The gun's tracking time counts while the gun line is within 20 mil of the lead
+  point at 500 to 3,000 ft (`iaf_ai::aggressor::tracking`, inferred).
+- **The diagrams** (§16.5): the intercept, the BVR start, the crank, the offensive and defensive set-ups, the
+  pursuits, the yo-yos, the break turn, the guns jink, the reversal and the head-on pass.
+- **Hebrew.** The pursuits (lag, pure, lead), the crank and the guns jink stay in English in the Hebrew text: no
+  Hebrew source names them ([research/training.md](research/training.md) §3); "BFM", "BVR", "DLZ" and the panel's
+  MASTER ARM positions as printed.
+
+Decided on Approvals A144 (the user, 28 Nov 2026: "So resolve all of these. I will try to fly it and see"), each as
+proposed:
+
+- the training areas as above, 40 to 90 km from the base (inferred);
+- the pursuits, the crank and the guns jink in English in the Hebrew text; the yo-yo is יו-יו, the break turn פניית שבירה;
+- the F-35I's instructor talks on the radio, with no jet of his own in the fight;
+- at the area both jets are put at the set-up in the air (A138).
+
+`modern-iaf/tests/test_course_air_to_air.gd` checks the content for each jet, loads every lesson, and flies
+offensive BFM by a script from steerpoint 2: the round starts by itself, three engagements won, every graded item at
+least Average. `cargo test -p iaf-tools --lib the_air_to_air_items_read_the_fight a_lessons_aggressor_is_compiled`.
+
 ## 17. The instructor's calls
 The instructor's calls in flight ([training-plan.md](training-plan.md) §2.3) are data: each lesson's `calls` in its
 phase's lesson file (§16.1), read by `crates/iaf-tools/src/calls.rs` (module `calls`, the call engine). The game runs
@@ -1458,6 +1516,9 @@ the wind) along its centreline and across it. Every figure is inferred.
 | `g:<g>` | in the air at a load factor of at least `<g>` |
 | `called:<call>` | the pilot made the radio menu's call `<call>` (`sim_flight.gd` `called`, §8; an AWACS request answered `awacs:<request>`, the tanker's request `tanker`) |
 | `tanker:<event>` | the tanker's event for the player's jet came (`tanker.gd` `player_events`, §16.3) |
+| `fight_on` | the lesson's aggressor round started (`instructor_calls.gd` `_fight`: the Aggressor node there) |
+| `fight_done` | the round's last engagement ended (the node's `done`) |
+| `kills:<n>` | the player's kills at least `n`: aircraft the player destroyed and the round's simulated kills by the player (`_kills`) |
 
 ### 17.3 In the game
 `sim_flight.gd` starts the calls when the mission flies a course lesson (`IafCalls.lesson_of`: the lesson's

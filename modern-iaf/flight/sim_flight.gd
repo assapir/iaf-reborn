@@ -16,6 +16,7 @@ const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const Kneeboard := preload("kneeboard.gd")
 const FreeCombat := preload("free_combat.gd")
 const Tanker := preload("res://shared/ai/tanker.gd")
+const Aggressor := preload("res://shared/ai/aggressor.gd")
 const Card := preload("card.gd")
 const FlightUi := preload("flight_ui.gd")
 const FrameMeter := preload("frame_meter.gd")
@@ -165,6 +166,9 @@ var _sim := {}
 ## starts 5 km ahead of the jet on its heading); placed once the ground is in. {} none.
 var _tanker_spec := {}
 var _tanker_tried := false
+## A lesson's aggressor round (the compiled sim.aggressor, data-formats.md §5; docs/ai.md §26): started once the jet
+## flies into its area ("fight's on", IafAggressor.fights_on); {} none, or started.
+var _aggressor_spec := {}
 ## The training mission: its readable file's name (res://data/missions/<name>.json) and rules; {} for a flight without.
 var mission_name := ""
 var rules := {}
@@ -300,6 +304,7 @@ func _ready() -> void:
 		check_ride = IafTraining.is_check_ride(key)  # the course's rule (course.rs is_check_ride)
 		_lesson = String(IafCalls.lesson_of(plane, String(files[0].name)))
 		_tanker_spec = readable.get("tanker", {})
+		_aggressor_spec = sim.get("aggressor", {})
 		_failures_plan = readable.get("failures", [])
 		_check_ride_emergency(key, plane)
 		# The player's number in the flight, the take-off in pairs and the AI lead's plan (data-formats.md §5:
@@ -755,6 +760,29 @@ func _place_tanker() -> void:
 		push_warning("tanker: no tanker of kind %s" % kind)
 
 
+## A lesson's aggressor round started once the jet flies within reach of its area above the training floor.
+func _fights_on() -> void:
+	if _aggressor_spec.is_empty() or host.get("flight") == null or host.get("ai") == null or host.waiting_for_ground:
+		return
+	var a: Array = _aggressor_spec.get("at", [0.0, 0.0])
+	var at := Vector3(float(a[0]), float(a[1]), 0.0)
+	var pw: Vector3 = host.player_world()
+	var g = host.mission_ground(pw)
+	var agl: float = pw.z - (float(g) if g != null else 0.0)
+	if not IafAggressor.fights_on(Vector2(pw.x, pw.y).distance_to(Vector2(at.x, at.y)), agl):
+		return
+	var arm := {}
+	var given: Dictionary = _aggressor_spec.get("arm", {})
+	for k in given:
+		arm[int(k)] = [String(given[k]), 1]
+	var opts := {"unit": String(_aggressor_spec.get("unit", Aggressor.UNIT)), "arm": arm, "once": true}
+	var setups := PackedStringArray(_aggressor_spec.get("setups", []))
+	var hdg := float(_aggressor_spec.get("heading", 0.0))
+	_aggressor_spec = {}
+	if Aggressor.start(host, setups, at, hdg, opts) == null:
+		push_warning("training: the aggressor round did not start")
+
+
 ## The flight's tanker (shared/ai/tanker.gd), null when it has none.
 func _tanker() -> Node:
 	return host.get("tanker")
@@ -870,6 +898,7 @@ func _process(delta: float) -> void:
 	_throttle_step()
 	_sync_switches()
 	_place_tanker()
+	_fights_on()
 	var changed: bool = card.update()
 	var tanker: bool = host.tanker != null
 	changed = (tanker and refuel_card.update()) or changed or tanker != _had_tanker

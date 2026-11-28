@@ -42,6 +42,16 @@ const BURST_S: f64 = 1.5;
 const APART: (f64, f64) = (20_000.0, 150_000.0);
 const LONGEST: (f64, f64) = (180.0, 300.0);
 pub const FLOOR: f64 = 5_000.0 * FT;
+/// A lesson's round starts ("fight's on") once the player flies within this of the area's centre (m, about 10 NM)
+/// above the training floor.
+pub const FIGHTS_ON: f64 = 10.0 * 1852.0;
+/// Gun tracking: the pipper on the other jet, the gun line within this of the lead point (rad, 20 mil: about an F-16's
+/// span at 500 m) at a range between these (m: 500 ft to 3,000 ft, the gun's tracking range).
+const TRACK_RAD: f64 = 0.020;
+const TRACK_RANGE: (f64, f64) = (150.0, 3_000.0 * FT);
+/// The 20 mm round's muzzle speed (m/s; the M61's PGU-28, about 1,050 m/s) and gravity (m/s²) for the lead point.
+const MUZZLE: f64 = 1_050.0;
+const G: f64 = 9.81;
 
 /// A set-up of an engagement.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -112,6 +122,28 @@ pub fn missile_kill(burst: Vec3, target: Vec3, radius: f64, dud: bool) -> bool {
     !dud && burst.distance(target) <= radius
 }
 
+/// A lesson's fight is on: the player `dist` m from the area's centre and `agl` m above the ground ([`FIGHTS_ON`],
+/// [`FLOOR`]).
+pub fn fights_on(dist: f64, agl: f64) -> bool {
+    dist <= FIGHTS_ON && agl >= FLOOR
+}
+
+/// Whether the gun tracks the other jet: the shooter at `own` (velocity `own_vel`, gun line `fwd`), the target at `tgt`
+/// (velocity `tgt_vel`), all world (z up). The lead point is where the target will be when a round fired now reaches
+/// it, raised by the round's drop; the gun tracks when its line is within [`TRACK_RAD`] of it inside [`TRACK_RANGE`].
+pub fn tracking(own: Vec3, own_vel: Vec3, fwd: Vec3, tgt: Vec3, tgt_vel: Vec3) -> bool {
+    let range = own.distance(tgt);
+    let Some(gun) = fwd.try_normalize() else { return false };
+    if !(TRACK_RANGE.0..=TRACK_RANGE.1).contains(&range) {
+        return false;
+    }
+    let tof = range / (MUZZLE + own_vel.dot(gun).max(0.0));
+    let lead = tgt + (tgt_vel - own_vel) * tof + Vec3::new(0.0, 0.0, 0.5 * G * tof * tof);
+    let to = lead - own;
+    let cos = to.dot(gun) / to.length();
+    cos.clamp(-1.0, 1.0).acos() <= TRACK_RAD
+}
+
 /// The two jets of a round.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Side {
@@ -158,6 +190,12 @@ pub struct Round {
     /// The engagements flown to their end, and the kills each side scored over the round.
     pub engagements: u32,
     pub kills: [u32; 2],
+    /// A lesson's round: its set-ups flown once, then the round is over ([`Round::done`]).
+    pub once: bool,
+    done: bool,
+    /// The player's gun tracking time in this engagement (s), and in each engagement flown to its end.
+    tracked: f64,
+    pub tracked_s: Vec<f64>,
 }
 
 impl Round {
@@ -175,6 +213,22 @@ impl Round {
             calls: Vec::new(),
             engagements: 0,
             kills: [0; 2],
+            once: false,
+            done: false,
+            tracked: 0.0,
+            tracked_s: Vec::new(),
+        }
+    }
+
+    /// A lesson's round over: its last set-up's engagement ended (`once`).
+    pub fn done(&self) -> bool {
+        self.done
+    }
+
+    /// `dt` s of the frame with the player's gun tracking the aggressor (`on`, [`tracking`]): counted while both fight.
+    pub fn track(&mut self, dt: f64, on: bool) {
+        if on && !self.done && !self.out(Side::Player) && !self.out(Side::Aggressor) {
+            self.tracked += dt;
         }
     }
 
@@ -185,7 +239,7 @@ impl Round {
 
     /// The jet `side` is out of the fight: killed, or the engagement knocked off.
     pub fn out(&self, side: Side) -> bool {
-        self.dead == Some(side) || self.kio.is_some()
+        self.done || self.dead == Some(side) || self.kio.is_some()
     }
 
     /// Whether "knock it off" was called in this engagement.
@@ -254,8 +308,12 @@ impl Round {
     }
 
     /// One frame at `now`, the jets `apart` m apart, `low` either below the [`FLOOR`]: the calls due, in order, and the
-    /// next set-up when its engagement starts now (the host puts both jets there).
+    /// next set-up when its engagement starts now (the host puts both jets there). A round `once` ends after its last
+    /// set-up's engagement: no next, [`Round::done`].
     pub fn step(&mut self, now: f64, apart: f64, low: bool) -> (Vec<Call>, Option<SetUp>) {
+        if self.done {
+            return (Vec::new(), None);
+        }
         let b = self.setup().bvr();
         let fighting = self.dead.is_none() && self.kio.is_none();
         if fighting && (apart > APART.0.max(APART.1 * b as f64) || now - self.since > [LONGEST.0, LONGEST.1][b] || low)
@@ -279,6 +337,13 @@ impl Round {
         let next = match self.kio {
             Some(t) if now - t >= NEXT_S => {
                 self.engagements += 1;
+                self.tracked_s.push(self.tracked);
+                self.tracked = 0.0;
+                if self.once && self.index + 1 == self.setups.len() {
+                    self.done = true;
+                    self.calls.clear();
+                    return (due.into_iter().map(|(_, c)| c).collect(), None);
+                }
                 self.index = (self.index + 1) % self.setups.len();
                 self.since = now;
                 self.dead = None;
@@ -371,6 +436,38 @@ mod tests {
         // One set-up: the next engagement is the same one.
         r.step(8.3, 500.0, false);
         assert_eq!(r.step(14.3, 500.0, false).1, Some(SetUp::Defensive));
+    }
+
+    #[test]
+    fn a_lesson_round_flies_its_set_ups_once() {
+        let mut r = Round::new(vec![SetUp::Offensive, SetUp::Bvr], 0.0);
+        r.once = true;
+        r.track(2.0, true);
+        r.track(5.0, false);
+        assert!(r.knock_it_off(10.0, Side::Player));
+        r.track(1.0, true);
+        assert_eq!(r.step(16.0, 1000.0, false).1, Some(SetUp::Bvr));
+        assert_eq!(r.tracked_s, vec![2.0], "only while both fight");
+        assert!(r.missile_hit(20.0, Side::Player));
+        r.step(21.0, 1000.0, false);
+        r.step(24.0, 1000.0, false);
+        assert_eq!(r.step(30.0, 1000.0, false).1, None, "no set-up after the last");
+        assert!(r.done() && r.out(Side::Player) && r.out(Side::Aggressor));
+        assert_eq!((r.engagements, r.kills, r.tracked_s.len()), (2, [1, 0], 2));
+        assert!(!r.fox(31.0, Side::Aggressor, "fox_2") && r.step(40.0, 1000.0, false).0.is_empty());
+    }
+
+    #[test]
+    fn the_gun_tracks_on_the_lead_point() {
+        // Both north at 200 m/s, the target 600 m ahead and level: the lead point is above it by the round's drop.
+        let (v, fwd) = (Vec3::new(0.0, 200.0, 0.0), Vec3::new(0.0, 1.0, 0.0));
+        let (own, tgt) = (Vec3::new(0.0, 0.0, 5000.0), Vec3::new(0.0, 600.0, 5000.0));
+        let tof = 600.0 / (MUZZLE + 200.0);
+        let up = Vec3::new(0.0, 600.0, 0.5 * G * tof * tof);
+        assert!(tracking(own, v, up, tgt, v));
+        assert!(!tracking(own, v, Vec3::new(0.05, 1.0, 0.0), tgt, v), "50 mil off");
+        assert!(!tracking(own, v, fwd, Vec3::new(0.0, 1500.0, 5000.0), v), "beyond 3,000 ft");
+        assert!(fights_on(15_000.0, 2000.0) && !fights_on(25_000.0, 2000.0) && !fights_on(1000.0, 1000.0));
     }
 
     #[test]

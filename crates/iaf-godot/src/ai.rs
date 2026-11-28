@@ -1172,11 +1172,36 @@ impl IafAggressor {
     }
 
     /// The round of the set-ups named in `setups` (offensive, defensive, high_aspect, bvr; none or an unknown name:
-    /// the three BFM ones in turn), its first engagement starting at `now`.
+    /// the three BFM ones in turn), its first engagement starting at `now`; `once`: a lesson's, its set-ups flown once.
     #[func]
-    fn start(&mut self, setups: PackedStringArray, now: f64) {
+    fn start(&mut self, setups: PackedStringArray, now: f64, once: bool) {
         let list = setups.as_slice().iter().filter_map(|s| SetUp::from_name(&s.to_string())).collect();
-        self.round = Some(Round::new(list, now));
+        let mut r = Round::new(list, now);
+        r.once = once;
+        self.round = Some(r);
+    }
+
+    /// Whether a lesson's round is over (its last engagement ended).
+    #[func]
+    fn done(&self) -> bool {
+        self.round.as_ref().is_some_and(Round::done)
+    }
+
+    /// Whether a lesson's fight is on: the player `dist` m from the area's centre, `agl` m above the ground.
+    #[func]
+    fn fights_on(dist: f64, agl: f64) -> bool {
+        aggressor::fights_on(dist, agl)
+    }
+
+    /// One frame of `dt` s: whether the player's gun (at `own`, velocity `own_vel`, gun line `fwd`) tracks the
+    /// aggressor (at `tgt`, velocity `tgt_vel`), all world; counted towards the engagement's tracking time.
+    #[func]
+    fn track(&mut self, dt: f64, own: Vector3, own_vel: Vector3, fwd: Vector3, tgt: Vector3, tgt_vel: Vector3) -> bool {
+        let on = aggressor::tracking(vec3(own), vec3(own_vel), vec3(fwd), vec3(tgt), vec3(tgt_vel));
+        if let Some(r) = self.round.as_mut() {
+            r.track(dt, on);
+        }
+        on
     }
 
     /// The two jets' starts of set-up `name` round `at` (world), the player heading `heading` (deg): {player,
@@ -1254,11 +1279,13 @@ impl IafAggressor {
         vdict! {"calls" => &calls, "next" => next.map_or("", |s| s.name())}
     }
 
-    /// {engagements (flown to their end), kills [the player's, the aggressor's]}.
+    /// {engagements (flown to their end), kills [the player's, the aggressor's], tracked_s (the player's gun tracking
+    /// time in each engagement flown, s)}.
     #[func]
     fn score(&self) -> VarDictionary {
         let Some(r) = self.round.as_ref() else { return VarDictionary::new() };
         let kills: VarArray = r.kills.iter().map(|&k| i64::from(k).to_variant()).collect();
-        vdict! {"engagements" => i64::from(r.engagements), "kills" => &kills}
+        let tracked: VarArray = r.tracked_s.iter().map(|t| t.to_variant()).collect();
+        vdict! {"engagements" => i64::from(r.engagements), "kills" => &kills, "tracked_s" => &tracked}
     }
 }

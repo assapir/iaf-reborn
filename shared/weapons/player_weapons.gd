@@ -1483,6 +1483,22 @@ func _log_fire(w: Dictionary) -> void:
 	_combat_event({"event": "fire", "weapon": String(w.get("name", "")), "n": 1})
 
 
+## The player's air-to-air missile `w` launched from `o` at `target` ({} none): a `shot` into the recording with the
+## target's range and the missile's reach then (its DLZ, [max, min] m), a training lesson's `shots_in_reach`
+## (modern-iaf/docs/training.md §16.11). Live and simulated shots alike.
+func _log_shot(w: Dictionary, o: Dictionary, target: Dictionary) -> void:
+	if not int(w.get("type", 0)) in [570, 580, 600, 610]:
+		return
+	var e := {"event": "shot", "weapon": String(w.get("name", "")), "type": int(w.type)}
+	if not target.is_empty():
+		var z: Array = Missile.dlz(_motion(w), {"pos": o.pos, "fwd": o.fwd, "vel": o.vel}, target)
+		e["range_m"] = roundf(o.pos.distance_to(target.pos))
+		if z.size() >= 2:
+			e["max_m"] = roundf(float(z[0]))
+			e["min_m"] = roundf(float(z[1]))
+	_combat_event(e)
+
+
 ## The player's `w` burst on `hit` (the units its blast damaged): a hit when any is an enemy (the combat logbook).
 func _log_hit(w: Dictionary, hit: Array, n := 1, gun := false) -> void:
 	if not host.has_method("enemy_of_player"):
@@ -1614,6 +1630,7 @@ func _release_missile() -> void:
 	if target.is_empty() and w.get("loal", false):
 		var axis: Vector3 = o.view_fwd if o.get("helmet", false) else o.fwd
 		cue = body_to_world(at) + axis.normalized() * LOAL_CUE_M
+	_log_shot(w, o, target)
 	var mis := launch_homing(w, body_to_world(at), o, String(target.get("key", "")), q, _me(), cue)
 	if int(w.type) == 610 and not target.is_empty():
 		radar.lock_stt()

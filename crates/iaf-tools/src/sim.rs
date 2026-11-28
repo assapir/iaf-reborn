@@ -739,6 +739,45 @@ const MISSION_FIGURES: [&str; 9] = [
 ];
 const FLIGHT_FIGURES: [&str; 5] = ["start.lat", "start.lon", "start.heading", "start.alt_m", "route"];
 const PLACED_FIGURES: [&str; 6] = ["lat", "lon", "heading", "alt_m", "route", "speed_kmh"];
+const AGGRESSOR_FIGURES: [&str; 3] = ["lat", "lon", "heading"];
+
+/// A lesson's aggressor round (`aggressor`, modern-iaf/docs/data-formats.md §5; docs/ai.md §26) for the compiled
+/// `sim.aggressor`: `unit` (an aircraft record), `setups` (iaf_ai::aggressor's names, flown once in order), the area's
+/// centre `at` (UTM 36N) from `lat` / `lon`, the player's grid `heading` in the set-ups, and `arm` (the aggressor's
+/// stores in place of its record's pylons: pylon index 0..8 → the weapon's name). None without one.
+fn aggressor(f: &File, db: &Db) -> Result<Option<Value>> {
+    let a = &f.v["aggressor"];
+    if a.is_null() {
+        return Ok(None);
+    }
+    let what = format!("{}: aggressor", f.name);
+    let mut v = a.clone();
+    v["footnotes"] = f.v["footnotes"].clone();
+    check_sources(&File { name: what.clone(), v }, &AGGRESSOR_FIGURES)?;
+    let unit = a["unit"].as_str().unwrap_or("");
+    let u = db.unit(unit).with_context(|| what.clone())?;
+    ensure!(u.v["class"] == "fighter", "{what}: \"unit\" {unit} is no fighter");
+    let setups = a["setups"].as_array().filter(|l| !l.is_empty());
+    let setups = setups.with_context(|| format!("{what}: needs \"setups\""))?;
+    for s in setups {
+        let ok = s.as_str().and_then(iaf_ai::aggressor::SetUp::from_name).is_some();
+        ensure!(ok, "{what}: set-up {s} is not offensive, defensive, high_aspect or bvr");
+    }
+    let [x, y] = place(a, &what)?;
+    let heading = sim_bases::grid_heading(
+        a["lon"].as_f64().unwrap_or(0.0),
+        a["lat"].as_f64().unwrap_or(0.0),
+        a["heading"].as_f64().with_context(|| format!("{what}: needs \"heading\""))?,
+    );
+    let mut arm = Map::new();
+    for (k, w) in a["arm"].as_object().into_iter().flatten() {
+        ensure!(k.parse::<u8>().is_ok_and(|i| i <= 8), "{what}: arm: {k} is no pylon index 0..8");
+        let w = db.weapon(w.as_str().unwrap_or("")).with_context(|| what.clone())?;
+        arm.insert(k.clone(), w.v["name"].clone());
+    }
+    Ok(Some(json!({"unit": unit, "setups": setups, "at": [x.round(), y.round()], "heading": heading.round(),
+        "arm": arm})))
+}
 
 /// The texts of a mission file: `{"en": …, "he": …}`, both required.
 fn texts(f: &File, k: &str) -> Result<Value> {
@@ -1082,6 +1121,9 @@ pub fn compile_mission(
     m["sim"]["flights"] = flights.iter().map(flights::Flight::to_json).collect();
     if let Some(note) = f.v["note"].as_str() {
         m["sim"]["note"] = json!(note);
+    }
+    if let Some(a) = aggressor(f, db)? {
+        m["sim"]["aggressor"] = a;
     }
     Ok(m)
 }
@@ -2177,6 +2219,33 @@ mod tests {
         assert!(e.contains("no_epu"), "{e}");
         adir["failures"] = json!([{"id": "gen_main"}, {"id": "engine_fire"}]);
         assert!(run(&File { name: "nevatim".into(), v: adir }).is_ok());
+    }
+
+    /// A lesson's aggressor round compiles into `sim.aggressor` (UTM, the grid heading, the weapons by name); an
+    /// unknown set-up, unit, pylon or a figure without its source is refused.
+    #[test]
+    fn a_lessons_aggressor_is_compiled() {
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
+        let run = |f: &File| compile_mission(f, &db, &bases, &mut |_, _| None).map_err(|e| format!("{e:#}"));
+        let a = json!({"unit": "f16i", "setups": ["bvr", "offensive"], "lat": 30.1, "lon": 34.8, "heading": 180,
+            "arm": {"0": "aim-120"}, "sources": {"lat": "inferred", "lon": "inferred", "heading": "inferred"}});
+        let m = run(&ramon(json!({"aggressor": a.clone()}))).unwrap();
+        let g = &m["sim"]["aggressor"];
+        let [x, y] = sim_bases::utm36n(34.8, 30.1);
+        assert_eq!((&g["unit"], &g["setups"], &g["arm"]), (&json!("f16i"), &a["setups"], &json!({"0": "AIM-120"})));
+        assert_eq!(g["at"], json!([x.round(), y.round()]));
+        assert!((g["heading"].as_f64().unwrap() - 180.0).abs() < 2.0, "the grid heading near the true");
+        for (k, v, why) in [
+            ("setups", json!(["dogfight"]), "not offensive"),
+            ("unit", json!("target_t72"), "no fighter"),
+            ("arm", json!({"9": "aim-120"}), "no pylon index"),
+            ("sources", json!({}), "has no source"),
+        ] {
+            let mut bad = a.clone();
+            bad[k] = v;
+            let e = run(&ramon(json!({"aggressor": bad}))).unwrap_err();
+            assert!(e.contains(why), "{k}: {e}");
+        }
     }
 
     #[test]

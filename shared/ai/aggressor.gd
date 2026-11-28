@@ -1,18 +1,21 @@
 # Ours, Modern IAF's training round against an aggressor F-16 with simulated shots (docs/ai.md §26,
 # modern-iaf/docs/training-plan.md §3 phase 7; the rules in Rust: crates/iaf-ai/src/aggressor.rs, IafAggressor). A
-# child of the flight scene (terrain_view.gd) made by the dev hook `start`; no lesson places one yet. The aggressor is
-# a Sufa of the enemy side (ai_flights.gd `spawn`) flown by the enemy fighter's trees at the High skill's tactics
+# child of the flight scene (terrain_view.gd) made by `start`: by a lesson's mission (its `aggressor`, sim_flight.gd)
+# or the dev hook. The aggressor is a jet of the enemy side (a Sufa by default; ai_flights.gd `spawn`) flown by the
+# enemy fighter's trees at the High skill's tactics
 # (`enemy_flight`), told where the player is ("fight's on": its flight's `vector`). Both jets are shielded: a shot
 # between them is simulated. A missile flies unseen and harmless on the existing physical missile (player_weapons.gd
 # launch_homing asks `sim_side`; its burst asks `missile_end`); the gun's rounds fly and their hits on the other jet
 # count (`gun_hit`). The calls ("Fox", "guns", "kill", "knock it off") are said on the radio: the player's in the
-# pilot's voice, the aggressor's ("Red 1") in the wingmen's. After "knock it off" the next set-up starts in the air.
+# pilot's voice, the aggressor's ("Red 1") in the wingmen's. After "knock it off" the next set-up starts in the air; a
+# lesson's round flies its set-ups once, then the aggressor stays out of the fight and the player flies home. The
+# recording gets the round's events for the lesson's grades (training.md §16.11): `fight`, `sim_kill`, `engagement`.
 extends Node
 
 const AiFlights := preload("res://shared/ai/ai_flights.gd")
 const PLAYER := 0
 const AGGRESSOR := 1
-## The aggressor's record (a Sufa: the aggressors are F-16s) and its skill (2 High: the adversary tactics).
+## The aggressor's record by default (a Sufa: the aggressors are F-16s) and its skill (2 High: the adversary tactics).
 const UNIT := "f16i"
 const SKILL := 2
 ## The calls' words: the player's in the pilot's voice, the aggressor's in the wingmen's (voices.json).
@@ -49,6 +52,8 @@ var said: Array = []
 var kills: Array = []
 ## The aggressor's stores at its spawn (each engagement starts with them).
 var _counts: Array = []
+## The round's engagements already recorded (the `engagement` events).
+var _logged := 0
 
 
 ## The round on the flight scene `h`, null when none.
@@ -56,33 +61,36 @@ static func of(h: Node) -> Node:
 	return h.get_node_or_null("Aggressor") if h != null else null
 
 
-## Ours (a dev / test hook, docs/ai.md §26; no lesson places one yet): a round of `setups` (offensive, defensive,
+## Ours (docs/ai.md §26; a lesson's mission, or a dev / test hook): a round of `setups` (offensive, defensive,
 ## high_aspect, bvr; empty: the three BFM ones in turn) round `at` (world), the player heading `hdg` (deg) in them;
-## the aggressor spawned and both jets put in the air at the first set-up. The round, null when the aggressor could
-## not fly.
-static func start(h: Node, setups: PackedStringArray, at: Vector3, hdg: float) -> Node:
+## the aggressor spawned and both jets put in the air at the first set-up. `opts`: `unit` (the aggressor's record,
+## default UNIT), `arm` (its stores in place of the record's pylons: {station: [weapon name, count]}, ai_flights.gd
+## spawn), `once` (a lesson's round: the set-ups flown once). The round, null when the aggressor could not fly.
+static func start(h: Node, setups: PackedStringArray, at: Vector3, hdg: float, opts := {}) -> Node:
 	var n: Node = of(h)
 	if n == null:
 		n = load("res://shared/ai/aggressor.gd").new()
 		n.name = "Aggressor"
 		n.host = h
 		h.add_child(n)
-	if not n._begin(setups, at, hdg):
+	if not n._begin(setups, at, hdg, opts):
 		h.remove_child(n)
 		n.free()
 		return null
 	return n
 
 
-func _begin(setups: PackedStringArray, at: Vector3, hdg: float) -> bool:
+func _begin(setups: PackedStringArray, at: Vector3, hdg: float, opts := {}) -> bool:
 	centre = at
 	heading = hdg
-	rules.start(setups, host.runtime.now)
+	rules.start(setups, host.runtime.now, bool(opts.get("once", false)))
+	_logged = 0
 	var first: Dictionary = IafAggressor.place(rules.setup(), at, hdg).aggressor
 	if jet.is_empty():
-		jet = host.ai.spawn(UNIT, first.pos, float(first.heading), [])
+		var unit := String(opts.get("unit", UNIT))
+		jet = host.ai.spawn(unit, first.pos, float(first.heading), [], -1, opts.get("arm", {}))
 		if jet.is_empty():
-			push_warning("aggressor: no %s to spawn" % UNIT)
+			push_warning("aggressor: no %s to spawn" % unit)
 			return false
 		var u = host.ai.combat.units.get(jet.key)
 		_counts = u.stations.map(func(st): return int(st.count)) if u != null else []
@@ -93,6 +101,7 @@ func _begin(setups: PackedStringArray, at: Vector3, hdg: float) -> bool:
 		host.ai.enemy_flights[-1].vector = _vector
 	jet.shield = true
 	host.runtime.player_entity().shield = true
+	_event({"event": "fight", "state": "on", "setups": Array(setups), "unit": String(opts.get("unit", UNIT))})
 	return _place(rules.setup())
 
 
@@ -199,7 +208,7 @@ func missile_end(mis: RefCounted) -> void:
 	var r := float(mis.weapon.get("radius", 0.0))
 	if IafAggressor.missile_kill(mis.last_pos, _world(1 - side), r, mis.dud):
 		if rules.missile_hit(host.runtime.now, side):
-			kills.append([side, "missile"])
+			_killed(side, "missile")
 
 
 ## A gun round fired by `owner`: "guns" at a burst's first round.
@@ -216,13 +225,30 @@ func gun_hit(owner: Dictionary, hit: Dictionary) -> bool:
 	if side < 0 or hit.is_empty() or String(hit.get("key", "")) != _key(1 - side):
 		return false
 	if rules.gun_hit(host.runtime.now, side):
-		kills.append([side, "gun"])
+		_killed(side, "gun")
 	return true
+
+
+## `side`'s simulated `how` (missile, gun) killed the other jet: counted and recorded.
+func _killed(side: int, how: String) -> void:
+	kills.append([side, how])
+	_event({"event": "sim_kill", "by": "player" if side == PLAYER else "aggressor", "how": how, "setup": rules.setup()})
+
+
+## A round's event into the flight's recording (terrain_view.gd blackbox_event; docs/blackbox.schema.json).
+func _event(e: Dictionary) -> void:
+	if host.has_method("blackbox_event"):
+		host.blackbox_event(e)
 
 
 ## The player's "knock it off" (the key, command 304): the engagement ends, the next set-up follows.
 func knock_it_off() -> bool:
 	return rules.knock_it_off(host.runtime.now, PLAYER)
+
+
+## Whether a lesson's round is over: its set-ups flown, the aggressor out of the fight.
+func done() -> bool:
+	return rules.done()
 
 
 ## The round's end (the node freed): neither jet shielded or out of a fight any more.
@@ -236,21 +262,45 @@ func _exit_tree() -> void:
 		rt.player_entity()["out"] = false
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if jet.is_empty() or host.get("runtime") == null or host.get("flight") == null or host.frozen:
 		return
+	if rules.done():
+		return  # a lesson's round over: the aggressor out (and shielded), the player free (_finish)
 	var now: float = host.runtime.now
 	host.runtime.player_entity()["out"] = rules.out(PLAYER)
 	jet["out"] = rules.out(AGGRESSOR)
 	var pw: Vector3 = host.player_world()
 	var aw: Vector3 = host.ai.world_of(jet)
+	var combat = host.ai.combat
+	var me: Dictionary = host.runtime.player_entity()
+	var w = host.get("weapons")
+	if w != null and combat != null:
+		var o: Dictionary = w.own()
+		rules.track(delta, pw, o.vel, o.fwd, aw, combat._velocity_of(jet))
 	var floor_m: float = IafAggressor.floor()
 	var low := _agl(pw) < floor_m or _agl(aw) < floor_m
 	var r: Dictionary = rules.step(now, pw.distance_to(aw), low)
 	for c in r.get("calls", []):
 		_say(int(c.from), String(c.id))
-	if String(r.get("next", "")) != "":
+	var sc: Dictionary = rules.score()
+	var tracked: Array = sc.get("tracked_s", [])
+	while _logged < int(sc.get("engagements", 0)):
+		var t := float(tracked[_logged]) if _logged < tracked.size() else 0.0
+		_event({"event": "engagement", "n": _logged + 1, "tracked_s": snappedf(t, 0.1)})
+		_logged += 1
+	if rules.done():
+		_finish(me)
+	elif String(r.get("next", "")) != "":
 		_place(String(r.next))
+
+
+## A lesson's round over: the player back in the world (not shielded, not out), the aggressor out of the fight.
+func _finish(me: Dictionary) -> void:
+	me.shield = false
+	me["out"] = false
+	jet["out"] = true
+	_event({"event": "fight", "state": "done"})
 
 
 func _agl(w: Vector3) -> float:

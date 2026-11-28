@@ -18,6 +18,7 @@ const LESSONS: &[(&str, &str)] = &[
     ("formation", include_str!("../../../modern-iaf/data/training/lessons/formation.json")),
     ("control", include_str!("../../../modern-iaf/data/training/lessons/control.json")),
     ("navigation", include_str!("../../../modern-iaf/data/training/lessons/navigation.json")),
+    ("air_to_air", include_str!("../../../modern-iaf/data/training/lessons/air_to_air.json")),
 ];
 
 /// The briefing's sections in their order (training-plan.md §2.2): each a list of paragraphs.
@@ -26,7 +27,7 @@ pub const SECTIONS: [&str; 8] =
 
 /// The tests a call (and a lesson's end) waits for, by name (training.md §16.3): data for the instructor's call engine
 /// and, for an end, the scorer (`training::holds`).
-pub const TESTS: [&str; 20] = [
+pub const TESTS: [&str; 22] = [
     "start",
     "idle",
     "aligned",
@@ -47,6 +48,8 @@ pub const TESTS: [&str; 20] = [
     "in_slot",
     "flight_joined",
     "flight_landed",
+    "fight_on",
+    "fight_done",
 ];
 
 /// The tests with an argument after a colon: `item:<card item id>` (ticked on the jet's checklist card),
@@ -55,12 +58,13 @@ pub const TESTS: [&str; 20] = [
 /// (the altitude above the field), `aoa:<deg>` (the angle of attack), `g:<g>` (the load factor), and
 /// `lead_order:<order>` (the AI lead gave the order: iaf_ai::LEAD_CALLS without "lead_"), and `tanker:<event>` (the
 /// tanker's event for the player's jet, one of `TANKER_EVENTS`), and `steerpoint:<n>` (in the air at the route's
-/// steerpoint `n`, 1 the first).
-pub const ARG_TESTS: [&str; 10] =
-    ["item", "cleared", "called", "failure", "alt", "aoa", "g", "lead_order", "tanker", "steerpoint"];
+/// steerpoint `n`, 1 the first), and `kills:<n>` (the player has shot down at least n: drones, and aggressors by
+/// simulated shots).
+pub const ARG_TESTS: [&str; 11] =
+    ["item", "cleared", "called", "failure", "alt", "aoa", "g", "lead_order", "tanker", "steerpoint", "kills"];
 
 /// The argument tests whose argument is a number.
-const NUMBER_TESTS: [&str; 4] = ["alt", "aoa", "g", "steerpoint"];
+const NUMBER_TESTS: [&str; 5] = ["alt", "aoa", "g", "steerpoint", "kills"];
 
 /// The tanker's events for the player's jet (`shared/ai/tanker.gd`, the flight's `tanker` events): within 1 NM of it
 /// (`joined`), then the boom operator's calls (`iaf_ai::tanker::Event`).

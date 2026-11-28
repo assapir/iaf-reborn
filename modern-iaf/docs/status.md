@@ -193,8 +193,17 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   jets are shielded; shots at drones stay live (at SIMULATE every shot of the player's is simulated). The calls "Fox"
   / "guns", "kill" and "knock it off" are said in the pilot's voice ("Kidon 1") and the wingmen's ("Red 1") with
   Hebrew subtitles; the killed jet leaves the fight; "knock it off" (the aggressor's after a kill, apart, too long or
-  below the floor; the player's on Shift + F4) starts the next set-up. A dev hook (`shared/ai/aggressor.gd start`):
-  no lesson places it yet. `cargo test -p iaf-ai --lib aggressor`, `modern-iaf/tests/test_aggressor.gd`.
+  below the floor; the player's on Shift + F4) starts the next set-up. Phase 7's lessons fly it from their missions
+  (below). `cargo test -p iaf-ai --lib aggressor`, `modern-iaf/tests/test_aggressor.gd`.
+- **Phase 7's lessons, air-to-air (2026-11-28; [training.md](training.md) §16.11):** for the three jets the drone
+  intercept (two drones, Eitam's bogey dope, live missiles), BVR, offensive and defensive BFM against an aggressor
+  Sufa, the MiG-29A, the drone and BVR at night, and check ride 7: each a full sortie from the jet's home base to a
+  training area and back, its briefing's eight sections, eleven diagrams, the Lesson tab and the instructor's calls.
+  A mission's `aggressor` starts the round at the area ("fight's on") and flies its set-ups once; the recording's
+  shots (with the DLZ), simulated kills and gun tracking grade the targets shot down, the shots inside the reach, the
+  times shot down, the tracking time and the highest G. The instructor's calls follow the round
+  and the kills (`fight_on`, `fight_done`, `kills:<n>`). `modern-iaf/tests/test_course_air_to_air.gd`,
+  `cargo test -p iaf-tools --lib calls`.
 - **Every seat's radio calls whole, Kidon 5–8 voiced (2026-11-25, the game gaps' row 15; [sound.md](sound.md) §3,
   §5.2):** the player's call to a tower ("Hatzerim tower, Kidon 3, request taxi") is one clip as Kidon 1 to 8 (160
   English clips; before, Kidon 2–4 played the address, the callsign and the request apart); the tower's "negative,

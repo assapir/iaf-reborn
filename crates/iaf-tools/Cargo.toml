@@ -8,6 +8,7 @@ description = "Extraction and conversion tools for Jane's IAF data"
 [dependencies]
 iaf-formats = { path = "../iaf-formats" }
 iaf-avionics = { path = "../iaf-avionics" }
+iaf-ai = { path = "../iaf-ai" }
 iaf-flight = { path = "../iaf-flight" }
 anyhow = "1"
 flate2 = "1.1"

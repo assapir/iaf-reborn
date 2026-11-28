@@ -358,6 +358,8 @@ impl IafCalls {
                 .get("route")
                 .and_then(|v| v.try_to::<PackedVector2Array>().ok())
                 .map_or(vec![], |a| a.as_slice().iter().map(|p| [f64::from(p.x), f64::from(p.y)]).collect()),
+            fight: now.get("fight").and_then(|v| v.try_to::<i64>().ok()).unwrap_or(0),
+            kills: now.get("kills").and_then(|v| v.try_to::<i64>().ok()).unwrap_or(0),
         };
         let mut out = VarArray::new();
         for s in self.calls.as_mut().map_or(vec![], |c| c.tick(&n)) {

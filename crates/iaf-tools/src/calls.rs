@@ -104,6 +104,12 @@ pub enum Test {
     Tanker(String),
     /// In the air within STEER_M of the route's steerpoint (1 the first).
     Steerpoint(usize),
+    /// The lesson's aggressor round has started (training.md §16.11).
+    FightOn,
+    /// The round's last engagement has ended.
+    FightDone,
+    /// The player has shot down at least this many: drones, and the aggressor by simulated shots.
+    Kills(u32),
 }
 
 impl Test {
@@ -129,6 +135,8 @@ impl Test {
             "in_slot" => Test::InSlot,
             "flight_joined" => Test::FlightJoined,
             "flight_landed" => Test::FlightLanded,
+            "fight_on" => Test::FightOn,
+            "fight_done" => Test::FightDone,
             t => match t.split_once(':') {
                 Some(("item", a)) if !a.is_empty() => Test::Item(a.into()),
                 Some(("cleared", a)) if ["startup", "taxi", "takeoff"].contains(&a) => Test::Cleared(a.into()),
@@ -147,6 +155,7 @@ impl Test {
                 Some(("steerpoint", a)) if a.parse::<usize>().is_ok_and(|n| n > 0) => {
                     Test::Steerpoint(a.parse().unwrap_or(1))
                 }
+                Some(("kills", a)) if a.parse::<u32>().is_ok() => Test::Kills(a.parse()?),
                 _ => bail!("calls: \"{t}\" is no test"),
             },
         })
@@ -336,6 +345,10 @@ pub struct Now {
     pub tanker: Vec<String>,
     /// The route's steerpoints in the engine frame, m, the first first.
     pub route: Vec<[f64; 2]>,
+    /// The lesson's aggressor round: 0 none yet, 1 on, 2 over (training.md §16.11).
+    pub fight: i64,
+    /// The player's kills so far: drones, and the aggressor by simulated shots.
+    pub kills: i64,
 }
 
 /// A line said: its call, its clip, its English and Hebrew subtitles.
@@ -474,6 +487,9 @@ impl Calls {
             Test::LeadOrder(o) => s.lead_orders.contains(o),
             Test::Tanker(e) => s.tanker.contains(e),
             Test::Steerpoint(n) => air && s.route.get(n - 1).is_some_and(|p| (s.x - p[0]).hypot(s.y - p[1]) <= STEER_M),
+            Test::FightOn => s.fight >= 1,
+            Test::FightDone => s.fight >= 2,
+            Test::Kills(n) => s.kills >= i64::from(*n),
         }
     }
 
@@ -543,11 +559,12 @@ mod tests {
             "called:awacs:checkin",
             "tanker:contact",
             "steerpoint:4",
+            "kills:2",
         ]) {
             assert!(Test::of(t).is_ok(), "{t}");
         }
         assert!(Test::of("cleared:landing").is_err() && Test::of("nope").is_err() && Test::of("aoa:x").is_err());
-        assert!(Test::of("tanker:nope").is_err());
+        assert!(Test::of("tanker:nope").is_err() && Test::of("kills:two").is_err());
         assert_eq!(runway_words("25R"), ["two five right".to_string(), "25 right".into(), "25 ימין".into()]);
         assert_eq!(runway_words("07L")[0], "seven left");
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/airbases");
@@ -555,6 +572,22 @@ mod tests {
         assert!(clips.iter().any(|c| c.file == "ins_ground_cockpit_intro_1.ogg" && !c.radio), "the F-16s' intercom");
         assert!(clips.iter().any(|c| c.file == "insr_ground_cockpit_intro_1.ogg"), "the F-35I's radio");
         assert_eq!(file("pattern.overhead", "taxi", 0, Some("25R"), false), "ins_pattern_overhead_taxi_0_25r.ogg");
+    }
+
+    /// Phase 7's fight calls (training.md §16.11): the round on, a kill, the round over, each once in order.
+    #[test]
+    fn the_fights_calls_follow_the_round_and_the_kills() {
+        let b = ramon();
+        let mut c = Calls::open("air_to_air.night", "f16i", &b, "", true).unwrap();
+        let air = Now { on_ground: false, alt_ft: 15_000.0, called: vec!["awacs:bogey_dope".into()], ..Now::default() };
+        let said = |c: &mut Calls, n: &Now| c.tick(n).into_iter().map(|s| s.call).collect::<Vec<_>>();
+        c.calls.retain(|x| ["radar", "on", "fight", "home"].contains(&x.id.as_str()));
+        assert_eq!(said(&mut c, &air), ["radar"]);
+        assert!(said(&mut c, &air).is_empty(), "no kill yet");
+        let one = Now { kills: 1, ..air.clone() };
+        assert_eq!(said(&mut c, &one), ["on"]);
+        assert_eq!(said(&mut c, &Now { fight: 1, ..one.clone() }), ["fight"]);
+        assert_eq!(said(&mut c, &Now { fight: 2, ..one }), ["home"]);
     }
 
     /// Lesson 1.1 (ground.json) in the Sufa: each call at its checklist item, the radio call, then the jet dark.

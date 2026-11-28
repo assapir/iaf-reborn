@@ -1731,6 +1731,14 @@ fn lesson(
     })
 }
 
+/// A lesson's targets to shoot down (training.md §16.11): its drones, and its aggressor round's engagements (one
+/// aggressor to kill in each).
+fn targets(mission: &Value) -> usize {
+    let drones: u64 =
+        mission["drones"].as_array().into_iter().flatten().map(|d| d["count"].as_u64().unwrap_or(1)).sum();
+    drones as usize + mission["aggressor"]["setups"].as_array().map_or(0, Vec::len)
+}
+
 /// A course item's flown value from the recording (training.md §16.2), with the sample it was flown at (None for an
 /// item of the whole flight); None: not flown, or no measure for the item yet (each phase adds its items' measures
 /// here).
@@ -1841,6 +1849,40 @@ fn measure(f: &Flight, id: &str, mission: &Value, r: &Rules, calls: &[String]) -
         "tanker_contact_time" => whole(tanker_contact_time(f)),
         "tanker_disconnects" => whole(tanker_disconnects(f)),
         "fuel_taken" => whole(fuel_taken(f)),
+        // The air-to-air phase (§16.11): the player's own kills (a drone shot down, an aggressor's simulated kill)
+        // against the lesson's targets.
+        "targets_killed" => {
+            let mine = |e: &&Value| {
+                (e["event"] == "kill" && e["air"] == true && e["assist"] != true)
+                    || (e["event"] == "sim_kill" && e["by"] == "player")
+            };
+            let targets = targets(mission);
+            whole(pct(f.events.iter().filter(mine).count().min(targets), targets))
+        }
+        // The air-to-air missiles fired with the target inside the missile's reach (its DLZ at the launch).
+        "shots_in_reach" => {
+            let shots: Vec<&Value> = f.events.iter().filter(|e| e["event"] == "shot").collect();
+            let inside = |e: &&&Value| match (e["range_m"].as_f64(), e["min_m"].as_f64(), e["max_m"].as_f64()) {
+                (Some(r), Some(lo), Some(hi)) => (lo..=hi).contains(&r),
+                _ => false,
+            };
+            whole((!shots.is_empty()).then(|| 100.0 * shots.iter().filter(inside).count() as f64 / shots.len() as f64))
+        }
+        // Shot down: the aggressor's simulated kills of the player, and a real shoot-down.
+        "times_killed" => {
+            let killed = |e: &&Value| (e["event"] == "sim_kill" && e["by"] == "aggressor") || e["event"] == "shot_down";
+            whole(Some(f.events.iter().filter(killed).count() as f64))
+        }
+        // The gun's tracking time over the round's engagements (aggressor.rs `tracking`); none flown: not flown.
+        "tracking_time" => {
+            let t: Vec<f64> = f
+                .events
+                .iter()
+                .filter(|e| e["event"] == "engagement")
+                .map(|e| e["tracked_s"].as_f64().unwrap_or(0.0))
+                .collect();
+            whole((!t.is_empty()).then(|| t.iter().sum()))
+        }
         _ => (None, None),
     }
 }
@@ -3164,6 +3206,42 @@ mod tests {
 
     /// Every lesson's `checklist` names items of its jet's checklist card (training.md §12), once each, in the card's
     /// order, and holds the flight model's six start-up steps.
+    #[test]
+    fn the_air_to_air_items_read_the_fight() {
+        let m = json!({"drones": [{"count": 2}], "aggressor": {"setups": ["offensive", "defensive"]}});
+        assert_eq!(targets(&m), 4);
+        let at = |t: f64, g: f64, on_ground: bool| Sample { t, g: Some(g), on_ground, ..Sample::default() };
+        let f = Flight {
+            samples: vec![at(0.0, 1.0, true), at(10.0, 1.0, false)],
+            events: vec![
+                json!({"event": "shot", "range_m": 30000.0, "max_m": 60000.0, "min_m": 1000.0}),
+                json!({"event": "shot", "range_m": 70000.0, "max_m": 60000.0, "min_m": 1000.0}),
+                json!({"event": "shot"}),
+                json!({"event": "kill", "air": true}),
+                json!({"event": "kill", "air": true, "assist": true}),
+                json!({"event": "kill", "air": false}),
+                json!({"event": "sim_kill", "by": "player", "how": "gun"}),
+                json!({"event": "sim_kill", "by": "aggressor", "how": "missile"}),
+                json!({"event": "engagement", "n": 1, "tracked_s": 2.5}),
+                json!({"event": "engagement", "n": 2, "tracked_s": 1.0}),
+            ],
+            cut_lines: 0,
+        };
+        let r = rules(&json!({"lesson": "air_to_air.drone", "training": {"kind": "lesson", "end": ["parked"],
+            "calls": [], "time_budget_s": 60, "end_hold_s": 5, "goals": []}}))
+        .unwrap()
+        .unwrap();
+        let mission = json!({"drones": [{"count": 2}], "aggressor": {"setups": ["offensive", "defensive"]}});
+        let m = |id| measure(&f, id, &mission, &r, &[]).0;
+        assert_eq!(m("targets_killed"), Some(50.0), "a drone and an aggressor of four");
+        assert_eq!(m("shots_in_reach").map(f64::round), Some(33.0), "one of three inside the DLZ");
+        assert_eq!(m("times_killed"), Some(1.0));
+        assert_eq!(m("tracking_time"), Some(3.5));
+        let none = Flight { samples: f.samples.clone(), ..Flight::default() };
+        assert_eq!(measure(&none, "tracking_time", &json!({}), &r, &[]).0, None, "no engagement: not flown");
+        assert_eq!(measure(&none, "shots_in_reach", &json!({}), &r, &[]).0, None, "no shot: not flown");
+    }
+
     #[test]
     fn lessons_name_their_jets_card_items() {
         let cards = crate::sim::read_dir(&data().join("checklists")).unwrap();

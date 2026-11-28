@@ -1,6 +1,6 @@
 #import "/modern-iaf/manuals/layout/manual.typ": *
 
-#idx("Training fight")#idx("Aggressor")A training fight puts you against an aggressor: a Sufa flown by the computer with an instructor's tactics, callsign Red 1. Shots between the two jets are simulated, as in real training. No #term("lesson") of this edition flies one yet.
+#idx("Training fight")#idx("Aggressor")A training fight puts you against an aggressor: a Sufa flown by the computer with an instructor's tactics, callsign Red 1. Shots between the two jets are simulated, as in real training. The air-to-air #term("lesson")s fly it: the fight starts when you reach the training area, and after the lesson's last engagement Red 1 leaves the fight and you fly home. In the lesson against enemy types Red 1 is a MiG-29A.
 
 === The set-ups <training-fight-setups>
 

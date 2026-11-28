@@ -2736,8 +2736,8 @@ part (`crates/iaf-ai/src/tanker.rs`, `flight.rs`; `shared/ai/tanker.gd`):
 The training plan's air-to-air phase ([../modern-iaf/docs/training-plan.md](../modern-iaf/docs/training-plan.md) §3,
 phase 7): "Drones are shot down for real. Against a jet, shots are simulated as in real training: the shot's call ("Fox
 3"), the "kill" call, the killed jet leaves the fight, and "knock it off" ends the round" (the user, 28 November 2026),
-and the BFM lessons' engagements each start from a set-up in the air. This section is the capability; no lesson places
-it yet. The rules are Rust (`crates/iaf-ai/src/aggressor.rs`, gdext `IafAggressor`); the host is
+and the BFM lessons' engagements each start from a set-up in the air. Phase 7's lessons fly it from their missions'
+`aggressor` ([../modern-iaf/docs/training.md](../modern-iaf/docs/training.md) §16.11). The rules are Rust (`crates/iaf-ai/src/aggressor.rs`, gdext `IafAggressor`); the host is
 `shared/ai/aggressor.gd`. Every figure is inferred unless a source is named.
 
 - **The aggressor** is a Sufa of the enemy side (`ai_flights.gd spawn`, record `f16i`) flown by the enemy fighter's
@@ -2781,11 +2781,22 @@ it yet. The rules are Rust (`crates/iaf-ai/src/aggressor.rs`, gdext `IafAggresso
   (BVR 150 km), after 180 s (BVR 300 s) or when either jet is below the training floor (5,000 ft above the ground); or
   by the player, the key Shift + F4 (command 304; [controls.md](controls.md)). Both jets are out of the fight until the
   next set-up starts, 6 s later.
-- **The dev hook:** `Aggressor.start(host, setups, at, heading)`; freeing the node unshields both jets
+- **A lesson's round** (the mission's `aggressor`, [../modern-iaf/docs/data-formats.md](../modern-iaf/docs/data-formats.md)
+  §5): `sim_flight.gd` starts it once the player flies within 10 NM of its centre above the training floor
+  (`aggressor::fights_on`), with the mission's aggressor record (`unit`: an F-16I, or the MiG-29A of the enemy types
+  lesson) and its stores (`arm`). It flies its set-ups once (`Round::once`): after the last engagement's "knock it
+  off" the round is over (`Round::done`), the aggressor stays out of the fight (and shielded) and the player is free.
+  The gun's tracking time counts while both fight and the player's gun line is within 20 mil of the lead point (the
+  aggressor where a round fired now meets it, raised by the round's drop at 1,050 m/s) at 500 to 3,000 ft
+  (`aggressor::tracking`, inferred). The recording gets `fight` (on, done), `sim_kill` (by, how) and `engagement`
+  (`tracked_s`) for the lesson's grades.
+- **The dev hook:** `Aggressor.start(host, setups, at, heading, opts)`; freeing the node unshields both jets
   (`shared/ai/aggressor.gd`): the round of `setups` (offensive, defensive, high_aspect, bvr) round `at` (world), the
-  player heading `heading`.
+  player heading `heading`; `opts` `unit`, `arm`, `once`.
 - **Tests:** `cargo test -p iaf-ai --lib aggressor` (the set-ups' places, the missile's kill rule, the calls and their
-  order after a kill, "guns" once a burst and the third hit, every way to knock it off and the next set-up);
+  order after a kill, "guns" once a burst and the third hit, every way to knock it off and the next set-up, a lesson's
+  round flown once, the gun's tracking and "fight's on"); `modern-iaf/tests/test_course_air_to_air.gd` (a lesson's
+  round);
   `modern-iaf/tests/test_aggressor.gd` (headless on the range: the defensive set-up, the aggressor's shot simulated and
   its kill called, the player out and the next set-up; the player's simulated missile from the offensive set-up and its
   kill; the player's knock it off; which shots are simulated).

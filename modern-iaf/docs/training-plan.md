@@ -2,7 +2,7 @@
 
 This is the plan for Modern IAF's training lessons: the course for each jet, what a lesson is, how the instructor
 works, and how a lesson is briefed and graded. The course's data, its grades and its first two screens are built
-(§5), and the lessons of phases 1, 2, 3, 4 and 6 for the three jets ([training.md](training.md) §16.4, §16.7, §16.8, §16.9, §16.10). The ten earlier training missions are not part of it: the course replaces them in
+(§5), and the lessons of phases 1, 2, 3, 4, 6 and 7 for the three jets ([training.md](training.md) §16.4, §16.7, §16.8, §16.9, §16.10, §16.11). The ten earlier training missions are not part of it: the course replaces them in
 the front end (the user, 28 Nov 2026: "The current existing train should be deleted, o/c. It replaces them"). The user decided it in a planning talk on 28 November 2026; the 12 and 13 November
 decisions that still stand are marked with their date.
 
@@ -345,7 +345,8 @@ capabilities. A builder checks each against [status.md](status.md) before a phas
 - AI wingmen in formation; the flight's commands;
 - AWACS and ground-control calls (built: the check-in and JUDY on the AWACS page, [training.md](training.md) §16.9);
 - drone targets; aggressor F-16s; simulated shots with kill calls (built: the aggressor, the set-ups and the
-  simulated shots, [../../docs/ai.md](../../docs/ai.md) §26);
+  simulated shots, [../../docs/ai.md](../../docs/ai.md) §26; flown by phase 7's lessons, [training.md](training.md)
+  §16.11);
 - SAM sites at the range;
 - a tanker (built, with its lights by night and its events in the recording, [training.md](training.md) §16.9).
 

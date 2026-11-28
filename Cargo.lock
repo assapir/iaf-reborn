@@ -483,6 +483,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "flate2",
+ "iaf-ai",
  "iaf-avionics",
  "iaf-flight",
  "iaf-formats",

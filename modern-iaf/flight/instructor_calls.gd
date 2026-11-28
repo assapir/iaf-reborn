@@ -68,6 +68,8 @@ func _process(delta: float) -> void:
 			"lead_orders": PackedStringArray(fl.get("orders", [])),
 			"tanker": host.tanker.player_events if host.get("tanker") != null else PackedStringArray(),
 			"route": _route(),
+			"fight": _fight(),
+			"kills": _kills(),
 		}
 	)
 
@@ -89,6 +91,28 @@ func _route() -> PackedVector2Array:
 	for w in host.get("route") if host.get("route") != null else []:
 		out.append(Vector2(w.world.x, w.world.y))
 	return out
+
+
+## The lesson's aggressor round (shared/ai/aggressor.gd): 0 none yet, 1 on, 2 over.
+func _fight() -> int:
+	var a: Node = host.get_node_or_null("Aggressor")
+	if a == null:
+		return 0
+	return 2 if a.done() else 1
+
+
+## The player's kills so far: aircraft the player destroyed (drones), and the aggressor by simulated shots.
+func _kills() -> int:
+	var n := 0
+	var rt = host.get("runtime")
+	if rt != null:
+		for e in rt.entities.values():
+			if int(e.get("state", 0)) >= 3 and bool(e.get("airborne_class", false)):
+				n += int(bool(e.get("killer", {}).get("player", false)))
+	var a: Node = host.get_node_or_null("Aggressor")
+	if a != null:
+		n += a.kills.filter(func(k): return int(k[0]) == 0).size()
+	return n
 
 
 ## One frame of the flight (`now`: IafCalls.tick's): says the lines that come now; their calls' ids, one a line.

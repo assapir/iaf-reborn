@@ -1,0 +1,121 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16d",
+    "base": "Ramat David",
+    "at": "parking",
+    "elevation_m": 56
+  },
+  "runway": "27",
+  "loadout": {
+    "1": "aim-120",
+    "2": "aim-9m",
+    "3": "aim-120",
+    "4": "tank-370",
+    "6": "tank-370",
+    "7": "aim-120",
+    "8": "aim-9m",
+    "9": "aim-120"
+  },
+  "fixed_loadout": true,
+  "route": [
+    {
+      "lat": 32.75,
+      "lon": 34.8,
+      "alt_m": 6096,
+      "speed_kmh": 800
+    },
+    {
+      "lat": 32.75,
+      "lon": 34.35,
+      "alt_m": 6096,
+      "speed_kmh": 800
+    }
+  ],
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "aggressor": {
+    "unit": "f16i",
+    "setups": [
+      "bvr",
+      "bvr"
+    ],
+    "lat": 32.75,
+    "lon": 34.35,
+    "heading": 270,
+    "arm": {
+      "0": "aim-120",
+      "8": "aim-120"
+    },
+    "sources": {
+      "lat": "inferred",
+      "lon": "inferred",
+      "heading": "inferred"
+    },
+    "notes": {
+      "setups": "the lesson's engagements in order, each from its set-up (docs/ai.md §26)",
+      "heading": "the player's heading in the set-ups: away from the base",
+      "arm": "the aggressor's AIM-120 at its wingtips for the BVR shots"
+    }
+  },
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "a day lesson (training-plan.md §1: every lesson but the night lesson and the night check rides by day)",
+    "wind_kt": "calm (inferred: the fight is learnt without a wind to allow for)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "runway": "the base's runway the take-off missions use; the tower turns it into the wind",
+    "loadout": "an air-to-air load on the jet's allowed stations (data/db/units)",
+    "route": "steerpoint 1 the drones' area, steerpoint 2 the fight's, at the lesson's height (inferred: training areas about 40 to 90 km from the base, away from towns; the IAF's own areas are not public)",
+    "training.time_budget_s": "the start-up, the taxi, the flight to the area, the lesson's engagements and the way home with time to spare (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.end": "the lesson ends with the jet back on its spot and the engine off (training.md §16.3)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLRD elevation 185 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f16d_air_to_air_bvr",
+  "menu_id": 3721,
+  "lesson": "air_to_air.bvr",
+  "title": {
+    "en": "BVR against aggressors",
+    "he": "BVR מול מטוסי יריב"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "calls": [],
+    "checklist": [],
+    "time_budget_s": 3600,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

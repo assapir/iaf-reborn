@@ -1,0 +1,3499 @@
+{
+  "about": "Phase 7's lessons (Air-to-air): per lesson its missions by jet, the briefing's sections, the notebook's Lesson tab and the instructor's calls (modern-iaf/docs/training.md §16.11, the diagrams §16.5). Read by crates/iaf-tools/src/course.rs. The fights are the aggressor round of docs/ai.md §26 (set-ups, simulated shots, \"kill\", \"knock it off\"); the drones are the range's (data-formats.md §5.1). The manoeuvres' names are Robert Shaw's (\"Fighter Combat\", docs/ai.md [^shaw]); in Hebrew the pursuits, the crank and the guns jink stay in English, as no Hebrew source names them (modern-iaf/docs/research/training.md §3). Jet figures (speeds, limits) are the aircraft definitions', never written here.",
+  "diagrams": {
+    "intercept": {
+      "title": {
+        "en": "The radar intercept",
+        "he": "יירוט מכ\"ם"
+      },
+      "points": [
+        {
+          "en": "Bogey dope",
+          "he": "המגע הקרוב",
+          "hold": {
+            "en": "15,000 ft · 450 kt",
+            "he": "15,000 רגל · 450 קשר"
+          }
+        },
+        {
+          "en": "Radar lock",
+          "he": "נעילת מכ\"ם",
+          "hold": {
+            "en": "RWS · lock",
+            "he": "RWS · נעילה"
+          }
+        },
+        {
+          "en": "The shot",
+          "he": "הירי",
+          "hold": {
+            "en": "Rmin < range < Rmax",
+            "he": "Rmin < טווח < Rmax"
+          }
+        },
+        {
+          "en": "Splash",
+          "he": "הפלה",
+          "hold": {
+            "en": "the drone",
+            "he": "המל\"ט"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                50,
+                95
+              ],
+              [
+                50,
+                45
+              ],
+              [
+                50,
+                30
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                30,
+                20
+              ],
+              [
+                70,
+                20
+              ],
+              [
+                70,
+                8
+              ],
+              [
+                30,
+                8
+              ],
+              [
+                30,
+                20
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            50,
+            90
+          ],
+          [
+            50,
+            65
+          ],
+          [
+            50,
+            45
+          ],
+          [
+            45,
+            20
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              72,
+              30
+            ],
+            "en": "drone",
+            "he": "מל\"ט"
+          }
+        ]
+      },
+      "side": {
+        "paths": [
+          {
+            "track": [
+              [
+                5,
+                40
+              ],
+              [
+                40,
+                60
+              ],
+              [
+                95,
+                60
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                60,
+                60
+              ],
+              [
+                95,
+                60
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            20,
+            50
+          ],
+          [
+            50,
+            60
+          ],
+          [
+            70,
+            60
+          ],
+          [
+            90,
+            60
+          ]
+        ]
+      }
+    },
+    "bvr": {
+      "title": {
+        "en": "BVR: the head-on start",
+        "he": "BVR: פתיחה חזיתית"
+      },
+      "points": [
+        {
+          "en": "The set-up",
+          "he": "נקודת הפתיחה",
+          "hold": {
+            "en": "40 NM · 20,000 ft",
+            "he": "40 מייל · 20,000 רגל"
+          }
+        },
+        {
+          "en": "Radar lock",
+          "he": "נעילת מכ\"ם",
+          "hold": {
+            "en": "RWS / TWS",
+            "he": "RWS / TWS"
+          }
+        },
+        {
+          "en": "The shot",
+          "he": "הירי",
+          "hold": {
+            "en": "inside the DLZ",
+            "he": "בתוך ה-DLZ"
+          }
+        },
+        {
+          "en": "The crank",
+          "he": "ה-crank",
+          "hold": {
+            "en": "50° off his line",
+            "he": "סטייה של 50° מהקו אליו"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                50,
+                95
+              ],
+              [
+                50,
+                62
+              ],
+              [
+                68,
+                46
+              ],
+              [
+                82,
+                36
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                50,
+                5
+              ],
+              [
+                50,
+                38
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            50,
+            95
+          ],
+          [
+            50,
+            78
+          ],
+          [
+            50,
+            62
+          ],
+          [
+            70,
+            45
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              55,
+              10
+            ],
+            "en": "Red 1",
+            "he": "אדום 1"
+          },
+          {
+            "at": [
+              60,
+              85
+            ],
+            "en": "40 NM",
+            "he": "40 מייל"
+          }
+        ]
+      }
+    },
+    "crank": {
+      "title": {
+        "en": "The crank and the defence",
+        "he": "ה-crank וההתגוננות"
+      },
+      "points": [
+        {
+          "en": "The shot",
+          "he": "הירי",
+          "hold": {
+            "en": "inside the DLZ",
+            "he": "בתוך ה-DLZ"
+          }
+        },
+        {
+          "en": "The crank",
+          "he": "ה-crank",
+          "hold": {
+            "en": "50° off · him on the radar",
+            "he": "50° · הוא במכ\"ם"
+          }
+        },
+        {
+          "en": "His missile: the beam",
+          "he": "הטיל שלו: להעמיד בצד",
+          "hold": {
+            "en": "him at 90° · chaff",
+            "he": "הוא ב-90° · מוץ"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                50,
+                92
+              ],
+              [
+                50,
+                60
+              ],
+              [
+                72,
+                42
+              ],
+              [
+                88,
+                60
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                50,
+                8
+              ],
+              [
+                50,
+                35
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            50,
+            60
+          ],
+          [
+            70,
+            44
+          ],
+          [
+            86,
+            57
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              55,
+              12
+            ],
+            "en": "Red 1",
+            "he": "אדום 1"
+          }
+        ]
+      }
+    },
+    "offensive_setup": {
+      "title": {
+        "en": "Offensive set-up",
+        "he": "נקודת פתיחה התקפית"
+      },
+      "points": [
+        {
+          "en": "You",
+          "he": "אתם",
+          "hold": {
+            "en": "15,000 ft · 450 kt",
+            "he": "15,000 רגל · 450 קשר"
+          }
+        },
+        {
+          "en": "Red 1",
+          "he": "אדום 1",
+          "hold": {
+            "en": "15,000 ft · 450 kt",
+            "he": "15,000 רגל · 450 קשר"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                50,
+                85
+              ],
+              [
+                50,
+                55
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                50,
+                40
+              ],
+              [
+                50,
+                10
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            50,
+            75
+          ],
+          [
+            50,
+            35
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              60,
+              55
+            ],
+            "en": "3,000 ft",
+            "he": "3,000 רגל"
+          }
+        ]
+      }
+    },
+    "defensive_setup": {
+      "title": {
+        "en": "Defensive set-up",
+        "he": "נקודת פתיחה הגנתית"
+      },
+      "points": [
+        {
+          "en": "You",
+          "he": "אתם",
+          "hold": {
+            "en": "15,000 ft · 450 kt",
+            "he": "15,000 רגל · 450 קשר"
+          }
+        },
+        {
+          "en": "Red 1",
+          "he": "אדום 1",
+          "hold": {
+            "en": "15,000 ft · 450 kt",
+            "he": "15,000 רגל · 450 קשר"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                50,
+                40
+              ],
+              [
+                50,
+                10
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                50,
+                85
+              ],
+              [
+                50,
+                55
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            50,
+            35
+          ],
+          [
+            50,
+            75
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              60,
+              55
+            ],
+            "en": "3,000 ft",
+            "he": "3,000 רגל"
+          }
+        ]
+      }
+    },
+    "pursuit": {
+      "title": {
+        "en": "Lag, pure and lead pursuit",
+        "he": "מרדף lag, pure ו-lead"
+      },
+      "points": [
+        {
+          "en": "Lag",
+          "he": "Lag",
+          "hold": {
+            "en": "nose behind him",
+            "he": "האף מאחוריו"
+          }
+        },
+        {
+          "en": "Pure",
+          "he": "Pure",
+          "hold": {
+            "en": "nose on him: IR missile",
+            "he": "האף עליו: טיל מונחה חום"
+          }
+        },
+        {
+          "en": "Lead",
+          "he": "Lead",
+          "hold": {
+            "en": "nose ahead of him: the gun",
+            "he": "האף לפניו: התותח"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                50,
+                15
+              ],
+              [
+                78,
+                28
+              ],
+              [
+                88,
+                52
+              ],
+              [
+                76,
+                80
+              ]
+            ],
+            "kind": "other"
+          },
+          {
+            "track": [
+              [
+                15,
+                70
+              ],
+              [
+                40,
+                45
+              ],
+              [
+                62,
+                30
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                20,
+                85
+              ],
+              [
+                50,
+                62
+              ],
+              [
+                80,
+                50
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                30,
+                95
+              ],
+              [
+                60,
+                78
+              ],
+              [
+                86,
+                70
+              ]
+            ]
+          }
+        ],
+        "pins": [
+          [
+            40,
+            45
+          ],
+          [
+            50,
+            62
+          ],
+          [
+            60,
+            78
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              82,
+              20
+            ],
+            "en": "Red 1",
+            "he": "אדום 1"
+          }
+        ]
+      }
+    },
+    "yoyo": {
+      "title": {
+        "en": "High and low yo-yo",
+        "he": "יו-יו גבוה ונמוך"
+      },
+      "points": [
+        {
+          "en": "High yo-yo",
+          "he": "יו-יו גבוה",
+          "hold": {
+            "en": "too fast, too close: up out of his turn",
+            "he": "מהר מדי, קרוב מדי: למעלה מחוץ לפנייה שלו"
+          }
+        },
+        {
+          "en": "Low yo-yo",
+          "he": "יו-יו נמוך",
+          "hold": {
+            "en": "too far behind: nose low inside his turn",
+            "he": "רחוק מדי מאחור: האף למטה בתוך הפנייה שלו"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                20,
+                85
+              ],
+              [
+                45,
+                40
+              ],
+              [
+                80,
+                20
+              ]
+            ],
+            "kind": "other"
+          },
+          {
+            "track": [
+              [
+                10,
+                95
+              ],
+              [
+                30,
+                60
+              ],
+              [
+                55,
+                35
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                30,
+                98
+              ],
+              [
+                55,
+                70
+              ],
+              [
+                75,
+                45
+              ]
+            ]
+          }
+        ],
+        "pins": [
+          [
+            30,
+            60
+          ],
+          [
+            55,
+            70
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              82,
+              12
+            ],
+            "en": "Red 1",
+            "he": "אדום 1"
+          }
+        ]
+      },
+      "side": {
+        "paths": [
+          {
+            "track": [
+              [
+                5,
+                50
+              ],
+              [
+                40,
+                85
+              ],
+              [
+                75,
+                50
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                5,
+                50
+              ],
+              [
+                40,
+                15
+              ],
+              [
+                75,
+                50
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                5,
+                50
+              ],
+              [
+                95,
+                50
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            40,
+            85
+          ],
+          [
+            40,
+            15
+          ]
+        ]
+      }
+    },
+    "break_turn": {
+      "title": {
+        "en": "The break turn",
+        "he": "פניית שבירה"
+      },
+      "points": [
+        {
+          "en": "Break",
+          "he": "שבירה",
+          "hold": {
+            "en": "full afterburner · G at the limit",
+            "he": "מבער מלא · G במגבלה"
+          }
+        },
+        {
+          "en": "Flares",
+          "he": "נורים",
+          "hold": {
+            "en": "against his IR missile",
+            "he": "נגד הטיל מונחה החום שלו"
+          }
+        },
+        {
+          "en": "Into him",
+          "he": "לכיוונו",
+          "hold": {
+            "en": "keep him in sight",
+            "he": "לשמור עליו בעין"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                50,
+                85
+              ],
+              [
+                50,
+                60
+              ],
+              [
+                60,
+                45
+              ],
+              [
+                76,
+                45
+              ],
+              [
+                86,
+                60
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                50,
+                98
+              ],
+              [
+                50,
+                82
+              ],
+              [
+                60,
+                68
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            50,
+            60
+          ],
+          [
+            62,
+            44
+          ],
+          [
+            84,
+            56
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              40,
+              92
+            ],
+            "en": "Red 1",
+            "he": "אדום 1"
+          }
+        ]
+      }
+    },
+    "guns_jink": {
+      "title": {
+        "en": "The guns jink",
+        "he": "Guns jink"
+      },
+      "points": [
+        {
+          "en": "Unload and roll",
+          "he": "הורדת העומס וגלגול",
+          "hold": {
+            "en": "his nose leads you",
+            "he": "האף שלו מקדים אתכם"
+          }
+        },
+        {
+          "en": "Pull, a new direction",
+          "he": "משיכה, כיוון חדש",
+          "hold": {
+            "en": "out of his gun's plane",
+            "he": "מחוץ למישור התותח שלו"
+          }
+        },
+        {
+          "en": "Again",
+          "he": "שוב",
+          "hold": {
+            "en": "until he is out of range",
+            "he": "עד שהוא מחוץ לטווח"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                15,
+                85
+              ],
+              [
+                35,
+                60
+              ],
+              [
+                52,
+                72
+              ],
+              [
+                68,
+                48
+              ],
+              [
+                85,
+                58
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                5,
+                98
+              ],
+              [
+                22,
+                80
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            35,
+            60
+          ],
+          [
+            52,
+            72
+          ],
+          [
+            68,
+            48
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              10,
+              90
+            ],
+            "en": "Red 1",
+            "he": "אדום 1"
+          }
+        ]
+      }
+    },
+    "reversal": {
+      "title": {
+        "en": "The reversal",
+        "he": "היפוך"
+      },
+      "points": [
+        {
+          "en": "His overshoot",
+          "he": "העקיפה שלו",
+          "hold": {
+            "en": "he flies past your tail",
+            "he": "הוא חולף מאחורי הזנב"
+          }
+        },
+        {
+          "en": "Reverse",
+          "he": "היפוך",
+          "hold": {
+            "en": "roll the other way and pull",
+            "he": "גלגול לצד השני ומשיכה"
+          }
+        },
+        {
+          "en": "At his six",
+          "he": "בשעה 6 שלו",
+          "hold": {
+            "en": "offensive now",
+            "he": "עכשיו בהתקפה"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                70,
+                92
+              ],
+              [
+                55,
+                62
+              ],
+              [
+                62,
+                42
+              ],
+              [
+                76,
+                36
+              ],
+              [
+                86,
+                22
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                35,
+                95
+              ],
+              [
+                60,
+                55
+              ],
+              [
+                88,
+                40
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            60,
+            52
+          ],
+          [
+            76,
+            36
+          ],
+          [
+            86,
+            24
+          ]
+        ],
+        "notes": [
+          {
+            "at": [
+              30,
+              88
+            ],
+            "en": "Red 1",
+            "he": "אדום 1"
+          }
+        ]
+      }
+    },
+    "high_aspect": {
+      "title": {
+        "en": "The head-on pass",
+        "he": "מעבר חזיתי"
+      },
+      "points": [
+        {
+          "en": "The pass",
+          "he": "המעבר",
+          "hold": {
+            "en": "3 NM · 450 m apart",
+            "he": "3 מייל · 450 מטר הצידה"
+          }
+        },
+        {
+          "en": "To his tail",
+          "he": "לזנב שלו",
+          "hold": {
+            "en": "pull at the pass",
+            "he": "משיכה במעבר"
+          }
+        },
+        {
+          "en": "Out of his nose",
+          "he": "מחוץ לאף שלו",
+          "hold": {
+            "en": "the R-73's reach",
+            "he": "טווח ה-R-73"
+          }
+        }
+      ],
+      "top": {
+        "paths": [
+          {
+            "track": [
+              [
+                42,
+                95
+              ],
+              [
+                42,
+                50
+              ],
+              [
+                55,
+                32
+              ],
+              [
+                64,
+                46
+              ]
+            ]
+          },
+          {
+            "track": [
+              [
+                58,
+                5
+              ],
+              [
+                58,
+                50
+              ],
+              [
+                46,
+                70
+              ]
+            ],
+            "kind": "other"
+          }
+        ],
+        "pins": [
+          [
+            42,
+            55
+          ],
+          [
+            55,
+            33
+          ],
+          [
+            64,
+            46
+          ]
+        ],
+        "zones": [
+          {
+            "at": [
+              52,
+              78
+            ],
+            "r": 12,
+            "en": "R-73",
+            "he": "R-73"
+          }
+        ],
+        "notes": [
+          {
+            "at": [
+              62,
+              10
+            ],
+            "en": "Red 1",
+            "he": "אדום 1"
+          }
+        ]
+      }
+    }
+  },
+  "lessons": {
+    "drone": {
+      "missions": {
+        "f16d": "f16d_air_to_air_drone",
+        "f16i": "f16i_air_to_air_drone",
+        "f35i": "f35i_air_to_air_drone"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, by day: a radar intercept of two drones round steerpoint 1, guided by Eitam, and a live missile shot at each.",
+            "he": "{jet}, {base}, מסלול {runway}, יום. יירוט מכ\"ם של שני מל\"טים בנקודת ציון 1 בהכוונת עיטם, טיל חי לכל מל\"ט."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can find a target on the radar with a controller's help, lock it and shoot it down with a missile inside the missile's reach.",
+            "he": "בסיום התרגול הזה תדעו לאתר מטרה במכ\"ם בעזרת בקר, לנעול עליה ולהפיל אותה בטיל, תוך ירי בתוך טווח הטיל."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "Two target drones, unarmed, flying racetracks round steerpoint 1 at 15,000 ft and 20,000 ft, about 430 kt, without manoeuvring.",
+            "he": "שני מל\"טי מטרה לא חמושים, בהקפות סביב נקודת ציון 1 ב-15,000 וב-20,000 רגל, כ-430 קשר, בלי תמרון."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}, המדריך במושב האחורי באינטרקום. בקשר: מגדל {base} ועיטם (בקר)."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor on the radio. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}. בקשר: המדריך, מגדל {base} ועיטם (בקר)."
+          }
+        ],
+        "weather_area": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 1 is the drones' area. The training area lies west of {base}, over the sea.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 1: אזור המל\"טים. אזור האימונים ממערב ל{base}, מעל הים."
+          },
+          {
+            "jets": [
+              "f16i",
+              "f35i"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 1 is the drones' area. The training area lies south of {base}, over the Negev.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 1: אזור המל\"טים. אזור האימונים מדרום ל{base}, מעל הנגב."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "Start-up, taxi and take-off as taught, with the checklist ({key:118}): the tower for the start-up, the taxi and the line-up, runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ולבקש מהמגדל אישור להתנעה, להסעה ולהתיישרות על מסלול {runway}."
+          },
+          {
+            "at": "lineup",
+            "en": "After the take-off, climb to 15,000 ft towards steerpoint 1.",
+            "he": "אחרי ההמראה יש לטפס ל-15,000 רגל ולטוס לנקודת ציון 1."
+          },
+          {
+            "en": "Ask Eitam for bogey dope ({key:47}, the AWACS page): the nearest contact's bearing, range and height. Turn to it.",
+            "he": "יש לבקש מעיטם את המגע הקרוב ({key:47}, דף ה-AWACS). עיטם מוסר כיוון, טווח וגובה; יש לפנות אל המגע."
+          },
+          {
+            "en": "MASTER ARM to ARM ({key:125}) once in the area.",
+            "he": "יש להעביר את MASTER ARM ל-ARM ({key:125}) רק בתוך האזור."
+          },
+          {
+            "diagram": "intercept",
+            "en": "Radar in air search ({key:56}); the antenna's elevation on the target's height. Lock it ({key:132}); the AIM-120 selected ({key:66}).",
+            "he": "יש להעביר את המכ\"ם לחיפוש אוויר ({key:56}), לכוון את זווית האנטנה לגובה המטרה, לנעול עליה ({key:132}) ולבחור AIM-120 ({key:66})."
+          },
+          {
+            "en": "Shoot ({key:69}) inside the missile's reach: the target's range between the DLZ's Rmax and Rmin on the HUD. A shot outside it counts against \"Shots inside the missile's reach\".",
+            "he": "יש לירות ({key:69}) רק כשטווח המטרה בין Rmin ל-Rmax של ה-DLZ ב-HUD. ירי מחוץ לטווח נספר לחובה בסעיף \"שיגורים בתוך טווח הטיל\"."
+          },
+          {
+            "en": "Splash one: the second drone the same way, bogey dope first.",
+            "he": "אחרי שהמל\"ט הראשון הופל, יש ליירט את השני באותו סדר, החל מבקשת המגע הקרוב."
+          },
+          {
+            "en": "Then MASTER ARM to OFF ({key:125}), back to {base} and a full-stop landing, the shelter and the shutdown by the checklist.",
+            "he": "בסיום יש להעביר את MASTER ARM ל-OFF ({key:125}), לחזור ל{base}, לנחות לעצירה מלאה, להסיע לדת\"ק ולכבות לפי הבד\"ח."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "The drones are shot down for real: MASTER ARM to ARM only in the area, the nose away from {base} and the coast. At bingo fuel, knock it off and return to {base}. Alternate: Tel Nof. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "ירי חי על המל\"טים: MASTER ARM ל-ARM רק באזור, האף הרחק מ{base} ומהחוף. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: תל נוף. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "The drones are shot down for real: MASTER ARM to ARM only in the area, the nose away from {base} and the coast. At bingo fuel, knock it off and return to {base}. Alternate: Nevatim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "ירי חי על המל\"טים: MASTER ARM ל-ARM רק באזור, האף הרחק מ{base} ומהחוף. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: נבטים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "The drones are shot down for real: MASTER ARM to ARM only in the area, the nose away from {base} and the coast. At bingo fuel, knock it off and return to {base}. Alternate: Hatzerim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "ירי חי על המל\"טים: MASTER ARM ל-ARM רק באזור, האף הרחק מ{base} ומהחוף. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: חצרים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the radio. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך בקשר. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          },
+          "en": "Start-up, taxi, runway {runway}",
+          "he": "יש להתניע ולהסיע למסלול {runway}"
+        },
+        {
+          "en": "Take-off; climb to 15,000 ft; steerpoint 1",
+          "he": "יש להמריא, לטפס ל-15,000 רגל ולטוס לנקודת ציון 1"
+        },
+        {
+          "wait": {
+            "en": "bearing, range, height",
+            "he": "כיוון, טווח, גובה"
+          },
+          "en": "Eitam: bogey dope",
+          "he": "יש לבקש מעיטם את המגע הקרוב"
+        },
+        {
+          "diagram": "intercept",
+          "en": "Radar lock; MASTER ARM ARM",
+          "he": "יש לנעול במכ\"ם ולהעביר את MASTER ARM ל-ARM"
+        },
+        {
+          "wait": {
+            "en": "splash",
+            "he": "הפלה"
+          },
+          "en": "Shoot inside the DLZ",
+          "he": "יש לירות בתוך ה-DLZ"
+        },
+        {
+          "en": "Second drone: bogey dope, lock, shoot",
+          "he": "יש ליירט את המל\"ט השני: מגע קרוב, נעילה, ירי"
+        },
+        {
+          "en": "MASTER ARM OFF; back to {base}; full stop",
+          "he": "יש להעביר את MASTER ARM ל-OFF, לחזור ל{base} ולנחות לעצירה מלאה"
+        },
+        {
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          },
+          "en": "Shelter; shut down",
+          "he": "יש להסיע לדת\"ק ולכבות"
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today we'll intercept two drones with Eitam's help, and shoot them down for real.",
+              "he": "היום ניירט שני מל\"טים בעזרת עיטם, ונפיל אותם בירי חי."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start the engine by the checklist.",
+              "he": "נתניע לפי בד\"ח ההתנעה."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "We're ready. Let's call the tower and taxi to runway {rwy}.",
+              "he": "אנחנו מוכנים. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Before-take-off checks now, then we line up on runway {rwy}.",
+              "he": "עכשיו בדיקות לפני המראה, ואז נתיישר על מסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "Let's take off and climb to fifteen thousand, towards steerpoint one.",
+              "he": "נמריא ונטפס ל-15,000, לכיוון נקודת ציון 1."
+            }
+          ]
+        },
+        {
+          "id": "area",
+          "when": [
+            "climb_out"
+          ],
+          "lines": [
+            {
+              "en": "On the way, let's ask Eitam for bogey dope.",
+              "he": "בדרך נבקש מעיטם את המגע הקרוב."
+            }
+          ]
+        },
+        {
+          "id": "radar",
+          "when": [
+            "called:awacs:bogey_dope"
+          ],
+          "lines": [
+            {
+              "en": "There's our contact. Let's turn to it, find it on the radar, lock it, master arm on, and shoot inside the reach.",
+              "he": "הנה המגע. נפנה אליו, נמצא אותו במכ\"ם, ננעל, MASTER ARM ל-ARM, ונירה בתוך טווח הטיל."
+            }
+          ]
+        },
+        {
+          "id": "second",
+          "when": [
+            "kills:1"
+          ],
+          "lines": [
+            {
+              "en": "Splash one, well done. Bogey dope again for the second.",
+              "he": "אחד הופל, יפה מאוד. נבקש שוב את המגע הקרוב, בשביל השני."
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "when": [
+            "kills:2"
+          ],
+          "lines": [
+            {
+              "en": "Both down. Master arm off, and let's head home.",
+              "he": "שניהם הופלו. MASTER ARM ל-OFF, וחוזרים הביתה."
+            }
+          ]
+        },
+        {
+          "id": "rollout",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nice landing. Let's clear the runway and taxi back to the shelter.",
+              "he": "נחיתה יפה. נפנה את המסלול ונסיע חזרה לדת\"ק."
+            }
+          ]
+        },
+        {
+          "id": "shelter",
+          "when": [
+            "parked"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "Let's shut down by the checklist. See you in the debrief.",
+              "he": "נכבה לפי הבד\"ח. נתראה בתחקיר."
+            }
+          ]
+        }
+      ]
+    },
+    "bvr": {
+      "missions": {
+        "f16d": "f16d_air_to_air_bvr",
+        "f16i": "f16i_air_to_air_bvr",
+        "f35i": "f35i_air_to_air_bvr"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, by day: two BVR engagements against Red 1, an aggressor F-16, with simulated shots, round steerpoint 2.",
+            "he": "{jet}, {base}, מסלול {runway}, יום. שני קרבות BVR מול אדום 1 (F-16 יריב), ירי מדומה, בנקודת ציון 2."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can find, lock and shoot a manoeuvring fighter beyond visual range inside your missile's reach, and defend against his shot.",
+            "he": "בסיום התרגול הזה תדעו לאתר מטוס קרב מתמרן מעבר לטווח הראייה, לנעול עליו, לירות בו ולהתגונן מפני הירי שלו, תוך ירי בתוך טווח הטיל ובלי להיות מופלים."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "Red 1, an F-16I flown with adversary tactics, with AIM-120 and AIM-9M (simulated). Each engagement starts head-on, 40 NM apart at 20,000 ft. He shoots back.",
+            "he": "אדום 1: F-16I בטקטיקת יריב, AIM-120 ו-AIM-9M מדומים. פתיחה חזיתית בכל קרב, 40 מייל, 20,000 רגל. אדום 1 יורה בחזרה."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}, המדריך במושב האחורי באינטרקום. בקשר: מגדל {base} ועיטם (בקר)."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor on the radio. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}. בקשר: המדריך, מגדל {base} ועיטם (בקר)."
+          }
+        ],
+        "weather_area": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 2 is the fight's area. The training area lies west of {base}, over the sea.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 2: אזור הקרב. אזור האימונים ממערב ל{base}, מעל הים."
+          },
+          {
+            "jets": [
+              "f16i",
+              "f35i"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 2 is the fight's area. The training area lies south of {base}, over the Negev.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 2: אזור הקרב. אזור האימונים מדרום ל{base}, מעל הנגב."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "Start-up, taxi and take-off as taught, with the checklist ({key:118}): the tower for the start-up, the taxi and the line-up, runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ולבקש מהמגדל אישור להתנעה, להסעה ולהתיישרות על מסלול {runway}."
+          },
+          {
+            "at": "lineup",
+            "en": "After the take-off, climb to 20,000 ft towards steerpoint 2 by steerpoint 1.",
+            "he": "אחרי ההמראה יש לטפס ל-20,000 רגל ולטוס דרך נקודת ציון 1 לנקודת ציון 2."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "On the way, MASTER ARM to SIMULATE ({key:125}): the missiles and the gun fire in the fight, and harm no one.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-SIMULATE ({key:125}): הטילים והתותח יורים בקרב בלי לפגוע."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "On the way, MASTER ARM to ARM ({key:125}): every shot at Red 1 is simulated all the same.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-ARM ({key:125}): הירי על אדום 1 מדומה גם כך."
+          },
+          {
+            "diagram": "bvr",
+            "en": "Ten miles from steerpoint 2 the fight is on: both jets are put at the engagement's set-up in the air. A kill: \"kill\" on the radio, then \"knock it off\", and 6 s later the next set-up.",
+            "he": "עשרה מייל מנקודת ציון 2 הקרב מתחיל, ושני המטוסים מוצבים באוויר בנקודת הפתיחה. אחרי הפלה נשמעות בקשר הקריאות \"הפלה\" ו\"סיום קרב\", וכעבור 6 שניות מתחילה נקודת הפתיחה הבאה."
+          },
+          {
+            "diagram": "bvr",
+            "en": "Radar in air search ({key:56}); the antenna's elevation on the target's height. Lock it ({key:132}); the AIM-120 selected ({key:66}).",
+            "he": "יש להעביר את המכ\"ם לחיפוש אוויר ({key:56}), לכוון את זווית האנטנה לגובה המטרה, לנעול עליה ({key:132}) ולבחור AIM-120 ({key:66})."
+          },
+          {
+            "en": "Shoot ({key:69}) inside the missile's reach: the target's range between the DLZ's Rmax and Rmin on the HUD. A shot outside it counts against \"Shots inside the missile's reach\".",
+            "he": "יש לירות ({key:69}) רק כשטווח המטרה בין Rmin ל-Rmax של ה-DLZ ב-HUD. ירי מחוץ לטווח נספר לחובה בסעיף \"שיגורים בתוך טווח הטיל\"."
+          },
+          {
+            "diagram": "crank",
+            "en": "After the shot, the crank: turn 50° off his line, keeping him on the radar, so that his missile flies farther. His missile at you (the launch warning): turn him to the beam and drop chaff ({key:70}).",
+            "he": "אחרי הירי יש לבצע crank: לסטות 50° מהקו אליו ולהשאיר אותו במכ\"ם, כך שהטיל שלו יטוס רחוק יותר. בהתרעת שיגור יש להעמיד אותו בצד ולשחרר מוץ ({key:70})."
+          },
+          {
+            "en": "Two engagements, then home.",
+            "he": "אחרי שני קרבות יש לחזור."
+          },
+          {
+            "en": "Then MASTER ARM to OFF ({key:125}), back to {base} and a full-stop landing, the shelter and the shutdown by the checklist.",
+            "he": "בסיום יש להעביר את MASTER ARM ל-OFF ({key:125}), לחזור ל{base}, לנחות לעצירה מלאה, להסיע לדת\"ק ולכבות לפי הבד\"ח."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Tel Nof. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: תל נוף. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Nevatim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: נבטים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Hatzerim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: חצרים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the radio. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך בקשר. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          },
+          "en": "Start-up, taxi, runway {runway}",
+          "he": "יש להתניע ולהסיע למסלול {runway}"
+        },
+        {
+          "en": "Take-off; climb to 20,000 ft; steerpoint 2",
+          "he": "יש להמריא, לטפס ל-20,000 רגל ולטוס לנקודת ציון 2"
+        },
+        {
+          "en": "MASTER ARM for the fight",
+          "he": "יש להכין את MASTER ARM לקרב"
+        },
+        {
+          "wait": {
+            "en": "both jets in the air at the set-up",
+            "he": "שני המטוסים באוויר בנקודת הפתיחה"
+          },
+          "en": "10 NM from steerpoint 2: the set-up",
+          "he": "עשרה מייל מנקודת ציון 2 מתחילה נקודת הפתיחה"
+        },
+        {
+          "diagram": "bvr",
+          "en": "Radar lock; shoot inside the DLZ",
+          "he": "יש לנעול במכ\"ם ולירות בתוך ה-DLZ"
+        },
+        {
+          "diagram": "crank",
+          "en": "Crank; defend with chaff",
+          "he": "יש לבצע crank ולהתגונן עם מוץ"
+        },
+        {
+          "wait": {
+            "en": "\"knock it off\"",
+            "he": "\"סיום קרב\""
+          },
+          "en": "Second engagement",
+          "he": "יש לטוס את הקרב השני"
+        },
+        {
+          "en": "MASTER ARM OFF; back to {base}; full stop",
+          "he": "יש להעביר את MASTER ARM ל-OFF, לחזור ל{base} ולנחות לעצירה מלאה"
+        },
+        {
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          },
+          "en": "Shelter; shut down",
+          "he": "יש להסיע לדת\"ק ולכבות"
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today we fight Red 1 beyond visual range: two engagements, head-on from forty miles.",
+              "he": "היום נילחם באדום 1 מעבר לטווח הראייה: שני קרבות, פתיחה חזיתית מ-40 מייל."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start the engine by the checklist.",
+              "he": "נתניע לפי בד\"ח ההתנעה."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "We're ready. Let's call the tower and taxi to runway {rwy}.",
+              "he": "אנחנו מוכנים. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Before-take-off checks now, then we line up on runway {rwy}.",
+              "he": "עכשיו בדיקות לפני המראה, ואז נתיישר על מסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "Let's take off and climb to twenty thousand, towards steerpoint two.",
+              "he": "נמריא ונטפס ל-20,000, לכיוון נקודת ציון 2."
+            }
+          ]
+        },
+        {
+          "id": "area",
+          "when": [
+            "climb_out"
+          ],
+          "lines": [
+            {
+              "en": "On the way, let's set master arm for the fight. The fight starts ten miles from steerpoint two.",
+              "he": "בדרך נכין את MASTER ARM לקרב. הקרב מתחיל עשרה מייל מנקודת ציון 2."
+            }
+          ]
+        },
+        {
+          "id": "fight",
+          "when": [
+            "fight_on"
+          ],
+          "lines": [
+            {
+              "en": "Fight's on. Let's find him on the radar, lock, and shoot inside the reach. Then we crank.",
+              "he": "Fight's on. נמצא אותו במכ\"ם, ננעל ונירה בתוך טווח הטיל. אחר כך crank."
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "when": [
+            "fight_done"
+          ],
+          "lines": [
+            {
+              "en": "Knock it off for today. Master arm off, and let's head home.",
+              "he": "סיום קרב להיום. MASTER ARM ל-OFF, וחוזרים הביתה."
+            }
+          ]
+        },
+        {
+          "id": "rollout",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nice landing. Let's clear the runway and taxi back to the shelter.",
+              "he": "נחיתה יפה. נפנה את המסלול ונסיע חזרה לדת\"ק."
+            }
+          ]
+        },
+        {
+          "id": "shelter",
+          "when": [
+            "parked"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "Let's shut down by the checklist. See you in the debrief.",
+              "he": "נכבה לפי הבד\"ח. נתראה בתחקיר."
+            }
+          ]
+        }
+      ]
+    },
+    "offensive_bfm": {
+      "missions": {
+        "f16d": "f16d_air_to_air_offensive_bfm",
+        "f16i": "f16i_air_to_air_offensive_bfm",
+        "f35i": "f35i_air_to_air_offensive_bfm"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, by day: three offensive BFM engagements against Red 1, an aggressor F-16, with simulated shots, round steerpoint 2.",
+            "he": "{jet}, {base}, מסלול {runway}, יום. שלושה קרבות BFM התקפיים מול אדום 1 (F-16 יריב), ירי מדומה, בנקודת ציון 2."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can stay behind a turning fighter with the pursuits and the yo-yos, and kill him with an IR missile or the gun.",
+            "he": "בסיום התרגול הזה תדעו להישאר מאחורי מטוס קרב בפנייה, במרדף וביו-יו, ולהפיל אותו בטיל מונחה חום או בתותח, תוך עקיבה רציפה בתותח."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "Red 1, an F-16I flown with adversary tactics, with AIM-9M and the gun (simulated). He breaks as each engagement starts and fights back.",
+            "he": "אדום 1: F-16I בטקטיקת יריב, AIM-9M ותותח מדומים. פונה בחדות בפתיחת כל קרב ונלחם בחזרה."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}, המדריך במושב האחורי באינטרקום. בקשר: מגדל {base} ועיטם (בקר)."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor on the radio. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}. בקשר: המדריך, מגדל {base} ועיטם (בקר)."
+          }
+        ],
+        "weather_area": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 2 is the fight's area. The training area lies west of {base}, over the sea.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 2: אזור הקרב. אזור האימונים ממערב ל{base}, מעל הים."
+          },
+          {
+            "jets": [
+              "f16i",
+              "f35i"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 2 is the fight's area. The training area lies south of {base}, over the Negev.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 2: אזור הקרב. אזור האימונים מדרום ל{base}, מעל הנגב."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "Start-up, taxi and take-off as taught, with the checklist ({key:118}): the tower for the start-up, the taxi and the line-up, runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ולבקש מהמגדל אישור להתנעה, להסעה ולהתיישרות על מסלול {runway}."
+          },
+          {
+            "at": "lineup",
+            "en": "After the take-off, climb to 15,000 ft towards steerpoint 2 by steerpoint 1.",
+            "he": "אחרי ההמראה יש לטפס ל-15,000 רגל ולטוס דרך נקודת ציון 1 לנקודת ציון 2."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "On the way, MASTER ARM to SIMULATE ({key:125}): the missiles and the gun fire in the fight, and harm no one.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-SIMULATE ({key:125}): הטילים והתותח יורים בקרב בלי לפגוע."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "On the way, MASTER ARM to ARM ({key:125}): every shot at Red 1 is simulated all the same.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-ARM ({key:125}): הירי על אדום 1 מדומה גם כך."
+          },
+          {
+            "en": "Ten miles from steerpoint 2 the fight is on: both jets are put at the engagement's set-up in the air. A kill: \"kill\" on the radio, then \"knock it off\", and 6 s later the next set-up.",
+            "he": "עשרה מייל מנקודת ציון 2 הקרב מתחיל, ושני המטוסים מוצבים באוויר בנקודת הפתיחה. אחרי הפלה נשמעות בקשר הקריאות \"הפלה\" ו\"סיום קרב\", וכעבור 6 שניות מתחילה נקודת הפתיחה הבאה."
+          },
+          {
+            "diagram": "offensive_setup",
+            "en": "The set-up: you at his six o'clock, 3,000 ft behind him, both at 15,000 ft and 450 kt.",
+            "he": "בנקודת הפתיחה אתם בשעה 6 שלו, 3,000 רגל מאחוריו, ושני המטוסים ב-15,000 רגל וב-450 קשר."
+          },
+          {
+            "diagram": "pursuit",
+            "en": "The pursuits: lag (the nose behind him) to close without overshooting; pure (the nose on him) for the IR missile; lead (the nose ahead of him) for the gun.",
+            "he": "יש לסגור טווח ב-lag (האף מאחוריו) בלי לעקוף אותו, לעבור ל-pure (האף עליו) לטיל מונחה חום ול-lead (האף לפניו) לתותח."
+          },
+          {
+            "diagram": "yoyo",
+            "en": "Too fast or too close in his turn: the high yo-yo, up out of his turn, then down behind him. Too far behind: the low yo-yo, the nose down inside his turn for speed, then up to him.",
+            "he": "במהירות גבוהה מדי או בקרבה יתרה בפנייה שלו יש לבצע יו-יו גבוה: לצאת כלפי מעלה ממישור הפנייה ולרדת מאחוריו. כשהמרחק גדול מדי יש לבצע יו-יו נמוך: להוריד את האף בתוך הפנייה לצבירת מהירות ולעלות אליו."
+          },
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "The AIM-9M: DGFT ({key:177}), the seeker on him, UNCAGE ({key:224}) at the tone, shoot ({key:69}). Inside 3,000 ft, the gun: the pipper on him and held there ({key:64}); three hits kill.",
+            "he": "לירי $1 יש לעבור ל-DGFT ({key:177}), לכוון את ראש הביות עליו, ללחוץ UNCAGE ({key:224}) עם הצליל ולירות ({key:69}). מ-3,000 רגל ופנימה יש לעבור לתותח ({key:64}) ולהחזיק עליו את הכוונת ברציפות; שלוש פגיעות מפילות."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "The Python 5: DGFT ({key:177}), the seeker on him, UNCAGE ({key:224}) at the tone, shoot ({key:69}). Inside 3,000 ft, the gun: the pipper on him and held there ({key:64}); three hits kill.",
+            "he": "לירי $1 יש לעבור ל-DGFT ({key:177}), לכוון את ראש הביות עליו, ללחוץ UNCAGE ({key:224}) עם הצליל ולירות ({key:69}). מ-3,000 רגל ופנימה יש לעבור לתותח ({key:64}) ולהחזיק עליו את הכוונת ברציפות; שלוש פגיעות מפילות."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "The AIM-9X: the seeker on him, UNCAGE ({key:224}) at the tone, shoot ({key:69}). Inside 3,000 ft, the gun: the pipper on him and held there ({key:64}); three hits kill.",
+            "he": "לירי $1 יש לכוון את ראש הביות עליו, ללחוץ UNCAGE ({key:224}) עם הצליל ולירות ({key:69}). מ-3,000 רגל ופנימה יש לעבור לתותח ({key:64}) ולהחזיק עליו את הכוונת ברציפות; שלוש פגיעות מפילות."
+          },
+          {
+            "en": "Three engagements, then home.",
+            "he": "אחרי שלושה קרבות יש לחזור."
+          },
+          {
+            "en": "Then MASTER ARM to OFF ({key:125}), back to {base} and a full-stop landing, the shelter and the shutdown by the checklist.",
+            "he": "בסיום יש להעביר את MASTER ARM ל-OFF ({key:125}), לחזור ל{base}, לנחות לעצירה מלאה, להסיע לדת\"ק ולכבות לפי הבד\"ח."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Tel Nof. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: תל נוף. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Nevatim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: נבטים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Hatzerim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: חצרים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the radio. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך בקשר. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          },
+          "en": "Start-up, taxi, runway {runway}",
+          "he": "יש להתניע ולהסיע למסלול {runway}"
+        },
+        {
+          "en": "Take-off; climb to 15,000 ft; steerpoint 2",
+          "he": "יש להמריא, לטפס ל-15,000 רגל ולטוס לנקודת ציון 2"
+        },
+        {
+          "en": "MASTER ARM for the fight",
+          "he": "יש להכין את MASTER ARM לקרב"
+        },
+        {
+          "wait": {
+            "en": "both jets in the air at the set-up",
+            "he": "שני המטוסים באוויר בנקודת הפתיחה"
+          },
+          "en": "10 NM from steerpoint 2: the set-up",
+          "he": "עשרה מייל מנקודת ציון 2 מתחילה נקודת הפתיחה"
+        },
+        {
+          "diagram": "offensive_setup",
+          "en": "At his six, 3,000 ft",
+          "he": "הפתיחה: בשעה 6 שלו, 3,000 רגל"
+        },
+        {
+          "diagram": "pursuit",
+          "en": "Lag, pure, lead pursuit",
+          "he": "יש לרדוף ב-lag, ב-pure וב-lead"
+        },
+        {
+          "diagram": "yoyo",
+          "en": "High and low yo-yo",
+          "he": "יש לבצע יו-יו גבוה או נמוך לפי הצורך"
+        },
+        {
+          "wait": {
+            "en": "\"kill\", \"knock it off\"",
+            "he": "\"הפלה\", \"סיום קרב\""
+          },
+          "en": "IR missile, then the gun tracking",
+          "he": "יש לשגר טיל מונחה חום, ואז לעקוב בתותח"
+        },
+        {
+          "en": "Three engagements",
+          "he": "יש לטוס שלושה קרבות"
+        },
+        {
+          "en": "MASTER ARM OFF; back to {base}; full stop",
+          "he": "יש להעביר את MASTER ARM ל-OFF, לחזור ל{base} ולנחות לעצירה מלאה"
+        },
+        {
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          },
+          "en": "Shelter; shut down",
+          "he": "יש להסיע לדת\"ק ולכבות"
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today, offensive BFM: three times we start at Red 1's six. Let's stay there and shoot him down.",
+              "he": "היום BFM התקפי: שלוש פעמים נפתח בשעה 6 של אדום 1. נישאר שם ונפיל אותו."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start the engine by the checklist.",
+              "he": "נתניע לפי בד\"ח ההתנעה."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "We're ready. Let's call the tower and taxi to runway {rwy}.",
+              "he": "אנחנו מוכנים. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Before-take-off checks now, then we line up on runway {rwy}.",
+              "he": "עכשיו בדיקות לפני המראה, ואז נתיישר על מסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "Let's take off and climb to fifteen thousand, towards steerpoint two.",
+              "he": "נמריא ונטפס ל-15,000, לכיוון נקודת ציון 2."
+            }
+          ]
+        },
+        {
+          "id": "area",
+          "when": [
+            "climb_out"
+          ],
+          "lines": [
+            {
+              "en": "On the way, let's set master arm for the fight. The fight starts ten miles from steerpoint two.",
+              "he": "בדרך נכין את MASTER ARM לקרב. הקרב מתחיל עשרה מייל מנקודת ציון 2."
+            }
+          ]
+        },
+        {
+          "id": "fight",
+          "when": [
+            "fight_on"
+          ],
+          "lines": [
+            {
+              "en": "Fight's on. We lag to stay behind him, lead for the shot, and guns when the pipper's on him.",
+              "he": "Fight's on. נשתמש ב-lag כדי להישאר מאחוריו, ב-lead לירי, ובתותח כשהכוונת עליו."
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "when": [
+            "fight_done"
+          ],
+          "lines": [
+            {
+              "en": "Knock it off for today. Master arm off, and let's head home.",
+              "he": "סיום קרב להיום. MASTER ARM ל-OFF, וחוזרים הביתה."
+            }
+          ]
+        },
+        {
+          "id": "rollout",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nice landing. Let's clear the runway and taxi back to the shelter.",
+              "he": "נחיתה יפה. נפנה את המסלול ונסיע חזרה לדת\"ק."
+            }
+          ]
+        },
+        {
+          "id": "shelter",
+          "when": [
+            "parked"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "Let's shut down by the checklist. See you in the debrief.",
+              "he": "נכבה לפי הבד\"ח. נתראה בתחקיר."
+            }
+          ]
+        }
+      ]
+    },
+    "defensive_bfm": {
+      "missions": {
+        "f16d": "f16d_air_to_air_defensive_bfm",
+        "f16i": "f16i_air_to_air_defensive_bfm",
+        "f35i": "f35i_air_to_air_defensive_bfm"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, by day: three defensive BFM engagements against Red 1, an aggressor F-16, with simulated shots, round steerpoint 2.",
+            "he": "{jet}, {base}, מסלול {runway}, יום. שלושה קרבות BFM הגנתיים מול אדום 1 (F-16 יריב), ירי מדומה, בנקודת ציון 2."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can survive a fighter at your six o'clock with the break turn, defend against his missile and gun, and reverse onto him, within the jet's G limit.",
+            "he": "בסיום התרגול הזה תדעו לשרוד מטוס קרב בשעה 6 בפניית שבירה, להתגונן מפני הטיל והתותח שלו ולהפוך את הקרב, תוך עמידה במגבלת ה-G של המטוס."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "Red 1, an F-16I flown with adversary tactics, with AIM-9M and the gun (simulated), 3,000 ft behind you as each engagement starts.",
+            "he": "אדום 1: F-16I בטקטיקת יריב, AIM-9M ותותח מדומים. בפתיחת כל קרב 3,000 רגל מאחוריכם."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}, המדריך במושב האחורי באינטרקום. בקשר: מגדל {base} ועיטם (בקר)."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor on the radio. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}. בקשר: המדריך, מגדל {base} ועיטם (בקר)."
+          }
+        ],
+        "weather_area": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 2 is the fight's area. The training area lies west of {base}, over the sea.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 2: אזור הקרב. אזור האימונים ממערב ל{base}, מעל הים."
+          },
+          {
+            "jets": [
+              "f16i",
+              "f35i"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 2 is the fight's area. The training area lies south of {base}, over the Negev.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 2: אזור הקרב. אזור האימונים מדרום ל{base}, מעל הנגב."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "Start-up, taxi and take-off as taught, with the checklist ({key:118}): the tower for the start-up, the taxi and the line-up, runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ולבקש מהמגדל אישור להתנעה, להסעה ולהתיישרות על מסלול {runway}."
+          },
+          {
+            "at": "lineup",
+            "en": "After the take-off, climb to 15,000 ft towards steerpoint 2 by steerpoint 1.",
+            "he": "אחרי ההמראה יש לטפס ל-15,000 רגל ולטוס דרך נקודת ציון 1 לנקודת ציון 2."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "On the way, MASTER ARM to SIMULATE ({key:125}): the missiles and the gun fire in the fight, and harm no one.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-SIMULATE ({key:125}): הטילים והתותח יורים בקרב בלי לפגוע."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "On the way, MASTER ARM to ARM ({key:125}): every shot at Red 1 is simulated all the same.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-ARM ({key:125}): הירי על אדום 1 מדומה גם כך."
+          },
+          {
+            "en": "Ten miles from steerpoint 2 the fight is on: both jets are put at the engagement's set-up in the air. A kill: \"kill\" on the radio, then \"knock it off\", and 6 s later the next set-up.",
+            "he": "עשרה מייל מנקודת ציון 2 הקרב מתחיל, ושני המטוסים מוצבים באוויר בנקודת הפתיחה. אחרי הפלה נשמעות בקשר הקריאות \"הפלה\" ו\"סיום קרב\", וכעבור 6 שניות מתחילה נקודת הפתיחה הבאה."
+          },
+          {
+            "diagram": "defensive_setup",
+            "en": "The set-up: Red 1 at your six o'clock, 3,000 ft behind you, both at 15,000 ft and 450 kt.",
+            "he": "בנקודת הפתיחה אדום 1 בשעה 6 שלכם, 3,000 רגל מאחוריכם, ושני המטוסים ב-15,000 רגל וב-450 קשר."
+          },
+          {
+            "diagram": "break_turn",
+            "en": "The break turn, at once: full afterburner, the stick back to the G limit, the turn into him; flares ({key:71}) against his IR missile. The highest load is graded: hold the G at the jet's limit, never past it.",
+            "he": "יש לבצע מיד פניית שבירה לכיוונו: מבער מלא וסטיק אחורה עד מגבלת ה-G, ולשחרר נורים ({key:71}) נגד הטיל מונחה החום. העומס הגבוה ביותר נבדק: אין לעבור את מגבלת ה-G של המטוס."
+          },
+          {
+            "diagram": "guns_jink",
+            "en": "His gun: when his nose leads you, the guns jink: unload, roll, and pull in a new direction, again and again.",
+            "he": "כשהאף שלו מקדים אתכם לירי בתותח, יש לבצע guns jink: להוריד עומס, לגלגל ולמשוך בכיוון חדש, שוב ושוב."
+          },
+          {
+            "diagram": "reversal",
+            "en": "The reversal: when he overshoots, flying past your tail, reverse the turn and go after him. A kill of him counts.",
+            "he": "כשהוא עוקף וחולף מאחורי הזנב, יש להפוך את כיוון הפנייה ולרדוף אחריו. הפלה שלו נספרת."
+          },
+          {
+            "en": "Three engagements, then home.",
+            "he": "אחרי שלושה קרבות יש לחזור."
+          },
+          {
+            "en": "Then MASTER ARM to OFF ({key:125}), back to {base} and a full-stop landing, the shelter and the shutdown by the checklist.",
+            "he": "בסיום יש להעביר את MASTER ARM ל-OFF ({key:125}), לחזור ל{base}, לנחות לעצירה מלאה, להסיע לדת\"ק ולכבות לפי הבד\"ח."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Tel Nof. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: תל נוף. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Nevatim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: נבטים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Hatzerim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: חצרים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the radio. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך בקשר. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          },
+          "en": "Start-up, taxi, runway {runway}",
+          "he": "יש להתניע ולהסיע למסלול {runway}"
+        },
+        {
+          "en": "Take-off; climb to 15,000 ft; steerpoint 2",
+          "he": "יש להמריא, לטפס ל-15,000 רגל ולטוס לנקודת ציון 2"
+        },
+        {
+          "en": "MASTER ARM for the fight",
+          "he": "יש להכין את MASTER ARM לקרב"
+        },
+        {
+          "wait": {
+            "en": "both jets in the air at the set-up",
+            "he": "שני המטוסים באוויר בנקודת הפתיחה"
+          },
+          "en": "10 NM from steerpoint 2: the set-up",
+          "he": "עשרה מייל מנקודת ציון 2 מתחילה נקודת הפתיחה"
+        },
+        {
+          "diagram": "defensive_setup",
+          "en": "Red 1 at your six, 3,000 ft",
+          "he": "הפתיחה: אדום 1 בשעה 6 שלכם, 3,000 רגל"
+        },
+        {
+          "diagram": "break_turn",
+          "en": "Break turn; flares; G at the limit",
+          "he": "יש לבצע פניית שבירה ולשחרר נורים, עד מגבלת ה-G"
+        },
+        {
+          "diagram": "guns_jink",
+          "en": "Guns jink",
+          "he": "יש לבצע guns jink"
+        },
+        {
+          "diagram": "reversal",
+          "wait": {
+            "en": "\"knock it off\"",
+            "he": "\"סיום קרב\""
+          },
+          "en": "Reversal at his overshoot",
+          "he": "כשהוא עוקף, יש לבצע היפוך"
+        },
+        {
+          "en": "Three engagements",
+          "he": "יש לטוס שלושה קרבות"
+        },
+        {
+          "en": "MASTER ARM OFF; back to {base}; full stop",
+          "he": "יש להעביר את MASTER ARM ל-OFF, לחזור ל{base} ולנחות לעצירה מלאה"
+        },
+        {
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          },
+          "en": "Shelter; shut down",
+          "he": "יש להסיע לדת\"ק ולכבות"
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today, defensive BFM: three times Red 1 starts at our six. We break, defend and reverse.",
+              "he": "היום BFM הגנתי: שלוש פעמים אדום 1 פותח בשעה 6 שלנו. נשבור, נתגונן ונהפוך."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start the engine by the checklist.",
+              "he": "נתניע לפי בד\"ח ההתנעה."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "We're ready. Let's call the tower and taxi to runway {rwy}.",
+              "he": "אנחנו מוכנים. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Before-take-off checks now, then we line up on runway {rwy}.",
+              "he": "עכשיו בדיקות לפני המראה, ואז נתיישר על מסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "Let's take off and climb to fifteen thousand, towards steerpoint two.",
+              "he": "נמריא ונטפס ל-15,000, לכיוון נקודת ציון 2."
+            }
+          ]
+        },
+        {
+          "id": "area",
+          "when": [
+            "climb_out"
+          ],
+          "lines": [
+            {
+              "en": "On the way, let's set master arm for the fight. The fight starts ten miles from steerpoint two.",
+              "he": "בדרך נכין את MASTER ARM לקרב. הקרב מתחיל עשרה מייל מנקודת ציון 2."
+            }
+          ]
+        },
+        {
+          "id": "fight",
+          "when": [
+            "fight_on"
+          ],
+          "lines": [
+            {
+              "en": "Fight's on. We break now, into him, with flares. Let's watch for his overshoot.",
+              "he": "Fight's on. שוברים עכשיו לכיוונו, עם נורים. נחפש את העקיפה שלו."
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "when": [
+            "fight_done"
+          ],
+          "lines": [
+            {
+              "en": "Knock it off for today. Master arm off, and let's head home.",
+              "he": "סיום קרב להיום. MASTER ARM ל-OFF, וחוזרים הביתה."
+            }
+          ]
+        },
+        {
+          "id": "rollout",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nice landing. Let's clear the runway and taxi back to the shelter.",
+              "he": "נחיתה יפה. נפנה את המסלול ונסיע חזרה לדת\"ק."
+            }
+          ]
+        },
+        {
+          "id": "shelter",
+          "when": [
+            "parked"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "Let's shut down by the checklist. See you in the debrief.",
+              "he": "נכבה לפי הבד\"ח. נתראה בתחקיר."
+            }
+          ]
+        }
+      ]
+    },
+    "enemy_types": {
+      "missions": {
+        "f16d": "f16d_air_to_air_enemy_types",
+        "f16i": "f16i_air_to_air_enemy_types",
+        "f35i": "f35i_air_to_air_enemy_types"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, by day: two engagements against Red 1, a MiG-29, with simulated shots, round steerpoint 2: one BVR, one from a head-on pass.",
+            "he": "{jet}, {base}, מסלול {runway}, יום. שני קרבות מול אדום 1 (MiG-29), ירי מדומה, בנקודת ציון 2: BVR ומעבר חזיתי."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can fight the MiG-29 the enemy flies: beyond visual range and at the merge.",
+            "he": "בסיום התרגול הזה תדעו להילחם ב-MiG-29 של האויב מעבר לטווח הראייה ובמפגש ולהפיל אותו, בלי להיות מופלים."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "Red 1, a MiG-29A flown with the enemy fighters' tactics, with the R-27R radar missile, the R-73 IR missile and the gun (simulated). His R-73 shoots well off his nose by his helmet sight.",
+            "he": "אדום 1: MiG-29A בטקטיקה של מטוסי האויב, R-27R (מונחה מכ\"ם), R-73 (מונחה חום) ותותח, כולם מדומים. כוונת הקסדה מאפשרת לו לשגר R-73 בזווית גדולה מהאף."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}, המדריך במושב האחורי באינטרקום. בקשר: מגדל {base} ועיטם (בקר)."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor on the radio. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}. בקשר: המדריך, מגדל {base} ועיטם (בקר)."
+          }
+        ],
+        "weather_area": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 2 is the fight's area. The training area lies west of {base}, over the sea.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 2: אזור הקרב. אזור האימונים ממערב ל{base}, מעל הים."
+          },
+          {
+            "jets": [
+              "f16i",
+              "f35i"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 2 is the fight's area. The training area lies south of {base}, over the Negev.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 2: אזור הקרב. אזור האימונים מדרום ל{base}, מעל הנגב."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "Start-up, taxi and take-off as taught, with the checklist ({key:118}): the tower for the start-up, the taxi and the line-up, runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ולבקש מהמגדל אישור להתנעה, להסעה ולהתיישרות על מסלול {runway}."
+          },
+          {
+            "at": "lineup",
+            "en": "After the take-off, climb to 20,000 ft towards steerpoint 2 by steerpoint 1.",
+            "he": "אחרי ההמראה יש לטפס ל-20,000 רגל ולטוס דרך נקודת ציון 1 לנקודת ציון 2."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "On the way, MASTER ARM to SIMULATE ({key:125}): the missiles and the gun fire in the fight, and harm no one.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-SIMULATE ({key:125}): הטילים והתותח יורים בקרב בלי לפגוע."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "On the way, MASTER ARM to ARM ({key:125}): every shot at Red 1 is simulated all the same.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-ARM ({key:125}): הירי על אדום 1 מדומה גם כך."
+          },
+          {
+            "en": "Ten miles from steerpoint 2 the fight is on: both jets are put at the engagement's set-up in the air. A kill: \"kill\" on the radio, then \"knock it off\", and 6 s later the next set-up.",
+            "he": "עשרה מייל מנקודת ציון 2 הקרב מתחיל, ושני המטוסים מוצבים באוויר בנקודת הפתיחה. אחרי הפלה נשמעות בקשר הקריאות \"הפלה\" ו\"סיום קרב\", וכעבור 6 שניות מתחילה נקודת הפתיחה הבאה."
+          },
+          {
+            "diagram": "bvr",
+            "en": "The first engagement is BVR, head-on 40 NM apart at 20,000 ft, as in lesson 2. His R-27R reaches less far than the AIM-120: shoot first, crank, and defend.",
+            "he": "הקרב הראשון הוא BVR, בפתיחה חזיתית מ-40 מייל ב-20,000 רגל, כבתרגול 2. טווח ה-R-27R שלו קצר מזה של ה-AIM-120: יש לירות ראשונים, לבצע crank ולהתגונן."
+          },
+          {
+            "diagram": "high_aspect",
+            "en": "The second starts head-on, 3 NM apart and 450 m to the side, at 15,000 ft. At the pass, pull towards his tail; stay out of the front of his nose, where his R-73 reaches.",
+            "he": "הקרב השני נפתח חזיתית, 3 מייל זה מזה ו-450 מטר הצידה, ב-15,000 רגל. במעבר יש למשוך לכיוון הזנב שלו ולא להישאר מול האף שלו, בטווח ה-R-73."
+          },
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "The AIM-9M: DGFT ({key:177}), the seeker on him, UNCAGE ({key:224}) at the tone, shoot ({key:69}). Inside 3,000 ft, the gun: the pipper on him and held there ({key:64}); three hits kill.",
+            "he": "לירי $1 יש לעבור ל-DGFT ({key:177}), לכוון את ראש הביות עליו, ללחוץ UNCAGE ({key:224}) עם הצליל ולירות ({key:69}). מ-3,000 רגל ופנימה יש לעבור לתותח ({key:64}) ולהחזיק עליו את הכוונת ברציפות; שלוש פגיעות מפילות."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "The Python 5: DGFT ({key:177}), the seeker on him, UNCAGE ({key:224}) at the tone, shoot ({key:69}). Inside 3,000 ft, the gun: the pipper on him and held there ({key:64}); three hits kill.",
+            "he": "לירי $1 יש לעבור ל-DGFT ({key:177}), לכוון את ראש הביות עליו, ללחוץ UNCAGE ({key:224}) עם הצליל ולירות ({key:69}). מ-3,000 רגל ופנימה יש לעבור לתותח ({key:64}) ולהחזיק עליו את הכוונת ברציפות; שלוש פגיעות מפילות."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "The AIM-9X: the seeker on him, UNCAGE ({key:224}) at the tone, shoot ({key:69}). Inside 3,000 ft, the gun: the pipper on him and held there ({key:64}); three hits kill.",
+            "he": "לירי $1 יש לכוון את ראש הביות עליו, ללחוץ UNCAGE ({key:224}) עם הצליל ולירות ({key:69}). מ-3,000 רגל ופנימה יש לעבור לתותח ({key:64}) ולהחזיק עליו את הכוונת ברציפות; שלוש פגיעות מפילות."
+          },
+          {
+            "en": "Then MASTER ARM to OFF ({key:125}), back to {base} and a full-stop landing, the shelter and the shutdown by the checklist.",
+            "he": "בסיום יש להעביר את MASTER ARM ל-OFF ({key:125}), לחזור ל{base}, לנחות לעצירה מלאה, להסיע לדת\"ק ולכבות לפי הבד\"ח."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Tel Nof. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: תל נוף. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Nevatim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: נבטים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Hatzerim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: חצרים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the radio. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך בקשר. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          },
+          "en": "Start-up, taxi, runway {runway}",
+          "he": "יש להתניע ולהסיע למסלול {runway}"
+        },
+        {
+          "en": "Take-off; climb to 20,000 ft; steerpoint 2",
+          "he": "יש להמריא, לטפס ל-20,000 רגל ולטוס לנקודת ציון 2"
+        },
+        {
+          "en": "MASTER ARM for the fight",
+          "he": "יש להכין את MASTER ARM לקרב"
+        },
+        {
+          "wait": {
+            "en": "both jets in the air at the set-up",
+            "he": "שני המטוסים באוויר בנקודת הפתיחה"
+          },
+          "en": "10 NM from steerpoint 2: the set-up",
+          "he": "עשרה מייל מנקודת ציון 2 מתחילה נקודת הפתיחה"
+        },
+        {
+          "diagram": "bvr",
+          "en": "BVR against the MiG-29: shoot first, crank",
+          "he": "מול ה-MiG-29 ב-BVR יש לירות ראשונים ולבצע crank"
+        },
+        {
+          "diagram": "high_aspect",
+          "wait": {
+            "en": "\"knock it off\"",
+            "he": "\"סיום קרב\""
+          },
+          "en": "Head-on pass: to his tail, out of his nose",
+          "he": "במעבר החזיתי יש למשוך לזנב שלו ולהישאר מחוץ לאף שלו"
+        },
+        {
+          "en": "MASTER ARM OFF; back to {base}; full stop",
+          "he": "יש להעביר את MASTER ARM ל-OFF, לחזור ל{base} ולנחות לעצירה מלאה"
+        },
+        {
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          },
+          "en": "Shelter; shut down",
+          "he": "יש להסיע לדת\"ק ולכבות"
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today Red 1 is a MiG-29. First BVR, then a head-on pass.",
+              "he": "היום אדום 1 הוא MiG-29. קודם BVR, ואחר כך מעבר חזיתי."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start the engine by the checklist.",
+              "he": "נתניע לפי בד\"ח ההתנעה."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "We're ready. Let's call the tower and taxi to runway {rwy}.",
+              "he": "אנחנו מוכנים. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Before-take-off checks now, then we line up on runway {rwy}.",
+              "he": "עכשיו בדיקות לפני המראה, ואז נתיישר על מסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "Let's take off and climb to twenty thousand, towards steerpoint two.",
+              "he": "נמריא ונטפס ל-20,000, לכיוון נקודת ציון 2."
+            }
+          ]
+        },
+        {
+          "id": "area",
+          "when": [
+            "climb_out"
+          ],
+          "lines": [
+            {
+              "en": "On the way, let's set master arm for the fight. The fight starts ten miles from steerpoint two.",
+              "he": "בדרך נכין את MASTER ARM לקרב. הקרב מתחיל עשרה מייל מנקודת ציון 2."
+            }
+          ]
+        },
+        {
+          "id": "fight",
+          "when": [
+            "fight_on"
+          ],
+          "lines": [
+            {
+              "en": "Fight's on. Let's shoot first and crank; his missile doesn't reach as far as ours.",
+              "he": "Fight's on. נירה ראשונים ונבצע crank; הטיל שלו קצר טווח משלנו."
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "when": [
+            "fight_done"
+          ],
+          "lines": [
+            {
+              "en": "Knock it off for today. Master arm off, and let's head home.",
+              "he": "סיום קרב להיום. MASTER ARM ל-OFF, וחוזרים הביתה."
+            }
+          ]
+        },
+        {
+          "id": "rollout",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nice landing. Let's clear the runway and taxi back to the shelter.",
+              "he": "נחיתה יפה. נפנה את המסלול ונסיע חזרה לדת\"ק."
+            }
+          ]
+        },
+        {
+          "id": "shelter",
+          "when": [
+            "parked"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "Let's shut down by the checklist. See you in the debrief.",
+              "he": "נכבה לפי הבד\"ח. נתראה בתחקיר."
+            }
+          ]
+        }
+      ]
+    },
+    "night": {
+      "missions": {
+        "f16d": "f16d_air_to_air_night",
+        "f16i": "f16i_air_to_air_night",
+        "f35i": "f35i_air_to_air_night"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, by night: a radar intercept of a drone round steerpoint 1 with a live missile, then a BVR engagement against Red 1 round steerpoint 2.",
+            "he": "{jet}, {base}, מסלול {runway}, לילה. יירוט מכ\"ם של מל\"ט בנקודת ציון 1 בטיל חי, ואחריו קרב BVR מול אדום 1 בנקודת ציון 2."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can intercept a drone and fight BVR by night, on the radar and the night-vision picture.",
+            "he": "בסיום התרגול הזה תדעו ליירט מל\"ט ולהילחם BVR בלילה לפי המכ\"ם ותמונת ראיית הלילה, תוך ירי בתוך טווח הטיל."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "A target drone, unarmed, on a racetrack round steerpoint 1 at 15,000 ft. Then Red 1, an aggressor F-16I with AIM-120 and AIM-9M (simulated), head-on 40 NM apart at 20,000 ft.",
+            "he": "מל\"ט מטרה לא חמוש בהקפה סביב נקודת ציון 1, 15,000 רגל. אחריו אדום 1: F-16I יריב, AIM-120 ו-AIM-9M מדומים, פתיחה חזיתית, 40 מייל, 20,000 רגל."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}, המדריך במושב האחורי באינטרקום. בקשר: מגדל {base} ועיטם (בקר)."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor on the radio. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}. בקשר: המדריך, מגדל {base} ועיטם (בקר)."
+          }
+        ],
+        "weather_area": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Night, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 1 is the drone's area, steerpoint 2 the fight's. The training area lies west of {base}, over the sea.",
+            "he": "לילה, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 1: אזור המל\"ט; נקודת ציון 2: אזור הקרב. אזור האימונים ממערב ל{base}, מעל הים."
+          },
+          {
+            "jets": [
+              "f16i",
+              "f35i"
+            ],
+            "en": "Night, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 1 is the drone's area, steerpoint 2 the fight's. The training area lies south of {base}, over the Negev.",
+            "he": "לילה, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 1: אזור המל\"ט; נקודת ציון 2: אזור הקרב. אזור האימונים מדרום ל{base}, מעל הנגב."
+          }
+        ],
+        "execution": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "at": "start",
+            "en": "Start-up and taxi with the cockpit lighting as in phase 1's night lesson. Before the take-off the goggles down ({key:255}).",
+            "he": "יש להתניע ולהסיע בתאורת תא לילה, כבתרגול הלילה של שלב 1, ולפני ההמראה להוריד את אמר\"ל ({key:255})."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "at": "start",
+            "en": "Start-up and taxi with the cockpit lighting as in phase 1's night lesson. Before the take-off the helmet's night camera on ({key:254}).",
+            "he": "יש להתניע ולהסיע בתאורת תא לילה, כבתרגול הלילה של שלב 1, ולפני ההמראה להפעיל את מצלמת הלילה בקסדה ({key:254})."
+          },
+          {
+            "at": "lineup",
+            "en": "Start-up, taxi and take-off as taught, with the checklist ({key:118}), runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ממסלול {runway}."
+          },
+          {
+            "en": "Climb to 15,000 ft towards steerpoint 1; ask Eitam for bogey dope ({key:47}, the AWACS page); MASTER ARM to ARM ({key:125}) in the area.",
+            "he": "יש לטפס ל-15,000 רגל ולטוס לנקודת ציון 1, לבקש מעיטם את המגע הקרוב ({key:47}, דף ה-AWACS), ובאזור להעביר את MASTER ARM ל-ARM ({key:125})."
+          },
+          {
+            "diagram": "intercept",
+            "en": "Radar in air search ({key:56}); the antenna's elevation on the target's height. Lock it ({key:132}); the AIM-120 selected ({key:66}).",
+            "he": "יש להעביר את המכ\"ם לחיפוש אוויר ({key:56}), לכוון את זווית האנטנה לגובה המטרה, לנעול עליה ({key:132}) ולבחור AIM-120 ({key:66})."
+          },
+          {
+            "en": "Shoot ({key:69}) inside the missile's reach: the target's range between the DLZ's Rmax and Rmin on the HUD. A shot outside it counts against \"Shots inside the missile's reach\".",
+            "he": "יש לירות ({key:69}) רק כשטווח המטרה בין Rmin ל-Rmax של ה-DLZ ב-HUD. ירי מחוץ לטווח נספר לחובה בסעיף \"שיגורים בתוך טווח הטיל\"."
+          },
+          {
+            "en": "Then on to steerpoint 2, climbing to 20,000 ft.",
+            "he": "משם יש לטוס לנקודת ציון 2 ולטפס ל-20,000 רגל."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "On the way, MASTER ARM to SIMULATE ({key:125}): the missiles and the gun fire in the fight, and harm no one.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-SIMULATE ({key:125}): הטילים והתותח יורים בקרב בלי לפגוע."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "On the way, MASTER ARM to ARM ({key:125}): every shot at Red 1 is simulated all the same.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-ARM ({key:125}): הירי על אדום 1 מדומה גם כך."
+          },
+          {
+            "diagram": "bvr",
+            "en": "Ten miles from steerpoint 2 the fight is on: both jets are put at the engagement's set-up in the air. A kill: \"kill\" on the radio, then \"knock it off\", and 6 s later the next set-up.",
+            "he": "עשרה מייל מנקודת ציון 2 הקרב מתחיל, ושני המטוסים מוצבים באוויר בנקודת הפתיחה. אחרי הפלה נשמעות בקשר הקריאות \"הפלה\" ו\"סיום קרב\", וכעבור 6 שניות מתחילה נקודת הפתיחה הבאה."
+          },
+          {
+            "diagram": "crank",
+            "en": "After the shot, the crank: turn 50° off his line, keeping him on the radar, so that his missile flies farther. His missile at you (the launch warning): turn him to the beam and drop chaff ({key:70}).",
+            "he": "אחרי הירי יש לבצע crank: לסטות 50° מהקו אליו ולהשאיר אותו במכ\"ם, כך שהטיל שלו יטוס רחוק יותר. בהתרעת שיגור יש להעמיד אותו בצד ולשחרר מוץ ({key:70})."
+          },
+          {
+            "en": "Then MASTER ARM to OFF ({key:125}), back to {base} and a full-stop landing, the shelter and the shutdown by the checklist.",
+            "he": "בסיום יש להעביר את MASTER ARM ל-OFF ({key:125}), לחזור ל{base}, לנחות לעצירה מלאה, להסיע לדת\"ק ולכבות לפי הבד\"ח."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "The drones are shot down for real: MASTER ARM to ARM only in the area, the nose away from {base} and the coast. At bingo fuel, knock it off and return to {base}. Alternate: Tel Nof. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "ירי חי על המל\"טים: MASTER ARM ל-ARM רק באזור, האף הרחק מ{base} ומהחוף. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: תל נוף. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "The drones are shot down for real: MASTER ARM to ARM only in the area, the nose away from {base} and the coast. At bingo fuel, knock it off and return to {base}. Alternate: Nevatim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "ירי חי על המל\"טים: MASTER ARM ל-ARM רק באזור, האף הרחק מ{base} ומהחוף. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: נבטים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "The drones are shot down for real: MASTER ARM to ARM only in the area, the nose away from {base} and the coast. At bingo fuel, knock it off and return to {base}. Alternate: Hatzerim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "ירי חי על המל\"טים: MASTER ARM ל-ARM רק באזור, האף הרחק מ{base} ומהחוף. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: חצרים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the radio. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך בקשר. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          },
+          "en": "Cockpit lighting; start-up, taxi, runway {runway}",
+          "he": "יש לכוון את תאורת התא, להתניע ולהסיע למסלול {runway}"
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "en": "Goggles down; take-off",
+          "he": "יש להוריד את אמר\"ל ולהמריא"
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "en": "Helmet night camera; take-off",
+          "he": "יש להפעיל את מצלמת הלילה בקסדה ולהמריא"
+        },
+        {
+          "diagram": "intercept",
+          "wait": {
+            "en": "splash",
+            "he": "הפלה"
+          },
+          "en": "Steerpoint 1: bogey dope, lock, shoot",
+          "he": "בנקודת ציון 1 יש לבקש את המגע הקרוב, לנעול ולירות"
+        },
+        {
+          "diagram": "bvr",
+          "wait": {
+            "en": "\"knock it off\"",
+            "he": "\"סיום קרב\""
+          },
+          "en": "Steerpoint 2: BVR against Red 1",
+          "he": "בנקודת ציון 2 יש לטוס קרב BVR מול אדום 1"
+        },
+        {
+          "en": "MASTER ARM OFF; back to {base}; full stop",
+          "he": "יש להעביר את MASTER ARM ל-OFF, לחזור ל{base} ולנחות לעצירה מלאה"
+        },
+        {
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          },
+          "en": "Shelter; shut down",
+          "he": "יש להסיע לדת\"ק ולכבות"
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Tonight we take a drone at steerpoint one, then BVR against Red 1 at steerpoint two.",
+              "he": "הלילה נפיל מל\"ט בנקודת ציון 1, ואחר כך BVR מול אדום 1 בנקודת ציון 2."
+            }
+          ]
+        },
+        {
+          "id": "start",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start the engine by the checklist.",
+              "he": "נתניע לפי בד\"ח ההתנעה."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "We're ready. Let's call the tower and taxi to runway {rwy}.",
+              "he": "אנחנו מוכנים. נקרא למגדל ונסיע למסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Before-take-off checks now, then we line up on runway {rwy}.",
+              "he": "עכשיו בדיקות לפני המראה, ואז נתיישר על מסלול {rwy}."
+            }
+          ]
+        },
+        {
+          "id": "lined_up",
+          "when": [
+            "lined_up"
+          ],
+          "lines": [
+            {
+              "en": "Let's take off and climb to fifteen thousand, towards steerpoint one, and ask Eitam for bogey dope.",
+              "he": "נמריא ונטפס ל-15,000, לכיוון נקודת ציון 1, ונבקש מעיטם את המגע הקרוב."
+            }
+          ]
+        },
+        {
+          "id": "radar",
+          "when": [
+            "called:awacs:bogey_dope"
+          ],
+          "lines": [
+            {
+              "en": "Let's lock the drone and shoot inside the reach.",
+              "he": "ננעל על המל\"ט ונירה בתוך טווח הטיל."
+            }
+          ]
+        },
+        {
+          "id": "on",
+          "when": [
+            "kills:1"
+          ],
+          "lines": [
+            {
+              "en": "Splash. Now on to steerpoint two, climbing to twenty thousand. Master arm for the fight.",
+              "he": "הופל. עכשיו לנקודת ציון 2, בטיפוס ל-20,000. נכין את MASTER ARM לקרב."
+            }
+          ]
+        },
+        {
+          "id": "fight",
+          "when": [
+            "fight_on"
+          ],
+          "lines": [
+            {
+              "en": "Fight's on. We lock him, shoot inside the reach, then crank.",
+              "he": "Fight's on. ננעל, נירה בתוך טווח הטיל, ואחר כך crank."
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "when": [
+            "fight_done"
+          ],
+          "lines": [
+            {
+              "en": "Knock it off for today. Master arm off, and let's head home.",
+              "he": "סיום קרב להיום. MASTER ARM ל-OFF, וחוזרים הביתה."
+            }
+          ]
+        },
+        {
+          "id": "rollout",
+          "when": [
+            "slowed"
+          ],
+          "lines": [
+            {
+              "en": "Nice landing. Let's clear the runway and taxi back to the shelter.",
+              "he": "נחיתה יפה. נפנה את המסלול ונסיע חזרה לדת\"ק."
+            }
+          ]
+        },
+        {
+          "id": "shelter",
+          "when": [
+            "parked"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "Let's shut down by the checklist. See you in the debrief.",
+              "he": "נכבה לפי הבד\"ח. נתראה בתחקיר."
+            }
+          ]
+        }
+      ]
+    },
+    "check": {
+      "missions": {
+        "f16d": "f16d_air_to_air_check",
+        "f16i": "f16i_air_to_air_check",
+        "f35i": "f35i_air_to_air_check"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} from {base}, runway {runway}, by day: check ride 7. The start-up, the take-off, three engagements against Red 1 round steerpoint 2 (BVR, offensive, defensive) and the landing.",
+            "he": "{jet}, {base}, מסלול {runway}, יום. טיסת מבחן 7: התנעה, המראה, שלושה קרבות מול אדום 1 בנקודת ציון 2 (BVR, התקפי, הגנתי), נחיתה."
+          }
+        ],
+        "target": [
+          {
+            "en": "This flight checks everything from phases 1 to 7. The instructor gives no calls in flight; the notebook stays with you. One emergency already taught may come, unannounced.",
+            "he": "בסיום התרגול הזה תדעו להטיס גיחה מלאה לפי כל הנלמד בשלבים 1 עד 7, בלי הנחיות מהמדריך, תוך עמידה בתקן של כל סעיף. הפנקס זמין. ייתכן חירום אחד שכבר נלמד, בלי הודעה מראש."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "Red 1, an aggressor F-16I with AIM-120, AIM-9M and the gun (simulated).",
+            "he": "אדום 1: F-16I יריב, AIM-120, AIM-9M ותותח מדומים."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor in the back seat on the intercom. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}, המדריך במושב האחורי באינטרקום. בקשר: מגדל {base} ועיטם (בקר)."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One {jet}, Kidon 1, with the instructor on the radio. {base} tower and Eitam, the controller, on the radio.",
+            "he": "כידון 1, {jet}. בקשר: המדריך, מגדל {base} ועיטם (בקר)."
+          }
+        ],
+        "weather_area": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 2 is the fight's area. The training area lies west of {base}, over the sea.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 2: אזור הקרב. אזור האימונים ממערב ל{base}, מעל הים."
+          },
+          {
+            "jets": [
+              "f16i",
+              "f35i"
+            ],
+            "en": "Day, the wind calm, the sky clear. {base}, runway {runway}; the jet starts cold on its parking spot. Steerpoint 2 is the fight's area. The training area lies south of {base}, over the Negev.",
+            "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}, התנעה קרה מעמדת החניה. נקודת ציון 2: אזור הקרב. אזור האימונים מדרום ל{base}, מעל הנגב."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "Start-up, taxi and take-off as taught, with the checklist ({key:118}): the tower for the start-up, the taxi and the line-up, runway {runway}.",
+            "he": "יש להתניע, להסיע ולהמריא כפי שנלמד, לפי הבד\"ח ({key:118}), ולבקש מהמגדל אישור להתנעה, להסעה ולהתיישרות על מסלול {runway}."
+          },
+          {
+            "at": "lineup",
+            "en": "After the take-off, climb to 20,000 ft towards steerpoint 2 by steerpoint 1.",
+            "he": "אחרי ההמראה יש לטפס ל-20,000 רגל ולטוס דרך נקודת ציון 1 לנקודת ציון 2."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "On the way, MASTER ARM to SIMULATE ({key:125}): the missiles and the gun fire in the fight, and harm no one.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-SIMULATE ({key:125}): הטילים והתותח יורים בקרב בלי לפגוע."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "On the way, MASTER ARM to ARM ({key:125}): every shot at Red 1 is simulated all the same.",
+            "he": "בדרך יש להעביר את MASTER ARM ל-ARM ({key:125}): הירי על אדום 1 מדומה גם כך."
+          },
+          {
+            "en": "Ten miles from steerpoint 2 the fight is on: both jets are put at the engagement's set-up in the air. A kill: \"kill\" on the radio, then \"knock it off\", and 6 s later the next set-up.",
+            "he": "עשרה מייל מנקודת ציון 2 הקרב מתחיל, ושני המטוסים מוצבים באוויר בנקודת הפתיחה. אחרי הפלה נשמעות בקשר הקריאות \"הפלה\" ו\"סיום קרב\", וכעבור 6 שניות מתחילה נקודת הפתיחה הבאה."
+          },
+          {
+            "en": "The engagements: BVR head-on at 40 NM; at his six, 3,000 ft; Red 1 at your six, 3,000 ft.",
+            "he": "יש לטוס שלושה קרבות: BVR בפתיחה חזיתית מ-40 מייל; התקפי, בשעה 6 שלו ב-3,000 רגל; והגנתי, כשאדום 1 בשעה 6 שלכם ב-3,000 רגל."
+          },
+          {
+            "en": "Then MASTER ARM to OFF ({key:125}), back to {base} and a full-stop landing, the shelter and the shutdown by the checklist.",
+            "he": "בסיום יש להעביר את MASTER ARM ל-OFF ({key:125}), לחזור ל{base}, לנחות לעצירה מלאה, להסיע לדת\"ק ולכבות לפי הבד\"ח."
+          }
+        ],
+        "coordination": [
+          {
+            "jets": [
+              "f16d"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Tel Nof. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: תל נוף. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f16i"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Nevatim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: נבטים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Every shot at Red 1 is simulated: nothing leaves the jet that can hurt him. The fight's floor is 5,000 ft above the ground: below it, or the two jets more than 20 km apart (BVR: 150 km), the engagement is knocked off. At bingo fuel, knock it off and return to {base}. Alternate: Hatzerim. \"Knock it off\" ({key:261}) from either jet ends the engagement at once.",
+            "he": "כל ירי על אדום 1 מדומה ואינו פוגע בו. רצפת הקרב: 5,000 רגל מעל הקרקע. מתחת לרצפה, או יותר מ-20 ק\"מ בין המטוסים (BVR: 150 ק\"מ), הקרב מסתיים. דלק בינגו: סיום קרב וחזרה ל{base}. שדה חלופי: חצרים. \"סיום קרב\" ({key:261}) מכל מטוס עוצר את הקרב מיד."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the intercom. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך באינטרקום. מילת קוד: \"סיום קרב\"."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1; the aggressor Red 1. {base} tower: {key:47}; Eitam on the radio menu's AWACS page ({key:47}). The instructor on the radio. Code word: \"knock it off\".",
+            "he": "אות קריאה: כידון 1; היריב: אדום 1. מגדל {base} ועיטם (דף ה-AWACS) בתפריט הקשר ({key:47}). המדריך בקשר. מילת קוד: \"סיום קרב\"."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "wait": {
+            "en": "the tower's clearances",
+            "he": "אישורי המגדל"
+          },
+          "en": "Start-up, taxi, runway {runway}",
+          "he": "יש להתניע ולהסיע למסלול {runway}"
+        },
+        {
+          "en": "Take-off; climb to 20,000 ft; steerpoint 2",
+          "he": "יש להמריא, לטפס ל-20,000 רגל ולטוס לנקודת ציון 2"
+        },
+        {
+          "en": "MASTER ARM for the fight",
+          "he": "יש להכין את MASTER ARM לקרב"
+        },
+        {
+          "wait": {
+            "en": "both jets in the air at the set-up",
+            "he": "שני המטוסים באוויר בנקודת הפתיחה"
+          },
+          "en": "10 NM from steerpoint 2: the set-up",
+          "he": "עשרה מייל מנקודת ציון 2 מתחילה נקודת הפתיחה"
+        },
+        {
+          "diagram": "bvr",
+          "en": "BVR",
+          "he": "יש לטוס קרב BVR"
+        },
+        {
+          "diagram": "offensive_setup",
+          "en": "Offensive BFM",
+          "he": "יש לטוס קרב BFM התקפי"
+        },
+        {
+          "diagram": "defensive_setup",
+          "wait": {
+            "en": "\"knock it off\"",
+            "he": "\"סיום קרב\""
+          },
+          "en": "Defensive BFM",
+          "he": "יש לטוס קרב BFM הגנתי"
+        },
+        {
+          "en": "MASTER ARM OFF; back to {base}; full stop",
+          "he": "יש להעביר את MASTER ARM ל-OFF, לחזור ל{base} ולנחות לעצירה מלאה"
+        },
+        {
+          "wait": {
+            "en": "the engine off: the end",
+            "he": "המנוע כבוי: הסוף"
+          },
+          "en": "Shelter; shut down",
+          "he": "יש להסיע לדת\"ק ולכבות"
+        }
+      ],
+      "calls": []
+    }
+  }
+}

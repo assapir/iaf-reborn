@@ -41,7 +41,7 @@ chapters:
   - {id: debrief, title: "The debrief", file: game/flying/debrief.typ}
 - id: missions-training
   title: "Missions and training"
-  intro: "The training course's phases, the instructor in a lesson, and the training fight against an aggressor."
+  intro: "The training course's phases, the instructor in a lesson, the training fight against an aggressor, and the air-to-air phase."
   sections:
   - {id: course-ground, title: "Phase 1: Ground and start-up", file: game/missions-training/course-ground.typ}
   - {id: course-pattern, title: "Phase 2: Basic handling, the pattern and landing", file: game/missions-training/course-pattern.typ}
@@ -50,6 +50,7 @@ chapters:
   - {id: instructor, title: "The instructor", file: game/missions-training/instructor.typ}
   - {id: course-control, title: "Phase 6: AWACS, ground control and the tanker", file: game/missions-training/course-control.typ}
   - {id: training-fight, title: "Training fight", file: game/missions-training/training-fight.typ}
+  - {id: course-air-to-air, title: "Phase 7: Air-to-air", file: game/missions-training/course-air-to-air.typ}
 - id: bases
   title: "Air bases"
   intro: "The ground the jets work from."
