@@ -74,7 +74,7 @@ sortie briefing needs that an order's sections do not name. The sections are rep
 | Mission                     | The opening paragraph: who, what, where, when                                      |
 | Target                      | The second paragraph: what the pilot can do after the lesson                       |
 | Situation: enemy            | What the lesson puts against the player: none, a drone, aggressor jets, SAM sites  |
-| Situation: our forces       | The player's flight and callsign, the instructor, tower, range control, AWACS, the tanker |
+| Situation: our forces       | The aircraft: their number, type and callsigns; the other units taking part (tower, range control, AWACS, the tanker) |
 | Situation: weather and area | Weather, time, the base and runway, the area or range                              |
 | Execution                   | The steps in order with their diagrams, the numbers to hold (speeds, altitudes, headings, G), the range's target or the drone where the lesson has one, the graded items with their standard |
 | Coordination and safety     | Height floors, the range's rules, bingo fuel, the alternate airfield, "knock it off" |
