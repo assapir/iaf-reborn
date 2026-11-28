@@ -110,19 +110,19 @@ const T := {
 			["ok", "Initial height", "1,500 ft ±100", "1,540 ft", "—", "Average", ""],
 			["warn", "Initial speed", "300 kt ±10", "322 kt", "+12 kt", "Below average", "Throttle back on the initial."],
 			["ok", "Break", "4–5 G, level", "4.6 G", "—", "Above average", "A crisp, level break."],
-			["ok", "Downwind", "1,500 ft ±100", "1,480 ft", "—", "Average", ""],
+			["warn", "Downwind", "1,500 ft ±100", "1,320 ft", "−80 ft", "Below average", "Hold 1,500 ft after the break."],
 			["ok", "Final", "13° ±1 AoA", "13.4°", "—", "Average", ""],
-			["warn", "Touchdown", "first 1,000 ft", "1,350 ft", "+350 ft", "Below average", "Start the final turn at the perch."],
+			["ok", "Touchdown", "first 1,000 ft", "900 ft", "—", "Average", ""],
 		],
 		"stamp": "MARGINAL",
 		"grade_line": "The lesson: Marginal. It counts as passed; two items below average.",
 		"lessons":
 		[
 			"Next time: 300 kt on the initial, before the break.",
-			"Next time: the final turn at the perch, not past it, for a touchdown in the zone."
+			"Next time: hold 1,500 ft on downwind; trim once the break ends."
 		],
-		"fault_speed": "! 322 kt on the initial · %s",
-		"fault_td": "! Touchdown at 1,350 ft · %s",
+		"fault_speed": "! Initial speed · %s",
+		"fault_td": "! Downwind height · %s",
 		"mission_field": "Overhead break",
 		"course": "Training course",
 		"course_line": "Phase 2 of 8 · 7 of 47 passed",
@@ -207,19 +207,19 @@ const T := {
 			["ok", "גובה הכניסה", "1,500 רגל ±100", "1,540 רגל", "—", "ממוצע", ""],
 			["warn", "מהירות הכניסה", "300 קשר ±10", "322 קשר", "+12 קשר", "מתחת לממוצע", "להוריד מצערת בכניסה."],
 			["ok", "שבירה", "4–5 G, אופקית", "4.6 G", "—", "מעל הממוצע", "שבירה חדה ואופקית."],
-			["ok", "רגל הרוח", "1,500 רגל ±100", "1,480 רגל", "—", "ממוצע", ""],
+			["warn", "רגל הרוח", "1,500 רגל ±100", "1,320 רגל", "−80 רגל", "מתחת לממוצע", "להחזיק 1,500 רגל אחרי השבירה."],
 			["ok", "סופית", "13° ±1", "13.4°", "—", "ממוצע", ""],
-			["warn", "נגיעה", "1,000 רגל ראשונות", "1,350 רגל", "+350 רגל", "מתחת לממוצע", "להתחיל את פניית הסופית בנקודת הפנייה."],
+			["ok", "נגיעה", "1,000 רגל ראשונות", "900 רגל", "—", "ממוצע", ""],
 		],
 		"stamp": "גבולי",
 		"grade_line": "השיעור: גבולי. נחשב כעבר; שני סעיפים מתחת לממוצע.",
 		"lessons":
 		[
 			"בפעם הבאה: 300 קשר בכניסה, לפני השבירה.",
-			"בפעם הבאה: פניית הסופית בנקודת הפנייה ולא אחריה, לנגיעה בתוך האזור."
+			"בפעם הבאה: להחזיק 1,500 רגל ברגל הרוח; לטרם מיד בסוף השבירה."
 		],
-		"fault_speed": "! 322 קשר בכניסה · %s",
-		"fault_td": "! נגיעה ב-1,350 רגל · %s",
+		"fault_speed": "! מהירות הכניסה · %s",
+		"fault_td": "! גובה רגל הרוח · %s",
 		"mission_field": "הקפה עם שבירה",
 		"course": "מסלול האימונים",
 		"course_line": "שלב 2 מתוך 8 · 7 מתוך 47 עברו",
@@ -543,7 +543,7 @@ func _debrief(fe: Control, id: int) -> void:
 	fe.open_debrief(id)
 	fe.record["flight"] = ProjectSettings.globalize_path("res://tests/data/overhead_flight.jsonl")
 	fe.record["date"] = "2026-11-26T08:00:00"
-	fe.record["elapsed_s"] = 417.0
+	fe.record["elapsed_s"] = 891.0
 	fe.show_page("debrief")
 	await frames(5)
 	var he := lang == "he"
@@ -571,8 +571,8 @@ func _debrief(fe: Control, id: int) -> void:
 			return times.size() - 1
 		var clock := func(sec: float) -> String: return load("res://menu/debrief_page.gd").clock_at(fe, m, sec, true)
 		map.track_pins = map.track_pins + [
-			[at.call(302.0), t("fault_speed") % clock.call(302.0), "fault"],
-			[at.call(383.0), t("fault_td") % clock.call(383.0), "fault"],
+			[at.call(562.0), t("fault_speed") % clock.call(562.0), "fault"],
+			[at.call(609.0), t("fault_td") % clock.call(609.0), "fault"],
 		]
 		map.queue_redraw()
 	# Each item: the goals' rows with the gap, the grade and the comment.
