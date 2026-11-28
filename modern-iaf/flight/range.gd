@@ -32,8 +32,9 @@ func _process(_delta: float) -> void:
 		# ponytail: the far ground's finer heights load as the jet nears; every 5 s re-stands the few hulks on them.
 		_next_ground = float(host.runtime.now) + 5.0
 		for ent in placed.targets:
-			if int(ent.state) < 3:
-				ent.world = _ground([ent.world.x, ent.world.y])
+			var g = host.mission_ground(ent.world)
+			if int(ent.state) < 3 and g != null:  # no ground loaded there: the last height stands
+				ent.world.z = float(g)
 				host.mission_entity_moved(ent)
 
 

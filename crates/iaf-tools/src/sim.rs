@@ -1126,6 +1126,7 @@ pub fn missions(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     for f in &files {
         check(cancel)?;
         ensure!(ids.insert(text(f, "id")?.to_lowercase()), "{}: mission id {} is taken", f.name, f.v["id"]);
+        ensure!(text(f, "id")?.to_lowercase() != "ranges", "{}: mission id \"ranges\" is ranges.json's", f.name);
         let mut m = compile_mission(f, &db, &bases, &mut height)?;
         if let Some(r) = f.v["range"].as_str() {
             let r = ranges.get(r).with_context(|| format!("{}: no range \"{r}\" in data/ranges", f.name))?;
