@@ -408,7 +408,11 @@ pub fn rules(mission: &Value) -> Result<Option<Rules>> {
             let (end, calls) = (list("end")?, list("calls")?);
             ensure!(!end.is_empty(), "training: a lesson needs its \"end\"");
             for e in &end {
-                ensure!(course::test_ok(e), "training: \"end\": {e} is no test (training.md §16.3)");
+                let name = e.split_once(':').map_or(e.as_str(), |(k, _)| k);
+                ensure!(
+                    course::test_ok(e) && END_TESTS.contains(&name),
+                    "training: \"end\": {e} is no test the scorer reads ({END_TESTS:?}, training.md §16.3)"
+                );
             }
             Kind::Lesson { end, calls }
         }
@@ -489,6 +493,8 @@ pub struct Sample {
     pub fuel_kg: f64,
     pub rpm: Option<f64>,
     pub avionics: Option<bool>,
+    /// The electrical power: 0 none, 1 the battery, 2 the displays up (version 2 of the recorder).
+    pub power: Option<i64>,
 }
 
 /// A flight recording: samples and events in time order.
@@ -514,7 +520,7 @@ pub fn parse_flight(text: &str) -> Result<Flight> {
         ["t", "x", "z", "speed_kt", "heading", "pitch", "on_ground", "engine", "throttle", "gear", "fuel_kg"].map(need);
     let (t, x, z, speed, heading, pitch) = (t?, x?, z?, speed?, heading?, pitch?);
     let (ground, engine, throttle, gear, fuel) = (ground?, engine?, throttle?, gear?, fuel?);
-    let (agl, g, rpm, avionics) = (col("agl_m"), col("g"), col("rpm"), col("avionics"));
+    let (agl, g, rpm, avionics, power) = (col("agl_m"), col("g"), col("rpm"), col("avionics"), col("power"));
     let mut f = Flight::default();
     while let Some((i, l)) = lines.next() {
         let v: Value = match serde_json::from_str(l) {
@@ -547,6 +553,7 @@ pub fn parse_flight(text: &str) -> Result<Flight> {
             fuel_kg: n(fuel),
             rpm: rpm.and_then(|i| r.get(i)?.as_f64()),
             avionics: avionics.and_then(|i| r.get(i)?.as_bool()),
+            power: power.and_then(|i| r.get(i)?.as_i64()),
         });
     }
     ensure!(!f.samples.is_empty(), "recording has no samples");
@@ -1248,9 +1255,10 @@ pub struct RadioNow {
 pub const GROUND_CALLS: [&str; 4] = ["startup", "taxi", "lineup", "takeoff"];
 
 /// The radio menu's calls, in menu order (the user, 2026-11-13: "all radio calls should always be available. on ground
-/// show only starting calls, in the air show landing"): every ground call on the ground, "landing" in the air.
+/// show only starting calls, in the air show landing"): every ground call and the radio check on the ground,
+/// "landing" in the air.
 pub fn radio_calls(s: &RadioNow) -> Vec<&'static str> {
-    if s.on_ground { GROUND_CALLS.to_vec() } else { vec!["landing"] }
+    if s.on_ground { GROUND_CALLS.iter().copied().chain(["radio_check"]).collect() } else { vec!["landing"] }
 }
 
 /// The ground call a call `id` needs first, in GROUND_CALLS' order, while its clearance is missing (the tower then
@@ -1550,15 +1558,62 @@ fn startup(f: &Flight, mission: String, budget: f64) -> Debrief {
     }
 }
 
-/// A course lesson (training.md §16.2): passed when the flight wrote its `lesson_end` event (the flight's end tests
-/// held, §16.3) within the time budget; each of the lesson's course items graded against its standard from what
-/// `measure` reads of the recording.
+/// The tests a lesson's `end` may name: the ones `holds` reads from the recording (training.md §16.3).
+pub const END_TESTS: [&str; 7] = ["power_off", "engine_off", "idle", "aligned", "parked", "item", "called"];
+
+/// The card items that set the cockpit for the night (data/checklists: the F-16s' interior lights, the F-35I's HMD).
+const NIGHT_ITEMS: [&str; 2] = ["interior_lights", "hmd_night"];
+
+/// Parked: on the ground, stopped, within this of the spot the flight started from, m (inferred: a shelter's pad).
+const PARKED_M: f64 = 30.0;
+
+/// Test `test` (END_TESTS) at sample `i` of the recording.
+fn holds(f: &Flight, i: usize, test: &str) -> bool {
+    let (s, x) = (&f.samples, &f.samples[i]);
+    let before = |e: &&Value| e["t"].as_f64().is_some_and(|t| t <= x.t);
+    let (name, arg) = test.split_once(':').unwrap_or((test, ""));
+    match name {
+        "power_off" => x.power == Some(0),
+        "engine_off" => !x.engine && x.rpm.unwrap_or(0.0) < 1.0,
+        "idle" => x.engine && x.rpm.unwrap_or(0.0) >= IDLE_RPM,
+        "aligned" => {
+            let ins = |e: &&Value| e["event"] == "checklist" && e["step"] == "ins" && e["fault"].is_null();
+            f.events.iter().filter(before).any(|e| ins(&e))
+        }
+        "parked" => x.on_ground && x.speed_kt < 1.0 && (x.x - s[0].x).hypot(x.y - s[0].y) <= PARKED_M,
+        "item" => {
+            let last = f.events.iter().filter(before).filter(|e| e["event"] == "checklist" && e["item"] == arg).last();
+            last.is_some_and(|e| e["on"] != false)
+        }
+        "called" => f.events.iter().filter(before).any(|e| e["event"] == "radio" && e["call"] == arg),
+        _ => false,
+    }
+}
+
+/// The time from the start the lesson's end came (training.md §16.2): the first sample where every test of `end` has
+/// failed at least once since the start and all hold; None before it.
+pub fn end_at(f: &Flight, end: &[String]) -> Option<f64> {
+    let mut failed = vec![false; end.len()];
+    for i in 0..f.samples.len() {
+        let now: Vec<bool> = end.iter().map(|t| holds(f, i, t)).collect();
+        for (k, h) in now.iter().enumerate() {
+            failed[k] |= !h;
+        }
+        if failed.iter().all(|x| *x) && now.iter().all(|x| *x) {
+            return Some(f.samples[i].t - f.samples[0].t);
+        }
+    }
+    None
+}
+
+/// A course lesson (training.md §16.2): passed when its end came (`end_at`) within the time budget; each of the
+/// lesson's course items graded against its standard from what `measure` reads of the recording.
 fn lesson(f: &Flight, mission_id: String, mission: &Value, r: &Rules, calls: &[String]) -> Result<Debrief> {
     let key = mission["lesson"].as_str().unwrap_or("");
     let c = course::course();
     let (p, l) = c.find(key).with_context(|| format!("{mission_id}: \"lesson\" {key} is no lesson of the course"))?;
-    let t0 = f.samples[0].t;
-    let end = f.events.iter().find(|e| e["event"] == "lesson_end").map(|e| e["t"].as_f64().unwrap_or(t0) - t0);
+    let Kind::Lesson { end, .. } = &r.kind else { bail!("{mission_id}: not a lesson") };
+    let end = end_at(f, end);
     let mut reasons = vec![];
     match end {
         None => reasons.push("lesson_not_done"),
@@ -1612,10 +1667,21 @@ fn measure(f: &Flight, id: &str, r: &Rules, calls: &[String]) -> Option<f64> {
             let av = s.iter().find(|x| x.avionics == Some(true))?.t;
             Some(idle.max(av) - t0)
         }
+        // The INS knob's step (a lesson that asks for the `ins` item); without one (the F-35I) the self test's end,
+        // the avionics up.
         "ins_aligned" => {
-            let ins = f.events.iter().find(|e| e["event"] == "checklist" && e["step"] == "ins" && e["fault"].is_null());
-            let at = ins.and_then(|e| e["t"].as_f64());
+            let at = if r.checklist.iter().any(|i| i == "ins") {
+                let ins = |e: &&Value| e["event"] == "checklist" && e["step"] == "ins" && e["fault"].is_null();
+                f.events.iter().find(ins).and_then(|e| e["t"].as_f64())
+            } else {
+                s.iter().find(|x| x.avionics == Some(true)).map(|x| x.t)
+            };
             Some(if at.is_some_and(|t| moved.is_none_or(|m| t <= m)) { 1.0 } else { 0.0 })
+        }
+        // The night lesson's lighting items (data/checklists' lesson-only items) the lesson asks for, all ticked.
+        "night_lighting" => {
+            let asked: Vec<&String> = r.checklist.iter().filter(|i| NIGHT_ITEMS.contains(&i.as_str())).collect();
+            (!asked.is_empty()).then(|| if asked.iter().all(|i| ticked(i)) { 1.0 } else { 0.0 })
         }
         // ponytail: every sample on the ground counts; a lesson with a take-off roll needs the roll left out.
         "taxi_speed" => s.iter().filter(|x| x.on_ground).map(|x| x.speed_kt).reduce(f64::max),
@@ -2657,7 +2723,7 @@ mod tests {
         let hot = RadioNow { on_ground: true, engine_on: true, avionics: true, hot: true, ..Default::default() };
         assert_eq!(next_call(&hot), Some("takeoff"));
         // The menu itself: every ground call on the ground, landing in the air.
-        assert_eq!(radio_calls(&hot), GROUND_CALLS);
+        assert_eq!(radio_calls(&hot), ["startup", "taxi", "lineup", "takeoff", "radio_check"]);
         assert_eq!(radio_calls(&RadioNow::default()), ["landing"]);
         // A call out of order: the one it needs first.
         let a = |l: &[&str]| l.iter().map(|x| x.to_string()).collect::<Vec<_>>();

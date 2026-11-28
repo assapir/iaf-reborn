@@ -19,6 +19,7 @@
 ]},
 {"id": "after_start", "en": "AFTER ENGINE START", "he": "אחרי התנעה", "items": [
   {"id": "hmd", "en": "HMD – AUTO or DAY", "he": "HMD – ‏AUTO או DAY", "how": {"en": "at OFF the helmet display is dark", "he": "ב־OFF תצוגת הקסדה כבויה"}, "where": {"en": "HMD knob: front panel, under the display", "he": "בורר HMD: הלוח הקדמי, מתחת לתצוגה"}, "check": {"set": {"HMD_MODE": [2, 3]}}, "control": ["HMD_MODE"]},
+  {"id": "hmd_night", "lesson": true, "en": "HMD – NIGHT", "he": "HMD – ‏NIGHT", "how": {"en": "each click turns it one position on (OFF, NIGHT, AUTO, DAY); from DAY two clicks, through OFF", "he": "כל לחיצה מעבירה אותו מצב אחד (OFF, ‏NIGHT, ‏AUTO, ‏DAY); מ־DAY שתי לחיצות, דרך OFF"}, "where": {"en": "HMD knob: front panel, under the display", "he": "בורר HMD: הלוח הקדמי, מתחת לתצוגה"}, "check": {"set": {"HMD_MODE": 1}}, "control": ["HMD_MODE"]},
   {"id": "hmd_preflight", "en": "Helmet display – test and adjust", "he": "תצוגת הקסדה – בדיקה והתאמה"},
   {"id": "displays", "en": "HMD BRT, MFD BRT – set", "he": "HMD BRT, ‏MFD BRT – כיוון", "where": {"en": "front panel, under the display", "he": "הלוח הקדמי, מתחת לתצוגה"}},
   {"id": "fuel_joker", "en": "Joker and bingo fuel – set", "he": "דלק Joker ו־Bingo – כיוון", "how": {"en": "normal recovery fuel: 2,500 lb or more at the final approach fix", "he": "דלק רגיל לחזרה: 2,500 ליברות לפחות בנקודת הגישה הסופית"}},

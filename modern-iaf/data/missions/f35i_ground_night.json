@@ -1,0 +1,93 @@
+{
+  "category": "training",
+  "time": "21:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f35i",
+    "base": "Nevatim",
+    "at": "parking",
+    "elevation_m": 405
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "training.end_hold_s": "inferred",
+    "training.time_budget_s": "inferred"
+  },
+  "notes": {
+    "time": "the night lesson (training-plan.md §1: each phase's night lesson after dark; 21:00 well after the dusk in every season, inferred)",
+    "wind_kt": "phase 1 is flown in calm air (inferred: no wind matters on the spot or the taxiways)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "training.time_budget_s": "thirty minutes, as the day taxi lesson (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.checklist": "the card items the lesson covers, in the card's order (data/checklists, training.md §12, §16.2)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f35i_ground_night",
+  "menu_id": 3143,
+  "lesson": "ground.night",
+  "title": {
+    "en": "At night: start-up and taxi",
+    "he": "בלילה: התנעה והסעה"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "השיעור הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "השיעור נכשל. כדאי לטוס אותו שוב."
+  },
+  "runway": "26L",
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off",
+      "power_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi"
+    ],
+    "calls": [
+      "startup",
+      "taxi"
+    ],
+    "checklist": [
+      "park_brake",
+      "master_arm_safe",
+      "alt_gear_norm",
+      "land_taxi_off",
+      "gear_down",
+      "main_power",
+      "starter",
+      "engine",
+      "selftest",
+      "hmd_night",
+      "icaw",
+      "canopy",
+      "seat_arm",
+      "taxi_light",
+      "park_brake_off",
+      "taxi_light_in",
+      "arm_safe",
+      "seat_safe",
+      "park_brake_on",
+      "throttle_off",
+      "batt_off"
+    ],
+    "time_budget_s": 1800,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

@@ -145,7 +145,8 @@ def abbreviations(manual: str, entry: dict) -> int:
     lines = [s["en"] for s in card["sections"]]
     for sec in card["sections"]:
         for it in sec["items"]:
-            lines += [it["en"], it.get("how", {}).get("en", ""), it.get("where", {}).get("en", "")]
+            if not it.get("lesson"):
+                lines += [it["en"], it.get("how", {}).get("en", ""), it.get("where", {}).get("en", "")]
     sources["the checklist card"] = " ".join(lines)
     with open(os.path.join(text, "controls.yaml"), encoding="utf-8") as f:
         part = re.search(r"(?ms)^" + entry["cockpit"] + r":\n(.*?)(?=^\w|\Z)", f.read())

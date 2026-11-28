@@ -1,0 +1,98 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f35i",
+    "base": "Nevatim",
+    "at": "parking",
+    "elevation_m": 405
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "training.end_hold_s": "inferred",
+    "training.time_budget_s": "inferred"
+  },
+  "notes": {
+    "time": "check ride 1 by day (training-plan.md §1: the check rides of phases 3, 5 and 8 at night)",
+    "wind_kt": "phase 1 is flown in calm air (inferred: no wind matters on the spot or the taxiways)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "training.time_budget_s": "thirty minutes, as the taxi lesson with the line-up (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.checklist": "the card items the lesson covers, in the card's order (data/checklists, training.md §12, §16.2)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f35i_ground_check",
+  "menu_id": 3153,
+  "lesson": "ground.check",
+  "title": {
+    "en": "Check ride 1",
+    "he": "טיסת מבחן 1"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "השיעור הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "השיעור נכשל. כדאי לטוס אותו שוב."
+  },
+  "runway": "26L",
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off",
+      "power_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "calls": [
+      "startup",
+      "taxi",
+      "lineup"
+    ],
+    "checklist": [
+      "park_brake",
+      "master_arm_safe",
+      "alt_gear_norm",
+      "land_taxi_off",
+      "gear_down",
+      "main_power",
+      "starter",
+      "engine",
+      "selftest",
+      "hmd",
+      "icaw",
+      "canopy",
+      "seat_arm",
+      "taxi_light",
+      "park_brake_off",
+      "fcs_reset",
+      "cautions",
+      "landing_light",
+      "taxi_light_in",
+      "arm_safe",
+      "seat_safe",
+      "park_brake_on",
+      "throttle_off",
+      "batt_off"
+    ],
+    "time_budget_s": 1800,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

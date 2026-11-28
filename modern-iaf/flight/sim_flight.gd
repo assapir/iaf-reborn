@@ -28,6 +28,7 @@ const ITEMS := [
 	["lineup", "Request line-up", "בקשת כניסה למסלול"],
 	["takeoff", "Request take-off", "בקשת המראה"],
 	["landing", "Contact tower (landing)", "קריאה למגדל (נחיתה)"],
+	["radio_check", "Radio check", "בדיקת קשר"],
 ]
 ## The first page's lines: id, English, Hebrew (the user, 19 Nov: "1: tower ... 2: wingman's commands ... 3 will be
 ## AWACS"). AWACS opens the controller's requests (docs/ai.md §24.5).
@@ -112,6 +113,7 @@ const CALLS := {
 	"lineup": ["request line-up", "בקשת כניסה למסלול"],
 	"takeoff": ["ready for take-off", "בקשת המראה"],
 	"landing": ["request landing", "בקשת נחיתה"],
+	"radio_check": ["radio check", "בדיקת קשר"],
 }
 ## The call's address: "Ramon tower" / "מגדל רמון".
 const TOWER := {"en": "%s tower", "he": "מגדל %s"}
@@ -839,6 +841,8 @@ func _process(delta: float) -> void:
 	if String(rules.get("kind", "")) == "startup":
 		ready = bool(st.get("engine_on", false)) and bool(st.get("avionics", false))
 		ready = ready and _steps().all(func(id): return card.done.has(id))  # every item the lesson asks for ticked
+	elif String(rules.get("kind", "")) == "lesson":
+		ready = true  # a course lesson: scored every 3 s, its end read from the recording (training.md §16.2)
 	else:
 		ready = not bool(st.on_ground)  # airborne: scored with the gear up or down, so a missing goal shows
 	# Scored every 3 s once ready (or past the budget) and the recorder has written a sample of it (10 a second).

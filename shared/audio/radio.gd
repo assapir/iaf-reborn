@@ -686,6 +686,8 @@ func request(kind: String) -> Dictionary:
 		said.append(click)
 		play_wav("KCH2.WAV")
 		return click
+	if kind == "radio_check":  # Modern IAF's radio check (modern-iaf/docs/training.md §8): "read you five", no readback
+		return say("ACFT_RADIO_CHECK", [_tower_callsign()])
 	var code := 3
 	match kind:
 		"startup":

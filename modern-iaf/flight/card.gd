@@ -29,6 +29,14 @@ var done := {}
 var section := -1
 var _seen := {}  # "prop=value": a position a control was put to (a test switch's moment)
 var _flown := false
+var _air_lesson := false
+var _ground_lesson := false  # a course lesson flown on the ground: its "landed" sections open on its spot
+var _spot = null  # the rig's first place (Vector3), a ground lesson's spot
+var _taxis := false  # a ground lesson with a runway: it taxis out and back
+var _left := false  # the jet has been farther than SPOT_M from its spot
+## A ground lesson's spot: within this of where the jet started, stopped (m, kt; inferred: a shelter's pad).
+const SPOT_M := 30.0
+const STOPPED_KT := 1.0
 var _brakes_out := false  # the speed brakes seen open since the flight began ("speedbrake": "cycled")
 var _approach := false
 ## The approach (a section's "when": "approach"): airborne and descending below this height above the ground, ft
@@ -47,6 +55,33 @@ func _init(f: Node, plane: String, key := "sections") -> void:
 		if plane in d.get("jets", []):
 			data = d
 	sections = data.get(key, [])
+	# A course lesson's card holds the items its mission asks for (training.checklist) and its sections' read-only
+	# items; a lesson that asks for no item of an airborne section is flown on the ground, and its "landed" sections
+	# (the shutdown) open on the ground, stopped on the spot it started from; in a lesson with a runway (a taxi to
+	# it) once the jet has left the spot and come back (modern-iaf/docs/training.md §16.2).
+	var asked: Array = f.rules.get("checklist", []) if String(f.rules.get("kind", "")) == "lesson" else []
+	if not asked.is_empty() and key == "sections":
+		var kept := []
+		for sec: Dictionary in sections:
+			var items: Array = sec.items.filter(func(it): return it.id in asked)
+			if items.is_empty():
+				continue
+			if String(sec.get("when", "")) in ["air", "approach"]:
+				_air_lesson = true
+			var c := sec.duplicate()
+			c.items = sec.items.filter(func(it): return it.id in asked or not it.has("check"))
+			kept.append(c)
+		sections = kept
+		_ground_lesson = not _air_lesson
+		_taxis = String(f.host.radio.runway) != ""
+	else:
+		# Outside a lesson the card leaves out its lesson-only items (a night lesson's lighting, "lesson": true).
+		var kept := []
+		for sec: Dictionary in sections:
+			var c := sec.duplicate()
+			c.items = sec.items.filter(func(it): return not bool(it.get("lesson", false)))
+			kept.append(c)
+		sections = kept
 	for i in sections.size():
 		for it: Dictionary in sections[i].items:
 			it["section"] = i
@@ -69,6 +104,9 @@ func update() -> bool:
 	if f == null or sections.is_empty():
 		return false
 	var st: Dictionary = f.state()
+	if _spot == null:
+		_spot = flight.host.rig.position
+	_left = _left or not _near_spot()
 	record("")  # the 3D cockpit's controls known and their moves heard (a test switch's moment)
 	var air := not bool(st.get("on_ground", true))
 	_flown = _flown or air
@@ -152,8 +190,17 @@ func _phase(when: String, st: Dictionary) -> bool:
 		"approach":
 			return _approach
 		"landed":
+			if _ground_lesson and _spot != null:
+				var back := _near_spot() and (_left or not _taxis)
+				return back and float(st.get("speed_kt", 0.0)) < STOPPED_KT and bool(st.get("on_ground", true))
 			return _flown and bool(st.get("on_ground", true))
 	return true
+
+
+## The jet within SPOT_M of where it started.
+func _near_spot() -> bool:
+	var p: Vector3 = flight.host.rig.position
+	return _spot == null or Vector2(p.x - _spot.x, p.z - _spot.z).length() <= SPOT_M
 
 
 ## Check `c` holds: every key of it ("step": the flight model's start-up step done (sim_flight.gd done); "set": each

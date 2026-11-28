@@ -10,7 +10,8 @@
     {"call": "startup", "on": "GND", "en": "“{cs}, cleared to start”", "he": "\"{cs}, אישור התנעה\""},
     {"call": "taxi", "on": "GND", "en": "“{cs}, taxi to runway {runway}”", "he": "\"{cs}, הסעה למסלול {runway}\""},
     {"call": "takeoff", "on": "TWR", "en": "“line up runway {runway}” · “cleared for take-off”", "he": "\"כניסה למסלול {runway}\" · \"מאושר להמריא\""},
-    {"call": "landing", "on": "TWR", "en": "“proceed to runway …”", "he": "\"המשך למסלול …\""}
+    {"call": "landing", "on": "TWR", "en": "“proceed to runway …”", "he": "\"המשך למסלול …\""},
+    {"call": "radio_check", "on": "TWR", "en": "“{cs}, read you five”", "he": "\"{cs}, שומע אותך חמש\""}
   ],
   "pages": {
     "f16": {
