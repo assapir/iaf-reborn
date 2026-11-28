@@ -288,8 +288,8 @@ user's yes. The route is Hangar → Missions → Training → a phase → the br
 - **A phase's lessons:** a card opens its lessons in today's section-list look: the day lessons, the night lesson and
   the check ride, each with its last result (Pass, Marginal, Unsatisfactory or not flown).
 - **Changes to existing screens:** the briefing's sections and diagrams (§2.2), the debrief's grades and fault
-  markers (§2.4), the notebook's Lesson tab, and the course's progress on the Hangar's jet card and in the Pilot
-  screen's logbook.
+  markers (§2.4), the notebook's Lesson tab, and the course's progress in the Pilot screen's logbook (the Hangar's jet
+  card shows none).
 
 Each of these is a visible change: a mock-up made from the existing screens' parts goes to the Approvals page before
 it is built. The briefing's diagrams use the look of the sim's existing drawings and the notebook's approved look
