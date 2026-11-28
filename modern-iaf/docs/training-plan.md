@@ -33,8 +33,9 @@ The pass and fail rules already built are in [training.md](training.md), the bri
 | F-16I Sufa   | Ramon       | in the back seat, on the intercom |
 | F-35I Adir   | Nevatim     | in a second F-35I, on the radio   |
 
-Each base is one of the five built airbases ([airbases.md](airbases.md)). Before the courses are built, a builder
-checks which squadron of each jet trains at which base and moves a course if its jet trains elsewhere.
+Each base is one of the five built airbases ([airbases.md](airbases.md)). Each is where its jet's new pilots train:
+an F-16 pilot converts in the squadron the pilot joins, an F-35I pilot in 117 Squadron at Nevatim
+([research/training.md](research/training.md) §1).
 
 ## 2. A lesson
 
@@ -315,13 +316,14 @@ The courses need these capabilities. A builder checks each against [status.md](s
 
 ## 7. Open
 
-- **The F-35I's lessons** where its procedures and stores differ from the F-16s' (§4).
-- **The home bases:** each jet's real training base (§1).
+- **The F-35I's lessons** where its procedures and stores differ from the F-16s' (§4): what is public is mapped to
+  each emergency lesson in [research/training.md](research/training.md) §2; the steps themselves are not public.
 - **The range:** its real name, its targets and its SAM sites (§1).
 - **The IAF's own briefing and debrief headings**, if a source gives them; the sections above follow the IDF's
   general order and debrief.
 - **The IAF's own grading scale**, if a source is found (§2.4).
-- **The Hebrew names** of the phases and lessons, from the terms the air force uses.
+- **The Hebrew names** of the phases and lessons: the terms found and the phase names built from them are in
+  [research/training.md](research/training.md) §3; the terms no source gives are listed there as open.
 
 ## Sources
 
