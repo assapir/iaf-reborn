@@ -17,7 +17,7 @@ The pass and fail rules already built are in [training.md](training.md), the bri
 - **A staged course** of eight phases, in the order of a real conversion course. Each phase has three to six day
   lessons, a night lesson, then a check ride.
 - **Everything is open** (12 Nov 2026, again 28 Nov): any lesson of any phase can be flown at any time. The logbook
-  shows the course's progress and the next lesson.
+  shows the course's progress.
 - **Where:** each course flies from its jet's home base. Cloud appears in the navigation and instruments phase.
 - **Night in every phase.** Each phase ends with the same exercises at night (BFM excepted), just before its check
   ride (the user, 28 Nov 2026: "Maybe instead of sperate night phase every section will end with 'same thing, in
@@ -284,10 +284,9 @@ something"). Anything the existing screens do not have is proposed on the Approv
 user's yes. The route is Hangar → Missions → Training → a phase → the briefing:
 
 - **The phases:** Training opens a screen of eight phase cards in the Missions screen's card look
-  ([front-end.md](front-end.md) §1): each card has the phase's number, its title and the pilot's progress in it, and
-  the card with the next lesson is marked Next.
+  ([front-end.md](front-end.md) §1): each card has the phase's number, its title and the pilot's progress in it.
 - **A phase's lessons:** a card opens its lessons in today's section-list look: the day lessons, the night lesson and
-  the check ride, each with its last result (Pass, Marginal, Unsatisfactory or not flown) and the next one marked.
+  the check ride, each with its last result (Pass, Marginal, Unsatisfactory or not flown).
 - **Changes to existing screens:** the briefing's sections and diagrams (§2.2), the debrief's grades and fault
   markers (§2.4), the notebook's Lesson tab, and the course's progress on the Hangar's jet card and in the Pilot
   screen's logbook.
