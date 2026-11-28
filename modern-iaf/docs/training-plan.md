@@ -320,7 +320,7 @@ user's yes. The route is Hangar → Missions → Training → a phase → the br
 - **Changes to existing screens (built, Approvals A132–A135):** the briefing's sections and diagrams (§2.2,
   [front-end.md](front-end.md) §10.3), the debrief's grades and fault markers (§2.4, [front-end.md](front-end.md)
   §13.1), the notebook's Lesson tab ([training.md](training.md) §11), and the course's progress in the Pilot screen's
-  logbook ([front-end.md](front-end.md) §3; the Hangar's jet card shows none).
+  logbook ([front-end.md](front-end.md) §3).
 
 Each of these is a visible change: a mock-up made from the existing screens' parts goes to the Approvals page before
 it is built. The briefing's diagrams use the look of the sim's existing drawings and the notebook's approved look
