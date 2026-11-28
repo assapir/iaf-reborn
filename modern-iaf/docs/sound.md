@@ -22,8 +22,9 @@ VENV/bin/python -I tools/iaf-2026/sounds.py DL      # remakes the effects from t
 IAF_KOKORO_PYTHON=VENV/bin/python cargo run --release -p iaf-setup --bin iaf-sim -- voices   # remakes the voices (§5)
 ```
 `sounds.py`'s header gives its setup (a venv with numpy and scipy; ffmpeg with libvorbis); `tools/iaf-2026/kokoro_tts.py`'s
-header gives Kokoro's (§5.3). A new `voices` run remakes every clip; Kokoro's output may differ slightly between
-machines and versions (inferred).
+header gives Kokoro's (§5.3). A new `voices` run remakes every clip (`--only` the clips it names; the five computed radio clips,
+`kch2`, `twr_pause`, `key_on`, `key_off` and `radio_gap`, when it names them or they are missing). A clip is written
+bit-exact and only when its bytes change. Kokoro's output may differ slightly between machines and versions (inferred).
 
 ## 1. The sound set
 One clip per sound code the shared flight code plays (docs/sound.md §3–§5): 29 CC0 recordings from freesound[^fs], one

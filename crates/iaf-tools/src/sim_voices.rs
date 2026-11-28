@@ -391,11 +391,29 @@ fn ffmpeg(x: &[f32], opts: &[&str], out: &Path, tmp: &Path) -> Result<()> {
     Ok(())
 }
 
-/// `x` (at SR) as 22050 Hz mono Ogg Vorbis at `out`.
+/// `x` (at SR) as 22050 Hz mono Ogg Vorbis at `out`. Bit-exact (ffmpeg's Ogg stream serial is random otherwise) and
+/// written only when its bytes differ from the file there, so a clip whose input did not change stays untouched.
 pub fn write_ogg(x: &[f32], out: &Path, tmp: &Path) -> Result<()> {
     let rate = crate::sim::SOUND_RATE.to_string();
     let x: Vec<f32> = x.iter().map(|v| v.clamp(-1.0, 1.0)).collect();
-    ffmpeg(&x, &["-ar", &rate, "-ac", "1", "-c:a", "libvorbis", "-q:a", OGG_Q], out, tmp)
+    let enc = tmp.join("out.ogg");
+    let opts = ["-ar", &rate, "-ac", "1", "-c:a", "libvorbis", "-q:a", OGG_Q];
+    let exact = ["-fflags", "+bitexact", "-flags:a", "+bitexact"];
+    ffmpeg(&x, &[&opts[..], &exact].concat(), &enc, tmp).with_context(|| out.display().to_string())?;
+    replace_if_changed(out, &std::fs::read(&enc)?)
+}
+
+/// `bytes` into `out` unless `out` already holds exactly them.
+fn replace_if_changed(out: &Path, bytes: &[u8]) -> Result<()> {
+    if std::fs::read(out).is_ok_and(|b| b == bytes) {
+        return Ok(());
+    }
+    Ok(std::fs::write(out, bytes)?)
+}
+
+/// A computed clip (`kch2.ogg` …) is made when `--only` names it or it is missing.
+fn computed_due(sounds: &Path, only: Option<&str>, file: &str) -> bool {
+    picked(only, file) || !sounds.join(file).exists()
 }
 
 /// `x` `semitones` higher with its formants kept (ffmpeg's rubberband): a higher voice, not a chipmunk.
@@ -496,7 +514,7 @@ fn make(x: &[f32], split: Option<[f32; 2]>, c: &Value, mode: Mode, noise: &mut N
 
 /// `iaf-sim voices`: every clip of `<data>/sounds/voices.json` (`only`: the clips whose file name contains one of its
 /// comma-separated parts) into `<data>/sounds`, the computed `kch2.ogg`, `twr_pause.ogg`, `key_on.ogg`, `key_off.ogg`
-/// and `radio_gap.ogg`, then [`deploy`].
+/// and `radio_gap.ogg` (those `only` picks, and any missing), then [`deploy`].
 pub fn voices(
     data: &Path,
     repo: &Path,
@@ -516,8 +534,11 @@ pub fn voices(
         ("key_off.ogg", noise.key_off()),
         ("radio_gap.ogg", silence(RADIO_GAP)),
     ];
+    // Made above in any case: the voice clips' noise follows theirs.
     for (f, x) in computed {
-        write_ogg(&x, &sounds.join(f), &tmp.0)?;
+        if computed_due(&sounds, only, f) {
+            write_ogg(&x, &sounds.join(f), &tmp.0)?;
+        }
     }
     let clips: Vec<&Value> = v["clips"]
         .as_array()
@@ -731,6 +752,27 @@ mod tests {
         b.extend(0.5f32.to_le_bytes());
         b.extend((-0.25f32).to_le_bytes());
         assert_eq!(read_wav(&b).unwrap(), vec![0.5, -0.25]);
+    }
+
+    /// A computed clip only when `--only` names it or it is missing; a file is rewritten only when its bytes change.
+    #[test]
+    fn computed_clips_untouched() {
+        let dir = Tmp(std::env::temp_dir().join(format!("iaf-sim-computed-{}", std::process::id())));
+        std::fs::create_dir_all(&dir.0).unwrap();
+        let f = dir.0.join("key_on.ogg");
+        assert!(computed_due(&dir.0, Some("ins"), "key_on.ogg"), "missing");
+        replace_if_changed(&f, b"abc").unwrap();
+        assert!(
+            !computed_due(&dir.0, Some("ins"), "key_on.ogg")
+                && !computed_due(&dir.0, Some("radio_check,read_five"), "key_on.ogg")
+        );
+        assert!(computed_due(&dir.0, None, "key_on.ogg") && computed_due(&dir.0, Some("key_on"), "key_on.ogg"));
+        let t = std::fs::metadata(&f).unwrap().modified().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        replace_if_changed(&f, b"abc").unwrap();
+        assert_eq!(std::fs::metadata(&f).unwrap().modified().unwrap(), t, "same bytes: not rewritten");
+        replace_if_changed(&f, b"abd").unwrap();
+        assert_eq!(std::fs::read(&f).unwrap(), b"abd");
     }
 
     /// `--only`'s comma-separated parts; the clips still to make in either language, whichever run came first.
