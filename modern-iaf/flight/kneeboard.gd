@@ -623,9 +623,7 @@ func _marks() -> Array:
 	var lesson: bool = String(flight.rules.get("kind", "")) == "lesson"
 	var asks_start: bool = not lesson or "startup" in flight.rules.get("calls", [])
 	var waits: bool = (
-		"startup" in flight.rules.get("clearances", [])
-		and asks_start
-		and not "ACFT_CLEAR_TO_START" in flight.answers
+		"startup" in flight.rules.get("clearances", []) and asks_start and not "ACFT_CLEAR_TO_START" in flight.answers
 	)
 	if flight.check_ride:
 		return out
