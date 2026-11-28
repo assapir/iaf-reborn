@@ -1346,6 +1346,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   within 4 km of Godot's origin (the jets near the camera, the effects, the outside views), so 300 km from the start
   nothing rounds to centimetres; the sim's positions, hits and the picture are as before
   ([../../docs/rendering.md](../../docs/rendering.md) §11, `test_floating_origin.gd`).
+- **The ILS glide path is 3° (2026-11-28):** every base's ILS centres on a 3° glide path (iaf.ibx `GlidePath`,
+  [data-formats.md](data-formats.md) §12): the HUD's ILS lines, the ADI's bars and lesson 3.3's glide slope grade; the
+  1998 game keeps its 5°. Lesson 3.3's second fix is 10 NM out at 3,000 ft, under the glide path.
 - **The ILS bars glide (2026-11-09, the Mac play test's finding 24):** the HUD's ILS lines sit at the exact
   deviation instead of the original's whole-pixel steps, which jumped about 5.5 screen pixels at a time on the 3D
   HUD glass ([real-hud.md](../../docs/real-hud.md#what-ours-draws-status)). `test_mvp.gd` checks all three jets.

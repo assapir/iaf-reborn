@@ -696,6 +696,7 @@ their defaults without one). Nothing in it comes from the original's file: its k
 | `TowerLocX`, `TowerLocY`, `TowerLocZ` | the tower; its ground height. Only Nevatim's tower is known (airbases.md §5): the others take the base's reference point (OurAirports, inferred). The flight model calls a start at the base when it lies within 5 km and 15 m (height) of it |
 | `LineupLocX`, `LineupLocY`, `LineupLocZ` | the take-off end's lineup point; its ground height. A start within 100 m of it starts with the engine running |
 | `RunwayNumber` | the take-off grid heading, whole degrees (the reader truncates; written rounded) |
+| `GlidePath` | ours: the ILS glide path's angle above the horizon, 3° at every base (`sim_bases::GLIDE_PATH_DEG`; the usual ILS glide path[^aim-gs]; inferred for these bases, whose data has no ILS). The HUD's ILS lines, the ADI's ILS bars and the training's glide slope grade centre on it (`iaf_flight::airbase::ils`); the original's file has no `GlidePath`, and there the exe's 5° stays |
 | `RunwayDesignator`, `RunwayDesignatorOpposite` | ours: the take-off end's designator ("26L") and the other end's, the ones painted on the runway and on the signs (§10 `designators`). The tower says these (the opposite one when it turns the runway into the wind); without them it says RunwayNumber / 10, which at Nevatim (256°) gave "25" for the runway marked "26L" (fixed 2026-11-13) |
 | `TaxiWayPtsFrom`, `FromTaxiPtX<i>`, `FromTaxiPtY<i>`, `FromTaxiPtHdg<i>` | departure of the first spot: from its way out (the hub) along the taxiways to the take-off end's runway start, then the lineup; each point's heading is its leg's. The readers of one path take it (the radio's holding point, the tests) |
 | `TaxiWayPtsTo`, `ToTaxiPtX<i>`, `ToTaxiPtY<i>`, `ToTaxiPtHdg<i>` | arrival of the first spot: from 100 m past the other end's runway start (where a jet that landed rolls out) along the taxiways to its way out |
@@ -881,3 +882,6 @@ it ([front-end.md](front-end.md) §10).
 [^bms-asym]: Falcon BMS forum, "Asymmetric loads - Air to Ground for F16" (quotes the F-16 flight manual, section 5: the maximum allowable asymmetric (rolling) moment for ground handling, taxi, takeoff, inflight and landing is 25,020 foot-pounds), https://forum.falcon-bms.com/post/167880
 [^afm-f35]: Air & Space Forces Magazine, "F-35" (up to six AIM-120 internally; eight AIM-120 and two AIM-9 in all), https://www.airandspaceforces.com/weapons/f-35
 [^rk-bru61]: War Thunder forum (BRU-61 about 147 kg; unofficial), https://forum.warthunder.com/t/saab-jas-39e-f-gripen-general-discussion/291381?page=52
+[^aim-gs]: Wikipedia, "Instrument landing system", "ILS concept" (the glide slope "is normally transmitted to produce a
+    centerline at an angle of 3 degrees above horizontal") and "Glide slope (G/S)" ("approximately 3° above horizontal");
+    read 2026-11-28, <https://en.wikipedia.org/wiki/Instrument_landing_system>

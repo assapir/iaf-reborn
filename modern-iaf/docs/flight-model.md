@@ -1479,9 +1479,9 @@ Open: the CAEW's own weight and drag (its radomes), the BR710's real lapse.
 [^lm-aoa]: Lockheed Martin press release, 19 November 2012, quoted by SLDInfo, "The F-35 and High Angle of Attack
     Flight Testing" ("rapidly expanded its high angle of attack (AOA) test envelope to its 50 degree limit in only four
     flights"), https://sldinfo.com/2012/11/the-f-35-and-high-angle-of-attack-flight-testing/
-[^aim-gs]: FAA, *Aeronautical Information Manual*, 1-1-9 "Instrument Landing System (ILS)": the glide path is
-    normally set at 3° (cited from memory, not re-read for this change; no download was allowed),
-    <https://www.faa.gov/air_traffic/publications/atpubs/aim_html/chap1_section_1.html>
+[^aim-gs]: Wikipedia, "Instrument landing system", "ILS concept" (the glide slope "is normally transmitted to produce a
+    centerline at an angle of 3 degrees above horizontal") and "Glide slope (G/S)" ("approximately 3° above horizontal");
+    read 2026-11-28, <https://en.wikipedia.org/wiki/Instrument_landing_system>
 [^asf20]: Air & Space Forces Magazine, "Eglin F-35 Crash Blamed on Landing Speed, but Software, Helmet, Oxygen Also
     Faulted" (2020: "a shallow angle of attack of 5.2 degrees, instead of the desired 13 degrees"; the 202-knot speed
     hold "50 knots too fast"), https://www.airandspaceforces.com/eglin-f-35-crash-blamed-on-landing-speed-but-software-helmet-oxygen-also-faulted/

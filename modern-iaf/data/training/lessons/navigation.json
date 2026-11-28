@@ -728,8 +728,8 @@
         ],
         "weather_area": [
           {
-            "en": "Day, the wind calm. A deck of rain cloud from about 1,500 ft above the ground up to about 18,000 ft; under it rain and about 6 km of visibility, inside it nothing to see. {base}, runway {runway}; the jet starts cold on its parking spot. The fixes are on the runway's line: 12 NM out at 5,000 ft above the field, and 9 NM out at 3,000 ft.",
-            "he": "יום, רוח שקטה. שכבת ענני גשם מכ-1,500 רגל מעל הקרקע עד כ-18,000 רגל; מתחתיה גשם וראות של כ-6 ק\"מ, ובתוכה אין ראות. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. נקודות הגישה על קו המסלול: 12 מייל בחוץ ב-5,000 רגל מעל הבסיס, ו-9 מייל בחוץ ב-3,000 רגל."
+            "en": "Day, the wind calm. A deck of rain cloud from about 1,500 ft above the ground up to about 18,000 ft; under it rain and about 6 km of visibility, inside it nothing to see. {base}, runway {runway}; the jet starts cold on its parking spot. The fixes are on the runway's line: 12 NM out at 5,000 ft above the field, and 10 NM out at 3,000 ft.",
+            "he": "יום, רוח שקטה. שכבת ענני גשם מכ-1,500 רגל מעל הקרקע עד כ-18,000 רגל; מתחתיה גשם וראות של כ-6 ק\"מ, ובתוכה אין ראות. {base}, מסלול {runway}. יציאה ממטוס קר בעמדת החניה. נקודות הגישה על קו המסלול: 12 מייל בחוץ ב-5,000 רגל מעל הבסיס, ו-10 מייל בחוץ ב-3,000 רגל."
           }
         ],
         "execution": [
@@ -759,13 +759,13 @@
             "at": "lineup"
           },
           {
-            "en": "The fixes: steerpoint 1 at 12 NM from the TACAN, 5,000 ft above the field, 300 kt; on to steerpoint 2 at 9 NM, descending to 3,000 ft above the field, still 300 kt, on the runway's line.",
-            "he": "נקודות הגישה: נקודת ציון 1 ב-12 מייל מה-TACAN, 5,000 רגל מעל הבסיס, 300 קשר; משם לנקודת ציון 2 ב-9 מייל, בירידה ל-3,000 רגל מעל הבסיס, עדיין 300 קשר, על קו המסלול.",
+            "en": "The fixes: steerpoint 1 at 12 NM from the TACAN, 5,000 ft above the field, 300 kt; on to steerpoint 2 at 10 NM, descending to 3,000 ft above the field, still 300 kt, on the runway's line.",
+            "he": "נקודות הגישה: נקודת ציון 1 ב-12 מייל מה-TACAN, 5,000 רגל מעל הבסיס, 300 קשר; משם לנקודת ציון 2 ב-10 מייל, בירידה ל-3,000 רגל מעל הבסיס, עדיין 300 קשר, על קו המסלול.",
             "diagram": "instrument_approach"
           },
           {
-            "en": "The ILS: past steerpoint 2 the localizer centres; hold it with small heading changes. The glide slope comes down to meet you at about 5.6 NM: gear down, slow to 13° angle of attack and follow it down; the sim's glide path is 5°. At 200 ft above the field, the decision height: land with the runway in sight, else go around.",
-            "he": "ה-ILS: אחרי נקודת ציון 2 ה-Localizer מתמרכז; יש להחזיק אותו בשינויי כיוון קטנים. בכ-5.6 מייל מגיעים ל-Glideslope: יש להוריד כן, להאט לזווית התקפה 13° ולרדת לאורכו; זווית הגלישה בסימולטור 5°. ב-200 רגל מעל הבסיס, גובה ההחלטה: נוחתים כשהמסלול נראה, אחרת הליכה סביב."
+            "en": "The ILS: past steerpoint 2 the localizer centres; hold it with small heading changes. The glide slope comes down to meet you at about 9.4 NM: gear down, slow to 13° angle of attack and follow it down; the glide path is 3°. At 200 ft above the field, the decision height: land with the runway in sight, else go around.",
+            "he": "ה-ILS: אחרי נקודת ציון 2 ה-Localizer מתמרכז; יש להחזיק אותו בשינויי כיוון קטנים. בכ-9.4 מייל מגיעים ל-Glideslope: יש להוריד כן, להאט לזווית התקפה 13° ולרדת לאורכו; זווית הגלישה 3°. ב-200 רגל מעל הבסיס, גובה ההחלטה: נוחתים כשהמסלול נראה, אחרת הליכה סביב."
           },
           {
             "en": "After landing: clear the runway, the after-landing checks, taxi to the shelter and shut down with the checklist. The lesson ends with the engine off on the spot.",
@@ -847,8 +847,8 @@
           "diagram": "instrument_approach"
         },
         {
-          "en": "Steerpoint 2: 9 NM, 3,000 ft; the localizer",
-          "he": "נקודת ציון 2: 9 מייל, 3,000 רגל; ה-Localizer"
+          "en": "Steerpoint 2: 10 NM, 3,000 ft; the localizer",
+          "he": "נקודת ציון 2: 10 מייל, 3,000 רגל; ה-Localizer"
         },
         {
           "en": "Glide slope: gear down, 13° AoA, follow it",
@@ -1865,8 +1865,8 @@
             "diagram": "route_medium"
           },
           {
-            "en": "After steerpoint 4: climb to 5,000 ft above the field for steerpoint 5 (12 NM out), then steerpoint 6 (9 NM, 3,000 ft) at 300 kt, the ILS to the decision height and the landing.",
-            "he": "אחרי נקודה 4 יש לטפס ל-5,000 רגל מעל הבסיס לנקודה 5 (12 מייל בחוץ), ואחר כך לנקודה 6 (9 מייל, 3,000 רגל) ב-300 קשר, ב-ILS עד גובה ההחלטה ולנחות.",
+            "en": "After steerpoint 4: climb to 5,000 ft above the field for steerpoint 5 (12 NM out), then steerpoint 6 (10 NM, 3,000 ft) at 300 kt, the ILS to the decision height and the landing.",
+            "he": "אחרי נקודה 4 יש לטפס ל-5,000 רגל מעל הבסיס לנקודה 5 (12 מייל בחוץ), ואחר כך לנקודה 6 (10 מייל, 3,000 רגל) ב-300 קשר, ב-ILS עד גובה ההחלטה ולנחות.",
             "diagram": "instrument_approach"
           },
           {
@@ -2421,16 +2421,16 @@
           "en": "Steerpoint 2: the second fix",
           "he": "נקודת ציון 2: נקודת הגישה השנייה",
           "hold": {
-            "en": "9 nm · 3,000 ft · 300 kt",
-            "he": "9 מייל · 3,000 רגל · 300 קשר"
+            "en": "10 nm · 3,000 ft · 300 kt",
+            "he": "10 מייל · 3,000 רגל · 300 קשר"
           }
         },
         {
           "en": "The glide slope",
           "he": "ה-Glideslope",
           "hold": {
-            "en": "about 5.6 nm · gear down · 13° AoA",
-            "he": "כ-5.6 מייל · כן למטה · זווית התקפה 13°"
+            "en": "about 9.4 nm · gear down · 13° AoA",
+            "he": "כ-9.4 מייל · כן למטה · זווית התקפה 13°"
           }
         },
         {
@@ -2469,11 +2469,11 @@
                 50
               ],
               [
-                70,
+                82,
                 50
               ],
               [
-                45,
+                78,
                 50
               ],
               [
@@ -2493,11 +2493,11 @@
             50
           ],
           [
-            70,
+            82,
             50
           ],
           [
-            45,
+            78,
             50
           ],
           [
@@ -2529,15 +2529,15 @@
                 90
               ],
               [
-                80,
+                88,
                 90
               ],
               [
-                70,
+                82,
                 55
               ],
               [
-                45,
+                78,
                 55
               ],
               [
@@ -2557,11 +2557,11 @@
             90
           ],
           [
-            70,
+            82,
             55
           ],
           [
-            45,
+            78,
             55
           ],
           [
@@ -2579,8 +2579,8 @@
               30,
               36
             ],
-            "en": "5° glide path",
-            "he": "שיפוע 5°"
+            "en": "3° glide path",
+            "he": "שיפוע 3°"
           },
           {
             "at": [

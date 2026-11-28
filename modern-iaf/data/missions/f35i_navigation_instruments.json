@@ -18,8 +18,8 @@
       "speed_kmh": 556
     },
     {
-      "lat": 31.24654,
-      "lon": 35.20363,
+      "lat": 31.25033,
+      "lon": 35.22261,
       "alt_m": 1319,
       "speed_kmh": 556
     }
@@ -43,7 +43,7 @@
     "wind_from": "calm: no direction",
     "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
     "runway": "the base's runway the take-off missions use; the tower turns it into the wind",
-    "route": "the two approach fixes on the runway's extended centreline: 12 NM at 5,000 ft and 9 NM at 3,000 ft above the field, 300 kt (inferred)",
+    "route": "the two approach fixes on the runway's extended centreline: 12 NM at 5,000 ft and 10 NM at 3,000 ft above the field, 300 kt (inferred)",
     "training.time_budget_s": "the start-up, the taxi and the lesson's flight with time to spare (inferred)",
     "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
     "training.end": "the lesson ends with the jet back on its spot and the engine off (training.md §16.3)",

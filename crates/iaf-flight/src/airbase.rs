@@ -36,6 +36,9 @@ pub struct Airbase {
     /// A base the tower turned into the wind (`reversed`): where the departure enters the runway to backtrack down it
     /// to the other end (the original lineup); None on a base flown its own way.
     pub backtrack: Option<[f32; 3]>,
+    /// Ours (Modern IAF's iaf.ibx `GlidePath`, modern-iaf/docs/data-formats.md §12): the ILS glide path's angle
+    /// above the horizon, deg; None (the original's file) is the exe's 5° ([`ILS_GLIDE_DEG`]).
+    pub glide_path_deg: Option<f32>,
 }
 
 /// The sections, in the TowersManager's record order; Modern IAF's own iaf.ibx adds Hatzerim and Nevatim after them
@@ -98,6 +101,7 @@ impl Airbase {
                 .collect(),
             to_hangar_path: (0..nh).map(|h| pts(s, &format!("ToHangar{h}Pt"), n(&format!("HangarPtsTo{h}")))).collect(),
             backtrack: None,
+            glide_path_deg: s.f32("GlidePath"),
         }
     }
 
@@ -262,7 +266,8 @@ impl Airbase {
 /// 0x60cb38).
 pub const LINEUP_ZONE_M: f32 = 400.0;
 
-/// The HUD ILS reference glide path, −5° (`0x82f678`, set from −5.0 at `0x45fbce`).
+/// The HUD ILS reference glide path, −5° (`0x82f678`, set from −5.0 at `0x45fbce`): a base's without its own
+/// [`Airbase::glide_path_deg`].
 pub const ILS_GLIDE_DEG: f32 = -5.0;
 /// The localizer / glideslope deviation limits (`0x82f670` 19°, `0x82f67c` 5°).
 pub const ILS_LOC_LIMIT_DEG: f32 = 19.0;
@@ -282,8 +287,9 @@ fn wrap_pi(a: f32) -> f32 {
 
 /// The HUD ILS deviations (the NAV HUD mode object's update `460130`, docs/cockpit.md "ILS"): the base whose
 /// lineup point is nearest in 2-D (`5511a0`), u = the unit vector from the jet at `p` to that lineup point;
-/// localizer = wrap(atan2(u.x, u.y) − RunwayNumber) clamped ±19°, glideslope = wrap(−5° − asin(u.z)) clamped ±5°
-/// (radians; both 0 on the 5° glide path down the runway heading; + = the runway point right of / below the
+/// localizer = wrap(atan2(u.x, u.y) − RunwayNumber) clamped ±19°, glideslope = wrap(−g − asin(u.z)) clamped ±5°
+/// (g = the base's glide path, the exe's 5° unless iaf.ibx gives one; radians; both 0 on the glide path down the
+/// runway heading; + = the runway point right of / below the
 /// path). All in f32 as the original. None without a base.
 pub fn ils(bases: &[Airbase], p: [f32; 3]) -> Option<(f32, f32)> {
     let mut best: Option<(&Airbase, f32)> = None;
@@ -299,7 +305,8 @@ pub fn ils(bases: &[Airbase], p: [f32; 3]) -> Option<(f32, f32)> {
     let k = if len == 0.0 { 1.0 } else { 1.0 / len };
     let u = [d[0] * k, d[1] * k, d[2] * k];
     let lim_gs = ILS_GS_LIMIT_DEG.to_radians();
-    let gs = wrap_pi(ILS_GLIDE_DEG.to_radians() - u[2].clamp(-1.0, 1.0).asin()).clamp(-lim_gs, lim_gs);
+    let glide = b.glide_path_deg.map_or(ILS_GLIDE_DEG, |g| -g);
+    let gs = wrap_pi(glide.to_radians() - u[2].clamp(-1.0, 1.0).asin()).clamp(-lim_gs, lim_gs);
     let bearing = if u[0] == 0.0 && u[1] == 0.0 { 0.0 } else { u[0].atan2(u[1]) };
     // RunwayNumber is read as an int (`54eda0` __ftol), then fmod 360 into ±180° (`459bd0`) and radians.
     let rn = hdg((b.runway_deg as i32) as f32);
@@ -354,6 +361,24 @@ mod tests {
         // Limits: ±19° and ±5°.
         let (loc, gs) = ils(&b, [1000.0, 0.0, 5000.0]).unwrap();
         assert!((loc.to_degrees() + 19.0).abs() < 1e-3 && (gs.to_degrees() - 5.0).abs() < 1e-3, "{loc} {gs}");
+    }
+
+    /// Modern IAF's iaf.ibx gives its bases a 3° glide path (`GlidePath=3.0`): the glideslope centres on 3°, and 5°
+    /// up is 2° high; the original's file (no key) keeps the exe's 5° (`ils_centres_on_the_5_degree_path_…`).
+    #[test]
+    fn ils_centres_on_the_bases_own_glide_path() {
+        let ini = b"[Ramon]\nLineupLocX=1000\nLineupLocY=2000\nLineupLocZ=100\nRunwayNumber=90\nGlidePath=3.0\n";
+        let b = Airbase::load_all(ini);
+        assert_eq!(b[0].glide_path_deg, Some(3.0));
+        let at = |deg: f32| [-2000.0, 2000.0, 100.0 + 3000.0 * deg.to_radians().tan()];
+        let (_, gs) = ils(&b, at(3.0)).unwrap();
+        assert!(gs.abs() < 1e-4, "{gs}");
+        let (_, gs) = ils(&b, at(5.0)).unwrap();
+        assert!((gs.to_degrees() - 2.0).abs() < 0.01, "{}", gs.to_degrees());
+        let old = Airbase::load_all(b"[Ramon]\nLineupLocX=1000\nLineupLocY=2000\nLineupLocZ=100\nRunwayNumber=90\n");
+        assert_eq!(old[0].glide_path_deg, None);
+        let (_, gs) = ils(&old, at(5.0)).unwrap();
+        assert!(gs.abs() < 1e-4, "{gs}");
     }
 
     /// A straight 3° approach from 5 NM to 500 m at 75 m/s, 60 frames a second: the deviations change smoothly, on

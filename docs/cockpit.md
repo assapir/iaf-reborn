@@ -186,10 +186,12 @@ renderer, S = the cockpit state (`0x82f544`). The reader stores the `[HUD]` keys
      cy + 16, with end ticks (x − 1 .. x + 2).
 
   **Both lines cross at the HUD centre when the jet is on the runway's extended centre line and on a 5° glide path to
-  the Lineup point.** When high, the glideslope line drops; with the runway to the right, the localizer moves right
-  (12 px per degree, the ladder's scale). The 312 briefing ("glide slope 4° below the horizon") describes this
-  picture: the HUD centre is ~4° below the boresight (F-16 (135 − 88)/12). The briefing's final-approach illustration
-  (`brief/bmp/final_ap.bmp`, a pre-release HUD) shows the same 32 px cross.
+  the Lineup point.** Modern IAF's bases set their own glide path, 3°, in iaf.ibx's `GlidePath` (the iaf.ibx sections of
+  [../modern-iaf/docs/data-formats.md](../modern-iaf/docs/data-formats.md) §12; `iaf_flight::airbase::ils`); the
+  original's file has no such key, so the 1998 game keeps the exe's 5°. When high, the glideslope line drops; with the
+  runway to the right, the localizer moves right (12 px per degree, the ladder's scale). The 312 briefing ("glide slope
+  4° below the horizon") describes this picture: the HUD centre is ~4° below the boresight (F-16 (135 − 88)/12). The
+  briefing's final-approach illustration (`brief/bmp/final_ap.bmp`, a pre-release HUD) shows the same 32 px cross.
 * **FUN_0052f690** (every mode) draws:
   * the target box with a lock (`FUN_00537330`);
   * the **gun cross**, with the gear handle **up**, at (cx, MainOffsetY − GunRetPositionY + vpan): (x − 4 .. x + 5, y)

@@ -35,6 +35,10 @@ pub const BASES: [(&str, &str, &str); 5] = [
 /// The lineup point this far down the centreline from the declared runway start (m; the missions' runway start,
 /// modern-iaf/docs/data-formats.md §5; inferred: a jet's length and a margin).
 pub const LINEUP_IN_M: f64 = 100.0;
+/// Every base's ILS glide path above the horizon (deg; iaf.ibx `GlidePath`, read by `iaf_flight::airbase::ils`):
+/// the usual 3° (modern-iaf/docs/data-formats.md §12, its source [^aim-gs]; inferred for these bases: the airbases'
+/// data has no ILS, `"ils": null`).
+pub const GLIDE_PATH_DEG: f64 = 3.0;
 /// The wheels count as on the pavement this far past its edges, in the training missions (`training.rs`) (inferred:
 /// OSM draws centrelines and outlines, not the paved fillets where a taxiway meets a runway or a turn, and its
 /// positions are good to a few metres).
@@ -1758,6 +1762,7 @@ fn ibx_section(b: &Base, rt: &Routes, z: &mut dyn FnMut([f64; 2]) -> f64) -> Str
     // Ours: the take-off end's designator and the other end's, as painted and signed (the tower says these, not
     // RunwayNumber / 10: Nevatim's 256° is "26L", not "25").
     s += &format!("RunwayDesignator={}\nRunwayDesignatorOpposite={}\n", r.designators[k], r.designators[1 - k]);
+    s += &format!("GlidePath={GLIDE_PATH_DEG:.1}\n");
     let path = |s: &mut String, prefix: &str, count: &str, p: &[[f64; 2]], last: f64| {
         *s += &format!("{count}={}\n", p.len());
         for (i, q) in p.iter().enumerate() {
@@ -2746,6 +2751,7 @@ mod tests {
             let l = b.runways[ri].lineup(k);
             assert!((f64::from(a.lineup[0]) - l[0]).abs() < 0.1 && (f64::from(a.lineup[1]) - l[1]).abs() < 0.1);
             assert_eq!(a.runway_deg, b.runways[ri].heading(k).round() as f32);
+            assert_eq!(a.glide_path_deg, Some(3.0), "Modern IAF's 3° glide path");
             assert_eq!(a.hangars.len(), b.parking.len());
             assert!((f64::from(a.hangars[0].x) - b.parking[0].at[0]).abs() < 0.1);
             let last = a.from_taxi.last().unwrap();

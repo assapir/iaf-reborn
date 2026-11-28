@@ -2057,8 +2057,8 @@ impl Nav {
                     let out = lineup - along;
                     // The sim's localizer runs down the runway's whole-degree heading through the lineup point.
                     let loc = (rw.heading - rw.heading.round()) - right.atan2(out).to_degrees();
-                    let gs = (x.alt_m.unwrap_or(0.0) - self.field_m).atan2(out).to_degrees()
-                        + f64::from(iaf_flight::airbase::ILS_GLIDE_DEG);
+                    let gs =
+                        (x.alt_m.unwrap_or(0.0) - self.field_m).atan2(out).to_degrees() - sim_bases::GLIDE_PATH_DEG;
                     (out, loc, gs)
                 };
                 let toward = |x: &Sample| angle(x.heading, rw.heading).abs() <= 30.0;
@@ -3117,7 +3117,7 @@ mod tests {
         for (i, out) in (500..7000).step_by(100).rev().enumerate() {
             let out = out as f64;
             let right = out * (tilt - 0.625).to_radians().tan();
-            let h = out * (5.0 + 0.35_f64).to_radians().tan();
+            let h = out * (sim_bases::GLIDE_PATH_DEG + 0.35).to_radians().tan();
             let along = lineup - out;
             let (x, y) = (
                 rw.from[0] + rw.dir[0] * along + rw.dir[1] * right,
