@@ -86,7 +86,7 @@ One term for each thing. "In use" means the sim's Hebrew strings or docs already
 | Training area | אזור האימון | in use ("יציאה מאזור האימון") |
 | Flameout | כיבוי מנוע (the engine "שכבה באוויר") | mako on fighter squadrons' training: "מנוע שכבה באוויר", second-hand[^mako-drills] |
 | Flight control fault | תקלת בקרת טיסה | ours, inferred: open (no Hebrew source found) |
-| Go-around | הליכה סביב | in use (`modern-iaf/manuals/text/he/terms.yaml`) |
+| Go-around | go-around (Latin letters, the user 28 Nov 2026; the manuals keep הליכה סביב) | in use (`modern-iaf/manuals/text/he/terms.yaml`) |
 | Wingman | מספר 2 | in use (`terms.yaml`) |
 | The grades (Unsatisfactory, Below average, Average, Above average; Pass, Marginal) | לא מספק, מתחת לממוצע, ממוצע, מעל לממוצע; עבר, גבולי | ours, inferred: no IAF grading scale was found ([training-plan.md](../training-plan.md) §2.4) |
 

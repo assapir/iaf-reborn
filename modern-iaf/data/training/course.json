@@ -30,7 +30,7 @@
     "touchdown_distance": {"label": {"en": "Touchdown past the threshold", "he": "מקום הנגיעה אחרי הסף"}, "standard": {"limit": "max", "bands": [300, 450, 600], "unit": "m"}},
     "landing_centreline": {"label": {"en": "Centreline offset at touchdown", "he": "סטייה מקו המרכז בנגיעה"}, "standard": {"limit": "max", "bands": [3, 8, 15], "unit": "m"}},
     "sink_rate": {"label": {"en": "Sink rate at touchdown", "he": "מהירות השקיעה בנגיעה"}, "standard": {"limit": "max", "bands": [4, 7, 10], "unit": "ft/s"}},
-    "go_around_height": {"label": {"en": "Lowest height in the go-around", "he": "הגובה הנמוך ביותר בהליכה סביב"}, "standard": {"limit": "min", "bands": [200, 100, 50], "unit": "ft"}},
+    "go_around_height": {"label": {"en": "Lowest height in the go-around", "he": "הגובה הנמוך ביותר ב-go-around"}, "standard": {"limit": "min", "bands": [200, 100, 50], "unit": "ft"}},
     "airspeed_error": {"label": {"en": "Airspeed held", "he": "החזקת המהירות"}, "standard": {"limit": "tol", "target": 0, "bands": [5, 10, 15], "unit": "kt"}},
     "altitude_error": {"label": {"en": "Altitude held", "he": "החזקת הגובה"}, "standard": {"limit": "tol", "target": 0, "bands": [100, 200, 300], "unit": "ft"}},
     "max_g": {"label": {"en": "Highest load", "he": "העומס הגבוה ביותר"}, "standard": {"limit": "max", "bands": [8.5, 9, 9], "unit": "g"}},
@@ -80,7 +80,7 @@
     {"id": "pattern", "title": {"en": "Basic handling, the pattern and landing", "he": "שליטה בסיסית, המראה ונחיתה"}, "lessons": [
       {"id": "first_flight", "title": {"en": "Take-off and first flight", "he": "המראה וטיסה ראשונה"}, "items": ["max_centreline_offset", "liftoff_speed_error", "gear_up_time", "touchdown_distance", "sink_rate"]},
       {"id": "overhead", "title": {"en": "The overhead break and landing", "he": "הקפה עם שבירה ונחיתה"}, "items": ["pattern_altitude_error", "final_aoa_error", "touchdown_distance", "landing_centreline"]},
-      {"id": "touch_and_go", "title": {"en": "Touch-and-go and go-around", "he": "נגיעה והמראה, והליכה סביב"}, "items": ["pattern_altitude_error", "final_aoa_error", "go_around_height"]},
+      {"id": "touch_and_go", "title": {"en": "Touch-and-go and go-around", "he": "נגיעה והמראה, ו-go-around"}, "items": ["pattern_altitude_error", "final_aoa_error", "go_around_height"]},
       {"id": "high_aoa", "title": {"en": "High AoA and G", "he": "זווית התקפה גבוהה ועומסים"}, "items": ["airspeed_error", "max_g", "corner_speed_error"]},
       {"id": "engine_fire", "title": {"en": "Take-off abort and engine fire", "he": "ביטול המראה ואש במנוע"}, "items": ["abort_stopped", "fire_throttle_time", "emergency_checklist"], "emergencies": ["engine_fire_roll", "engine_fire"]},
       {"id": "flameout", "title": {"en": "Flameout and airstart", "he": "כיבוי מנוע והתנעה באוויר"}, "items": ["airstart_done", "flameout_landing", "emergency_checklist"], "emergencies": ["flameout"]},
