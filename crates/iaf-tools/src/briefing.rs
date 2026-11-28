@@ -230,12 +230,14 @@ pub fn briefing(
     })
 }
 
-/// The pins of the mission's explanation (`briefing.how`, its paragraphs; the sim's frame): a paragraph's `at` (one
+/// The pins of the mission's explanation (`briefing.how`, its paragraphs; a course lesson's: its lesson's Execution,
+/// `course::lesson_execution`; the sim's frame): a paragraph's `at` (one
 /// of STEP_PLACES) moves the run to that place, a paragraph without one is done where the one before it was (the
 /// first at the start). A place the map lacks (no taxi: no holding point; no runway: no lineup) keeps the run where it
 /// was.
 fn pins(mission: &Value, start: [f64; 2], taxi: &[[f64; 2]], lineup: Option<[f64; 2]>) -> Result<Vec<Pin>> {
-    let steps = mission["briefing"]["how"].as_array().map_or(&[][..], Vec::as_slice);
+    let lesson = crate::course::lesson_execution(mission);
+    let steps = mission["briefing"]["how"].as_array().map_or(&lesson[..], Vec::as_slice);
     let hold = (taxi.len() >= 3).then(|| taxi[taxi.len() - 2]);
     let mut out: Vec<Pin> = vec![];
     for (i, s) in steps.iter().enumerate() {
@@ -1060,6 +1062,9 @@ mod tests {
             assert!(b.taxi.iter().all(inside) && b.parking.iter().all(inside), "{name}");
             assert_eq!(b.pins.iter().map(|p| p.place).collect::<Vec<_>>(), ["start", "hold", "lineup"], "{name}");
         }
+        // A course lesson's: its lesson's Execution (lesson 1.3, the taxi out and back).
+        let b = briefing(&mission("f16i_ground_taxi"), &bases, &map(), 0.6, None, &[]).unwrap();
+        assert_eq!(b.pins.iter().map(|p| p.place).collect::<Vec<_>>(), ["start", "hold"]);
         // A paragraph at a place the mission names wrong is an error.
         let mut m = mission("ramon_takeoff");
         m["briefing"]["how"][3]["at"] = json!("tower");

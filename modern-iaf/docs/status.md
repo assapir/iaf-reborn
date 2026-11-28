@@ -10,6 +10,15 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   jet on the radio; English and Hebrew subtitles. Each lesson's calls are its lesson file's (training.md §16), lesson
   1.1's the first; lesson 2.2's script (Approvals A136) goes into the pattern phase's file. "My controls" starts the
   F-16 demonstration. `calls` tests, `test_instructor_calls.gd`.
+- **A lesson's briefing, debrief, notebook tab and logbook box (2026-11-28, Approvals A132–A135;
+  [front-end.md](front-end.md) §10.3, §13.1, §3; [training.md](training.md) §11, §16.5):** a lesson of the list opens
+  its briefing in the IDF order (Mission and Target on the card; enemy, our forces, weather and area, Execution with
+  its diagrams, the graded items with their standards, coordination and safety, command and signal on the text card);
+  its debrief in the IDF's order (the faults as numbered pins on the map, each item's standard, flown value, gap, grade
+  and the instructor's comment, the conclusions with the lesson's grade and the tips; MARGINAL stamped); the
+  notebook's first tab LESSON (the steps, the diagrams in its ink with their points, the graded items' standards); the
+  Pilot screen's training course box per jet. The lesson files' diagram format and the course items' comments, tips
+  and places in Rust. `course` and `training` tests, `test_training_lesson.gd`, `test_course_lessons.gd`.
 - **Phase 1's lessons (2026-11-28, [training-plan.md](training-plan.md) §3 phase 1; [training.md](training.md) §16):**
   the lesson content's shape (one file per phase: the missions by jet, the briefing's eight sections, the notebook's
   Lesson tab, the instructor's calls with their tests) and phase 1 in it for the Barak, the Sufa and the Adir at their
@@ -17,7 +26,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   missions of the new kind `lesson`, scored every 3 s with their end read from the recording and the course's items
   graded; the card holds what a lesson asks for and opens a ground lesson's shutdown on its spot; the lesson's own
   shutdown is no fault; the tower's radio check (menu 5); the night lighting items; the recorder's `power` column.
-  Open: the briefing's sections and the Lesson tab shown by the screens of job train-fe. `course` and `training` tests, `test_course_lessons.gd`.
+  The calls are played by the call engine ([training.md](training.md) §17); the briefing's sections and the Lesson tab are shown by
+  the lesson screens (above). `course` and `training` tests, `test_course_lessons.gd`.
 - **The training course's screens (2026-11-28, Approvals A130 and A131; [front-end.md](front-end.md) §2.2,
   [training-plan.md](training-plan.md) §5):** Missions → Training opens the Hangar jet's course: eight phase cards in
   two rows of four, each with its number, title and lessons passed of its own, the title line the course's lessons
@@ -1511,10 +1521,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
-- **The training course's lessons (2026-11-28, [training-plan.md](training-plan.md) §5, §6):** no lesson has a flight
-  yet, and a lesson row opens nothing. Next on the Approvals page: the lesson's briefing (A132), the debrief's grades
-  and fault markers (A133), the notebook's Lesson tab (A134), the course's progress in the Pilot screen's logbook
-  (A135). Not started.
+- **The training course's lessons (2026-11-28, [training-plan.md](training-plan.md) §3):** phase 1's lessons fly; the
+  other phases' lesson files, missions and diagrams are their phases' work.
 - **More callsigns than Kidon (2026-11-25, the user on Approvals A99, "but later"):** more formation names, one drawn
   at random per mission. Not started.
 - **AI for allies and enemies (2026-11-19, the user's plan session):** the plan is in [ai-plan.md](ai-plan.md): a new

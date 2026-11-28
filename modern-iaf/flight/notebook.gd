@@ -3,7 +3,8 @@
 # wheel, the page's own ‹ › and the owner's keys (turn) turn the pages, past a section's last page into the next one.
 # No key hints, no clip, no mission title on it. Laid out on the front end's 1080-high canvas (W x H px), mirrored in
 # Hebrew (the tabs down the left edge). The flight's kneeboard (kneeboard.gd) holds one.
-# A section: {"id", "tab": its tab's text, "title", "red": the emergency tab's red, "blocks": BBCode paragraphs}; the
+# A section: {"id", "tab": its tab's text, "title", "red": the emergency tab's red, "blocks": BBCode paragraphs, or a
+# Texture2D for a picture (a lesson's diagram, kneeboard.gd)}; the
 # page breaks fall between blocks (a block taller than a page has a page of its own, cut off at its foot), never after
 # a heading (a block that starts with HEADING: it goes to the next page with the block it heads).
 extends Control
@@ -242,24 +243,30 @@ func _paginate(s: Dictionary) -> Array:
 	var blocks: Array = s.blocks
 	var sep := float(_body.get_theme_constant("paragraph_separation"))
 	for i in blocks.size():
-		_measure.text = String(blocks[i])
-		var h := float(_measure.get_content_height()) + sep
+		var h := _height(blocks[i]) + sep
 		# A page of headings alone keeps the block they head, cut off at the page's foot if it is taller.
-		var only_heads := range(first, i).all(func(k): return String(blocks[k]).begins_with(HEADING))
+		var only_heads := range(first, i).all(func(k): return str(blocks[k]).begins_with(HEADING))
 		if i > first and y + h > body_height() and not only_heads:
 			# A heading at the page's foot moves to the next page with its first block.
 			var cut := i
-			while cut - 1 > first and String(blocks[cut - 1]).begins_with(HEADING):
+			while cut - 1 > first and str(blocks[cut - 1]).begins_with(HEADING):
 				cut -= 1  # headings in a row move together
 			pages.append([first, cut])
 			y = 0.0
 			for k in range(cut, i):
-				_measure.text = String(blocks[k])
-				y += float(_measure.get_content_height()) + sep
+				y += _height(blocks[k]) + sep
 			first = cut
 		y += h
 	pages.append([first, blocks.size()])
 	return pages
+
+
+## A block's height at the body's width: a picture's own, a text's as laid out.
+func _height(block) -> float:
+	if block is Texture2D:
+		return float(block.get_height())
+	_measure.text = String(block)
+	return float(_measure.get_content_height())
 
 
 func _show() -> void:
@@ -268,7 +275,15 @@ func _show() -> void:
 	var s: Dictionary = sections[tab]
 	var span: Array = _pages[tab][page]
 	_title.text = String(s.title)
-	_body.text = "\n".join(s.blocks.slice(int(span[0]), int(span[1])))
+	_body.clear()
+	for k in range(int(span[0]), int(span[1])):
+		if k > int(span[0]):
+			_body.append_text("\n")
+		var b = s.blocks[k]
+		if b is Texture2D:
+			_body.add_image(b)
+		else:
+			_body.append_text(String(b))
 	_count.text = "%d / %d" % [page + 1, _pages[tab].size()]
 	queue_redraw()
 	turned.emit()

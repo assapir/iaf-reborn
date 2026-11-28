@@ -18,6 +18,7 @@ A flight starts with the notebook stowed.
 #grid-table(
   (auto, 1fr),
   ([Tab], [Its pages]),
+  [#scr("nb_lesson")], [In a #term("lesson") only, the first tab: the lesson's steps in order with what to wait for, each manoeuvre's drawing with its key points, and the standards the lesson is graded on (@briefing-lesson).],
   [#scr("nb_startup")], [The jet's own checklist card, section by section, ticked as you work (@notebook-checklist).],
   [#scr("nb_taxi")], [The radio calls, the taxi and the take-off as numbered steps, and the runway: its number, heading, length and elevation.],
   [#scr("nb_radio")], [Your callsign, the base's frequencies, and each call with the frequency to make it on and the #term("tower")'s answer (@tower-radio).],

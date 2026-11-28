@@ -555,8 +555,8 @@ func _pins(font: Font, xf: Transform2D, taken: Array[Rect2]) -> Callable:
 		for i in pins.size():
 			var p: Dictionary = pins[i]
 			var c: Vector2 = discs[i][1]
-			if not Rect2(Vector2.ZERO, size).has_point(c):
-				continue
+			if not Rect2(Vector2.ZERO, size).has_point(c) or str(pin_names.get(p.place, "")) == "":
+				continue  # out of view, or a pin without a name (the debrief's faults)
 			var r := _plate(font, str(pin_names.get(p.place, "")), c + Vector2(26, 8), 19, taken)
 			if r.has_area():
 				plates.append(r)

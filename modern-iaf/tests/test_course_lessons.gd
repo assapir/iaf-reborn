@@ -85,6 +85,13 @@ func _loads(unit: String, le: Dictionary) -> void:
 	var addon: Node = tv.addon
 	check(String(addon.rules.get("kind", "")) == "lesson", "%s: loads as a lesson" % what)
 	check(addon.kneeboard.raised, "%s: the notebook raised" % what)
+	var nb: Control = addon.kneeboard.board
+	var first: Dictionary = nb.sections[0]
+	var steps: int = first.blocks.filter(func(b): return b is String and b.begins_with("[table=2][cell")).size()
+	check(String(first.id) == "lesson", "%s: LESSON is the notebook's first tab" % what)
+	check(not str(first.blocks).contains("{runway}"), "%s: the Lesson tab names the runway" % what)
+	check(nb.current_id() == "startup", "%s: it opens on the CHECKLIST page" % what)
+	check(steps >= le.lesson_tab.size(), "%s: the Lesson tab's steps and limits (%d)" % [what, steps])
 	var asked: Array = addon.rules.checklist
 	var on_card: Array = addon.card.flat.filter(func(it): return it.has("check")).map(func(it): return it.id)
 	check(on_card == asked, "%s: the card holds the items it asks for (%s)" % [what, on_card])

@@ -19,6 +19,9 @@ const RadioScript := preload("res://shared/audio/radio.gd")
 const Notebook := preload("notebook.gd")
 const Look := preload("../menu/look.gd")
 const TimeOfDay := preload("res://shared/terrain/time_of_day.gd")
+const Diagram := preload("../menu/diagram.gd")
+## A lesson diagram's height on the paper (px).
+const DIAGRAM_H := 290
 ## The sim's key records of the Checklist notebook (modern-iaf/data/keys.json, command 203): raise / stow, the previous
 ## and the next page.
 const KEY := 118
@@ -100,6 +103,8 @@ var _y := -1.0  # the raised board's top (canvas px), sliding
 var _points := {}  # Mesh -> its distinct vertices (the mesh's frame), for its outline
 var _missions := {}  # data/missions/*.json, by name
 var _cur_block := 0  # the CHECKLIST page's block of the item to do now (or the lesson's tower call)
+var _lesson = null  # the course lesson the flight flies (IafTraining.course's, its key added), {} for none; once
+var _diagrams := {}  # a lesson diagram's paper drawing by id: its SubViewport
 
 
 func _init(f: Node) -> void:
@@ -170,8 +175,10 @@ func set_raised(on: bool) -> void:
 
 ## The pages again from the flight's state (a step taken, a fault, the language).
 func refresh() -> void:
+	var first := board.sections.is_empty()
 	board.set_sections(_sections(), he())
-	if board.current_id() == "startup":
+	# A start-up opens on its CHECKLIST page (a lesson's LESSON tab before it), at the item to do now.
+	if board.current_id() == "startup" or (first and is_startup()):
 		board.open("startup", _cur_block)  # the page holding the item to do now (the lesson's tower call first)
 	if _help != null:
 		_help.queue_free()
@@ -260,9 +267,91 @@ func _current() -> int:
 	return checklist().find(it) if not it.is_empty() else checklist().size()
 
 
+## The course lesson the flight flies (its readable mission's `lesson`): IafTraining.course's lesson of the flight's jet
+## with its number ("1.2"); {} outside the course.
+func lesson() -> Dictionary:
+	if _lesson != null:
+		return _lesson
+	_lesson = {}
+	var id := str(_readable().get("id", ""))
+	var course = JSON.parse_string(IafTraining.course(flight.plane)) if _readable().has("lesson") else null
+	if course is Dictionary:
+		for i in course.phases.size():
+			for k in course.phases[i].lessons.size():
+				var le: Dictionary = course.phases[i].lessons[k]
+				if str(le.get("mission", "")) == id:
+					le.n = "%d.%d" % [i + 1, k + 1]
+					_lesson = le
+	return _lesson
+
+
+## The LESSON tab (Approvals A134), a lesson's first: its steps in order, each with what to wait for; its diagrams in
+## the notebook's ink, each with its pins' table; then the numbers it is graded on (the lesson's items with their
+## standards).
+func _lesson_sec() -> Dictionary:
+	var le := lesson()
+	var l := lang()
+	var blocks := []
+	var tab: Array = le.get("lesson_tab", [])
+	var drawn := []
+	var rw := _ltr(flight.runway_in_use())  # {runway}: the runway in use
+	for i in tab.size():
+		var wait := _esc(str(tab[i].wait[l])).replace("{runway}", rw) if tab[i].has("wait") else ""
+		var lines := ["[i]%s[/i]" % wait] if wait != "" else []
+		blocks.append(step(i, str(tab[i][l]).replace("{runway}", rw), lines, "", ""))
+		if tab[i].has("diagram") and not str(tab[i].diagram) in drawn:
+			drawn.append(str(tab[i].diagram))
+	for d in drawn:
+		var def: Dictionary = le.get("diagrams", {}).get(d, {})
+		if def.is_empty():
+			continue
+		blocks.append(_diagram(d, def))
+		var rows := []
+		var points := Diagram.legend(def, l)
+		for k in points.size():
+			rows.append(["[b]%d %s[/b]" % [k + 1, _esc(points[k][0])], _esc(points[k][1])])
+		blocks.append(table(rows, 2))
+	var rows := []
+	for it in le.get("items", []):
+		rows.append(["[b]%s[/b]" % _esc(str(it.label[l])), _esc(Look.standard(it.standard, s))])
+	if not rows.is_empty():
+		blocks.append(table(rows, 2))
+	var title := "%s %s · %s" % [s("nb_lesson"), le.n, _jet()]
+	return _sec("lesson", "nb_lesson", title, blocks)
+
+
+## Diagram `id` (`def`, the lesson's) drawn in the notebook's ink at the paper's width (diagram.gd), in the screen's
+## language: its texture.
+func _diagram(id: String, def: Dictionary) -> Texture2D:
+	var vp: SubViewport = _diagrams.get(id)
+	if vp == null:
+		vp = SubViewport.new()
+		vp.transparent_bg = true
+		add_child(vp)
+		var d := Diagram.new()
+		d.paper = true
+		vp.add_child(d)
+		_diagrams[id] = vp
+	if board._fonts.is_empty() or board.rtl != he():  # the paper's fonts before set_sections lays the pages out
+		board.rtl = he()
+		board._set_fonts()
+	var w := int(board.paper_rect().size.x - 2 * Notebook.PAD)
+	vp.size = Vector2i(w, DIAGRAM_H)
+	var dia: Control = vp.get_child(0)
+	dia.size = Vector2(vp.size)
+	dia.font = board._fonts.get("normal")
+	dia.bold = board._fonts.get("bold")
+	dia.runway = flight.runway_in_use()
+	dia.use(def, lang(), s)
+	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	return vp.get_texture()
+
+
 func _sections() -> Array:
 	var l := lang()
 	var secs := []
+	if not lesson().is_empty():
+		secs.append(_lesson_sec())
 	var runway: String = flight.runway_in_use()
 	var to := _mission_of("takeoff")
 	if runway == "":

@@ -29,23 +29,62 @@ const TRACK_MIN_M := 2000.0
 const PHASE_COLORS := [Color("8fb3ff"), Color("ffd08a"), Color("c9ced6"), Color("ff7a59"), Color("7fd18b")]
 ## A goal's mark: met, off the mark (the mission still passes), failed.
 const MARKS := {"ok": ["✓", Color("2e7d32")], "warn": ["!", Color("c77700")], "fail": ["✗", Color("c62828")]}
+## A course item's grade (the record's `graded`, training.md §13.2) as a goal's mark.
+const GRADE_MARK := {"above": "ok", "average": "ok", "below": "warn", "unsat": "fail"}
+## A lesson's item columns: Standard, Flown, Gap, Grade (px, the mock's).
+const COLS := [150, 100, 92, 140]
 
 
 ## The debrief of `fe.record`, mission `m` as flown, on `fe` under its header; the controls named for the tests and
 ## the focus (Sheet, Goals, Remarks, NextTime, DebriefMap, Inset, Legend, Graphs, NoRecording, PilotLog, ExportFlight,
-## BackMissions, FlyAgain, NextMission).
+## BackMissions, FlyAgain, NextMission). A course lesson's record (its `graded`) is the IDF's debrief (training-plan.md
+## §2.4, Approvals A133): 1 what happened, the map with its faults as numbered pins; 2 each item, its standard, what was
+## flown, the gap, the grade and the instructor's comment, a pinned item's number beside it (Item_<id>, Pin<n>); 3 the
+## conclusions and lessons (Remarks).
 static func build(fe: Control, m: Dictionary) -> void:
 	var j: Dictionary = fe.jet_of(m)
-	_sheet(fe, m, j)
+	var pins := faults(fe.record)
+	_sheet(fe, m, j, pins)
 	var col: VBoxContainer = fe._vbox(fe, 13)
 	col.name = "Flight"
 	fe._place(col, EDGE + SHEET_W + GAP, EDGE, TOP, 0)
 	col.anchor_bottom = 1.0
 	col.offset_bottom = -BOTTOM
 	var tr := track(fe, m)
-	var map: Control = _map(fe, col, m, tr)
+	var map: Control = _map(fe, col, m, tr, pins)
 	_graphs(fe, col, m, tr)
 	_footer(fe, m, map)
+
+
+## A lesson record's faults to pin on the map, numbered 1, 2 … in the sheet's order: each item graded Below average
+## or Unsatisfactory where it was flown (its `at`), then the flight's faults (`faults`, a fail reason at its place):
+## [{n, at (the engine frame [x, y]), item (its `graded` index) or fault (its id)}]. [] for another record.
+static func faults(rec: Dictionary) -> Array:
+	var out := []
+	var graded: Array = rec.get("graded", [])
+	if graded.is_empty():
+		return out
+	for i in graded.size():
+		if str(graded[i].get("grade", "")) in ["below", "unsat"] and graded[i].get("at") is Array:
+			out.append({"n": out.size() + 1, "at": graded[i].at, "item": i})
+	for f in rec.get("faults", []):
+		out.append({"n": out.size() + 1, "at": f.at, "fault": str(f.id)})
+	return out
+
+
+## A pin's number in a disc, the briefing map's (an accent disc, a white ring, the number in navy), beside its row.
+static func pin_disc(fe: Control, parent: Control, n: int) -> Label:
+	var l: Label = fe._label(parent, str(n), "Strong")
+	l.name = "Pin%d" % n
+	l.add_theme_font_size_override("font_size", 15)
+	l.add_theme_color_override("font_color", Look.NAVY)
+	l.add_theme_stylebox_override("normal", Look.box(Look.ACCENT, Color.WHITE, 2, 13, Vector2.ZERO))
+	l.custom_minimum_size = Vector2(26, 26)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	l.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	return l
 
 
 ## IafTraining.track of the record's recording ({} without one, or when it cannot be read).
@@ -121,7 +160,7 @@ static func target_text(fe: Control, t: Dictionary) -> String:
 # --- the sheet --------------------------------------------------------------------------------------------------------
 
 
-static func _sheet(fe: Control, m: Dictionary, j: Dictionary) -> void:
+static func _sheet(fe: Control, m: Dictionary, j: Dictionary, pins: Array) -> void:
 	var rec: Dictionary = fe.record
 	var holder: VBoxContainer = fe._vbox(fe, 0)
 	fe._place(holder, EDGE, -1, TOP, 0)
@@ -146,6 +185,11 @@ static func _sheet(fe: Control, m: Dictionary, j: Dictionary) -> void:
 	fe._label(bh, fe.s("number") % ("%04d" % fe.record_sortie), "Band")
 	var inner: VBoxContainer = fe._vbox(fe._margin(v, 22, 18), 0)
 	_fields(fe, inner, m, j)
+	if not rec.get("graded", []).is_empty():
+		_items(fe, inner, pins)
+		CombatPage.sheet(fe, inner)
+		_conclusions(fe, inner, pins)
+		return
 	_goals(fe, inner)
 	CombatPage.sheet(fe, inner)
 	# Remarks: why it failed (the reason that ended it first) or that it passed, then the scorer's "Next time" line.
@@ -159,8 +203,17 @@ static func _sheet(fe: Control, m: Dictionary, j: Dictionary) -> void:
 	var next = rec.get("next")
 	if lines.is_empty() and not next is Dictionary:
 		return
+	var rv := _remarks_box(fe, inner, fe.s("remarks"))
+	for l in lines:
+		fe._text(rv, l, "Paper")
+	if next is Dictionary:
+		_next_time(fe, rv, str(next.get(lang, next.get("en", ""))))
+
+
+## The Remarks box under its heading `title`: the paper's tinted panel with a bar at the inline start; its VBox.
+static func _remarks_box(fe: Control, inner: Control, title: String) -> VBoxContainer:
 	fe._spacer_px(inner, 20)
-	fe._label(inner, fe.s("remarks"), "PaperHead")
+	fe._label(inner, title, "PaperHead")
 	fe._rule(inner, Look.INK, 2)
 	fe._spacer_px(inner, 12)
 	var box := PanelContainer.new()
@@ -170,25 +223,25 @@ static func _sheet(fe: Control, m: Dictionary, j: Dictionary) -> void:
 	st.set("border_width_right" if fe.he() else "border_width_left", 4)
 	box.add_theme_stylebox_override("panel", st)
 	inner.add_child(box)
-	var rv: VBoxContainer = fe._vbox(box, 4)
-	for l in lines:
-		fe._text(rv, l, "Paper")
-	if next is Dictionary:
-		var rt := RichTextLabel.new()
-		rt.name = "NextTime"
-		rt.bbcode_enabled = true
-		rt.fit_content = true
-		rt.scroll_active = false
-		rt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		rt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		rt.add_theme_font_override("normal_font", fe._theme.get_font("font", "Paper"))
-		rt.add_theme_font_override("bold_font", fe._theme.get_font("font", "PaperHead"))
-		for k in ["normal_font_size", "bold_font_size"]:
-			rt.add_theme_font_size_override(k, Look.R)
-		rt.add_theme_color_override("default_color", Look.INK)
-		var tip := str(next.get(lang, next.get("en", ""))).replace("[", "[lb]")
-		rt.text = "[b]%s[/b] %s" % [fe.s("next_time"), tip]
-		rv.add_child(rt)
+	return fe._vbox(box, 4)
+
+
+## A "Next time:" line with its tip `tip` (plain text) in the Remarks box `rv`.
+static func _next_time(fe: Control, rv: Control, tip: String) -> void:
+	var rt := RichTextLabel.new()
+	rt.name = "NextTime"
+	rt.bbcode_enabled = true
+	rt.fit_content = true
+	rt.scroll_active = false
+	rt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rt.add_theme_font_override("normal_font", fe._theme.get_font("font", "Paper"))
+	rt.add_theme_font_override("bold_font", fe._theme.get_font("font", "PaperHead"))
+	for k in ["normal_font_size", "bold_font_size"]:
+		rt.add_theme_font_size_override(k, Look.R)
+	rt.add_theme_color_override("default_color", Look.INK)
+	rt.text = "[b]%s[/b] %s" % [fe.s("next_time"), tip.replace("[", "[lb]")]
+	rv.add_child(rt)
 
 
 ## The fields: Plane flown, From, Time, Mission, Result, each a cell of a ruled row.
@@ -222,9 +275,12 @@ static func _fields(fe: Control, inner: Control, m: Dictionary, j: Dictionary) -
 			var row: HBoxContainer = fe._hbox(cv, 0)
 			var tilt := Control.new()
 			row.add_child(tilt)
-			var stamp: Label = fe._label(
-				tilt, fe.s("stamp_pass" if fe.record.get("pass", false) else "stamp_fail"), "Stamp"
-			)
+			var key := "stamp_pass" if fe.record.get("pass", false) else "stamp_fail"
+			if not fe.record.get("graded", []).is_empty():
+				key = {"pass": "stamp_pass", "marginal": "stamp_marginal"}.get(
+					str(fe.record.get("grade")), "stamp_fail"
+				)
+			var stamp: Label = fe._label(tilt, fe.s(key), "Stamp")
 			stamp.name = "Stamp"
 			stamp.add_theme_stylebox_override("normal", Look.box(Color(0, 0, 0, 0), Look.NAVY, 3, 3, Vector2(10, 0)))
 			stamp.rotation_degrees = -4.0
@@ -278,6 +334,98 @@ static func _goals(fe: Control, inner: Control) -> void:
 		fe._rule(list, Look.RULE)
 
 
+## 2 · EACH ITEM of a lesson: per graded item its mark (its pin's number when it is pinned), its label and the
+## instructor's comment under it, its standard, what was flown, the gap (Below average and Unsatisfactory only) and the
+## grade, amber Below average and red Unsatisfactory.
+static func _items(fe: Control, inner: Control, pins: Array) -> void:
+	var sv := Callable(fe, "s")
+	fe._spacer_px(inner, 20)
+	fe._label(inner, fe.s("db_items"), "PaperHead")
+	fe._rule(inner, Look.INK, 2)
+	var list: VBoxContainer = fe._vbox(inner, 0)
+	list.name = "Goals"
+	var head: HBoxContainer = fe._hbox(fe._margin(list, 0, 6), 12)
+	fe._spacer(head)
+	for k in COLS.size():
+		var l: Label = fe._label(head, fe.s(["col_standard", "col_flown", "col_gap", "col_grade"][k]), "PaperLabel")
+		l.custom_minimum_size.x = COLS[k]
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	fe._rule(list, Look.RULE)
+	var graded: Array = fe.record.get("graded", [])
+	for i in graded.size():
+		var g: Dictionary = graded[i]
+		var grade := str(g.get("grade", "unsat"))
+		var mark: Array = MARKS[GRADE_MARK.get(grade, "fail")]
+		var h: HBoxContainer = fe._hbox(fe._margin(list, 0, 7), 12)
+		h.name = "Item_" + str(g.id)
+		var pin := pins.filter(func(p): return p.get("item", -1) == i)
+		if not pin.is_empty():
+			var hold: Control = fe._vbox(h, 0)
+			hold.custom_minimum_size.x = 26
+			pin_disc(fe, hold, int(pin[0].n))
+		else:
+			var ml: Label = fe._label(h, mark[0], "PaperNum")
+			ml.custom_minimum_size.x = 22
+			ml.add_theme_color_override("font_color", mark[1])
+			ml.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		var lv: VBoxContainer = fe._vbox(h, 0)
+		lv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var name: Label = fe._label(lv, fe.tr_label(g.label), "Paper")
+		name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if g.get("comment") is Dictionary:
+			fe._text(lv, fe.tr_label(g.comment), "PaperLabel").name = "Comment"
+		var std: Dictionary = g.get("standard", {})
+		var unit := str(std.get("unit", ""))
+		var yes_no := Look.yes_no(std)
+		var flown := "—"
+		if g.get("flown") != null:
+			flown = Look.figure(float(g.flown), unit, sv)
+			if yes_no:
+				flown = fe.s("std_done") if float(g.flown) >= 1.0 else fe.s("std_not_done")
+		var gap := "—"
+		if grade in ["below", "unsat"] and g.get("gap") != null and not yes_no and float(g.gap) != 0.0:
+			gap = ("+" if float(g.gap) > 0.0 else "−") + Look.figure(absf(float(g.gap)), unit, sv)
+		var cells := [Look.standard(std, sv), flown, fe._ltr(gap), fe.s("grade_" + grade)]
+		for k in cells.size():
+			var x: Label = fe._label(h, cells[k], "PaperNum" if k == 1 else "PaperLabel")
+			x.custom_minimum_size.x = COLS[k]
+			x.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			x.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			if k == 3 and grade in ["below", "unsat"]:
+				x.add_theme_color_override("font_color", mark[1])
+		fe._rule(list, Look.RULE)
+
+
+## 3 · CONCLUSIONS AND LESSONS of a lesson: the lesson's grade (Pass; Marginal, counted as passed, with the items below
+## average; Unsatisfactory), why the flight failed (each fault with its pin's number), then the instructor's lessons:
+## "Next time:" each item's tip, and the scorer's own "Next time" line.
+static func _conclusions(fe: Control, inner: Control, pins: Array) -> void:
+	var rec: Dictionary = fe.record
+	var lang := "he" if fe.he() else "en"
+	var names: Dictionary = rec.get("strings", {}).get(lang, {})
+	var rv := _remarks_box(fe, inner, fe.s("db_conclusions"))
+	var grade := str(rec.get("grade", "unsat"))
+	var line: String = fe.s("lesson_line_" + grade)
+	if grade == "marginal":
+		var below: int = rec.get("graded", []).filter(func(g): return str(g.get("grade")) == "below").size()
+		line = fe.counted("lesson_line_marginal", below)
+	fe._text(rv, line, "PaperHead").name = "GradeLine"
+	for r in rec.get("reasons", []):
+		var h: HBoxContainer = fe._hbox(rv, 10)
+		var pin := pins.filter(func(p): return p.get("fault", "") == str(r))
+		if not pin.is_empty():
+			pin_disc(fe, h, int(pin[0].n))
+		var t: Label = fe._text(h, str(names.get(r, fe.s(r) if fe.strings.has(r) else r)), "Paper")
+		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var tips: Array = (
+		rec.get("graded", []).filter(func(g): return g.get("tip") is Dictionary).map(func(g): return fe.tr_label(g.tip))
+	)
+	if rec.get("next") is Dictionary:
+		tips.append(fe.tr_label(rec.next))
+	for t in tips:
+		_next_time(fe, rv, t)
+
+
 # --- the right column -------------------------------------------------------------------------------------------------
 
 
@@ -303,8 +451,9 @@ static func _empty(fe: Control, v: Control) -> void:
 
 
 ## The whole flight on the map, with the base inset and the legend; the map (null without a recording).
-static func _map(fe: Control, col: Control, m: Dictionary, tr: Dictionary) -> Control:
-	var v := _panel(fe, col, fe.s("map_flight"), 1.08)
+static func _map(fe: Control, col: Control, m: Dictionary, tr: Dictionary, faults: Array) -> Control:
+	var lesson: bool = not fe.record.get("graded", []).is_empty()
+	var v := _panel(fe, col, fe.s("db_happened" if lesson else "map_flight"), 1.08)
 	if tr.is_empty():
 		_empty(fe, v)
 		return null
@@ -314,7 +463,7 @@ static func _map(fe: Control, col: Control, m: Dictionary, tr: Dictionary) -> Co
 	for p in tr.pins:
 		var secs: bool = p.id == "liftoff"
 		pins.append([int(p.i), fe.s("pin_t_" + str(p.id)) % clock_at(fe, m, float(t[int(p.i)]), secs), str(p.id)])
-	var map := _flight_map(fe, m, tr, true)
+	var map := _flight_map(fe, m, tr, true, faults)
 	map.name = "DebriefMap"
 	# Its north arrow and scale bar where English has them: the inset stays at the bottom left in both languages.
 	map.layout_direction = Control.LAYOUT_DIRECTION_LTR
@@ -369,7 +518,7 @@ static func _map(fe: Control, col: Control, m: Dictionary, tr: Dictionary) -> Co
 ## A map of the mission with the track over it; `whole`: opened on all of the track (else on the start and the taxi,
 ## the briefing's view). The track comes in the sim's frame (UTM 36N) and goes into the map's metres (from its
 ## north-west corner, y down).
-static func _flight_map(fe: Control, m: Dictionary, tr: Dictionary, whole: bool) -> Control:
+static func _flight_map(fe: Control, m: Dictionary, tr: Dictionary, whole: bool, faults := []) -> Control:
 	var map := BriefingMap.new()
 	map.km = fe.s("km")
 	map.metres = fe.s("m")
@@ -383,6 +532,12 @@ static func _flight_map(fe: Control, m: Dictionary, tr: Dictionary, whole: bool)
 		d.pins = []
 		var e: Array = d.get("extent", [])
 		if e.size() == 4:
+			# The faults as the briefing's numbered pins, without a name plate (Approvals A133).
+			for f in faults:
+				var fa: Array = f.at
+				d.pins.append(
+					{"at": [float(fa[0]) - float(e[0]), float(e[3]) - float(fa[1])], "first": int(f.n) - 1, "place": ""}
+				)
 			var at: Array = tr.at
 			var pts := PackedVector2Array()
 			for i in range(0, at.size() - 1, 2):

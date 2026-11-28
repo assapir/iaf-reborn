@@ -37,6 +37,15 @@ Scroll the text with the mouse wheel. With the keyboard, move the focus to the t
 
 #screen("startup_f16i", [The briefing of a start-up.])
 
+=== A lesson's briefing <briefing-lesson>
+
+#idx("Lesson briefing")A #term("lesson") of the training course is briefed in the order of a military operations order. The map, the Arming summary and the buttons are as in every briefing; #scr("back") and #keycap("Esc") go to the phase's lessons.
+
+- *The card* gives the lesson's title, its phase and number, and two short paragraphs: #scr("brief_mission"), who flies what, where and when, and #scr("brief_target"), what you can do after the lesson.
+- *The text card* holds the rest of the order, in this order: #scr("brief_enemy"), #scr("brief_our_forces"), #scr("brief_weather_area"); #scr("brief_execution"), the steps numbered as the map's pins, each manoeuvre drawn above its step, from above and from the side, its key points numbered with what to hold at each; #scr("brief_graded"), each graded item with its standard; #scr("brief_coordination") and #scr("brief_signal").
+
+The same steps, drawings and standards are on the #term("notebook")'s #scr("nb_lesson") tab in flight (@notebook-tabs).
+
 === The map <briefing-map>
 
 #idx("Briefing map")The map shows north up. It opens on the base: your parking spot, the taxi route and the runway.

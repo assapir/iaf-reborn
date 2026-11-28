@@ -564,6 +564,7 @@ edge, the text right to left.
 
 | tab (English / Hebrew) | the page | from |
 |---|---|---|
+| LESSON / תרגול (a course lesson only, its first tab; Approvals A134) | "LESSON 1.2 · F-16I": the lesson's steps in order, each with what to wait for in grey; each diagram a step names drawn in the notebook's ink (`menu/diagram.gd`, §16.5) with its points' table; then the lesson's graded items with their standards. No current-step band; a start-up lesson opens on CHECKLIST, the tab after it | the lesson file's `lesson_tab` and `diagrams` (§16), the course's items (§13), through `IafTraining.course` |
 | CHECKLIST / בד"ח (START-UP / התנעה until 2026-11-17) | the jet's checklist card (§12), section by section: each item's line, how to do it (`how`: the clicks, the waits), its switch and place (`where`); the items whose check holds ticked (a switch back off unticks its item, [cockpit.md](cockpit.md) "Both ways"), ○ on an item read and acknowledged, the item to do now on a yellow band with ▶ (◀ in Hebrew), a refused step's fault in red under it | the jet's card, `data/checklists` (§12); a start-up lesson's tower call above it |
 | TAXI / T-O / הסעה / המראה | the radio calls, the taxi and the take-off as numbered steps, the runway's designator, heading, length and elevation | the take-off mission's `training.steps` (§8) of the flight's base (else its jet); the base's airbase file |
 | RADIO / קשר | the callsign, the base's frequencies (name, MHz, VHF / UHF), the five calls with the frequency to call on and the tower's answer | `data/notebook.json` `radio` and `calls`; the call names are the radio menu's (`sim_flight.gd` `ITEMS`) |
@@ -802,7 +803,9 @@ replaces them"): their files stay for the automated tests and `--mission <id>` r
   teaches) and `missions` (`{jet: readable mission id}`, the mission that flies it). A check ride has `night: true`
   when it is flown at night (check rides 3, 5 and 8). A phase with `own_check_only` (the formation phase) keeps its
   skills to its own check ride. A lesson's key is `<phase>.<lesson>` (`pattern.overhead`).
-- `items`: each graded item's `label` and `standard` (§13.2).
+- `items`: each graded item's `label` and `standard` (§13.2); `comments` (`above`, `below`, each `{"en", "he"}`) and
+  `tip` (`{"en", "he"}`), the debrief's comment and "Next time" line (§16.2), written by the phase that measures the
+  item.
 - `emergencies`: each emergency's `label`, `at` (the moment its time counts from: `roll`, the take-off roll's start,
   or `airborne`, the lift-off), `window_s` (from, to after that moment) and `jets` (the jets it is taught in; none:
   every jet). The systems lesson teaches every jet an electrical failure and a flight control fault, the F-16s a
@@ -994,7 +997,7 @@ A phase's file is named in `course.rs` `LESSONS` and in the stamps' sources (`cr
                "execution": [P], "coordination": [P], "signal": [P]},
   "lesson_tab": [{"en", "he", "wait"?, "jets"?, "diagram"?}],
   "calls": [{"id", "when": [test], "new"?, "startup"?, "jets"?, "lines": [{"en", "he"}]}]
-}}}
+}}, "diagrams": {"overhead": D}}
 ```
 
 - **`P`, a paragraph:** `{"en", "he", "jets"?}`. `jets` lists the jets it is for; without it, every jet. One list
@@ -1006,6 +1009,8 @@ A phase's file is named in `course.rs` `LESSONS` and in the stamps' sources (`cr
   course (§13), so the file does not repeat them. A check ride's briefing says that an emergency may come, not which.
 - **`lesson_tab`:** the notebook's Lesson tab, the steps in order in the notebook's step shape (`wait`: the state to
   wait for, `{"en", "he"}`), with a `diagram` beside a step that has one.
+- **`diagrams`:** the file's drawings of its manoeuvres by id (§16.5), shared by its lessons; an Execution paragraph's
+  or a notebook step's `diagram` names one. `IafTraining.course` gives each lesson the diagrams it names.
 - **`calls`:** the instructor's calls in order ([training-plan.md](training-plan.md) §2.3): a call fires when the
   call before it has fired and every test of its `when` holds; with `new` its tests must first fail after the call
   before it; `startup` leaves it out once the pilot has passed phase 1; `jets` as a paragraph's. Its `lines` are
@@ -1044,15 +1049,18 @@ A lesson's mission is a mission file ([data-formats.md](data-formats.md) §5) wi
 (`lesson_not_done`) until the budget. The scorer reads the end from the recording (`training::end_at`); the
 recorder's version 2 has the `power` column for `power_off` (0 none, 1 the battery, 2 the displays up). The record's
 `graded` holds each of the lesson's course items (§13: a check ride's all) with its standard, what was flown, the gap
-and the grade, and the lesson's grade counts them. What each item reads (`training::measure`):
+and the grade, and the lesson's grade counts them; `at`, where it was flown (the engine frame, the sample its value
+comes from; null for an item of the whole flight), the debrief's pin; `comment`, the instructor's comment (the item's
+`comments.above` when Above average, `comments.below` when Below average or Unsatisfactory, none when Average) and
+`tip`, what to do next time (Below average and Unsatisfactory only). What each item reads (`training::measure`):
 
 | Item | Flown value |
 |------|-------------|
 | `checklist_items` | the % of the mission's `checklist` items ticked |
 | `tower_calls` | the % of the mission's `calls` made (the recording's `radio` events) |
-| `startup_time` | the time from the start to idle (60 % RPM) with the avionics up, s |
+| `startup_time` | the time from the start to idle (60 % RPM) with the avionics up, s; placed where the later of the two came |
 | `ins_aligned` | 1 when the INS step reached NAV aligned before the taxi (moving 10 m), else 0; a jet whose lesson asks for no `ins` item (the F-35I): its self test's end |
-| `taxi_speed` | the highest ground speed on the ground, kt |
+| `taxi_speed` | the highest ground speed on the ground, kt; placed at it |
 | `night_lighting` | 1 when the night items the mission asks for (`interior_lights`, `hmd_night`) are ticked, else 0 |
 
 An item without its measure here reads as not flown (Unsatisfactory): a phase adds its items' measures with its
@@ -1118,6 +1126,37 @@ without its switches, with a word on what to wait for, mid-flight as the 1998 ga
 ([../../docs/autopilot.md](../../docs/autopilot.md) §3); 1.1 has the most. The budgets (15 minutes for 1.1 and 1.2,
 30 for the taxi lessons) are inferred. `modern-iaf/tests/test_course_lessons.gd` checks the content for each jet,
 loads every lesson and flies 1.1 and 1.2 by the card's switches to a Pass.
+
+### 16.5 The diagrams
+
+A diagram `D` is one manoeuvre drawn for the briefing's Execution and the notebook's Lesson tab
+([training-plan.md](training-plan.md) §2.2), by `modern-iaf/menu/diagram.gd`: on the briefing in the map's look (the
+own path in the accent over a dark casing, numbered accent discs), in the notebook in its ink. It is a sketch, not to
+scale: every coordinate is on a 0 to 100 frame of its view, which the drawing stretches to its box.
+
+```json
+{"title": {"en", "he"},
+ "points": [{"en", "he", "hold": {"en", "he"}}],
+ "top":  {"paths": [{"track": [[x, y]], "kind"?}], "pins": [[x, y]], "runway"?: [[x, y], [x, y]],
+          "zones"?: [{"at": [x, y], "r", "en", "he"}], "notes"?: [{"at": [x, y], "en", "he"}]},
+ "side"?: {"paths": [{"track": [[x, h]], "kind"?}], "pins": [[x, h]], "notes"?: [{"at": [x, h], "en", "he"}]}}
+```
+
+- **`points`:** the key points in order, numbered 1, 2 … on the drawing: each its name and what to hold there (`hold`:
+  the speed, height, G, "5 nm · 300 kt · 1,500 ft"). The legend lists them beside the top view on the briefing and in a
+  table under the drawing in the notebook.
+- **`top`:** the view from above, x to the right and y down. `paths`: each a track of points, arrows along it;
+  `kind` `own` (the default: the player's jet) or `other` (a lead, a wingman, an aggressor, the tanker: a thinner
+  dashed line). `pins`: each point's place, in the order of `points`. `runway`: its two ends, the runway in use's name
+  at the first. `zones`: a circle of radius `r` (frame units of x) with its name, a SAM's reach. `notes`: a short
+  label at a place ("1,500 ft", "lead").
+- **`side`:** the view from the side, optional: x along the way, h the height up from the ground's line (0). Its
+  `pins` are the same points' heights, or none.
+
+The loader refuses a diagram without a title, points or a top view, a view without paths, a pin count not that of the
+points (a side view may have none), a coordinate off the frame, a text without both languages, and a lesson naming a
+diagram its file does not have. `course.rs` `a_diagram_is_checked` holds the overhead break as its example: the
+initial, the break, downwind, the final turn and the touchdown over runway 25R, with the side view's 1,500 ft.
 
 ## 17. The instructor's calls
 The instructor's calls in flight ([training-plan.md](training-plan.md) §2.3) are data: each lesson's `calls` in its
