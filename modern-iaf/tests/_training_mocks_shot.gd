@@ -14,11 +14,11 @@ var Diagram: GDScript
 
 const PHASES := [
 	["Ground and start-up", "קרקע והתנעה", 5, 5],
-	["Basic handling and the pattern", "שליטה בסיסית והקפה", 8, 2],
+	["Basic handling, the pattern and landing", "שליטה בסיסית, הקפה ונחיתה", 8, 2],
 	["Navigation and instruments", "ניווט וטיסת מכשירים", 6, 0],
 	["Formation and flight lead", "טיסת מבנה והובלה", 6, 0],
 	["Air-to-ground", "אוויר-קרקע", 5, 0],
-	["AWACS, ground control and the tanker", "בקרה אווירית ותדלוק", 5, 0],
+	["AWACS, ground control, tanker", "בקרה אווירית ותדלוק", 5, 0],
 	["Air-to-air", "אוויר-אוויר", 7, 0],
 	["Threats and electronic warfare", "איומים ולוחמה אלקטרונית", 5, 0],
 ]
@@ -316,12 +316,12 @@ func _phases(fe: Control) -> void:
 	fe.show_page("missions")  # the language's strings first
 	var j: Dictionary = fe.jet()
 	_frame(fe, ["hangar", fe.full_name(j), "missions", "sec_training"])
-	var v: VBoxContainer = fe._vbox(fe._body(96, 116, 116), 24)
-	fe._title(v, fe.s("sec_training"), "%s · %s" % [t("total"), fe.s("flown_in") % fe.full_name(j)])
+	var v: VBoxContainer = fe._vbox(fe._body(96, 104, 100), 16)
+	fe._title(v, fe.s("sec_training"), t("total"))
 	var grid := GridContainer.new()
 	grid.columns = 4
 	grid.add_theme_constant_override("h_separation", 28)
-	grid.add_theme_constant_override("v_separation", 24)
+	grid.add_theme_constant_override("v_separation", 20)
 	grid.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_SHRINK_CENTER
 	v.add_child(grid)
 	var next: Button = null
@@ -330,7 +330,7 @@ func _phases(fe: Control) -> void:
 		var b := Button.new()
 		b.theme_type_variation = "Card"
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.custom_minimum_size.y = 336
+		b.custom_minimum_size.y = 390 if i < 4 else 320  # a row as tall as its longest title (three lines in the first)
 		grid.add_child(b)
 		var cv: VBoxContainer = fe._vbox(fe._margin(b, 32, 30), 14)
 		cv.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -387,7 +387,7 @@ func _lessons(fe: Control) -> void:
 		tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		fe._label(tv, le[1] if lang == "he" else le[0], "JetName")
-		fe._label(tv, "%s · %s" % [fe.s("base_ramon"), le[3] if lang == "he" else le[2]], "Small")
+		fe._label(tv, le[3] if lang == "he" else le[2], "Small")
 		if i == 2:
 			fe._chip(h, fe.s("next_up"), true)
 			next = b
@@ -423,7 +423,6 @@ func _lessons(fe: Control) -> void:
 	grid.add_theme_constant_override("v_separation", 14)
 	sv.add_child(grid)
 	for f in [
-		["base_l", fe.s("base_ramon")],
 		["last_result", "%s · %s" % [t("marginal"), fe.day_text("2026-11-26T08:00:00")]]
 	]:
 		fe._label(grid, fe.s(f[0]), "Small").size_flags_vertical = Control.SIZE_SHRINK_CENTER
