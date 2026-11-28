@@ -2923,7 +2923,14 @@ mod tests {
         let c = course::course();
         let g = |id: &str, flown: f64, at: Option<[f64; 2]>| {
             let i = c.item(id).unwrap();
-            Graded { id: id.into(), label: i.label.clone(), standard: i.standard.clone(), flown: Some(flown), at, tip: i.tip.clone() }
+            Graded {
+                id: id.into(),
+                label: i.label.clone(),
+                standard: i.standard.clone(),
+                flown: Some(flown),
+                at,
+                tip: i.tip.clone(),
+            }
         };
         let d = Debrief {
             mission: "m".into(),
