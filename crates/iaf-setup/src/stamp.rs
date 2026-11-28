@@ -97,6 +97,8 @@ const SIM: &[&str] = &[
     "crates/iaf-tools/src/mission_edit.rs",
     "crates/iaf-tools/src/training.rs",
     "crates/iaf-tools/src/combat_log.rs",
+    "crates/iaf-tools/src/course.rs",
+    "modern-iaf/data/training/course.json",
     "crates/iaf-tools/src/roads.rs",
     "crates/iaf-tools/src/scenery.rs",
 ];

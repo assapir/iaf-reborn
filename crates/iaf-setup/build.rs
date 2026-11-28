@@ -45,6 +45,8 @@ fn main() {
         "crates/iaf-setup/src",
         // The station table the sim's units compile against (sim.rs: STATIONS, pylon_index).
         "crates/iaf-avionics/src/stores.rs",
+        // The training course built into iaf-tools (course.rs).
+        "modern-iaf/data/training/course.json",
         "tools/install-launcher.sh",
         "tools/windows/install-launcher.ps1",
     ];
