@@ -19,6 +19,7 @@
 ]},
 {"id": "after_start", "en": "AFTER ENGINE START", "he": "אחרי התנעה", "items": [
   {"id": "hmd", "en": "HMD – AUTO or DAY", "he": "HMD – ‏AUTO או DAY", "how": {"en": "at OFF the helmet display is dark", "he": "ב־OFF תצוגת הקסדה כבויה"}, "where": {"en": "HMD knob: front panel, under the display", "he": "בורר HMD: הלוח הקדמי, מתחת לתצוגה"}, "check": {"set": {"HMD_MODE": [2, 3]}}, "control": ["HMD_MODE"]},
+  {"id": "hmd_night", "lesson": true, "en": "HMD – NIGHT", "he": "HMD – ‏NIGHT", "how": {"en": "each click turns it one position on (OFF, NIGHT, AUTO, DAY); from DAY two clicks, through OFF", "he": "כל לחיצה מעבירה אותו מצב אחד (OFF, ‏NIGHT, ‏AUTO, ‏DAY); מ־DAY שתי לחיצות, דרך OFF"}, "where": {"en": "HMD knob: front panel, under the display", "he": "בורר HMD: הלוח הקדמי, מתחת לתצוגה"}, "check": {"set": {"HMD_MODE": 1}}, "control": ["HMD_MODE"]},
   {"id": "hmd_preflight", "en": "Helmet display – test and adjust", "he": "תצוגת הקסדה – בדיקה והתאמה"},
   {"id": "displays", "en": "HMD BRT, MFD BRT – set", "he": "HMD BRT, ‏MFD BRT – כיוון", "where": {"en": "front panel, under the display", "he": "הלוח הקדמי, מתחת לתצוגה"}},
   {"id": "fuel_joker", "en": "Joker and bingo fuel – set", "he": "דלק Joker ו־Bingo – כיוון", "how": {"en": "normal recovery fuel: 2,500 lb or more at the final approach fix", "he": "דלק רגיל לחזרה: 2,500 ליברות לפחות בנקודת הגישה הסופית"}},
@@ -57,7 +58,7 @@
 {"id": "shutdown", "en": "ENGINE SHUTDOWN", "he": "כיבוי מנוע", "when": "landed", "items": [
   {"id": "park_brake_on", "en": "PARKING BRAKE – ON", "he": "PARKING BRAKE – ‏ON", "check": {"set": {"PARK_BRAKE": 1}}, "control": ["PARK_BRAKE"]},
   {"id": "throttle_off", "en": "Throttle – OFF", "he": "מצערת – ‏OFF", "how": {"en": "over the idle detent: the Throttle OFF key", "he": "מעבר לעצירת הסרק: מקש Throttle OFF"}, "check": {"throttle_off": true, "state": {"engine_on": false}}, "key": 121},
-  {"id": "batt_off", "en": "BATT – OFF", "he": "BATT – ‏OFF", "how": {"en": "the lamps and the display go dark", "he": "הנוריות והתצוגה כבות"}, "check": {"set": {"BATT": 0}}, "control": ["BATT"]},
+  {"id": "batt_off", "en": "BATT – OFF", "he": "BATT – ‏OFF", "how": {"en": "one click (through to RESET or OFF): the lamps and the display go dark", "he": "לחיצה אחת (ל־RESET או ל־OFF): הנוריות והתצוגה כבות"}, "check": {"set": {"BATT": [-1, 0]}}, "control": ["BATT"]},
   {"id": "walkaround", "en": "Post-flight walk-around – bird strikes, missing panels, over-G damage", "he": "בדיקה חיצונית אחרי הטיסה – פגיעות ציפורים, פנלים חסרים, נזקי עומס יתר"}
 ]}
 ],

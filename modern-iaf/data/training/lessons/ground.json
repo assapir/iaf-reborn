@@ -1,0 +1,1865 @@
+{
+  "about": "Phase 1's lessons (Ground and start-up): per lesson its missions by jet, the briefing's sections, the notebook's Lesson tab and the instructor's calls (modern-iaf/docs/training.md §15). Read by crates/iaf-tools/src/course.rs. The procedures are the jets' checklist cards (data/checklists) and training.md §7; the briefing's texts take {jet}, {base}, {runway} and {key:<record>[:<pick>]}, the calls' lines {rwy}.",
+  "lessons": {
+    "cockpit": {
+      "missions": {
+        "f16d": "f16d_ground_cockpit",
+        "f16i": "f16i_ground_cockpit",
+        "f35i": "f35i_ground_cockpit"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} at {base}, by day: the cockpit of a cold jet on its parking spot, brought to electrical power and back. The engine is not started.",
+            "he": "{one}, {base}, יום. תא טייס במטוס קר בעמדת החניה: הזנת חשמל וכיבוי. ללא התנעה."
+          }
+        ],
+        "target": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "After this lesson you can set the cockpit for the start in the checklist's order, bring the jet to battery and main power, test the warning lights, check the radio with the tower and power the jet down.",
+            "he": "בסיום התרגול הזה תדעו להכין את תא הטייס להתנעה לפי סדר הבד\"ח, להזין חשמל ממצבר ומחשמל ראשי, לבדוק את נוריות האזהרה, לבצע בדיקת קשר עם המגדל ולכבות את החשמל."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "After this lesson you can set the cockpit for the start in the checklist's order, bring the jet to power on the battery and the IPP, bring up the displays and the helmet, read the cautions, check the radio with the tower and power the jet down.",
+            "he": "בסיום התרגול הזה תדעו להכין את תא הטייס להתנעה לפי סדר הבד\"ח, להזין חשמל ממצבר ומ-IPP, להפעיל את התצוגות והקסדה, לקרוא את האזהרות, לבצע בדיקת קשר עם המגדל ולכבות את החשמל."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, with the instructor in the back seat on the intercom. {base} tower on the radio.",
+            "he": "{one}. המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One F-35I, yours. The instructor on the radio. {base} tower on the radio.",
+            "he": "F-35I אחד. המדריך בקשר. מגדל {base} בקשר."
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm, the sky clear. The jet stands cold on its parking spot at {base}, the canopy up. The lesson stays on the spot.",
+            "he": "יום, רוח שקטה, שמיים בהירים. המטוס קר בעמדת החניה ב{base}, החופה פתוחה. כל התרגול בעמדה."
+          }
+        ],
+        "execution": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "at": "start",
+            "en": "BEFORE STARTING ENGINE, from the top of the card: EPU at NORM, ENG FEED at NORM, FUEL MASTER at MASTER, LE FLAPS at AUTO, AIR SOURCE at NORM, MASTER ARM at OFF, the gear handle at DN. Each switch answers a click in the 3D cockpit; the notebook ({key:118}) ticks each item as it is set.",
+            "he": "יש לעבור על BEFORE STARTING ENGINE מראש הכרטיס: להעביר את EPU ל-NORM, ‏ENG FEED ל-NORM, ‏FUEL MASTER ל-MASTER, ‏LE FLAPS ל-AUTO, ‏AIR SOURCE ל-NORM ו-MASTER ARM ל-OFF, ולוודא שידית כן הנסע ב-DN. כל מתג מופעל בלחיצה בתא הטייס התלת-ממדי, והפנקס ({key:118}) מסמן כל סעיף שבוצע."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "switches": [
+              "main_power"
+            ],
+            "en": "MAIN PWR to BATT, one click: the FLCS RLY light comes on. Hold FLCS PWR TEST at TEST: the FLCS PWR lights come on; let go. Then MAIN PWR one more click, to MAIN PWR: the lamps and the engine gauges are live on the battery. The displays and the HUD stay dark: they need the engine's generators, the next lesson.",
+            "he": "יש להעביר את MAIN PWR ל-BATT בלחיצה אחת: נורית FLCS RLY נדלקת. יש להחזיק את FLCS PWR TEST ב-TEST עד שנוריות FLCS PWR נדלקות, ולשחרר. אחר כך יש ללחוץ שוב על MAIN PWR, ל-MAIN PWR: הנוריות ומדי המנוע פועלים על המצבר. התצוגות והתע\"ל נשארים כבויים עד שהגנרטורים של המנוע נכנסים, בתרגול הבא."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "The warning lights, on the TEST panel: FIRE & OHEAT DETECT one click, ENG FIRE and OVERHEAT light, one more click back; MAL & IND LTS held, every lamp lights, let go.",
+            "he": "יש לבדוק את נוריות האזהרה בלוח TEST: ללחוץ על FIRE & OHEAT DETECT, לוודא ש-ENG FIRE ו-OVERHEAT נדלקות ולהחזיר; להחזיק את MAL & IND LTS, לוודא שכל הנוריות נדלקות ולשחרר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "at": "start",
+            "en": "BEFORE STARTING ENGINE, from the top of the card: the survival kit and loose items, PARKING BRAKE ON, MASTER ARM SAFE, the gear's alternate handle at NORM, the landing and taxi light OFF, the gear handle DN. Each switch answers a click in the 3D cockpit; the notebook ({key:118}) ticks each item as it is set.",
+            "he": "יש לעבור על BEFORE STARTING ENGINE מראש הכרטיס: לבדוק את ערכת ההישרדות ואת החפצים הרופפים, להעביר את PARKING BRAKE ל-ON, ‏MASTER ARM ל-SAFE, את ידית החלופה של כן הנסע ל-NORM ואת אור הנחיתה וההסעה ל-OFF, ולוודא שידית כן הנסע ב-DN. כל מתג מופעל בלחיצה בתא הטייס התלת-ממדי, והפנקס ({key:118}) מסמן כל סעיף שבוצע."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "switches": [
+              "main_power",
+              "starter"
+            ],
+            "en": "BATT to ON, one click: the lamps come alive and the 90 s self test starts. Then IPP to ON, one click: the IPP runs up in 10 s and the display lights 3 s later. The IPP powers the jet without the engine.",
+            "he": "יש להעביר את BATT ל-ON בלחיצה אחת: הנוריות נדלקות והבדיקה העצמית של 90 שניות מתחילה. אחר כך יש להעביר את IPP ל-ON: הוא מאיץ תוך 10 שניות, והתצוגה עולה 3 שניות אחריו. ה-IPP מזין את המטוס בלי המנוע."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "The displays: the HMD knob to AUTO or DAY, the HMD and display brightness set. Wait for the self test to end: the helmet then shows the steering. Read the cautions: none lit, MASTER CAUTION out.",
+            "he": "יש להעביר את בורר HMD ל-AUTO או ל-DAY ולכוון את בהירות הקסדה והתצוגה, ולהמתין לסוף הבדיקה העצמית, עד שהקסדה מציגה נתוני ניווט. אחר כך יש לקרוא את האזהרות: אף נורית לא דולקת ו-MASTER CAUTION כבויה."
+          },
+          {
+            "en": "The radio check: call the tower ({key:47:5}), \"{base} tower, Kidon 1, radio check\"; wait for \"Kidon 1, read you five\".",
+            "he": "יש לבצע בדיקת קשר: לקרוא למגדל ({key:47:5}), \"מגדל {base}, כידון 1, בדיקת קשר\", ולהמתין לתשובה \"כידון 1, שומע אותך חמש\"."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Power down: MAIN PWR to OFF (a click goes round to OFF). The lesson ends when the jet is dark.",
+            "he": "בסוף יש לכבות את החשמל: להעביר את MAIN PWR ל-OFF (הלחיצה מסובבת אותו עד OFF). התרגול מסתיים כשהמטוס כבוי."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Power down: IPP to OFF, then BATT to OFF. The lesson ends when the jet is dark.",
+            "he": "בסוף יש לכבות את החשמל: להעביר את IPP ל-OFF ואחר כך את BATT ל-OFF. התרגול מסתיים כשהמטוס כבוי."
+          }
+        ],
+        "coordination": [
+          {
+            "en": "The engine stays off and the jet stays on its spot, the parking brake on. An engine turned without the tower's clearance ends the lesson as a fail.",
+            "he": "מנוע כבוי, המטוס בעמדה, בלם חניה מופעל. סיבוב מנוע ללא אישור המגדל – כישלון והתרגול נגמר."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the intercom.",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base} – התדרים בדף הקשר בפנקס. המדריך באינטרקום."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the radio, on the tower's frequency.",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base} – התדרים בדף הקשר בפנקס. המדריך בקשר, בתדר המגדל."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "BEFORE STARTING ENGINE: the card from the top",
+          "he": "יש לעבור על BEFORE STARTING ENGINE מההתחלה"
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "en": "MAIN PWR – BATT; FLCS PWR TEST held",
+          "he": "MAIN PWR – ‏BATT; ‏FLCS PWR TEST בהחזקה",
+          "wait": {
+            "en": "the FLCS PWR lights on",
+            "he": "נוריות FLCS PWR דולקות"
+          }
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "en": "MAIN PWR – MAIN PWR",
+          "he": "MAIN PWR – ‏MAIN PWR",
+          "wait": {
+            "en": "the lamps and engine gauges live; the displays stay dark",
+            "he": "נוריות ומדי מנוע פועלים; התצוגות כבויות"
+          }
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "en": "FIRE & OHEAT DETECT; MAL & IND LTS",
+          "he": "FIRE & OHEAT DETECT; ‏MAL & IND LTS",
+          "wait": {
+            "en": "every lamp lights",
+            "he": "כל הנוריות דולקות"
+          }
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "en": "BATT – ON; IPP – ON",
+          "he": "BATT – ‏ON; ‏IPP – ‏ON",
+          "wait": {
+            "en": "the IPP 10 s, the display 3 s later",
+            "he": "IPP – ‏10 שנ', תצוגה 3 שנ' אחריו"
+          }
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "en": "HMD – AUTO or DAY; brightness set",
+          "he": "HMD – ‏AUTO או DAY; כיוון בהירות",
+          "wait": {
+            "en": "the self test, 90 s from BATT",
+            "he": "בדיקה עצמית, 90 שנ' מ-BATT"
+          }
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "en": "Cautions – none lit",
+          "he": "אזהרות – אין"
+        },
+        {
+          "en": "Tower: radio check",
+          "he": "יש לבצע בדיקת קשר מול המגדל",
+          "wait": {
+            "en": "\"read you five\"",
+            "he": "\"שומע אותך חמש\""
+          }
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "en": "MAIN PWR – OFF",
+          "he": "MAIN PWR – ‏OFF",
+          "wait": {
+            "en": "the jet dark: the end",
+            "he": "מטוס כבוי: סוף"
+          }
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "en": "IPP – OFF; BATT – OFF",
+          "he": "IPP – ‏OFF; ‏BATT – ‏OFF",
+          "wait": {
+            "en": "the jet dark: the end",
+            "he": "מטוס כבוי: סוף"
+          }
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Good morning. Today we'll get to know the cockpit: we'll bring up the power, test the warning lights and check the radio. No engine today.",
+              "he": "בוקר טוב. היום נכיר את תא הטייס: נזין חשמל, נבדוק את נוריות האזהרה ונבדוק קשר. בלי מנוע היום."
+            },
+            {
+              "en": "Let's take the checklist from the top, before engine start, one line at a time.",
+              "he": "ניקח את הבד\"ח מההתחלה, לפני התנעה, שורה אחרי שורה."
+            }
+          ]
+        },
+        {
+          "id": "batt",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "item:batt"
+          ],
+          "lines": [
+            {
+              "en": "We've got the battery. Now let's test the flight control power.",
+              "he": "יש לנו מצבר. עכשיו נבדוק את החשמל של בקרת הטיסה."
+            }
+          ]
+        },
+        {
+          "id": "main_power",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "item:flcs_pwr_test"
+          ],
+          "lines": [
+            {
+              "en": "Good. Now main power.",
+              "he": "יפה. עכשיו חשמל ראשי."
+            }
+          ]
+        },
+        {
+          "id": "dark_displays",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "item:main_power"
+          ],
+          "lines": [
+            {
+              "en": "We're on the battery now. The screens stay dark until the engine gives us the generators.",
+              "he": "עכשיו אנחנו על המצבר. המסכים יישארו כבויים עד שהמנוע ייתן לנו גנרטורים."
+            },
+            {
+              "en": "Next, let's test the warning lights.",
+              "he": "הבא, נבדוק את נוריות האזהרה."
+            }
+          ]
+        },
+        {
+          "id": "ipp",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "item:main_power"
+          ],
+          "lines": [
+            {
+              "en": "We've got the battery, and the self test is running. Next we'll start the IPP: it gives us power without the engine.",
+              "he": "יש לנו מצבר, והבדיקה העצמית רצה. עכשיו נפעיל את ה-IPP: הוא נותן לנו חשמל בלי מנוע."
+            }
+          ]
+        },
+        {
+          "id": "displays",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "item:starter"
+          ],
+          "lines": [
+            {
+              "en": "Here come the screens. Let's set up the helmet and wait for the self test.",
+              "he": "המסכים עולים. נכוון את הקסדה ונחכה לבדיקה העצמית."
+            }
+          ]
+        },
+        {
+          "id": "cautions",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "item:hmd"
+          ],
+          "lines": [
+            {
+              "en": "Now let's read the cautions. We want nothing lit.",
+              "he": "עכשיו נקרא את האזהרות. אנחנו רוצים שלא תדלוק אף נורית."
+            }
+          ]
+        },
+        {
+          "id": "radio",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "item:fire_test",
+            "item:mal_ind_test"
+          ],
+          "lines": [
+            {
+              "en": "Lights are good. Now let's check the radio with the tower.",
+              "he": "הנוריות תקינות. עכשיו נבדוק קשר עם המגדל."
+            }
+          ]
+        },
+        {
+          "id": "radio_f35",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "item:icaw"
+          ],
+          "lines": [
+            {
+              "en": "No cautions. Now let's check the radio with the tower.",
+              "he": "אין אזהרות. עכשיו נבדוק קשר עם המגדל."
+            }
+          ]
+        },
+        {
+          "id": "power_down",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "called:radio_check"
+          ],
+          "lines": [
+            {
+              "en": "We hear them fine. The cockpit is up. Now let's power down.",
+              "he": "שומעים אותם טוב. תא הטייס מוכן. עכשיו נכבה חשמל."
+            }
+          ]
+        },
+        {
+          "id": "power_down_f35",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "called:radio_check"
+          ],
+          "lines": [
+            {
+              "en": "We hear them fine. The cockpit is up. Now let's power down: the IPP first, then the battery.",
+              "he": "שומעים אותם טוב. תא הטייס מוכן. עכשיו נכבה: קודם ה-IPP, אחר כך המצבר."
+            }
+          ]
+        },
+        {
+          "id": "end",
+          "when": [
+            "power_off"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "We're dark. Nicely done. Next time we start the engine.",
+              "he": "המטוס כבוי. עבודה טובה. בפעם הבאה נתניע את המנוע."
+            }
+          ]
+        }
+      ]
+    },
+    "engine": {
+      "missions": {
+        "f16d": "f16d_ground_engine",
+        "f16i": "f16i_ground_engine",
+        "f35i": "f35i_ground_engine"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} at {base}, by day: the full start-up by the checklist, the INS aligned, then the shutdown, on the parking spot.",
+            "he": "{one}, {base}, יום. התנעה מלאה לפי הבד\"ח, יישור INS וכיבוי בעמדת החניה."
+          }
+        ],
+        "target": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "After this lesson you can start the engine with the jet fuel starter in the checklist's order, bring up the avionics, align the INS on the stored heading and shut the jet down again, within the time allowed.",
+            "he": "בסיום התרגול הזה תדעו להניע את המטוס עם המתנע לפי הבד\"ח, להפעיל את האוויוניקה, ליישר את ה-INS בשיטת STOR HDG ולכבות את המטוס, תוך עמידה בזמנים."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "After this lesson you can start the engine with the IPP in the checklist's order, wait out the self test, set the helmet and shut the jet down again, within the time allowed.",
+            "he": "בסיום התרגול הזה תדעו להניע את המטוס עם ה-IPP לפי הבד\"ח, להמתין לסיום הבדיקה העצמית, לכוון את הקסדה ולכבות את המטוס, תוך עמידה בזמנים."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, with the instructor in the back seat on the intercom. {base} ground and tower on the radio.",
+            "he": "{one}. המדריך במושב האחורי, באינטרקום. קרקע ומגדל {base} בקשר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One F-35I, yours. The instructor on the radio. {base} ground and tower on the radio.",
+            "he": "F-35I אחד. המדריך בקשר. קרקע ומגדל {base} בקשר."
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm, the sky clear. The jet stands cold on its parking spot at {base}, the canopy up. The lesson stays on the spot.",
+            "he": "יום, רוח שקטה, שמיים בהירים. המטוס קר בעמדת החניה ב{base}, החופה פתוחה. כל התרגול בעמדה."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "The tower first: call for start-up ({key:47:1}) and wait for \"cleared to start\". An engine turned before the clearance ends the lesson.",
+            "he": "יש להתחיל בקריאה למגדל לבקשת התנעה ({key:47:1}) ולהמתין ל\"אישור התנעה\". סיבוב המנוע לפני האישור מסיים את התרגול."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "switches": [
+              "main_power"
+            ],
+            "en": "BEFORE STARTING ENGINE, from the top of the card, as in lesson 1.1: the switches set, MAIN PWR to BATT, the FLCS PWR test, MAIN PWR to MAIN PWR.",
+            "he": "יש לעבור על BEFORE STARTING ENGINE מראש הכרטיס, כמו בתרגול 1.1: להעמיד את המתגים במקומם, להעביר את MAIN PWR ל-BATT, לבצע את בדיקת FLCS PWR ולהעביר את MAIN PWR ל-MAIN PWR."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "switches": [
+              "starter",
+              "engine"
+            ],
+            "en": "JFS to START 2: the jet fuel starter cranks the engine to 20 % RPM in about 15 s and holds it there. At 20 %, not before, the throttle up from OFF to idle: the engine lights about 5 s later and runs up to idle. Below 20 % it is a hot start, and the engine shuts down. At about 52 % the main generator comes on line and the JFS goes off by itself.",
+            "he": "יש להעביר את JFS ל-START 2: המתנע מסובב את המנוע עד 20% סל\"ד תוך כ-15 שניות ומחזיק אותו שם. ב-20%, ולא לפני, יש להעביר את המצערת מ-OFF לסרק: המנוע ניצת כעבור כ-5 שניות ומאיץ לסרק. מתחת ל-20% זה Hot start, והמנוע נכבה. בסביבות 52% הגנרטור הראשי נכנס והמתנע נכבה מעצמו."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "switches": [
+              "avionics"
+            ],
+            "en": "AFTER ENGINE START: the tests on the TEST panel, then the four AVIONIC POWER switches, GPS and DL, the INS knob to STOR HDG, the pods, the radar and the radar altimeter, the HUD, the flight control tests, the speedbrakes and the EPU check. The displays and the HUD come up 3 s after the avionics.",
+            "he": "יש לבצע את AFTER ENGINE START: את הבדיקות בלוח TEST, ואחר כך להפעיל את ארבעת מתגי AVIONIC POWER, את GPS ו-DL, להעביר את בורר ה-INS ל-STOR HDG, ולהפעיל את הפודים, המכ\"ם, מד הגובה המכ\"מי והתע\"ל; אחריהם בדיקות בקרת הטיסה, מעצורי האוויר ובדיקת ה-EPU. התצוגות והתע\"ל עולים 3 שניות אחרי האוויוניקה."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "switches": [
+              "ins",
+              "canopy"
+            ],
+            "en": "The stored-heading alignment takes 90 s from STOR HDG: ALIGN shows on the HUD and flashes when it is done (the DED's INS page, LIST then 6, counts it). Then the knob two more clicks, through NORM, to NAV. BEFORE TAXI: close and lock the canopy, the exterior lights and the countermeasures set.",
+            "he": "יש להמתין ליישור STOR HDG, 90 שניות: ‏ALIGN מופיע בתע\"ל ומהבהב בסיום (דף ה-INS ב-DED, ‏LIST ואז 6, סופר את הזמן). אחר כך יש ללחוץ עוד פעמיים על הבורר, דרך NORM, ל-NAV. ב-BEFORE TAXI יש לסגור ולנעול את החופה ולכוון את האורות החיצוניים ואת אמצעי הנגד."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "at": "start",
+            "en": "The tower first: call for start-up ({key:47:1}) and wait for \"cleared to start\". An engine turned before the clearance ends the lesson.",
+            "he": "יש להתחיל בקריאה למגדל לבקשת התנעה ({key:47:1}) ולהמתין ל\"אישור התנעה\". סיבוב המנוע לפני האישור מסיים את התרגול."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "switches": [
+              "main_power",
+              "starter"
+            ],
+            "en": "BEFORE STARTING ENGINE, from the top of the card, as in lesson 1.1. Then BATT to ON: the 90 s self test starts. IPP to ON: it runs up in 10 s.",
+            "he": "יש לעבור על BEFORE STARTING ENGINE מראש הכרטיס, כמו בתרגול 1.1, ואחר כך להעביר את BATT ל-ON: הבדיקה העצמית של 90 שניות מתחילה. אז יש להעביר את IPP ל-ON: הוא מאיץ תוך 10 שניות."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "switches": [
+              "engine"
+            ],
+            "en": "The engine: lift the ENG switch's guard, then two clicks to NORM, or the throttle up from OFF. The IPP cranks it, it lights and runs to idle by itself in about 35 s.",
+            "he": "להתנעה יש להרים את המכסה של מתג ENG וללחוץ פעמיים, עד NORM, או להעביר את המצערת מ-OFF. ה-IPP מסובב את המנוע, והוא ניצת ומאיץ לסרק מעצמו תוך כ-35 שניות."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "switches": [
+              "canopy"
+            ],
+            "en": "Wait for the self test to end: the helmet then shows the steering. The HMD knob to AUTO or DAY, the cautions read, MASTER CAUTION out. BEFORE TAXI: close and lock the canopy, arm the seat.",
+            "he": "יש להמתין לסוף הבדיקה העצמית, עד שהקסדה מציגה נתוני ניווט, ואז להעביר את בורר HMD ל-AUTO או ל-DAY, לקרוא את האזהרות ולוודא ש-MASTER CAUTION כבויה. ב-BEFORE TAXI יש לסגור ולנעול את החופה ולדרוך את הכיסא."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "The shutdown, BEFORE ENGINE SHUTDOWN and ENGINE SHUTDOWN: INS off, the avionics off, then the throttle to OFF over the idle detent (Throttle OFF, {key:121}). The RPM runs down for about a minute; at 52 % the generator drops off and the displays go dark. Then MAIN PWR to OFF.",
+            "he": "לכיבוי יש לבצע את BEFORE ENGINE SHUTDOWN ו-ENGINE SHUTDOWN: לכבות את ה-INS ואת האוויוניקה, ואז להעביר את המצערת ל-OFF מעבר לנקודת הסרק (Throttle OFF, ‏{key:121}). הסל\"ד יורד במשך כדקה; ב-52% הגנרטור מתנתק והתצוגות כבות. בסוף יש להעביר את MAIN PWR ל-OFF."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "The shutdown, ENGINE SHUTDOWN: the parking brake on, then the throttle to OFF over the idle detent (Throttle OFF, {key:121}). The engine runs down for about a minute. Then BATT to OFF.",
+            "he": "לכיבוי יש לבצע את ENGINE SHUTDOWN: להפעיל את בלם החניה, ואז להעביר את המצערת ל-OFF מעבר לנקודת הסרק (Throttle OFF, ‏{key:121}). המנוע יורד במשך כדקה. בסוף יש להעביר את BATT ל-OFF."
+          }
+        ],
+        "coordination": [
+          {
+            "en": "The engine runs on the spot only and the jet does not move: the parking brake stays on. An engine turned without the tower's clearance, or a move off the spot without the taxi clearance, ends the lesson as a fail.",
+            "he": "המנוע פועל בעמדה בלבד, המטוס לא זז, בלם חניה מופעל. סיבוב מנוע ללא אישור המגדל, או תזוזה מהעמדה ללא אישור הסעה – כישלון והתרגול נגמר."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the intercom.",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base} – התדרים בדף הקשר בפנקס. המדריך באינטרקום."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the radio, on the tower's frequency.",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base} – התדרים בדף הקשר בפנקס. המדריך בקשר, בתדר המגדל."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "wait": {
+            "en": "\"cleared to start\"",
+            "he": "\"אישור התנעה\""
+          },
+          "en": "Tower: request start-up",
+          "he": "יש לבקש התנעה מהמגדל"
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "en": "BEFORE STARTING ENGINE: the card from the top; MAIN PWR – MAIN PWR",
+          "he": "יש לעבור על BEFORE STARTING ENGINE מההתחלה; ‏MAIN PWR – ‏MAIN PWR"
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "wait": {
+            "en": "20 % RPM, about 15 s",
+            "he": "20% סל\"ד, כ-15 שנ'"
+          },
+          "en": "JFS – START 2",
+          "he": "JFS – ‏START 2"
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "wait": {
+            "en": "idle; the generator at 52 %, the JFS off",
+            "he": "סרק; גנרטור ב-52%, מתנע כבוי"
+          },
+          "en": "Throttle – IDLE at 20 % RPM, not before",
+          "he": "מצערת – סרק ב-20% סל\"ד, לא לפני"
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "wait": {
+            "en": "ALIGN flashing: 90 s",
+            "he": "ALIGN מהבהב: 90 שנ'"
+          },
+          "en": "AFTER ENGINE START: the tests, AVIONIC POWER, INS – STOR HDG",
+          "he": "יש לבצע את AFTER ENGINE START: הבדיקות, ‏AVIONIC POWER, ‏INS – ‏STOR HDG"
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "en": "INS – NAV; canopy closed and locked",
+          "he": "INS – ‏NAV; חופה סגורה ונעולה"
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "wait": {
+            "en": "the RPM down, about a minute",
+            "he": "הסל\"ד יורד, כדקה"
+          },
+          "en": "INS off, avionics off; Throttle – OFF",
+          "he": "יש לכבות את ה-INS ואת האוויוניקה; מצערת – OFF"
+        },
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "wait": {
+            "en": "the jet dark: the end",
+            "he": "מטוס כבוי: סוף"
+          },
+          "en": "MAIN PWR – OFF",
+          "he": "MAIN PWR – ‏OFF"
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "wait": {
+            "en": "the self test, 90 s",
+            "he": "בדיקה עצמית, 90 שנ'"
+          },
+          "en": "BEFORE STARTING ENGINE: the card from the top; BATT – ON",
+          "he": "יש לעבור על BEFORE STARTING ENGINE מההתחלה; ‏BATT – ‏ON"
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "wait": {
+            "en": "10 s",
+            "he": "10 שנ'"
+          },
+          "en": "IPP – ON",
+          "he": "IPP – ‏ON"
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "wait": {
+            "en": "idle, about 35 s",
+            "he": "סרק, כ-35 שנ'"
+          },
+          "en": "ENG – NORM, or the throttle up from OFF",
+          "he": "ENG – ‏NORM, או מצערת מ-OFF"
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "en": "HMD – AUTO or DAY; cautions – none",
+          "he": "HMD – ‏AUTO או DAY; אזהרות – אין"
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "en": "Canopy closed and locked; seat armed",
+          "he": "יש לסגור ולנעול את החופה ולדרוך את הכיסא"
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "wait": {
+            "en": "the engine down, about a minute",
+            "he": "המנוע יורד, כדקה"
+          },
+          "en": "Parking brake on; Throttle – OFF",
+          "he": "יש להפעיל את בלם החניה; מצערת – OFF"
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "wait": {
+            "en": "the jet dark: the end",
+            "he": "מטוס כבוי: סוף"
+          },
+          "en": "BATT – OFF",
+          "he": "BATT – ‏OFF"
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today we'll start the engine and align the INS, by the checklist, and then shut down again.",
+              "he": "היום נתניע את המנוע וניישר את ה-INS, לפי הבד\"ח, ובסוף נכבה שוב."
+            },
+            {
+              "en": "First we'll ask the tower for start-up. Nothing turns before they clear us.",
+              "he": "קודם נבקש מהמגדל אישור התנעה. שום דבר לא מסתובב לפני שהם מאשרים."
+            }
+          ]
+        },
+        {
+          "id": "cleared",
+          "when": [
+            "cleared:startup"
+          ],
+          "lines": [
+            {
+              "en": "We're cleared to start. Checklist from the top.",
+              "he": "יש לנו אישור התנעה. הבד\"ח מההתחלה."
+            }
+          ]
+        },
+        {
+          "id": "jfs",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "item:main_power"
+          ],
+          "lines": [
+            {
+              "en": "Main power's on. Now the starter: it spins the engine up to twenty percent and holds it there.",
+              "he": "יש חשמל ראשי. עכשיו המתנע: הוא יסובב את המנוע לעשרים אחוז ויחזיק שם."
+            }
+          ]
+        },
+        {
+          "id": "rpm",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "item:starter"
+          ],
+          "lines": [
+            {
+              "en": "Let's watch the RPM. At twenty percent we bring the throttle to idle. Not before.",
+              "he": "נעקוב אחרי הסל\"ד. בעשרים אחוז נעביר את המצערת לסרק. לא לפני."
+            }
+          ]
+        },
+        {
+          "id": "lightoff",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "item:engine"
+          ],
+          "lines": [
+            {
+              "en": "There's the light-off. It runs up to idle on its own; the starter drops off when the generator comes in.",
+              "he": "יש הצתה. המנוע עולה לסרק לבד; המתנע ייכבה כשהגנרטור ייכנס."
+            }
+          ]
+        },
+        {
+          "id": "after_start",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "item:jfs_off"
+          ],
+          "lines": [
+            {
+              "en": "Generators are in. Now the after-start checks, then the avionics.",
+              "he": "הגנרטורים בפנים. עכשיו הבדיקות שאחרי ההתנעה, ואז האוויוניקה."
+            }
+          ]
+        },
+        {
+          "id": "align",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "item:avionics"
+          ],
+          "lines": [
+            {
+              "en": "Avionics are up. Let's start the INS alignment: ninety seconds. We'll carry on with the checks meanwhile.",
+              "he": "האוויוניקה עלתה. נתחיל את יישור ה-INS: תשעים שניות. בינתיים נמשיך בבדיקות."
+            }
+          ]
+        },
+        {
+          "id": "nav",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "We're aligned. INS to navigate, then let's close the canopy.",
+              "he": "היישור הושלם. ה-INS לניווט, ואז נסגור את החופה."
+            }
+          ]
+        },
+        {
+          "id": "shutdown",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "item:ins",
+            "item:canopy"
+          ],
+          "lines": [
+            {
+              "en": "That's a jet ready to taxi. Not today: let's shut it down.",
+              "he": "זה מטוס מוכן להסעה. לא היום: נכבה אותו."
+            }
+          ]
+        },
+        {
+          "id": "ipp",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "item:main_power"
+          ],
+          "lines": [
+            {
+              "en": "We've got the battery, and the self test is running. Now the IPP: it powers us and it starts the engine.",
+              "he": "יש לנו מצבר, והבדיקה העצמית רצה. עכשיו ה-IPP: הוא נותן חשמל והוא מתניע את המנוע."
+            }
+          ]
+        },
+        {
+          "id": "eng",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "item:starter"
+          ],
+          "lines": [
+            {
+              "en": "The IPP is running. Now let's start the engine; it does the rest by itself.",
+              "he": "ה-IPP עובד. עכשיו נתניע את המנוע; את השאר הוא עושה לבד."
+            }
+          ]
+        },
+        {
+          "id": "selftest",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "idle"
+          ],
+          "lines": [
+            {
+              "en": "Engine at idle. Let's wait out the self test, then the helmet and the cautions.",
+              "he": "המנוע בסרק. נחכה לסוף הבדיקה העצמית, ואז הקסדה והאזהרות."
+            }
+          ]
+        },
+        {
+          "id": "canopy",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "item:icaw"
+          ],
+          "lines": [
+            {
+              "en": "No cautions. Let's close the canopy and arm the seat.",
+              "he": "אין אזהרות. נסגור את החופה ונדרוך את הכיסא."
+            }
+          ]
+        },
+        {
+          "id": "shutdown_f35",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "item:canopy",
+            "item:seat_arm"
+          ],
+          "lines": [
+            {
+              "en": "That's a jet ready to taxi. Not today: let's shut it down.",
+              "he": "זה מטוס מוכן להסעה. לא היום: נכבה אותו."
+            }
+          ]
+        },
+        {
+          "id": "cutoff",
+          "when": [
+            "item:throttle_off"
+          ],
+          "lines": [
+            {
+              "en": "Fuel's off. The engine takes about a minute to run down.",
+              "he": "הדלק נותק. המנוע ייקח בערך דקה לרדת."
+            }
+          ]
+        },
+        {
+          "id": "power_off",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "engine_off"
+          ],
+          "lines": [
+            {
+              "en": "The engine has stopped. Now main power off.",
+              "he": "המנוע עצר. עכשיו נכבה חשמל ראשי."
+            }
+          ]
+        },
+        {
+          "id": "batt_off",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "engine_off"
+          ],
+          "lines": [
+            {
+              "en": "The engine has stopped. Now the battery off.",
+              "he": "המנוע עצר. עכשיו נכבה את המצבר."
+            }
+          ]
+        },
+        {
+          "id": "end",
+          "when": [
+            "power_off"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "We're dark. That's a start and a shutdown. Next time we taxi.",
+              "he": "המטוס כבוי. זאת התנעה וזה כיבוי. בפעם הבאה נסיע."
+            }
+          ]
+        }
+      ]
+    },
+    "taxi": {
+      "missions": {
+        "f16d": "f16d_ground_taxi",
+        "f16i": "f16i_ground_taxi",
+        "f35i": "f35i_ground_taxi"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} at {base}, by day: the start-up, the radio calls, the taxi to the holding point of runway {runway} and back, the shutdown.",
+            "he": "{one}, {base}, יום. התנעה, קריאות קרקע, הסעה לנקודת ההמתנה של מסלול {runway} וחזרה, כיבוי."
+          }
+        ],
+        "target": [
+          {
+            "en": "After this lesson you can make the ground calls to the tower, taxi on the base's taxiways to a runway's holding point and back within the taxi speed, and shut down.",
+            "he": "בסיום התרגול הזה תדעו לבצע את קריאות הקרקע למגדל, להסיע במסלולי ההסעה של הבסיס לנקודת ההמתנה וחזרה ולכבות, בגבולות מהירות ההסעה."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, with the instructor in the back seat on the intercom. {base} ground and tower on the radio.",
+            "he": "{one}. המדריך במושב האחורי, באינטרקום. קרקע ומגדל {base} בקשר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One F-35I, yours. The instructor on the radio. {base} ground and tower on the radio.",
+            "he": "F-35I אחד. המדריך בקשר. קרקע ומגדל {base} בקשר."
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm, the sky clear. The jet stands cold on its parking spot at {base}, the canopy up. The lesson stays on the ground: from the spot to the holding point of runway {runway} and back.",
+            "he": "יום, רוח שקטה, שמיים בהירים. המטוס קר בעמדת החניה ב{base}, החופה פתוחה. התרגול על הקרקע: מהעמדה לנקודת ההמתנה של מסלול {runway} וחזרה."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "The tower first: call for start-up ({key:47:1}) and wait for \"cleared to start\". An engine turned before the clearance ends the lesson.",
+            "he": "יש להתחיל בקריאה למגדל לבקשת התנעה ({key:47:1}) ולהמתין ל\"אישור התנעה\". סיבוב המנוע לפני האישור מסיים את התרגול."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "at": "start",
+            "en": "The tower first: call for start-up ({key:47:1}) and wait for \"cleared to start\". An engine turned before the clearance ends the lesson.",
+            "he": "יש להתחיל בקריאה למגדל לבקשת התנעה ({key:47:1}) ולהמתין ל\"אישור התנעה\". סיבוב המנוע לפני האישור מסיים את התרגול."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "The start-up by the checklist, as in lesson 1.2, up to BEFORE TAXI: idle, the avionics up, the INS in NAV, the canopy closed.",
+            "he": "יש להתניע לפי הבד\"ח, כמו בתרגול 1.2, עד BEFORE TAXI: מנוע בסרק, אוויוניקה פועלת, ‏INS ב-NAV וחופה סגורה."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "The start-up by the checklist, as in lesson 1.2, up to BEFORE TAXI: idle, the self test done, the canopy closed, the seat armed.",
+            "he": "יש להתניע לפי הבד\"ח, כמו בתרגול 1.2, עד BEFORE TAXI: מנוע בסרק, הבדיקה העצמית הסתיימה, החופה סגורה והכיסא דרוך."
+          },
+          {
+            "at": "start",
+            "en": "Ready to taxi: the taxi light on, the parking brake off. Call the tower for taxi ({key:47:2}) and wait for \"taxi to runway {runway}\". A move off the spot before the clearance ends the lesson.",
+            "he": "לפני ההסעה יש להדליק את אור ההסעה ולשחרר את בלם החניה, ואז לקרוא למגדל לבקשת הסעה ({key:47:2}) ולהמתין ל\"הסעה למסלול {runway}\". תזוזה מהעמדה לפני האישור מסיימת את התרגול."
+          },
+          {
+            "at": "hold",
+            "en": "The taxi: a little power to roll, then back toward idle; steer with the rudder pedals, brake with the toe brakes. Keep the nosewheel on the taxiway's centreline, below 20 kt on the straights and slower in the turns. Follow the taxiways to the holding point of runway {runway} and stop short of the runway.",
+            "he": "בהסעה יש לתת מעט כוח כדי להתחיל לנוע ולחזור לכיוון הסרק, לנווט בדוושות ההגה ולבלום בבלמי הגלגלים. יש לשמור את גלגל האף על קו המרכז של מסלול ההסעה, עד 20 קשר בקטעים הישרים ולאט יותר בפניות, ולהסיע עד נקודת ההמתנה של מסלול {runway} ולעצור לפני המסלול."
+          },
+          {
+            "en": "At the holding point: stopped, the brakes held. Then taxi back the same way to the spot you started from and stop on it.",
+            "he": "בנקודת ההמתנה יש לעצור ולהחזיק את הבלמים, ואז להסיע חזרה באותה דרך לעמדת היציאה ולעצור עליה."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Back on the spot: AFTER LANDING (probe heat off, the speedbrakes closed, the taxi light off, the arming switches safe), then the shutdown as in lesson 1.2.",
+            "he": "בחזרה בעמדה יש לבצע את AFTER LANDING (לכבות את חימום הגששים, לסגור את מעצורי האוויר, לכבות את אור ההסעה ולהעביר את מתגי החימוש לבטוח), ואז לכבות כמו בתרגול 1.2."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Back on the spot: AFTER LANDING (the taxi light off, the arming switch safe, the seat safe), then the shutdown as in lesson 1.2.",
+            "he": "בחזרה בעמדה יש לבצע את AFTER LANDING (לכבות את אור ההסעה, להעביר את מתג החימוש לבטוח ולאבטח את הכיסא), ואז לכבות כמו בתרגול 1.2."
+          }
+        ],
+        "coordination": [
+          {
+            "en": "The taxiways only: the runway is not entered. Wheels off the pavement, or a move without the tower's clearance, end the lesson as a fail. Stop short of the runway at the holding point.",
+            "he": "מסלולי הסעה בלבד, בלי כניסה למסלול. גלגלים מחוץ לשטח הסלול, או תנועה ללא אישור המגדל – כישלון והתרגול נגמר. עצירה לפני המסלול בנקודת ההמתנה."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the intercom.",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base} – התדרים בדף הקשר בפנקס. המדריך באינטרקום."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the radio, on the tower's frequency.",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base} – התדרים בדף הקשר בפנקס. המדריך בקשר, בתדר המגדל."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "wait": {
+            "en": "idle, the avionics up, aligned",
+            "he": "סרק, אוויוניקה למעלה, יישור הושלם"
+          },
+          "en": "Tower: request start-up; the start-up by the checklist",
+          "he": "יש לבקש התנעה מהמגדל ולהתניע לפי הבד\"ח"
+        },
+        {
+          "en": "Taxi light on; parking brake off",
+          "he": "יש להדליק את אור ההסעה ולשחרר את בלם החניה"
+        },
+        {
+          "wait": {
+            "en": "\"taxi to runway {runway}\"",
+            "he": "\"הסעה למסלול {runway}\""
+          },
+          "en": "Tower: request taxi",
+          "he": "יש לבקש הסעה מהמגדל"
+        },
+        {
+          "en": "Taxi below 20 kt, slower in the turns, to the holding point of runway {runway}",
+          "he": "יש להסיע עד 20 קשר, לאט יותר בפניות, לנקודת ההמתנה של מסלול {runway}"
+        },
+        {
+          "en": "Stop at the holding point; taxi back to the spot",
+          "he": "יש לעצור בנקודת ההמתנה ולהסיע חזרה לעמדה"
+        },
+        {
+          "wait": {
+            "en": "the jet dark: the end",
+            "he": "מטוס כבוי: סוף"
+          },
+          "en": "AFTER LANDING; the shutdown",
+          "he": "יש לבצע את AFTER LANDING ולכבות"
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Today we'll taxi. We start up, taxi out to the holding point of runway {rwy}, then come back and shut down.",
+              "he": "היום נסיע. נתניע, נסיע לנקודת ההמתנה של מסלול {rwy}, ואז נחזור ונכבה."
+            }
+          ]
+        },
+        {
+          "id": "startup",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start up like last time. The tower first.",
+              "he": "נתניע כמו בפעם הקודמת. קודם המגדל."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "We're ready to taxi. Taxi light on, brake off, and let's ask the tower.",
+              "he": "אנחנו מוכנים להסעה. אור הסעה, בלם חניה משוחרר, ונבקש מהמגדל."
+            }
+          ]
+        },
+        {
+          "id": "taxi_f35",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "idle",
+            "item:seat_arm"
+          ],
+          "lines": [
+            {
+              "en": "We're ready to taxi. Taxi light on, brake off, and let's ask the tower.",
+              "he": "אנחנו מוכנים להסעה. אור הסעה, בלם חניה משוחרר, ונבקש מהמגדל."
+            }
+          ]
+        },
+        {
+          "id": "rolling",
+          "when": [
+            "cleared:taxi"
+          ],
+          "lines": [
+            {
+              "en": "We're cleared to runway {rwy}. A touch of power to get rolling, then back to idle. Nice and slow on the line, slower still in the turns.",
+              "he": "יש אישור הסעה למסלול {rwy}. קצת כוח כדי לזוז, ואז חזרה לסרק. לאט ובנחת על הקו, ועוד יותר לאט בפניות."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Here's the holding point. We stop short of the runway. This is where we'd ask for line-up; today we head back.",
+              "he": "זאת נקודת ההמתנה. עוצרים לפני המסלול. כאן היינו מבקשים כניסה למסלול; היום חוזרים."
+            }
+          ]
+        },
+        {
+          "id": "back",
+          "when": [
+            "parked"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "We're back on the spot. Brakes on. The after-landing checks, then let's shut down.",
+              "he": "חזרנו לעמדה. בלמים. הבדיקות שאחרי הנחיתה, ואז נכבה."
+            }
+          ]
+        },
+        {
+          "id": "cutoff",
+          "when": [
+            "item:throttle_off"
+          ],
+          "lines": [
+            {
+              "en": "The engine is running down.",
+              "he": "המנוע יורד."
+            }
+          ]
+        },
+        {
+          "id": "end",
+          "when": [
+            "power_off"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "We're dark. Good taxiing. Next time the same, at night.",
+              "he": "המטוס כבוי. הסעה יפה. בפעם הבאה אותו דבר, בלילה."
+            }
+          ]
+        }
+      ]
+    },
+    "night": {
+      "missions": {
+        "f16d": "f16d_ground_night",
+        "f16i": "f16i_ground_night",
+        "f35i": "f35i_ground_night"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} at {base}, at night: the start-up with the cockpit set for the night, the taxi to the holding point of runway {runway} and back, the shutdown.",
+            "he": "{one}, {base}, לילה. התנעה עם תא טייס מכוון ללילה, הסעה לנקודת ההמתנה של מסלול {runway} וחזרה, כיבוי."
+          }
+        ],
+        "target": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "After this lesson you can set the cockpit lighting and NVIS for the night, start up within the time allowed and taxi by night within the taxi speed.",
+            "he": "בסיום התרגול הזה תדעו לכוון את תאורת התא ואת ה-NVIS ללילה, להניע ולהסיע בלילה, תוך עמידה בזמנים ובגבולות מהירות ההסעה."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "After this lesson you can set the helmet display for the night, start up within the time allowed and taxi by night within the taxi speed.",
+            "he": "בסיום התרגול הזה תדעו לכוון את תצוגת הקסדה ללילה, להניע ולהסיע בלילה, תוך עמידה בזמנים ובגבולות מהירות ההסעה."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, with the instructor in the back seat on the intercom. {base} ground and tower on the radio.",
+            "he": "{one}. המדריך במושב האחורי, באינטרקום. קרקע ומגדל {base} בקשר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One F-35I, yours. The instructor on the radio. {base} ground and tower on the radio.",
+            "he": "F-35I אחד. המדריך בקשר. קרקע ומגדל {base} בקשר."
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Night, the wind calm, the sky clear. The jet stands cold on its parking spot at {base}, the canopy up. The lesson stays on the ground: from the spot to the holding point of runway {runway} and back.",
+            "he": "לילה, רוח שקטה, שמיים בהירים. המטוס קר בעמדת החניה ב{base}, החופה פתוחה. התרגול על הקרקע: מהעמדה לנקודת ההמתנה של מסלול {runway} וחזרה."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "The tower first: call for start-up ({key:47:1}) and wait for \"cleared to start\". An engine turned before the clearance ends the lesson.",
+            "he": "יש להתחיל בקריאה למגדל לבקשת התנעה ({key:47:1}) ולהמתין ל\"אישור התנעה\". סיבוב המנוע לפני האישור מסיים את התרגול."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "at": "start",
+            "en": "The tower first: call for start-up ({key:47:1}) and wait for \"cleared to start\". An engine turned before the clearance ends the lesson.",
+            "he": "יש להתחיל בקריאה למגדל לבקשת התנעה ({key:47:1}) ולהמתין ל\"אישור התנעה\". סיבוב המנוע לפני האישור מסיים את התרגול."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "At night, with main power on: the interior lights for the night, PRIMARY CONSOLES and INST PNL on and the NVIS / NORMAL switch at NVIS (lighting panel, right console): the cockpit lit green for the night vision goggles.",
+            "he": "בלילה, אחרי החשמל הראשי, יש לכוון את התאורה הפנימית ללילה: להפעיל את PRIMARY CONSOLES ואת INST PNL ולהעביר את מתג NVIS / NORMAL ל-NVIS (לוח התאורה, הקונסולה הימנית). התא מואר בירוק המתאים למשקפות ראיית לילה."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "At night, with the displays up: the HMD knob to NIGHT (front panel, under the display) in place of AUTO or DAY.",
+            "he": "בלילה, כשהתצוגות עולות, יש להעביר את בורר HMD ל-NIGHT (הלוח הקדמי, מתחת לתצוגה) במקום AUTO או DAY."
+          },
+          {
+            "en": "The start-up by the checklist, as in lesson 1.2, up to BEFORE TAXI.",
+            "he": "יש להתניע לפי הבד\"ח, כמו בתרגול 1.2, עד BEFORE TAXI."
+          },
+          {
+            "at": "start",
+            "en": "Ready to taxi: the taxi light on, the parking brake off. Call the tower for taxi ({key:47:2}) and wait for \"taxi to runway {runway}\". A move off the spot before the clearance ends the lesson.",
+            "he": "לפני ההסעה יש להדליק את אור ההסעה ולשחרר את בלם החניה, ואז לקרוא למגדל לבקשת הסעה ({key:47:2}) ולהמתין ל\"הסעה למסלול {runway}\". תזוזה מהעמדה לפני האישור מסיימת את התרגול."
+          },
+          {
+            "at": "hold",
+            "en": "The taxi: a little power to roll, then back toward idle; steer with the rudder pedals, brake with the toe brakes. Keep the nosewheel on the taxiway's centreline, below 20 kt on the straights and slower in the turns. Follow the taxiways to the holding point of runway {runway} and stop short of the runway.",
+            "he": "בהסעה יש לתת מעט כוח כדי להתחיל לנוע ולחזור לכיוון הסרק, לנווט בדוושות ההגה ולבלום בבלמי הגלגלים. יש לשמור את גלגל האף על קו המרכז של מסלול ההסעה, עד 20 קשר בקטעים הישרים ולאט יותר בפניות, ולהסיע עד נקודת ההמתנה של מסלול {runway} ולעצור לפני המסלול."
+          },
+          {
+            "en": "At the holding point: stopped, the brakes held. Then taxi back the same way to the spot you started from and stop on it.",
+            "he": "בנקודת ההמתנה יש לעצור ולהחזיק את הבלמים, ואז להסיע חזרה באותה דרך לעמדת היציאה ולעצור עליה."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Back on the spot: AFTER LANDING (probe heat off, the speedbrakes closed, the taxi light off, the arming switches safe), then the shutdown as in lesson 1.2.",
+            "he": "בחזרה בעמדה יש לבצע את AFTER LANDING (לכבות את חימום הגששים, לסגור את מעצורי האוויר, לכבות את אור ההסעה ולהעביר את מתגי החימוש לבטוח), ואז לכבות כמו בתרגול 1.2."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Back on the spot: AFTER LANDING (the taxi light off, the arming switch safe, the seat safe), then the shutdown as in lesson 1.2.",
+            "he": "בחזרה בעמדה יש לבצע את AFTER LANDING (לכבות את אור ההסעה, להעביר את מתג החימוש לבטוח ולאבטח את הכיסא), ואז לכבות כמו בתרגול 1.2."
+          }
+        ],
+        "coordination": [
+          {
+            "en": "The taxiways only: the runway is not entered. Wheels off the pavement, or a move without the tower's clearance, end the lesson as a fail. Stop short of the runway at the holding point.",
+            "he": "מסלולי הסעה בלבד, בלי כניסה למסלול. גלגלים מחוץ לשטח הסלול, או תנועה ללא אישור המגדל – כישלון והתרגול נגמר. עצירה לפני המסלול בנקודת ההמתנה."
+          },
+          {
+            "en": "At night the taxiways' edge lights mark the pavement: the taxi light on before the jet moves.",
+            "he": "בלילה אורות השוליים של מסלולי ההסעה מסמנים את השטח הסלול: אור הסעה דולק לפני תזוזה."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the intercom.",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base} – התדרים בדף הקשר בפנקס. המדריך באינטרקום."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the radio, on the tower's frequency.",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base} – התדרים בדף הקשר בפנקס. המדריך בקשר, בתדר המגדל."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "en": "Main power; interior lights: PRIMARY on, NVIS",
+          "he": "אחרי החשמל הראשי יש לכוון את התאורה הפנימית: PRIMARY פועל, ‏NVIS"
+        },
+        {
+          "jets": [
+            "f35i"
+          ],
+          "en": "Displays up; HMD – NIGHT",
+          "he": "כשהתצוגות עולות: ‏HMD – ‏NIGHT"
+        },
+        {
+          "wait": {
+            "en": "idle, the avionics up, aligned",
+            "he": "סרק, אוויוניקה למעלה, יישור הושלם"
+          },
+          "en": "Tower: request start-up; the start-up by the checklist",
+          "he": "יש לבקש התנעה מהמגדל ולהתניע לפי הבד\"ח"
+        },
+        {
+          "en": "Taxi light on; parking brake off",
+          "he": "יש להדליק את אור ההסעה ולשחרר את בלם החניה"
+        },
+        {
+          "wait": {
+            "en": "\"taxi to runway {runway}\"",
+            "he": "\"הסעה למסלול {runway}\""
+          },
+          "en": "Tower: request taxi",
+          "he": "יש לבקש הסעה מהמגדל"
+        },
+        {
+          "en": "Taxi below 20 kt, slower in the turns, to the holding point of runway {runway}",
+          "he": "יש להסיע עד 20 קשר, לאט יותר בפניות, לנקודת ההמתנה של מסלול {runway}"
+        },
+        {
+          "en": "Stop at the holding point; taxi back to the spot",
+          "he": "יש לעצור בנקודת ההמתנה ולהסיע חזרה לעמדה"
+        },
+        {
+          "wait": {
+            "en": "the jet dark: the end",
+            "he": "מטוס כבוי: סוף"
+          },
+          "en": "AFTER LANDING; the shutdown",
+          "he": "יש לבצע את AFTER LANDING ולכבות"
+        }
+      ],
+      "calls": [
+        {
+          "id": "intro",
+          "when": [
+            "start"
+          ],
+          "lines": [
+            {
+              "en": "Tonight we'll start up and taxi in the dark: the same as by day, with the cockpit set for the night.",
+              "he": "הלילה נתניע ונסיע בחושך: כמו ביום, עם תא טייס מכוון ללילה."
+            }
+          ]
+        },
+        {
+          "id": "startup",
+          "when": [
+            "start"
+          ],
+          "startup": true,
+          "lines": [
+            {
+              "en": "Let's start up like last time. The tower first.",
+              "he": "נתניע כמו בפעם הקודמת. קודם המגדל."
+            }
+          ]
+        },
+        {
+          "id": "lights",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "item:main_power"
+          ],
+          "lines": [
+            {
+              "en": "We have power. Let's set the cockpit for the night: the panel lighting up and the goggle setting on.",
+              "he": "יש חשמל. נכוון את התא ללילה: תאורת הלוחות ומצב משקפות ראיית הלילה."
+            }
+          ]
+        },
+        {
+          "id": "hmd_night",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "item:starter"
+          ],
+          "lines": [
+            {
+              "en": "Here come the screens. Let's set the helmet for the night, or the day setting will dazzle us.",
+              "he": "המסכים עולים. נכוון את הקסדה ללילה, אחרת הכיוון של יום יסנוור אותנו."
+            }
+          ]
+        },
+        {
+          "id": "taxi",
+          "jets": [
+            "f16d",
+            "f16i"
+          ],
+          "when": [
+            "idle",
+            "aligned"
+          ],
+          "lines": [
+            {
+              "en": "We're ready to taxi. Taxi light on, brake off, and let's ask the tower.",
+              "he": "אנחנו מוכנים להסעה. אור הסעה, בלם חניה משוחרר, ונבקש מהמגדל."
+            }
+          ]
+        },
+        {
+          "id": "taxi_f35",
+          "jets": [
+            "f35i"
+          ],
+          "when": [
+            "idle",
+            "item:seat_arm"
+          ],
+          "lines": [
+            {
+              "en": "We're ready to taxi. Taxi light on, brake off, and let's ask the tower.",
+              "he": "אנחנו מוכנים להסעה. אור הסעה, בלם חניה משוחרר, ונבקש מהמגדל."
+            }
+          ]
+        },
+        {
+          "id": "rolling",
+          "when": [
+            "cleared:taxi"
+          ],
+          "lines": [
+            {
+              "en": "We're cleared to runway {rwy}. A touch of power, then back to idle, nice and slow.",
+              "he": "יש אישור הסעה למסלול {rwy}. קצת כוח, ואז חזרה לסרק, לאט ובנחת."
+            },
+            {
+              "en": "At night the taxi light is our eyes. Let's take the turns slowly; the edge lights show us the pavement.",
+              "he": "בלילה אור ההסעה הוא העיניים שלנו. ניקח את הפניות לאט; אורות השוליים מראים לנו את השטח הסלול."
+            }
+          ]
+        },
+        {
+          "id": "hold",
+          "when": [
+            "hold_point"
+          ],
+          "lines": [
+            {
+              "en": "Here's the holding point. We stop short of the runway, then head back.",
+              "he": "זאת נקודת ההמתנה. עוצרים לפני המסלול, ואז חוזרים."
+            }
+          ]
+        },
+        {
+          "id": "back",
+          "when": [
+            "parked"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "We're back on the spot. Brakes on. The after-landing checks, then let's shut down.",
+              "he": "חזרנו לעמדה. בלמים. הבדיקות שאחרי הנחיתה, ואז נכבה."
+            }
+          ]
+        },
+        {
+          "id": "cutoff",
+          "when": [
+            "item:throttle_off"
+          ],
+          "lines": [
+            {
+              "en": "The engine is running down.",
+              "he": "המנוע יורד."
+            }
+          ]
+        },
+        {
+          "id": "end",
+          "when": [
+            "power_off"
+          ],
+          "new": true,
+          "lines": [
+            {
+              "en": "We're dark. That was the night taxi. Next comes check ride one.",
+              "he": "המטוס כבוי. זאת הייתה הסעה בלילה. הבא בתור: טיסת מבחן 1."
+            }
+          ]
+        }
+      ]
+    },
+    "check": {
+      "missions": {
+        "f16d": "f16d_ground_check",
+        "f16i": "f16i_ground_check",
+        "f35i": "f35i_ground_check"
+      },
+      "briefing": {
+        "mission": [
+          {
+            "en": "One {jet} at {base}, by day, check ride 1: the start-up, the radio, the taxi to runway {runway}, the line-up, the taxi back and the shutdown, alone.",
+            "he": "{one}, {base}, יום. טיסת מבחן 1: התנעה, קשר, הסעה למסלול {runway}, כניסה למסלול, הסעה חזרה וכיבוי, לבד."
+          }
+        ],
+        "target": [
+          {
+            "en": "This check ride shows that you can do everything of phase 1 without help: the start-up by the checklist within the time allowed, the INS aligned before the taxi, the tower's calls, the taxi within its speed, the line-up and the shutdown.",
+            "he": "בסיום התרגול הזה תדעו לבצע את כל שלב 1 לבד: להניע לפי הבד\"ח, ליישר את ה-INS לפני ההסעה, לבצע את קריאות המגדל, להסיע, להיכנס למסלול ולכבות, תוך עמידה בזמנים ובגבולות מהירות ההסעה."
+          }
+        ],
+        "enemy": [
+          {
+            "en": "None.",
+            "he": "אין."
+          }
+        ],
+        "our_forces": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "One {jet}, with the instructor in the back seat on the intercom. {base} ground and tower on the radio.",
+            "he": "{one}. המדריך במושב האחורי, באינטרקום. קרקע ומגדל {base} בקשר."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "One F-35I, yours. The instructor on the radio. {base} ground and tower on the radio.",
+            "he": "F-35I אחד. המדריך בקשר. קרקע ומגדל {base} בקשר."
+          }
+        ],
+        "weather_area": [
+          {
+            "en": "Day, the wind calm, the sky clear. The jet stands cold on its parking spot at {base}, the canopy up. The lesson stays on the ground: from the spot to runway {runway} and back.",
+            "he": "יום, רוח שקטה, שמיים בהירים. המטוס קר בעמדת החניה ב{base}, החופה פתוחה. התרגול על הקרקע: מהעמדה למסלול {runway} וחזרה."
+          }
+        ],
+        "execution": [
+          {
+            "at": "start",
+            "en": "The instructor gives no calls and the switches are not marked: the notebook ({key:118}) is yours as always.",
+            "he": "בטיסת המבחן המדריך לא נותן הוראות והמתגים לא מסומנים; הפנקס ({key:118}) זמין כרגיל."
+          },
+          {
+            "en": "The tower: request start-up, then the start-up by the checklist up to BEFORE TAXI. The tower again: request taxi, then taxi to the holding point of runway {runway}.",
+            "he": "יש להתחיל בבקשת התנעה מהמגדל ולהתניע לפי הבד\"ח עד BEFORE TAXI, ואז לבקש הסעה מהמגדל ולהסיע לנקודת ההמתנה של מסלול {runway}."
+          },
+          {
+            "at": "hold",
+            "en": "At the holding point: BEFORE TAKEOFF, then request line-up ({key:47:3}) and wait for \"line up runway {runway}\". Line up on the centreline, stop, then leave the runway at the first taxiway and taxi back to the spot.",
+            "he": "בנקודת ההמתנה יש לבצע את BEFORE TAKEOFF, לבקש כניסה למסלול ({key:47:3}) ולהמתין ל\"כניסה למסלול {runway}\". יש להתיישר על קו המרכז ולעצור, ואז לצאת מהמסלול במסלול ההסעה הראשון ולהסיע חזרה לעמדה."
+          },
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Back on the spot: AFTER LANDING (probe heat off, the speedbrakes closed, the taxi light off, the arming switches safe), then the shutdown as in lesson 1.2.",
+            "he": "בחזרה בעמדה יש לבצע את AFTER LANDING (לכבות את חימום הגששים, לסגור את מעצורי האוויר, לכבות את אור ההסעה ולהעביר את מתגי החימוש לבטוח), ואז לכבות כמו בתרגול 1.2."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Back on the spot: AFTER LANDING (the taxi light off, the arming switch safe, the seat safe), then the shutdown as in lesson 1.2.",
+            "he": "בחזרה בעמדה יש לבצע את AFTER LANDING (לכבות את אור ההסעה, להעביר את מתג החימוש לבטוח ולאבטח את הכיסא), ואז לכבות כמו בתרגול 1.2."
+          }
+        ],
+        "coordination": [
+          {
+            "en": "The runway is entered for the line-up only, never for a take-off. Wheels off the pavement, or a step without the tower's clearance, end the check ride as a fail.",
+            "he": "כניסה למסלול להתיישרות בלבד, לא להמראה. גלגלים מחוץ לשטח הסלול, או שלב ללא אישור המגדל – כישלון וטיסת המבחן נגמרת."
+          }
+        ],
+        "signal": [
+          {
+            "jets": [
+              "f16d",
+              "f16i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the intercom.",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base} – התדרים בדף הקשר בפנקס. המדריך באינטרקום."
+          },
+          {
+            "jets": [
+              "f35i"
+            ],
+            "en": "Callsign Kidon 1. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the radio, on the tower's frequency.",
+            "he": "אות קריאה: כידון 1. קרקע ומגדל {base} – התדרים בדף הקשר בפנקס. המדריך בקשר, בתדר המגדל."
+          }
+        ]
+      },
+      "lesson_tab": [
+        {
+          "en": "Tower: request start-up; the start-up by the checklist",
+          "he": "יש לבקש התנעה מהמגדל ולהתניע לפי הבד\"ח"
+        },
+        {
+          "en": "Tower: request taxi; taxi to the holding point of runway {runway}",
+          "he": "יש לבקש הסעה מהמגדל ולהסיע לנקודת ההמתנה של מסלול {runway}"
+        },
+        {
+          "wait": {
+            "en": "\"line up runway {runway}\"",
+            "he": "\"כניסה למסלול {runway}\""
+          },
+          "en": "BEFORE TAKEOFF; tower: request line-up",
+          "he": "יש לבצע את BEFORE TAKEOFF ולבקש כניסה למסלול מהמגדל"
+        },
+        {
+          "en": "Line up, stop; leave the runway, taxi back",
+          "he": "יש להתיישר ולעצור, לצאת מהמסלול ולהסיע חזרה"
+        },
+        {
+          "wait": {
+            "en": "the jet dark: the end",
+            "he": "מטוס כבוי: סוף"
+          },
+          "en": "AFTER LANDING; the shutdown",
+          "he": "יש לבצע את AFTER LANDING ולכבות"
+        }
+      ]
+    }
+  }
+}

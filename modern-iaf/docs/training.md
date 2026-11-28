@@ -340,7 +340,7 @@ reads the same `checklist` event. The throttle goes back to OFF by its own key, 
 | # | F-35I Adir | key | timing | out of order | source |
 |---|---|---|---|---|---|
 | 1 | Battery: ON | Ctrl+B | at once | — | battery, IPP, engine[^ayton] |
-| 2 | IPP: START | Ctrl+J | runs 10 s, then holds | before the battery: `no_power` | [^ayton]; the 10 s inferred |
+| 2 | IPP: START | Ctrl+J | runs 10 s, then holds for the engine start; the displays on its power 3 s later, the avionics after the self test (90 s from the battery) without the engine | before the battery: `no_power` | [^ayton]; the 10 s inferred |
 | 3 | Throttle to idle: the engine starts | the throttle up from OFF (in the 3D cockpit also the ENGINE switch or the IPP knob to START, [cockpit.md](cockpit.md) §5.2) | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
 | 4 | Canopy: close and lock | Ctrl+K | at once; the canopy, its aft end up 30° about its front hinge at the cold start, comes down over 10 s | any time; taxiing with it up has no consequence | inferred (front-hinged: [f35i.md](../../docs/f35i.md) §4; 30° and the time FlightGear's F-16's[^fgcanopy]) |
 
@@ -419,14 +419,14 @@ The **Call the tower** key (Ctrl+T) opens a numbered list over the view; a call'
 closes the list, and since 2026-11-15 it closes by itself 6 s after it opened (or after a held key) when no call was picked
 (`sim_flight.gd` `MENU_S`; the user: "the radio menu should disappear after few seconds if not in use"; the original
 game has no such menu, so the time is inferred). Opened again it lists the calls of that moment. Since 2026-11-13 (the user: "all radio calls should always be available. on ground show only starting
-calls, in the air show landing") the list holds every ground call on the ground (start-up, taxi, line-up, take-off,
-always 1–4) and the landing call in the air (`training::radio_calls`). The menu marks no call: until 2026-11-17 the call a
+calls, in the air show landing") the list holds every ground call on the ground (start-up, taxi, line-up, take-off and the radio check,
+always 1–5) and the landing call in the air (`training::radio_calls`). The menu marks no call: until 2026-11-17 the call a
 training mission expected next carried "(next)" / "(הבאה)" (the user: "remove the (next) from the raio menu");
 `training::next_call` (the "marked when" column) still tells the lesson which call comes next. A ground call made before
 the clearance it follows (take-off before line-up, line-up before taxi, taxi before start-up;
 `training::missing_before`) gets "Kidon 1, negative, hold position, request line-up first" ("כידון 1, שלילי, המתנה במקום,
 יש לבקש כניסה למסלול קודם"; `ACFT_NEGATIVE`) and clears nothing; a call repeated gets its answer again. A wrong call
-alone never fails a mission; acting without the clearance does (§3.3). No "say again" or "radio check" call exists;
+alone never fails a mission; acting without the clearance does (§3.3). No "say again" call exists;
 the air has only the landing call (open: the calls the landing and navigation lessons need, such as joining the
 pattern, final and go-around, have no tower lines yet). The list's first page is 1 Tower (the calls above), 2 Wingmen and 3 AWACS (the
 controller's requests: picture, bogey dope, declare, the vectors; [../../docs/ai.md](../../docs/ai.md) §24.5). In a four-ship ([ai-plan.md](ai-plan.md) F5) Wingmen lists the
@@ -440,6 +440,7 @@ the game manual's "Commands to your wingmen").
 | line-up | Request line-up | בקשת כניסה למסלול | on the ground at the holding point or past it (no farther from the lineup point than the holding point plus 50 m, inferred; the holding point is the base's taxi-out path's last point before the lineup, `iaf.ibx` `FromTaxiPt`; on a base turned into the wind the main end's lineup, where the backtrack starts) with taxi approved, line-up not yet (since 2026-11-13) | within 400 m of the lineup point (or, turned into the wind, of the runway's entry) with the runway clear: "line up runway 25 right, wind calm" (`ACFT_CLEAR_TO_LINEUP_NW`; ours: the original's band starts 200 m out, which leaves out the holding point); else "hold position" |
 | take-off | Request take-off | בקשת המראה | at the holding point or past it with line-up approved, take-off not yet | the original tower's rule on the ground (docs/radio.md §2 `ground()`): lined up in the lineup zone: "Kidon 1, wind calm, runway 25 right, cleared for take-off" (the wind and the runway ours, [sound.md](sound.md) §3); 200–400 m from the lineup point with the runway clear: "line up runway 25 right, wind calm"; else "hold position" |
 | landing | Contact tower (landing) | קריאה למגדל (נחיתה) | in the air | the original's Ctrl+T (docs/radio.md §2): "proceed to runway …" in the air |
+| radio check | Radio check | בדיקת קשר | never (lesson 1.1 asks for it; it needs no clearance and clears nothing) | "Kidon 1, read you five" / "כידון 1, שומע אותך חמש" (`ACFT_RADIO_CHECK`), no readback |
 
 A call is approved by the tower's answer named in its row; "hold position" or "line up" leaves it unapproved, to ask
 again. The rules are in `crates/iaf-tools/src/training.rs` (`IafTraining.radio_calls`, `next_call`,
@@ -468,7 +469,10 @@ A take-off mission's `training.steps` (mission data) lists the pilot's sequence 
 (the briefing tells it in prose, its `briefing.how`): each call
 on its own at its place (request start-up before the engine start, taxi once at idle with the avionics up, line-up at
 the holding point, take-off once lined up), each with its key, the menu's pick and the answer to wait for (the table
-above). The picks are the menu's fixed order: start-up 1, taxi 2, line-up 3, take-off 4.
+above). The picks are the menu's fixed order: start-up 1, taxi 2, line-up 3, take-off 4, radio check 5.
+
+The radio check's words: "radio check" is ours ([research/radio-terms.md](research/radio-terms.md), check-in); "read
+you five" is the readability scale's top (inferred), "שומע אותך חמש" its Hebrew (inferred: no Hebrew source found).
 
 Taxi: the jet taxis on the base's taxiways to the lineup (the probe follows the own `iaf.ibx`'s taxi path). The
 take-off passes by §3.2.
@@ -562,7 +566,7 @@ edge, the text right to left.
 |---|---|---|
 | CHECKLIST / בד"ח (START-UP / התנעה until 2026-11-17) | the jet's checklist card (§12), section by section: each item's line, how to do it (`how`: the clicks, the waits), its switch and place (`where`); the items whose check holds ticked (a switch back off unticks its item, [cockpit.md](cockpit.md) "Both ways"), ○ on an item read and acknowledged, the item to do now on a yellow band with ▶ (◀ in Hebrew), a refused step's fault in red under it | the jet's card, `data/checklists` (§12); a start-up lesson's tower call above it |
 | TAXI / T-O / הסעה / המראה | the radio calls, the taxi and the take-off as numbered steps, the runway's designator, heading, length and elevation | the take-off mission's `training.steps` (§8) of the flight's base (else its jet); the base's airbase file |
-| RADIO / קשר | the callsign, the base's frequencies (name, MHz, VHF / UHF), the four calls with the frequency to call on and the tower's answer | `data/notebook.json` `radio` and `calls`; the call names are the radio menu's (`sim_flight.gd` `ITEMS`) |
+| RADIO / קשר | the callsign, the base's frequencies (name, MHz, VHF / UHF), the five calls with the frequency to call on and the tower's answer | `data/notebook.json` `radio` and `calls`; the call names are the radio menu's (`sim_flight.gd` `ITEMS`) |
 | LANDING / נחיתה | the call, the gear, the final's AOA, the touchdown, the throttle to OFF on the spot | `data/notebook.json` `pages.<f16 / f35i>.landing` |
 | WEAPONS / חימוש | arming (ST STA on the F-16s, MASTER ARM, the gear up), air-to-ground (the stores from the Arming page, the master mode and the CCIP cue, the release, the jettison) and air-to-air (the master mode, the radar lock, the release, the gun); each step with its switch, its place and its key as bound: the one page with keys, as the weapons' controls have no switch to click (2026-11-14, [weapons.md](weapons.md) §5) | `pages.<family>.weapons` (`key`: a record of `data/keys.json`) |
 | AIR REFUEL / תדלוק אווירי (only with a tanker on the flight; since 2026-11-25) | the jet's air refuelling checklist: BEFORE CONTACT, CONTACT, AFTER REFUELLING, ticked as the CHECKLIST's items are (the item to do now on the yellow band), its read-and-acknowledge items with ○. F-16s: the real -1's normal air refuelling procedure in outline (the -1's air refuelling section, p. 8-34)[^haf]; F-35I: inferred from the F-16's and the two public rules of research/air-refuelling.md. With eight tabs each tab is shorter (68 px in place of 78) to stay on the board | the card file's `refuel` sections, a second `card.gd` (`sim_flight.gd` `refuel_card`); the user, 2026-11-25: "the notebook should have air-refuling part for checklitst of it" |
@@ -784,13 +788,14 @@ with the gear up and sank into the ground at "landing step 5" (the 1998 landing 
 The course of each jet ([training-plan.md](training-plan.md) §3) is data, `modern-iaf/data/training/course.json`,
 built into the library and read by `crates/iaf-tools/src/course.rs` (module `course`). Its rules are the one place
 every screen and the flight read the course, the grades and the logbook from. The front end's Training screens show
-it ([front-end.md](front-end.md) §2.2). No lesson of the course has a mission yet. The training missions of §3 are
+it ([front-end.md](front-end.md) §2.2). Each lesson's content and missions are in its phase's lesson file (§16); phase 1 has them. The training missions of §3 are
 listed in no front-end section (the user, 28 Nov 2026: "The current existing train should be deleted, o/c. It
 replaces them"): their files stay for the automated tests and `--mission <id>` runs.
 
 ### 13.1 The course
-- `jets`: per jet's unit id (`f16d`, `f16i`, `f35i`) its home base and where its instructor flies (`back_seat`, or
-  `lead`: a second F-35I).
+- `jets`: per jet's unit id (`f16d`, `f16i`, `f35i`) its home base, where its instructor flies (`back_seat`, or
+  `lead`: a second F-35I), and the names a lesson's texts fill in: `name` (the jet's), `one` (one of it, the number agreeing in
+  Hebrew: "סופה אחת", "ברק אחד") and `base_name` (its home base's), each `{"en", "he"}`.
 - `phases`: the eight phases in order, each with `id`, `title` (`{"en", "he"}`) and `lessons`. A lesson has `id`,
   `title`, `line` (`{"en", "he"}`: one line on what it trains, the lesson list's), `kind` (`day` by default, `night`,
   `check`), `items` (its graded items' ids), `emergencies` (the ones it
@@ -805,7 +810,8 @@ replaces them"): their files stay for the automated tests and `--mission <id>` r
   flight controls, a landing gear fault ([research/training.md](research/training.md) §2).
 
 The course has 31 day lessons, 8 night lessons and 8 check rides. A check ride grades every item of its phase's and
-the earlier phases' lessons, without the formation phase's except in its own check ride. The loader refuses an item
+the earlier phases' lessons, without the formation phase's except in its own check ride; a check ride by day also
+without the items only the night lessons grade (the night lighting). The loader refuses an item
 or emergency not in the lists, a lesson without an item (check rides excepted), a phase that does not end with its one
 check ride, and a jet without a course in `missions` or `jets`. Every standard is inferred: no published IAF
 standard was found ([training-plan.md](training-plan.md) §7). The Hebrew names use the terms of
@@ -962,6 +968,155 @@ failure, the nozzle fire, the fire's smoke. With system B lost the parking brake
 Tests: `failures.rs` (unit), `crates/iaf-flight/tests/sixdof.rs` `failures::*` (each failure flown and recovered),
 `iaf-tools` `lesson_failures_are_checked` and `course_emergencies_are_flight_failures`, `modern-iaf/tests/test_failures.gd` (one case per failure, by the dev hook,
 on the Barak and the Adir).
+
+## 16. A lesson's content
+
+Every lesson of the course ([training-plan.md](training-plan.md) §3) is made of two kinds of data: one mission file
+per jet, and the lesson's content in its phase's lesson file. `crates/iaf-tools/src/course.rs` reads the lesson files
+with `course.json` and checks them; `IafTraining.course(jet)` gives each lesson its content for that jet.
+
+| What | Where | Holds |
+|------|-------|-------|
+| the course | `data/training/course.json` | the phases, the lessons, the graded items and their standards, the emergencies (§13) |
+| the lesson's content | `data/training/lessons/<phase id>.json` | per lesson: `missions`, `briefing`, `lesson_tab`, `calls` (§16.1) |
+| the mission | `data/missions/<jet>_<phase id>_<lesson id>.json` | the jet's start, time, weather, flights, targets and the pass rules (§16.2) |
+
+A phase's file is named in `course.rs` `LESSONS` and in the stamps' sources (`crates/iaf-setup/build.rs` `SOURCES`,
+`stamp.rs`). Every phase has its own file, so the phases are built in parallel without touching each other's data.
+
+### 16.1 The lesson file
+
+```json
+{"about": "…", "lessons": {"cockpit": {
+  "missions": {"f16d": "f16d_ground_cockpit", "f16i": "f16i_ground_cockpit", "f35i": "f35i_ground_cockpit"},
+  "briefing": {"mission": [P], "target": [P], "enemy": [P], "our_forces": [P], "weather_area": [P],
+               "execution": [P], "coordination": [P], "signal": [P]},
+  "lesson_tab": [{"en", "he", "wait"?, "jets"?, "diagram"?}],
+  "calls": [{"id", "when": [test], "new"?, "startup"?, "jets"?, "lines": [{"en", "he"}]}]
+}}}
+```
+
+- **`P`, a paragraph:** `{"en", "he", "jets"?}`. `jets` lists the jets it is for; without it, every jet. One list
+  can hold the F-16s' paragraph and the F-35I's side by side. An Execution paragraph may also have `at` (the
+  briefing map's pin from it on: `start`, `hold`, `lineup`), `switches` (start-up step ids whose switch pictures
+  follow it) and `diagram` (a diagram's id, the drawing of a manoeuvre: [training-plan.md](training-plan.md) §2.2).
+- **`briefing`:** the eight sections of [training-plan.md](training-plan.md) §2.2 in their order, each at least one
+  paragraph for every jet. The screen adds the lesson's graded items with their standards under Execution from the
+  course (§13), so the file does not repeat them. A check ride's briefing says that an emergency may come, not which.
+- **`lesson_tab`:** the notebook's Lesson tab, the steps in order in the notebook's step shape (`wait`: the state to
+  wait for, `{"en", "he"}`), with a `diagram` beside a step that has one.
+- **`calls`:** the instructor's calls in order ([training-plan.md](training-plan.md) §2.3): a call fires when the
+  call before it has fired and every test of its `when` holds; with `new` its tests must first fail after the call
+  before it; `startup` leaves it out once the pilot has passed phase 1; `jets` as a paragraph's. Its `lines` are
+  said one after the other, by the intercom in the F-16s and the radio in the F-35I. A check ride has no calls.
+- **Texts** take `{jet}`, `{one}` and `{base}`, which `IafTraining.course` and the mission compiler fill in with the jet's
+  `name` and its `base_name` (§13.1) in each language; `{runway}` (the runway in use) and `{key:<record>}` /
+  `{key:<record>:<pick>}` (a key as bound, with the radio menu's number), which the briefing page fills in; a call's
+  lines `{rwy}` (the runway, spoken). Hebrew follows `modern-iaf/manuals/text/he/terms.yaml` and the checklist cards'
+  own step names, and is written from the meaning in a briefing's terse style ("סופה אחת, רמון, יום.");
+  the Target opens "בסיום התרגול הזה תדעו…" with the infinitives and the standard at its end.
+
+The loader refuses a section missing or unknown, a paragraph without both languages, a `jets` naming no jet of the
+course, an Execution `at` or switch it does not know, a call id twice, a test it does not know (§16.3), a call in a
+check ride, and a lesson file naming a lesson its phase does not have.
+
+### 16.2 The lesson's mission
+
+A lesson's mission is a mission file ([data-formats.md](data-formats.md) §5) with:
+
+- `id` `<jet>_<phase id>_<lesson id>` and `menu_id` 3000 + 100 × phase + 10 × lesson + jet (F-16D 1, F-16I 2,
+  F-35I 3): lesson 1.1 in the Sufa is 3112;
+- `lesson`, the lesson's key (`ground.cockpit`): the briefing comes from the lesson file, so the mission has no
+  `briefing` of its own. The compiler writes the jet's sections into the compiled file's `sim.briefing` (`lesson`,
+  `sections`), with the Target's first paragraph as `purpose` and the Execution as `how` for the briefing page; it
+  refuses a mission whose lesson does not name it for its jet;
+- `category` `training`, `start` at the jet's home base (§13.1), `time` (a night lesson and the night check rides
+  after dark), `wind_kt`, `wind_from`, and whatever the lesson flies with: `flights` (wingmen, aggressors, the
+  tanker), `drones`, `targets`, `sam_sites`, `route`, `loadout`;
+- `training.kind` `lesson` and its rules: `end` (tests, §16.3: the lesson ends once each has failed at least once
+  since the start and all hold at once), `clearances` (§3.3), `calls` (the radio calls it asks for, the
+  `tower_calls` item's count), `checklist` (the card items it asks for, the `checklist_items` item's count), and
+  `time_budget_s`, `end_hold_s`, `goals` as every mission's. A check ride's emergency comes from §13.4.
+
+**The flight.** `sim_flight.gd` scores a lesson every 3 s from its start (`IafTraining.score`,
+`training::lesson`): it passes when its end came within `time_budget_s` and nothing failed (§3.0), else it goes on
+(`lesson_not_done`) until the budget. The scorer reads the end from the recording (`training::end_at`); the
+recorder's version 2 has the `power` column for `power_off` (0 none, 1 the battery, 2 the displays up). The record's
+`graded` holds each of the lesson's course items (§13: a check ride's all) with its standard, what was flown, the gap
+and the grade, and the lesson's grade counts them. What each item reads (`training::measure`):
+
+| Item | Flown value |
+|------|-------------|
+| `checklist_items` | the % of the mission's `checklist` items ticked |
+| `tower_calls` | the % of the mission's `calls` made (the recording's `radio` events) |
+| `startup_time` | the time from the start to idle (60 % RPM) with the avionics up, s |
+| `ins_aligned` | 1 when the INS step reached NAV aligned before the taxi (moving 10 m), else 0; a jet whose lesson asks for no `ins` item (the F-35I): its self test's end |
+| `taxi_speed` | the highest ground speed on the ground, kt |
+| `night_lighting` | 1 when the night items the mission asks for (`interior_lights`, `hmd_night`) are ticked, else 0 |
+
+An item without its measure here reads as not flown (Unsatisfactory): a phase adds its items' measures with its
+lessons.
+
+**The card in a lesson** (`card.gd`): the jet's card holds only the items the mission's `checklist` asks for, with
+its sections' read-only items; a section with none is left out. A lesson that asks for no item of an airborne
+section is flown on the ground: its `landed` sections (the shutdown) open on the ground with the jet stopped within
+30 m of the spot it started from, and in a lesson with a `runway` (a taxi out and back) only once it has left the
+spot. A card item with `"lesson": true` (the night lighting: the F-16s' `interior_lights`, the F-35I's `hmd_night`)
+is only on a lesson's card that asks for it; elsewhere, and in the manuals, it is left out. The throttle to OFF with
+the engine running is the shutdown a lesson teaches when its `checklist` holds `throttle_off` (`Watch::step_fault`):
+no fault while the card's item to do now is `throttle_off`, so the lesson goes on; a cut-off earlier in the lesson,
+and any elsewhere, still fails the mission (§7.2).
+
+### 16.3 The tests
+
+A call's `when` and a mission's `end` name tests of the flight's state: data that the instructor's call engine reads
+(job train-calls) and, for an `end`, the scorer (`training::holds`).
+
+| Test | Holds when |
+|------|------------|
+| `start` | always: the lesson's start |
+| `idle` | the engine at idle or above |
+| `aligned` | the INS aligned |
+| `hold_point` | on the ground, stopped at the runway's holding point |
+| `lined_up` | on the ground, stopped on the runway in use, lined up |
+| `initial`, `over_runway`, `downwind`, `final_turn`, `final` | in the air on that part of the overhead pattern (§14) |
+| `touchdown_zone` | low over the touchdown zone |
+| `climb_out` | in the air past the threshold, climbing |
+| `slowed` | on the ground on the runway, slowed to taxi speed |
+| `parked` | on the ground, stopped at the spot the flight started from |
+| `engine_off` | the engine stopped (below 1 % RPM) |
+| `power_off` | no electrical power: the jet dark |
+| `item:<id>` | the checklist card's item `<id>` ticked (§12) |
+| `cleared:<phase>` | the tower's clearance for `startup`, `taxi` or `takeoff` given (§3.3) |
+| `called:<call>` | the pilot made the radio call `<call>` (§8) |
+
+A mission's `end` takes the tests the scorer reads from the recording (`training::END_TESTS`): `power_off`,
+`engine_off`, `idle`, `aligned`, `parked` (stopped within 30 m of the start), `item:` and `called:`. A phase that
+needs a new test (a steerpoint reached, a kill, the tanker's contact) adds its name to `course.rs` `TESTS` (or an
+argument test to `ARG_TESTS`), its rule to the call engine (and to `training::holds` for an end) and its row here.
+
+### 16.4 Phase 1
+
+The five lessons of [training-plan.md](training-plan.md) §3, phase 1, each for the three jets at their home bases
+(`lessons/ground.json`, the missions `<jet>_ground_<lesson>`, menu ids 3111–3153), cold and dark on the jet's parking
+spot, the wind calm, the sky clear:
+
+| Lesson | Time | The card it asks for | Calls asked | Ends |
+|--------|------|----------------------|-------------|------|
+| 1.1 Cockpit and power | 08:00 | BEFORE STARTING ENGINE; the F-16s' lamp tests (FIRE & OHEAT, MAL & IND) and MAIN PWR OFF, the F-35I's battery, IPP, self test, HMD, cautions and BATT OFF | radio check | `power_off` |
+| 1.2 Engine start and INS | 08:00 | the start-up to BEFORE TAXI's INS and canopy, then the shutdown | start-up | `engine_off`, `power_off` |
+| 1.3 Taxi and radio | 08:00 | the start-up, BEFORE TAXI, AFTER LANDING and the shutdown | start-up, taxi | `parked`, `engine_off`, `power_off` |
+| 1.4 At night | 21:00 | 1.3's with the night lighting (F-16s: `interior_lights`; F-35I: `hmd_night` in place of `hmd`) | start-up, taxi | `parked`, `engine_off`, `power_off` |
+| 1.5 Check ride 1 | 08:00 | 1.3's with BEFORE TAKEOFF | start-up, taxi, line-up | `parked`, `engine_off`, `power_off` |
+
+1.3 to 1.5 taxi to the holding point of the take-off missions' runway (Ramon 25R and the like) and back; 1.5 also
+lines up (its `clearances` hold `takeoff`, so a roll fails it). The F-16s' 1.1 stays on the battery: the displays
+and the HUD need the engine's generators, which 1.2 brings. The instructor speaks as a person: short, warm sentences in the
+first-person plural, gender-neutral in Hebrew ("היום נתניע את המנוע וניישר את ה-INS"), each naming the next task
+without its switches, with a word on what to wait for, mid-flight as the 1998 game's instructor talks a step through
+([../../docs/autopilot.md](../../docs/autopilot.md) §3); 1.1 has the most. The budgets (15 minutes for 1.1 and 1.2,
+30 for the taxi lessons) are inferred. `modern-iaf/tests/test_course_lessons.gd` checks the content for each jet,
+loads every lesson and flies 1.1 and 1.2 by the card's switches to a Pass.
 
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon

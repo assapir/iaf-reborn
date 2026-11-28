@@ -47,6 +47,7 @@ fn main() {
         "crates/iaf-avionics/src/stores.rs",
         // The training course built into iaf-tools (course.rs).
         "modern-iaf/data/training/course.json",
+        "modern-iaf/data/training/lessons/ground.json",
         "tools/install-launcher.sh",
         "tools/windows/install-launcher.ps1",
     ];

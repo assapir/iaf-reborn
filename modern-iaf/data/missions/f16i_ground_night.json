@@ -1,0 +1,117 @@
+{
+  "category": "training",
+  "time": "21:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16i",
+    "base": "Ramon",
+    "at": "parking",
+    "elevation_m": 648
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "training.end_hold_s": "inferred",
+    "training.time_budget_s": "inferred"
+  },
+  "notes": {
+    "time": "the night lesson (training-plan.md §1: each phase's night lesson after dark; 21:00 well after the dusk in every season, inferred)",
+    "wind_kt": "phase 1 is flown in calm air (inferred: no wind matters on the spot or the taxiways)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "training.time_budget_s": "thirty minutes, as the day taxi lesson (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.checklist": "the card items the lesson covers, in the card's order (data/checklists, training.md §12, §16.2)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLRM elevation 2126 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f16i_ground_night",
+  "menu_id": 3142,
+  "lesson": "ground.night",
+  "title": {
+    "en": "At night: start-up and taxi",
+    "he": "בלילה: התנעה והסעה"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. לטוס שוב."
+  },
+  "runway": "25R",
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off",
+      "power_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi"
+    ],
+    "calls": [
+      "startup",
+      "taxi"
+    ],
+    "checklist": [
+      "epu_norm",
+      "eng_feed",
+      "fuel_master",
+      "le_flaps",
+      "air_source",
+      "master_arm_off",
+      "gear_down",
+      "batt",
+      "flcs_pwr_test",
+      "main_power",
+      "interior_lights",
+      "starter",
+      "engine",
+      "jfs_off",
+      "engine_lights",
+      "probe_heat_test",
+      "fire_test",
+      "mal_ind_test",
+      "avionics",
+      "gps_dl",
+      "ins_align",
+      "hdpt",
+      "fcr",
+      "rdr_alt",
+      "hud",
+      "master_caution",
+      "flcs_bit",
+      "dbu",
+      "mpo",
+      "speedbrakes",
+      "epu_check",
+      "canopy",
+      "ext_lights",
+      "cmds",
+      "ins",
+      "taxi_light",
+      "parking_brake_off",
+      "probe_heat_off",
+      "speedbrakes_closed",
+      "taxi_light_in",
+      "arm_safe",
+      "ins_off",
+      "avionics_off",
+      "throttle_off",
+      "main_power_off"
+    ],
+    "time_budget_s": 1800,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

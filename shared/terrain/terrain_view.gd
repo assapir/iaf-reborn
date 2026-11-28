@@ -181,8 +181,9 @@ const BLACKBOX_COLUMNS := [
 	"ap_stage",
 	"fps"
 ]
-## Version 2 of the recorder (Modern IAF, Settings.blackbox_version) adds these columns: the RPM and the avionics.
-const BLACKBOX_V2 := ["rpm", "avionics"]
+## Version 2 of the recorder (Modern IAF, Settings.blackbox_version) adds these columns: the RPM, the avionics and the
+## electrical power (0 none, 1 the battery, 2 the displays up).
+const BLACKBOX_V2 := ["rpm", "avionics", "power"]
 var _log: FileAccess
 var _log_version := 1  # Settings.blackbox_version(), read when the log opens
 var _log_next := 0.0
@@ -2786,7 +2787,11 @@ func _record(st: Dictionary, delta: float) -> void:
 					Engine.get_frames_per_second()
 				]
 				+ (
-					[_r(float(st.get("rpm", 0.0)) * 100.0, 0.1), bool(st.get("avionics", true))]
+					[
+						_r(float(st.get("rpm", 0.0)) * 100.0, 0.1),
+						bool(st.get("avionics", true)),
+						int(st.get("power", 2))
+					]
 					if _log_version >= 2
 					else []
 				)

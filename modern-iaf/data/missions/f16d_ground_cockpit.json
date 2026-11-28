@@ -1,0 +1,81 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16d",
+    "base": "Ramat David",
+    "at": "parking",
+    "elevation_m": 56
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "training.end_hold_s": "inferred",
+    "training.time_budget_s": "inferred"
+  },
+  "notes": {
+    "time": "a day lesson (training-plan.md §1: every lesson but the night lesson by day)",
+    "wind_kt": "phase 1 is flown in calm air (inferred: no wind matters on the spot or the taxiways)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "training.time_budget_s": "fifteen minutes: the card read line by line on battery power, with time to read the notebook (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.checklist": "the card items the lesson covers: BEFORE STARTING ENGINE and, on the F-16s, the two lamp tests of AFTER ENGINE START that work on the battery and MAIN PWR OFF; on the F-35I the battery, the IPP, the self test, the helmet, the cautions and BATT OFF (data/checklists, training.md §12)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLRD elevation 185 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f16d_ground_cockpit",
+  "menu_id": 3111,
+  "lesson": "ground.cockpit",
+  "title": {
+    "en": "Cockpit and power",
+    "he": "תא הטייס והזנת חשמל"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. לטוס שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "power_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi"
+    ],
+    "calls": [
+      "radio_check"
+    ],
+    "checklist": [
+      "epu_norm",
+      "eng_feed",
+      "fuel_master",
+      "le_flaps",
+      "air_source",
+      "master_arm_off",
+      "gear_down",
+      "batt",
+      "flcs_pwr_test",
+      "main_power",
+      "fire_test",
+      "mal_ind_test",
+      "main_power_off"
+    ],
+    "time_budget_s": 900,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

@@ -19,7 +19,11 @@
   json("/modern-iaf/data/keys.json").records
     + json(base + "own_keys.json").records.enumerate().map(((i, r)) => r + (index: 10000 + i, press: none, label: (en: r.label.en, he: r.label.at("he", default: r.label.en))))
 )
-#let card = if is-jet { json("/modern-iaf/data/checklists/" + me.checklist + ".json") }
+// The jet's card without its lesson-only items (a night lesson's lighting, "lesson": true; training.md §16.2).
+#let card = if is-jet {
+  let c = json("/modern-iaf/data/checklists/" + me.checklist + ".json")
+  c + (sections: c.sections.map(s => s + (items: s.items.filter(i => not i.at("lesson", default: false)))))
+}
 #let cockpit-dir = "/shared/extra/models/cockpit3d/"
 // The cockpit's control table: the model's controls with the game's own rows laid over them (cockpit3d_controls.gd).
 #let controls = if is-jet {

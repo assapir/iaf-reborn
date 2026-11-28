@@ -2,7 +2,7 @@
 
 This is the plan for Modern IAF's training lessons: the course for each jet, what a lesson is, how the instructor
 works, and how a lesson is briefed and graded. The course's data, its grades and its first two screens are built
-(§5); no lesson has a flight yet. The ten earlier training missions are not part of it: the course replaces them in
+(§5), and phase 1's lessons for the three jets ([training.md](training.md) §16.4). The ten earlier training missions are not part of it: the course replaces them in
 the front end (the user, 28 Nov 2026: "The current existing train should be deleted, o/c. It replaces them"). The user decided it in a planning talk on 28 November 2026; the 12 and 13 November
 decisions that still stand are marked with their date.
 

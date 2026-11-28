@@ -31,6 +31,21 @@ impl IafTraining {
         }
     }
 
+    /// A start-up step's fault as the run counts it (`training::Watch::step_fault`): "" when the lesson asks for it now
+    /// (the shutdown of a lesson that teaches it, `current` the card's item to do now), else `fault`.
+    #[func]
+    fn step_fault(&self, step: GString, fault: GString, current: GString) -> GString {
+        let f = fault.to_string();
+        let out = self.watch.as_ref().map_or(f.as_str(), |w| w.step_fault(&step.to_string(), &f, &current.to_string()));
+        GString::from(out)
+    }
+
+    /// A ground lesson's spot: the jet within this of where it started is on it, m (`training::PARKED_M`).
+    #[func]
+    fn parked_m() -> f64 {
+        training::PARKED_M
+    }
+
     /// How long a fail shows its reason before the debrief, s (the rules' `end_hold_s`).
     #[func]
     fn end_hold_s(&self) -> f64 {

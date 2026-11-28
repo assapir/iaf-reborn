@@ -41,8 +41,9 @@ chapters:
   - {id: debrief, title: "The debrief", file: game/flying/debrief.typ}
 - id: missions-training
   title: "Missions and training"
-  intro: "The training fight against an aggressor."
+  intro: "The training course's phases, and the training fight against an aggressor."
   sections:
+  - {id: course-ground, title: "Phase 1: Ground and start-up", file: game/missions-training/course-ground.typ}
   - {id: training-fight, title: "Training fight", file: game/missions-training/training-fight.typ}
 - id: bases
   title: "Air bases"

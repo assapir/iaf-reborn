@@ -3,6 +3,15 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Phase 1's lessons (2026-11-28, [training-plan.md](training-plan.md) §3 phase 1; [training.md](training.md) §16):**
+  the lesson content's shape (one file per phase: the missions by jet, the briefing's eight sections, the notebook's
+  Lesson tab, the instructor's calls with their tests) and phase 1 in it for the Barak, the Sufa and the Adir at their
+  home bases: cockpit and power, engine start and INS, taxi and radio, the night start-up and taxi, check ride 1; 15
+  missions of the new kind `lesson`, scored every 3 s with their end read from the recording and the course's items
+  graded; the card holds what a lesson asks for and opens a ground lesson's shutdown on its spot; the lesson's own
+  shutdown is no fault; the tower's radio check (menu 5); the night lighting items; the recorder's `power` column.
+  Open: the calls are played by the call engine (job train-calls) and the briefing's sections and the Lesson tab shown
+  by the screens of job train-fe. `course` and `training` tests, `test_course_lessons.gd`.
 - **The training course's screens (2026-11-28, Approvals A130 and A131; [front-end.md](front-end.md) §2.2,
   [training-plan.md](training-plan.md) §5):** Missions → Training opens the Hangar jet's course: eight phase cards in
   two rows of four, each with its number, title and lessons passed of its own, the title line the course's lessons

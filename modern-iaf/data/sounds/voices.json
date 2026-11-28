@@ -6539,6 +6539,20 @@
       "mode": "particle",
       "say_he": "סיום קרב!",
       "note": "the training round against an aggressor (docs/ai.md §26)"
+    },
+    {
+      "file": "plt_req_radio_check.ogg",
+      "voice": "pilot",
+      "say": "Radio check.",
+      "mode": "helmet",
+      "say_he": "בדיקת קשר."
+    },
+    {
+      "file": "twr_read_five.ogg",
+      "voice": "tower",
+      "say": "read you five",
+      "mode": "particle",
+      "say_he": "שומע אותך חמש"
     }
   ],
   "particles": {
@@ -11160,6 +11174,16 @@
       "file": "flt_wng_kio.ogg",
       "text": "knock it off",
       "text_he": "סיום קרב"
+    },
+    "REQ_RADIO_CHECK": {
+      "file": "plt_req_radio_check.ogg",
+      "text": "radio check",
+      "text_he": "בדיקת קשר"
+    },
+    "READ_FIVE": {
+      "file": "twr_read_five.ogg",
+      "text": "read you five",
+      "text_he": "שומע אותך חמש"
     }
   },
   "templates": {
@@ -11209,7 +11233,8 @@
     "AWX_VECTOR": "%S1 , %S2 , %S3 , %S4",
     "AWX_HELP": "%S1 , AWX_THREAT , AWX_GROUP_W %S2 , %S3 , %S4 , AWX_RETROGRADE , AWX_COMMIT",
     "TNK_CALL": "%S1 , %S2",
-    "TNK_CALL3": "%S1 , %S2 , %S3"
+    "TNK_CALL3": "%S1 , %S2 , %S3",
+    "ACFT_RADIO_CHECK": "%S1 , READ_FIVE"
   },
   "he": {
     "engine": "BlueTTS BlueV3 (github.com/maxmelichov/BlueTTS, git 91b1789): code and weights MIT, the RenikudPlus G2P Apache-2.0, the voices CC BY 4.0 (LibriTTS-R speakers), the vocoder OpenRAIL-M (modern-iaf/docs/research/hebrew-voices.md §4)",

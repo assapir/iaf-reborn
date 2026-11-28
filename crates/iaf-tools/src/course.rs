@@ -10,6 +10,39 @@ use std::sync::OnceLock;
 
 const DATA: &str = include_str!("../../../modern-iaf/data/training/course.json");
 
+/// Each phase's lesson content (training.md §16): `(phase id, the text of modern-iaf/data/training/lessons/<id>.json)`.
+/// A phase without a file has no content yet; a new phase's file is added here and to the stamps' sources.
+const LESSONS: &[(&str, &str)] = &[("ground", include_str!("../../../modern-iaf/data/training/lessons/ground.json"))];
+
+/// The briefing's sections in their order (training-plan.md §2.2): each a list of paragraphs.
+pub const SECTIONS: [&str; 8] =
+    ["mission", "target", "enemy", "our_forces", "weather_area", "execution", "coordination", "signal"];
+
+/// The tests a call (and a lesson's end) waits for, by name (training.md §16.3): data for the instructor's call engine
+/// and, for an end, the scorer (`training::holds`).
+pub const TESTS: [&str; 16] = [
+    "start",
+    "idle",
+    "aligned",
+    "hold_point",
+    "lined_up",
+    "initial",
+    "over_runway",
+    "downwind",
+    "final_turn",
+    "final",
+    "touchdown_zone",
+    "climb_out",
+    "slowed",
+    "parked",
+    "engine_off",
+    "power_off",
+];
+
+/// The tests with an argument after a colon: `item:<card item id>` (ticked on the jet's checklist card),
+/// `cleared:<phase>` (the tower's clearance, training::CLEARANCES), `called:<radio call id>` (the pilot made the call).
+pub const ARG_TESTS: [&str; 3] = ["item", "cleared", "called"];
+
 /// An item's grade on the US Navy's flight-training scale (training-plan.md §2.4), worst first.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Grade {
@@ -171,6 +204,8 @@ pub struct Lesson {
     pub emergencies: Vec<String>,
     /// The mission that flies it, by jet.
     pub missions: Map<String, Value>,
+    /// Its content from the phase's lesson file (training.md §16): `briefing`, `lesson_tab`, `calls`; null without.
+    pub content: Value,
 }
 
 #[derive(Debug, Clone)]
@@ -222,6 +257,121 @@ fn strings(v: &Value, what: &str) -> Result<Vec<String>> {
 fn label(v: &Value, what: &str) -> Result<Value> {
     ensure!(v["en"].is_string() && v["he"].is_string(), "{what}: needs \"en\" and \"he\"");
     Ok(v.clone())
+}
+
+/// Phase `phase`'s lesson file, parsed; None for a phase without one.
+fn lesson_file(phase: &str) -> Result<Option<Value>> {
+    let f = LESSONS.iter().find(|l| l.0 == phase);
+    f.map(|l| serde_json::from_str(l.1).with_context(|| format!("lessons/{phase}.json"))).transpose()
+}
+
+/// Lesson `id`'s content in phase `phase`'s lesson file; null without one.
+fn lesson_content(phase: &str, id: &str) -> Result<Value> {
+    Ok(lesson_file(phase)?.map_or(Value::Null, |f| f["lessons"][id].clone()))
+}
+
+/// A paragraph, a notebook line or a call's line: `en` and `he`, and `jets`, optional, jets of the course.
+fn check_text(v: &Value, what: &str, jets: &Value) -> Result<()> {
+    label(v, what)?;
+    for j in strings(&v["jets"], what)? {
+        ensure!(jets[&j].is_object(), "{what}: \"jets\" names {j}, no jet of the course");
+    }
+    Ok(())
+}
+
+/// A test's name is one of `TESTS`, or `<one of ARG_TESTS>:<argument>`.
+pub fn test_ok(t: &str) -> bool {
+    match t.split_once(':') {
+        Some((k, a)) => ARG_TESTS.contains(&k) && !a.is_empty(),
+        None => TESTS.contains(&t),
+    }
+}
+
+/// Lesson `key`'s content (training.md §16): every section of the briefing with a paragraph, the Execution's places and
+/// switches known, the notebook's lines, the calls' ids unique and their tests known; a check ride has no calls.
+fn check_content(key: &str, c: &Value, jets: &Value, check_ride: bool) -> Result<()> {
+    if c.is_null() {
+        return Ok(());
+    }
+    for k in c.as_object().with_context(|| format!("{key}: its content must be an object"))?.keys() {
+        ensure!(["missions", "briefing", "lesson_tab", "calls"].contains(&k.as_str()), "{key}: \"{k}\" is no field");
+    }
+    let b = &c["briefing"];
+    for s in SECTIONS {
+        let ps = b[s].as_array().filter(|a| !a.is_empty());
+        let ps = ps.with_context(|| format!("{key}: \"briefing.{s}\" needs its paragraphs"))?;
+        for (i, p) in ps.iter().enumerate() {
+            let what = format!("{key}: briefing.{s}[{i}]");
+            check_text(p, &what, jets)?;
+            if let Some(at) = p.get("at") {
+                let ok = at.as_str().is_some_and(|a| crate::training::STEP_PLACES.contains(&a));
+                ensure!(ok, "{what}: \"at\" {at} is no place");
+            }
+            for sw in strings(&p["switches"], &what)? {
+                ensure!(crate::training::STEPS.contains(&sw.as_str()), "{what}: switch {sw} is no start-up step");
+            }
+        }
+    }
+    if let Some(o) = b.as_object() {
+        for k in o.keys() {
+            ensure!(SECTIONS.contains(&k.as_str()), "{key}: \"briefing.{k}\" is no section");
+        }
+    }
+    for (i, l) in c["lesson_tab"].as_array().into_iter().flatten().enumerate() {
+        let what = format!("{key}: lesson_tab[{i}]");
+        check_text(l, &what, jets)?;
+        if !l["wait"].is_null() {
+            label(&l["wait"], &what)?;
+        }
+    }
+    let calls = c["calls"].as_array().map_or(&[][..], |a| a.as_slice());
+    ensure!(!check_ride || calls.is_empty(), "{key}: a check ride has no calls");
+    let mut ids: Vec<&str> = vec![];
+    for (i, call) in calls.iter().enumerate() {
+        let id = call["id"].as_str().with_context(|| format!("{key}: calls[{i}] without \"id\""))?;
+        ensure!(!ids.contains(&id), "{key}: call {id} twice");
+        ids.push(id);
+        let when = strings(&call["when"], id)?;
+        ensure!(!when.is_empty(), "{key}: call {id} needs \"when\"");
+        for t in &when {
+            ensure!(test_ok(t), "{key}: call {id}: \"{t}\" is no test");
+        }
+        for j in strings(&call["jets"], id)? {
+            ensure!(jets[&j].is_object(), "{key}: call {id}: \"jets\" names {j}, no jet of the course");
+        }
+        let lines = call["lines"].as_array().filter(|a| !a.is_empty());
+        for (n, line) in lines.with_context(|| format!("{key}: call {id} needs \"lines\""))?.iter().enumerate() {
+            label(line, &format!("{key}: call {id} line {n}"))?;
+        }
+    }
+    Ok(())
+}
+
+/// `v` for jet `jet` (`j`: its entry of `jets`): every array's entries whose `jets` leave it out dropped, at any
+/// depth, and in each `en` and `he` text `{jet}`, `{one}` and `{base}` the jet's name, "one" of it (the number agreeing
+/// in Hebrew: סופה אחת, ברק אחד) and its home base's name in that language.
+fn for_jet(v: &Value, jet: &str, j: &Value) -> Value {
+    match v {
+        Value::Array(a) => Value::Array(
+            a.iter()
+                .filter(|e| e["jets"].as_array().is_none_or(|js| js.iter().any(|x| x == jet)))
+                .map(|e| for_jet(e, jet, j))
+                .collect(),
+        ),
+        Value::Object(o) => Value::Object(
+            o.iter()
+                .map(|(k, e)| match (k.as_str(), e.as_str()) {
+                    (lang @ ("en" | "he"), Some(t)) => {
+                        let name = |f: &str| j[f][lang].as_str().unwrap_or("").to_string();
+                        let t = t.replace("{jet}", &name("name")).replace("{one}", &name("one"));
+                        (k.clone(), json!(t.replace("{base}", &name("base_name"))))
+                    }
+                    _ => (k.clone(), for_jet(e, jet, j)),
+                })
+                .collect(),
+        ),
+        _ => v.clone(),
+    }
 }
 
 impl Course {
@@ -277,7 +427,13 @@ impl Course {
                     ensure!(v["emergencies"][e].is_object(), "{key}: emergency {e} is not in \"emergencies\"");
                 }
                 ensure!(kind == Kind::Check || !items.is_empty(), "{key}: a lesson grades at least one item");
-                let missions = l["missions"].as_object().cloned().unwrap_or_default();
+                let content = lesson_content(&pid, &id)?;
+                let mut missions = l["missions"].as_object().cloned().unwrap_or_default();
+                if let Some(m) = content["missions"].as_object() {
+                    ensure!(missions.is_empty(), "{key}: \"missions\" both in course.json and in its lesson file");
+                    missions = m.clone();
+                }
+                check_content(&key, &content, &v["jets"], kind == Kind::Check)?;
                 for jet in missions.keys() {
                     ensure!(v["jets"][jet].is_object(), "{key}: \"missions\" names {jet}, no jet of the course");
                 }
@@ -290,6 +446,7 @@ impl Course {
                     items,
                     emergencies,
                     missions,
+                    content,
                 });
             }
             ensure!(
@@ -303,6 +460,18 @@ impl Course {
                 id: pid,
                 lessons,
             });
+        }
+        for (id, j) in v["jets"].as_object().context("\"jets\"")? {
+            label(&j["name"], &format!("jet {id}: \"name\""))?;
+            label(&j["base_name"], &format!("jet {id}: \"base_name\""))?;
+            label(&j["one"], &format!("jet {id}: \"one\""))?;
+        }
+        for (pid, _) in LESSONS {
+            let p =
+                phases.iter().find(|p| p.id == *pid).with_context(|| format!("lessons/{pid}.json: no such phase"))?;
+            for id in lesson_file(pid)?.and_then(|f| f["lessons"].as_object().cloned()).unwrap_or_default().keys() {
+                ensure!(p.lessons.iter().any(|l| l.id == *id), "lessons/{pid}.json: {id} is no lesson of the phase");
+            }
         }
         Ok(Course { jets: v["jets"].as_object().context("\"jets\"")?.clone(), phases, items, emergencies })
     }
@@ -332,19 +501,22 @@ impl Course {
     }
 
     /// A lesson's graded items. A check ride's: every item of this phase's and the earlier phases' lessons, in course
-    /// order, without a phase's whose skills appear only in its own check ride (the formation phase).
+    /// order, without a phase's whose skills appear only in its own check ride (the formation phase); a day check ride
+    /// also without the items only the night lessons grade (the night lighting).
     pub fn items(&self, phase: usize, lesson: usize) -> Vec<String> {
         let l = &self.phases[phase].lessons[lesson];
         if l.kind != Kind::Check {
             return l.items.clone();
         }
         let mut out: Vec<String> = vec![];
+        let lessons = || self.phases[..=phase].iter().flat_map(|p| &p.lessons);
+        let night_only = |i: &String| !lessons().any(|x| x.kind == Kind::Day && x.items.contains(i));
         for (pi, p) in self.phases[..=phase].iter().enumerate() {
             if p.own_check_only && pi != phase {
                 continue;
             }
-            for i in p.lessons.iter().flat_map(|l| &l.items) {
-                if !out.contains(i) {
+            for i in p.lessons.iter().flat_map(|x| &x.items) {
+                if !out.contains(i) && (l.night || !night_only(i)) {
                     out.push(i.clone());
                 }
             }
@@ -423,6 +595,9 @@ impl Course {
                             "mission": l.missions.get(jet).cloned().unwrap_or(Value::Null),
                             "items": items,
                             "emergencies": emergencies,
+                            "briefing": for_jet(&l.content["briefing"], jet, j),
+                            "lesson_tab": for_jet(&l.content["lesson_tab"], jet, j),
+                            "calls": for_jet(&l.content["calls"], jet, j),
                         })
                     })
                     .collect();
@@ -542,11 +717,85 @@ mod tests {
     }
 
     #[test]
+    fn every_lesson_content_resolves_for_each_jet() {
+        let c = course();
+        let data = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data");
+        let read =
+            |p: std::path::PathBuf| -> Value { serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap() };
+        let card_ids = |file: &str| -> Vec<String> {
+            let v = read(data.join("checklists").join(file));
+            let all = v["sections"].as_array().into_iter().chain(v["refuel"]["sections"].as_array()).flatten();
+            all.flat_map(|s| s["items"].as_array().cloned().unwrap_or_default())
+                .filter_map(|i| i["id"].as_str().map(String::from))
+                .collect()
+        };
+        // The radio menu's calls (training.md §8; `called:` names them).
+        let radio = ["startup", "taxi", "lineup", "takeoff", "landing", "radio_check"];
+        for (pid, _) in LESSONS {
+            let p = c.phases.iter().find(|p| p.id == *pid).unwrap();
+            for l in p.lessons.iter().filter(|l| !l.content.is_null()) {
+                let key = format!("{pid}.{}", l.id);
+                for jet in ["f16d", "f16i", "f35i"] {
+                    let id = l
+                        .missions
+                        .get(jet)
+                        .and_then(Value::as_str)
+                        .unwrap_or_else(|| panic!("{key}: no {jet} mission"));
+                    let m = read(data.join("missions").join(format!("{id}.json")));
+                    assert_eq!(m["lesson"], key.as_str(), "{id}: its lesson");
+                    assert_eq!(m["start"]["unit"], jet, "{id}: its jet");
+                    assert_eq!(m["start"]["base"], c.jets[jet]["base"], "{id}: the jet's home base");
+                    assert_eq!(c.lesson_of(jet, id).as_deref(), Some(key.as_str()));
+                    let ids = card_ids(if jet == "f35i" { "f35i.json" } else { "f16.json" });
+                    let j = c.to_json(jet).unwrap();
+                    let le = j["phases"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .flat_map(|p| p["lessons"].as_array().unwrap().clone())
+                        .find(|x| x["key"] == key.as_str())
+                        .unwrap();
+                    for s in SECTIONS {
+                        assert!(!le["briefing"][s].as_array().unwrap().is_empty(), "{key} {jet}: {s} empty");
+                    }
+                    let mut tests: Vec<String> = le["calls"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .flat_map(|x| strings(&x["when"], "").unwrap())
+                        .collect();
+                    tests.extend(strings(&m["training"]["end"], "").unwrap());
+                    for t in tests {
+                        match t.split_once(':') {
+                            Some(("item", i)) => assert!(ids.contains(&i.to_string()), "{key} {jet}: no card item {i}"),
+                            Some(("called", r)) => assert!(radio.contains(&r), "{key} {jet}: no radio call {r}"),
+                            _ => {}
+                        }
+                    }
+                    for i in strings(&m["training"]["checklist"], "").unwrap() {
+                        assert!(ids.contains(&i), "{id}: no card item {i}");
+                    }
+                    for r in strings(&m["training"]["calls"], "").unwrap() {
+                        assert!(radio.contains(&r.as_str()), "{id}: no radio call {r}");
+                    }
+                    if l.kind != Kind::Check {
+                        assert!(le["calls"].as_array().is_some_and(|c| !c.is_empty()), "{key} {jet}: no calls");
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn check_rides_cover_the_phases_so_far_and_formation_only_its_own() {
         let c = course();
         let (p2, l2) = c.find("pattern.check").unwrap();
         let ride2 = c.items(p2, l2);
         assert!(ride2.contains(&"startup_time".to_string()) && ride2.contains(&"touchdown_distance".to_string()));
+        let (p1, l1) = c.find("ground.check").unwrap();
+        assert!(!c.items(p1, l1).contains(&"night_lighting".to_string()), "a day check ride grades no night item");
+        let (p3, l3) = c.find("navigation.check").unwrap();
+        assert!(c.items(p3, l3).contains(&"night_lighting".to_string()), "a night check ride does");
         assert!(!ride2.contains(&"steerpoint_miss".to_string()));
         let (p4, l4) = c.find("formation.check").unwrap();
         assert!(c.items(p4, l4).contains(&"formation_position".to_string()));
