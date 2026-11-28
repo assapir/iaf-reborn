@@ -403,7 +403,9 @@ pub fn rules(mission: &Value) -> Result<Option<Rules>> {
             ensure!(mission["lesson"].is_string(), "training: a lesson mission needs \"lesson\", its course key");
             let list = |k: &str| -> Result<Vec<String>> {
                 let a = t[k].as_array().with_context(|| format!("training: \"{k}\" must be a list"))?;
-                a.iter().map(|x| x.as_str().map(String::from).with_context(|| format!("training: \"{k}\": {x}"))).collect()
+                a.iter()
+                    .map(|x| x.as_str().map(String::from).with_context(|| format!("training: \"{k}\": {x}")))
+                    .collect()
             };
             let (end, calls) = (list("end")?, list("calls")?);
             ensure!(!end.is_empty(), "training: a lesson needs its \"end\"");
@@ -1878,7 +1880,7 @@ fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -
             combat: json!({}),
             faults: vec![],
             lesson: None,
-        graded: vec![],
+            graded: vec![],
         };
     };
     let (roll, k) = roll_start(s, lift, rw);
@@ -2271,8 +2273,11 @@ mod tests {
                 .collect();
             let at: Vec<usize> = r.checklist.iter().map(|c| ids.iter().position(|i| i == c).unwrap()).collect();
             assert!(at.windows(2).all(|w| w[0] < w[1]), "{unit}: {:?} in the card's order", r.checklist);
-            let need = if unit == "f35i" { 4 } else { 6 };
-            assert_eq!(STEPS.iter().filter(|s| r.checklist.iter().any(|c| c == *s)).count(), need, "{unit}");
+            // A start-up mission asks for the whole start; a course lesson for what it teaches.
+            if r.kind == Kind::Startup {
+                let need = if unit == "f35i" { 4 } else { 6 };
+                assert_eq!(STEPS.iter().filter(|s| r.checklist.iter().any(|c| c == *s)).count(), need, "{unit}");
+            }
         }
     }
 
@@ -2872,7 +2877,7 @@ mod tests {
             combat: json!({}),
             faults: vec![],
             lesson: None,
-        graded: vec![],
+            graded: vec![],
         };
         assert_eq!(d("no_liftoff").next().map(|n| n.0), Some("next_liftoff"));
         assert_eq!(d("no_start").next().map(|n| n.0), Some("next_start"));

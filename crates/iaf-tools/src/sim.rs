@@ -759,7 +759,11 @@ fn briefing(f: &File) -> Result<Value> {
             f.name
         );
         let lesson = c.to_json(jet).and_then(|j| {
-            j["phases"].as_array()?.iter().flat_map(|p| p["lessons"].as_array().cloned().unwrap_or_default()).find(|l| l["key"] == key)
+            j["phases"]
+                .as_array()?
+                .iter()
+                .flat_map(|p| p["lessons"].as_array().cloned().unwrap_or_default())
+                .find(|l| l["key"] == key)
         });
         let sections = lesson.map(|l| l["briefing"].clone()).unwrap_or_default();
         let purpose = sections["target"][0].clone();

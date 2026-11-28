@@ -464,7 +464,8 @@ impl Course {
             label(&j["base_name"], &format!("jet {id}: \"base_name\""))?;
         }
         for (pid, _) in LESSONS {
-            let p = phases.iter().find(|p| p.id == *pid).with_context(|| format!("lessons/{pid}.json: no such phase"))?;
+            let p =
+                phases.iter().find(|p| p.id == *pid).with_context(|| format!("lessons/{pid}.json: no such phase"))?;
             for id in lesson_file(pid)?.and_then(|f| f["lessons"].as_object().cloned()).unwrap_or_default().keys() {
                 ensure!(p.lessons.iter().any(|l| l.id == *id), "lessons/{pid}.json: {id} is no lesson of the phase");
             }
@@ -716,7 +717,8 @@ mod tests {
     fn every_lesson_content_resolves_for_each_jet() {
         let c = course();
         let data = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data");
-        let read = |p: std::path::PathBuf| -> Value { serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap() };
+        let read =
+            |p: std::path::PathBuf| -> Value { serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap() };
         let card_ids = |file: &str| -> Vec<String> {
             let v = read(data.join("checklists").join(file));
             let all = v["sections"].as_array().into_iter().chain(v["refuel"]["sections"].as_array()).flatten();
@@ -731,7 +733,11 @@ mod tests {
             for l in p.lessons.iter().filter(|l| !l.content.is_null()) {
                 let key = format!("{pid}.{}", l.id);
                 for jet in ["f16d", "f16i", "f35i"] {
-                    let id = l.missions.get(jet).and_then(Value::as_str).unwrap_or_else(|| panic!("{key}: no {jet} mission"));
+                    let id = l
+                        .missions
+                        .get(jet)
+                        .and_then(Value::as_str)
+                        .unwrap_or_else(|| panic!("{key}: no {jet} mission"));
                     let m = read(data.join("missions").join(format!("{id}.json")));
                     assert_eq!(m["lesson"], key.as_str(), "{id}: its lesson");
                     assert_eq!(m["start"]["unit"], jet, "{id}: its jet");
@@ -739,13 +745,18 @@ mod tests {
                     assert_eq!(c.lesson_of(jet, id).as_deref(), Some(key.as_str()));
                     let ids = card_ids(if jet == "f35i" { "f35i.json" } else { "f16.json" });
                     let j = c.to_json(jet).unwrap();
-                    let le = j["phases"].as_array().unwrap().iter().flat_map(|p| p["lessons"].as_array().unwrap().clone())
-                        .find(|x| x["key"] == key.as_str()).unwrap();
+                    let le = j["phases"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .flat_map(|p| p["lessons"].as_array().unwrap().clone())
+                        .find(|x| x["key"] == key.as_str())
+                        .unwrap();
                     for s in SECTIONS {
                         assert!(!le["briefing"][s].as_array().unwrap().is_empty(), "{key} {jet}: {s} empty");
                     }
                     let mut tests: Vec<String> =
-                        le["calls"].as_array().unwrap().iter().flat_map(|x| strings(&x["when"], "").unwrap()).collect();
+                        le["calls"].as_array().into_iter().flatten().flat_map(|x| strings(&x["when"], "").unwrap()).collect();
                     tests.extend(strings(&m["training"]["end"], "").unwrap());
                     for t in tests {
                         match t.split_once(':') {
@@ -761,7 +772,7 @@ mod tests {
                         assert!(radio.contains(&r.as_str()), "{id}: no radio call {r}");
                     }
                     if l.kind != Kind::Check {
-                        assert!(!le["calls"].as_array().unwrap().is_empty(), "{key} {jet}: no calls");
+                        assert!(le["calls"].as_array().is_some_and(|c| !c.is_empty()), "{key} {jet}: no calls");
                     }
                 }
             }
