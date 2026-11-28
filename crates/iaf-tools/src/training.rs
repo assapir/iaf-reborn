@@ -683,6 +683,11 @@ pub struct Graded {
     pub label: Value,
     pub standard: Standard,
     pub flown: Option<f64>,
+    /// Where it was flown (the engine frame, [x, y], the track's frame): the sample its value comes from; None for an
+    /// item of the whole flight (a count, a share).
+    pub at: Option<[f64; 2]>,
+    /// The item's comment (course.json `tip`), said when it is graded Below average or Unsatisfactory.
+    pub tip: Option<Value>,
 }
 
 /// A fault of the flight (a fail reason's id) with its place on the track: its time from the start (s) and the
@@ -811,7 +816,8 @@ impl Debrief {
     pub fn to_json(&self) -> Value {
         let grade = self.grade();
         let lesson_id = format!("lesson_{}", grade.id());
-        let grade_ids: Vec<String> = self.checks.iter().map(|c| format!("grade_{}", c.grade().id())).collect();
+        let mut grade_ids: Vec<String> = self.checks.iter().map(|c| format!("grade_{}", c.grade().id())).collect();
+        grade_ids.extend(self.graded.iter().map(|g| format!("grade_{}", g.standard.grade(g.flown).id())));
         let mut ids: Vec<&str> = vec![if self.pass { "pass" } else { "fail" }, self.kind, &lesson_id];
         ids.extend(grade_ids.iter().map(String::as_str));
         ids.extend(&self.reasons);
@@ -870,6 +876,11 @@ impl Debrief {
                 "flown": g.flown.map(|v| (v * 10.0).round() / 10.0),
                 "gap": g.flown.map(|f| (g.standard.gap(f) * 10.0).round() / 10.0),
                 "grade": g.standard.grade(g.flown).id(),
+                "at": g.at.map(|a| [(a[0] * 10.0).round() / 10.0, (a[1] * 10.0).round() / 10.0]),
+                "comment": match g.standard.grade(g.flown) {
+                    Grade::BelowAverage | Grade::Unsatisfactory => g.tip.clone(),
+                    _ => None,
+                },
             })).collect::<Vec<_>>(),
             "faults": self.faults.iter().map(|f| json!({
                 "id": f.id,
@@ -1638,8 +1649,9 @@ fn lesson(f: &Flight, mission_id: String, mission: &Value, r: &Rules, calls: &[S
         .into_iter()
         .filter_map(|id| {
             let i = c.item(&id)?;
-            let flown = measure(f, &id, r, calls);
-            Some(Graded { label: i.label.clone(), standard: i.standard.clone(), flown, id })
+            let (flown, at) = measure(f, &id, r, calls);
+            let at = at.map(|k| [f.samples[k].x, f.samples[k].y]);
+            Some(Graded { label: i.label.clone(), standard: i.standard.clone(), flown, at, tip: i.tip.clone(), id })
         })
         .collect();
     Ok(Debrief {
@@ -1657,9 +1669,10 @@ fn lesson(f: &Flight, mission_id: String, mission: &Value, r: &Rules, calls: &[S
     })
 }
 
-/// A course item's flown value from the recording (training.md §16.2); None: not flown, or no measure for the item
-/// yet (each phase adds its items' measures here).
-fn measure(f: &Flight, id: &str, r: &Rules, calls: &[String]) -> Option<f64> {
+/// A course item's flown value from the recording (training.md §16.2), with the sample it was flown at (None for an
+/// item of the whole flight); None: not flown, or no measure for the item yet (each phase adds its items' measures
+/// here).
+fn measure(f: &Flight, id: &str, r: &Rules, calls: &[String]) -> (Option<f64>, Option<usize>) {
     let s = &f.samples;
     let t0 = s[0].t;
     let pct = |done: usize, of: usize| (of > 0).then(|| 100.0 * done as f64 / of as f64);
@@ -1669,16 +1682,21 @@ fn measure(f: &Flight, id: &str, r: &Rules, calls: &[String]) -> Option<f64> {
     };
     // The taxi's start: the first sample on the ground farther than TAXI_MOVED_M from the start.
     let moved = s.iter().find(|x| x.on_ground && (x.x - s[0].x).hypot(x.y - s[0].y) > TAXI_MOVED_M).map(|x| x.t);
+    let whole = |v: Option<f64>| (v, None);
     match id {
-        "checklist_items" => pct(r.checklist.iter().filter(|i| ticked(i)).count(), r.checklist.len()),
+        "checklist_items" => whole(pct(r.checklist.iter().filter(|i| ticked(i)).count(), r.checklist.len())),
         "tower_calls" => {
             let made = |c: &String| f.events.iter().any(|e| e["event"] == "radio" && e["call"] == c.as_str());
-            pct(calls.iter().filter(|c| made(c)).count(), calls.len())
+            whole(pct(calls.iter().filter(|c| made(c)).count(), calls.len()))
         }
+        // Placed where the later of the two came.
         "startup_time" => {
-            let idle = s.iter().find(|x| x.engine && x.rpm.unwrap_or(0.0) >= IDLE_RPM)?.t;
-            let av = s.iter().find(|x| x.avionics == Some(true))?.t;
-            Some(idle.max(av) - t0)
+            let idle = s.iter().position(|x| x.engine && x.rpm.unwrap_or(0.0) >= IDLE_RPM);
+            let av = s.iter().position(|x| x.avionics == Some(true));
+            match (idle, av) {
+                (Some(i), Some(a)) => (Some(s[i.max(a)].t - t0), Some(i.max(a))),
+                _ => (None, None),
+            }
         }
         // The INS knob's step (a lesson that asks for the `ins` item); without one (the F-35I) the self test's end,
         // the avionics up.
@@ -1689,16 +1707,20 @@ fn measure(f: &Flight, id: &str, r: &Rules, calls: &[String]) -> Option<f64> {
             } else {
                 s.iter().find(|x| x.avionics == Some(true)).map(|x| x.t)
             };
-            Some(if at.is_some_and(|t| moved.is_none_or(|m| t <= m)) { 1.0 } else { 0.0 })
+            whole(Some(if at.is_some_and(|t| moved.is_none_or(|m| t <= m)) { 1.0 } else { 0.0 }))
         }
         // The night lesson's lighting items (data/checklists' lesson-only items) the lesson asks for, all ticked.
         "night_lighting" => {
             let asked: Vec<&String> = r.checklist.iter().filter(|i| NIGHT_ITEMS.contains(&i.as_str())).collect();
-            (!asked.is_empty()).then(|| if asked.iter().all(|i| ticked(i)) { 1.0 } else { 0.0 })
+            whole((!asked.is_empty()).then(|| if asked.iter().all(|i| ticked(i)) { 1.0 } else { 0.0 }))
         }
         // ponytail: every sample on the ground counts; a lesson with a take-off roll needs the roll left out.
-        "taxi_speed" => s.iter().filter(|x| x.on_ground).map(|x| x.speed_kt).reduce(f64::max),
-        _ => None,
+        // Placed at the fastest sample.
+        "taxi_speed" => {
+            let k = (0..s.len()).filter(|k| s[*k].on_ground).max_by(|a, b| s[*a].speed_kt.total_cmp(&s[*b].speed_kt));
+            (k.map(|k| s[k].speed_kt), k)
+        }
+        _ => (None, None),
     }
 }
 
@@ -2893,6 +2915,36 @@ mod tests {
         assert_eq!(d("no_liftoff").next().map(|n| n.0), Some("next_liftoff"));
         assert_eq!(d("no_start").next().map(|n| n.0), Some("next_start"));
         assert_eq!(d("no_taxi_clearance").next().map(|n| n.0), Some("next_clearance"));
+    }
+
+    /// A lesson's item below average carries the course's tip as its comment and its place; one flown well has none.
+    #[test]
+    fn a_graded_item_below_average_has_its_comment_and_place() {
+        let c = course::course();
+        let g = |id: &str, flown: f64, at: Option<[f64; 2]>| {
+            let i = c.item(id).unwrap();
+            Graded { id: id.into(), label: i.label.clone(), standard: i.standard.clone(), flown: Some(flown), at, tip: i.tip.clone() }
+        };
+        let d = Debrief {
+            mission: "m".into(),
+            kind: "lesson",
+            pass: true,
+            reasons: vec![],
+            items: vec![],
+            goals: vec![],
+            checks: vec![],
+            combat: json!({}),
+            faults: vec![],
+            lesson: Some("ground.taxi".into()),
+            graded: vec![g("taxi_speed", 28.0, Some([10.04, 20.0])), g("checklist_items", 100.0, None)],
+        };
+        let j = d.to_json();
+        assert_eq!(j["grade"], "marginal");
+        assert_eq!(j["graded"][0]["grade"], "below");
+        assert_eq!(j["graded"][0]["comment"], c.item("taxi_speed").unwrap().tip.clone().unwrap());
+        assert_eq!(j["graded"][0]["at"], json!([10.0, 20.0]));
+        assert!(j["graded"][1]["comment"].is_null() && j["graded"][1]["at"].is_null());
+        assert_eq!(j["strings"]["he"]["grade_below"], "מתחת לממוצע");
     }
 
     #[test]

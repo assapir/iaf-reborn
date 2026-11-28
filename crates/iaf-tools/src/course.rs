@@ -238,6 +238,9 @@ impl Emergency {
 pub struct Item {
     pub label: Value,
     pub standard: Standard,
+    /// The instructor's comment on the item flown Below average or Unsatisfactory (`{"en", "he"}`): what to do next
+    /// time; None for an item its phase has not written one for yet.
+    pub tip: Option<Value>,
 }
 
 #[derive(Debug, Clone)]
@@ -383,7 +386,8 @@ impl Course {
             .iter()
             .map(|(id, i)| {
                 let standard = Standard::parse(&i["standard"]).with_context(|| format!("item {id}"))?;
-                Ok((id.clone(), Item { label: label(&i["label"], id)?, standard }))
+                let tip = (!i["tip"].is_null()).then(|| label(&i["tip"], &format!("item {id}: tip"))).transpose()?;
+                Ok((id.clone(), Item { label: label(&i["label"], id)?, standard, tip }))
             })
             .collect::<Result<Vec<_>>>()?;
         let emergencies = v["emergencies"]
