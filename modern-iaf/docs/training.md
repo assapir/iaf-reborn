@@ -993,7 +993,7 @@ A phase's file is named in `course.rs` `LESSONS` and in the stamps' sources (`cr
                "execution": [P], "coordination": [P], "signal": [P]},
   "lesson_tab": [{"en", "he", "wait"?, "jets"?, "diagram"?}],
   "calls": [{"id", "when": [test], "new"?, "startup"?, "jets"?, "lines": [{"en", "he"}]}]
-}}}
+}}, "diagrams": {"overhead": D}}
 ```
 
 - **`P`, a paragraph:** `{"en", "he", "jets"?}`. `jets` lists the jets it is for; without it, every jet. One list
@@ -1005,6 +1005,8 @@ A phase's file is named in `course.rs` `LESSONS` and in the stamps' sources (`cr
   course (§13), so the file does not repeat them. A check ride's briefing says that an emergency may come, not which.
 - **`lesson_tab`:** the notebook's Lesson tab, the steps in order in the notebook's step shape (`wait`: the state to
   wait for, `{"en", "he"}`), with a `diagram` beside a step that has one.
+- **`diagrams`:** the file's drawings of its manoeuvres by id (§16.5), shared by its lessons; an Execution paragraph's
+  or a notebook step's `diagram` names one. `IafTraining.course` gives each lesson the diagrams it names.
 - **`calls`:** the instructor's calls in order ([training-plan.md](training-plan.md) §2.3): a call fires when the
   call before it has fired and every test of its `when` holds; with `new` its tests must first fail after the call
   before it; `startup` leaves it out once the pilot has passed phase 1; `jets` as a paragraph's. Its `lines` are
@@ -1115,6 +1117,37 @@ say how each one is done, with its wait, in the way the 1998 game's instructor e
 it ([../../docs/autopilot.md](../../docs/autopilot.md) §3); 1.1 has the most. The budgets (15 minutes for 1.1 and 1.2,
 30 for the taxi lessons) are inferred. `modern-iaf/tests/test_course_lessons.gd` checks the content for each jet,
 loads every lesson and flies 1.1 and 1.2 by the card's switches to a Pass.
+
+### 16.5 The diagrams
+
+A diagram `D` is one manoeuvre drawn for the briefing's Execution and the notebook's Lesson tab
+([training-plan.md](training-plan.md) §2.2), by `modern-iaf/menu/diagram.gd`: on the briefing in the map's look (the
+own path in the accent over a dark casing, numbered accent discs), in the notebook in its ink. It is a sketch, not to
+scale: every coordinate is on a 0 to 100 frame of its view, which the drawing stretches to its box.
+
+```json
+{"title": {"en", "he"},
+ "points": [{"en", "he", "hold": {"en", "he"}}],
+ "top":  {"paths": [{"track": [[x, y]], "kind"?}], "pins": [[x, y]], "runway"?: [[x, y], [x, y]],
+          "zones"?: [{"at": [x, y], "r", "en", "he"}], "notes"?: [{"at": [x, y], "en", "he"}]},
+ "side"?: {"paths": [{"track": [[x, h]], "kind"?}], "pins": [[x, h]], "notes"?: [{"at": [x, h], "en", "he"}]}}
+```
+
+- **`points`:** the key points in order, numbered 1, 2 … on the drawing: each its name and what to hold there (`hold`:
+  the speed, height, G, "5 nm · 300 kt · 1,500 ft"). The legend lists them beside the top view on the briefing and in a
+  table under the drawing in the notebook.
+- **`top`:** the view from above, x to the right and y down. `paths`: each a track of points, arrows along it;
+  `kind` `own` (the default: the player's jet) or `other` (a lead, a wingman, an aggressor, the tanker: a thinner
+  dashed line). `pins`: each point's place, in the order of `points`. `runway`: its two ends, the runway in use's name
+  at the first. `zones`: a circle of radius `r` (frame units of x) with its name, a SAM's reach. `notes`: a short
+  label at a place ("1,500 ft", "lead").
+- **`side`:** the view from the side, optional: x along the way, h the height up from the ground's line (0). Its
+  `pins` are the same points' heights, or none.
+
+The loader refuses a diagram without a title, points or a top view, a view without paths, a pin count not that of the
+points (a side view may have none), a coordinate off the frame, a text without both languages, and a lesson naming a
+diagram its file does not have. `course.rs` `a_diagram_is_checked` holds the overhead break as its example: the
+initial, the break, downwind, the final turn and the touchdown over runway 25R, with the side view's 1,500 ft.
 
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon

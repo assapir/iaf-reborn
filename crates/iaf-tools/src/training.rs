@@ -686,8 +686,8 @@ pub struct Graded {
     /// Where it was flown (the engine frame, [x, y], the track's frame): the sample its value comes from; None for an
     /// item of the whole flight (a count, a share).
     pub at: Option<[f64; 2]>,
-    /// The item's comment (course.json `tip`), said when it is graded Below average or Unsatisfactory.
-    pub tip: Option<Value>,
+    /// The course's item (its comments and tip, `course::Item::comment`).
+    pub item: course::Item,
 }
 
 /// A fault of the flight (a fail reason's id) with its place on the track: its time from the start (s) and the
@@ -877,10 +877,8 @@ impl Debrief {
                 "gap": g.flown.map(|f| (g.standard.gap(f) * 10.0).round() / 10.0),
                 "grade": g.standard.grade(g.flown).id(),
                 "at": g.at.map(|a| [(a[0] * 10.0).round() / 10.0, (a[1] * 10.0).round() / 10.0]),
-                "comment": match g.standard.grade(g.flown) {
-                    Grade::BelowAverage | Grade::Unsatisfactory => g.tip.clone(),
-                    _ => None,
-                },
+                "comment": g.item.comment(g.standard.grade(g.flown)).0,
+                "tip": g.item.comment(g.standard.grade(g.flown)).1,
             })).collect::<Vec<_>>(),
             "faults": self.faults.iter().map(|f| json!({
                 "id": f.id,
@@ -1651,7 +1649,7 @@ fn lesson(f: &Flight, mission_id: String, mission: &Value, r: &Rules, calls: &[S
             let i = c.item(&id)?;
             let (flown, at) = measure(f, &id, r, calls);
             let at = at.map(|k| [f.samples[k].x, f.samples[k].y]);
-            Some(Graded { label: i.label.clone(), standard: i.standard.clone(), flown, at, tip: i.tip.clone(), id })
+            Some(Graded { label: i.label.clone(), standard: i.standard.clone(), flown, at, item: i.clone(), id })
         })
         .collect();
     Ok(Debrief {
@@ -2917,7 +2915,7 @@ mod tests {
         assert_eq!(d("no_taxi_clearance").next().map(|n| n.0), Some("next_clearance"));
     }
 
-    /// A lesson's item below average carries the course's tip as its comment and its place; one flown well has none.
+    /// A lesson's item below average carries the course's comment, tip and place; one above average its comment only.
     #[test]
     fn a_graded_item_below_average_has_its_comment_and_place() {
         let c = course::course();
@@ -2929,7 +2927,7 @@ mod tests {
                 standard: i.standard.clone(),
                 flown: Some(flown),
                 at,
-                tip: i.tip.clone(),
+                item: i.clone(),
             }
         };
         let d = Debrief {
@@ -2948,9 +2946,14 @@ mod tests {
         let j = d.to_json();
         assert_eq!(j["grade"], "marginal");
         assert_eq!(j["graded"][0]["grade"], "below");
-        assert_eq!(j["graded"][0]["comment"], c.item("taxi_speed").unwrap().tip.clone().unwrap());
+        let taxi = c.item("taxi_speed").unwrap();
+        assert_eq!(j["graded"][0]["comment"], taxi.comments.as_ref().unwrap()["below"]);
+        assert_eq!(j["graded"][0]["tip"], taxi.tip.clone().unwrap());
         assert_eq!(j["graded"][0]["at"], json!([10.0, 20.0]));
-        assert!(j["graded"][1]["comment"].is_null() && j["graded"][1]["at"].is_null());
+        // The checklist done in full: Above average, its comment and no tip.
+        assert_eq!(j["graded"][1]["grade"], "above");
+        assert_eq!(j["graded"][1]["comment"], c.item("checklist_items").unwrap().comments.as_ref().unwrap()["above"]);
+        assert!(j["graded"][1]["tip"].is_null() && j["graded"][1]["at"].is_null());
         assert_eq!(j["strings"]["he"]["grade_below"], "מתחת לממוצע");
     }
 

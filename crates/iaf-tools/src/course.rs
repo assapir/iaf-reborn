@@ -204,7 +204,8 @@ pub struct Lesson {
     pub emergencies: Vec<String>,
     /// The mission that flies it, by jet.
     pub missions: Map<String, Value>,
-    /// Its content from the phase's lesson file (training.md §16): `briefing`, `lesson_tab`, `calls`; null without.
+    /// Its content from the phase's lesson file (training.md §16): `briefing`, `lesson_tab`, `calls`, `diagrams` (the
+    /// file's diagrams it names); null without.
     pub content: Value,
 }
 
@@ -234,13 +235,28 @@ impl Emergency {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Item {
     pub label: Value,
     pub standard: Standard,
-    /// The instructor's comment on the item flown Below average or Unsatisfactory (`{"en", "he"}`): what to do next
-    /// time; None for an item its phase has not written one for yet.
+    /// The instructor's comments on the item flown (`{"above", "below"}`, each `{"en", "he"}`: Above average; Below
+    /// average or Unsatisfactory) and what to do next time (`tip`, `{"en", "he"}`); None for an item its phase has not
+    /// written them for yet.
+    pub comments: Option<Value>,
     pub tip: Option<Value>,
+}
+
+impl Item {
+    /// The instructor's comment on the item graded `g` and what to do next time: Above average its `above` comment;
+    /// Below average and Unsatisfactory its `below` comment and the tip; Average none.
+    pub fn comment(&self, g: Grade) -> (Option<Value>, Option<Value>) {
+        let c = |k: &str| self.comments.as_ref().map(|c| c[k].clone()).filter(|v| !v.is_null());
+        match g {
+            Grade::AboveAverage => (c("above"), None),
+            Grade::Average => (None, None),
+            _ => (c("below"), self.tip.clone()),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -268,9 +284,88 @@ fn lesson_file(phase: &str) -> Result<Option<Value>> {
     f.map(|l| serde_json::from_str(l.1).with_context(|| format!("lessons/{phase}.json"))).transpose()
 }
 
-/// Lesson `id`'s content in phase `phase`'s lesson file; null without one.
+/// Lesson `id`'s content in phase `phase`'s lesson file, the file's diagrams it names (a paragraph's or a notebook
+/// line's `diagram`) added as `diagrams`; null without one.
 fn lesson_content(phase: &str, id: &str) -> Result<Value> {
-    Ok(lesson_file(phase)?.map_or(Value::Null, |f| f["lessons"][id].clone()))
+    let Some(f) = lesson_file(phase)? else { return Ok(Value::Null) };
+    let mut c = f["lessons"][id].clone();
+    if c.is_object() {
+        let named: Vec<String> = c["briefing"]["execution"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .chain(c["lesson_tab"].as_array().into_iter().flatten())
+            .filter_map(|p| p["diagram"].as_str().map(String::from))
+            .collect();
+        let mut d = Map::new();
+        for n in named {
+            let def = f["diagrams"].get(&n).with_context(|| format!("lessons/{phase}.json: {id}: no diagram {n}"))?;
+            d.insert(n, def.clone());
+        }
+        c["diagrams"] = Value::Object(d);
+    }
+    Ok(c)
+}
+
+/// The coordinates of a diagram's view: [x, y] pairs on its 0 to 100 frame.
+fn check_points(v: &Value, what: &str) -> Result<usize> {
+    let a = v.as_array().with_context(|| format!("{what}: needs its points"))?;
+    for p in a {
+        let ok = p.as_array().is_some_and(|xy| {
+            xy.len() == 2 && xy.iter().all(|c| c.as_f64().is_some_and(|c| (0.0..=100.0).contains(&c)))
+        });
+        ensure!(ok, "{what}: {p} is no [x, y] on the 0 to 100 frame");
+    }
+    Ok(a.len())
+}
+
+/// A diagram of a lesson file (training.md §16.5): its title and points in both languages, a top view with at least
+/// one path and a pin for each point, a side view optional with its paths and pins (none or one for each point), every
+/// coordinate on the 0 to 100 frame, every note and zone named in both languages.
+fn check_diagram(id: &str, d: &Value) -> Result<()> {
+    let what = format!("diagram {id}");
+    label(&d["title"], &what)?;
+    let points = d["points"].as_array().filter(|a| !a.is_empty());
+    let points = points.with_context(|| format!("{what}: needs \"points\""))?;
+    for (i, p) in points.iter().enumerate() {
+        label(p, &format!("{what}: points[{i}]"))?;
+        label(&p["hold"], &format!("{what}: points[{i}].hold"))?;
+    }
+    for view in ["top", "side"] {
+        let v = &d[view];
+        if v.is_null() {
+            ensure!(view == "side", "{what}: needs \"top\"");
+            continue;
+        }
+        for k in v.as_object().with_context(|| format!("{what}: {view}"))?.keys() {
+            let ok = ["paths", "pins", "runway", "zones", "notes"].contains(&k.as_str());
+            ensure!(ok, "{what}: {view}.{k} is no field");
+        }
+        let paths = v["paths"].as_array().filter(|a| !a.is_empty());
+        for (i, p) in paths.with_context(|| format!("{what}: {view} needs \"paths\""))?.iter().enumerate() {
+            ensure!(
+                check_points(&p["track"], &format!("{what}: {view}.paths[{i}]"))? >= 2,
+                "{what}: a path of one point"
+            );
+            let kind = p["kind"].as_str().unwrap_or("own");
+            ensure!(["own", "other"].contains(&kind), "{what}: {view}.paths[{i}]: \"kind\" {kind}");
+        }
+        let pins = check_points(&v["pins"], &format!("{what}: {view}.pins"))?;
+        ensure!(pins == points.len() || (view == "side" && pins == 0), "{what}: {view} needs a pin for each point");
+        if !v["runway"].is_null() {
+            ensure!(check_points(&v["runway"], &what)? == 2, "{what}: {view}.runway is [from, to]");
+        }
+        for (i, z) in v["zones"].as_array().into_iter().flatten().enumerate() {
+            check_points(&json!([z["at"]]), &what)?;
+            ensure!(z["r"].as_f64().is_some_and(|r| r > 0.0), "{what}: {view}.zones[{i}] needs \"r\"");
+            label(z, &format!("{what}: {view}.zones[{i}]"))?;
+        }
+        for (i, n) in v["notes"].as_array().into_iter().flatten().enumerate() {
+            check_points(&json!([n["at"]]), &what)?;
+            label(n, &format!("{what}: {view}.notes[{i}]"))?;
+        }
+    }
+    Ok(())
 }
 
 /// A paragraph, a notebook line or a call's line: `en` and `he`, and `jets`, optional, jets of the course.
@@ -297,7 +392,8 @@ fn check_content(key: &str, c: &Value, jets: &Value, check_ride: bool) -> Result
         return Ok(());
     }
     for k in c.as_object().with_context(|| format!("{key}: its content must be an object"))?.keys() {
-        ensure!(["missions", "briefing", "lesson_tab", "calls"].contains(&k.as_str()), "{key}: \"{k}\" is no field");
+        let ok = ["missions", "briefing", "lesson_tab", "calls", "diagrams"].contains(&k.as_str());
+        ensure!(ok, "{key}: \"{k}\" is no field");
     }
     let b = &c["briefing"];
     for s in SECTIONS {
@@ -386,8 +482,13 @@ impl Course {
             .iter()
             .map(|(id, i)| {
                 let standard = Standard::parse(&i["standard"]).with_context(|| format!("item {id}"))?;
-                let tip = (!i["tip"].is_null()).then(|| label(&i["tip"], &format!("item {id}: tip"))).transpose()?;
-                Ok((id.clone(), Item { label: label(&i["label"], id)?, standard, tip }))
+                let text = |v: &Value, what: &str| (!v.is_null()).then(|| label(v, &format!("item {id}: {what}")));
+                let tip = text(&i["tip"], "tip").transpose()?;
+                let comments = (!i["comments"].is_null()).then(|| i["comments"].clone());
+                for k in ["above", "below"] {
+                    text(&comments.as_ref().map_or(Value::Null, |c| c[k].clone()), k).transpose()?;
+                }
+                Ok((id.clone(), Item { label: label(&i["label"], id)?, standard, comments, tip }))
             })
             .collect::<Result<Vec<_>>>()?;
         let emergencies = v["emergencies"]
@@ -470,7 +571,11 @@ impl Course {
         for (pid, _) in LESSONS {
             let p =
                 phases.iter().find(|p| p.id == *pid).with_context(|| format!("lessons/{pid}.json: no such phase"))?;
-            for id in lesson_file(pid)?.and_then(|f| f["lessons"].as_object().cloned()).unwrap_or_default().keys() {
+            let file = lesson_file(pid)?.unwrap_or_default();
+            for (id, d) in file["diagrams"].as_object().into_iter().flatten() {
+                check_diagram(id, d).with_context(|| format!("lessons/{pid}.json"))?;
+            }
+            for id in file["lessons"].as_object().cloned().unwrap_or_default().keys() {
                 ensure!(p.lessons.iter().any(|l| l.id == *id), "lessons/{pid}.json: {id} is no lesson of the phase");
             }
         }
@@ -598,6 +703,7 @@ impl Course {
                             "emergencies": emergencies,
                             "briefing": for_jet(&l.content["briefing"], jet, j),
                             "lesson_tab": for_jet(&l.content["lesson_tab"], jet, j),
+                            "diagrams": for_jet(&l.content["diagrams"], jet, j),
                             "calls": for_jet(&l.content["calls"], jet, j),
                         })
                     })
@@ -804,6 +910,22 @@ mod tests {
         let ride5 = c.items(p5, l5);
         assert!(!ride5.contains(&"formation_position".to_string()) && ride5.contains(&"bomb_miss".to_string()));
     }
+
+    /// The overhead break of training.md §16.5 is a diagram the loader takes; a pin missing or a point off the frame
+    /// is refused.
+    #[test]
+    fn a_diagram_is_checked() {
+        let d: Value = serde_json::from_str(OVERHEAD).unwrap();
+        check_diagram("overhead", &d).unwrap();
+        let mut bad = d.clone();
+        bad["top"]["pins"].as_array_mut().unwrap().pop();
+        assert!(check_diagram("overhead", &bad).is_err());
+        let mut off = d.clone();
+        off["side"]["paths"][0]["track"][0] = json!([120, 0]);
+        assert!(check_diagram("overhead", &off).is_err());
+    }
+
+    const OVERHEAD: &str = r#"{"title": {"en": "The overhead break", "he": "ההקפה עם שבירה"}, "points": [{"en": "Initial", "he": "כניסה", "hold": {"en": "5 nm · 300 kt · 1,500 ft", "he": "5 מייל · 300 קשר · 1,500 רגל"}}, {"en": "Break", "he": "שבירה", "hold": {"en": "4–5 G · level", "he": "4–5 G · אופקית"}}, {"en": "Downwind", "he": "עם הרוח", "hold": {"en": "200 kt · gear down", "he": "200 קשר · כן נסע למטה"}}, {"en": "Final turn", "he": "פניית סופית", "hold": {"en": "at the perch", "he": "בנקודת הפנייה"}}, {"en": "Touchdown", "he": "נגיעה", "hold": {"en": "first 1,000 ft", "he": "1,000 רגל ראשונות"}}], "top": {"runway": [[42.0, 62.0], [52.0, 62.0]], "paths": [{"track": [[99.0, 74.0], [64.0, 74.0], [64.0, 74.0], [59.7, 72.3], [56.1, 67.6], [53.7, 60.4], [52.8, 52.0], [53.7, 43.6], [56.1, 36.4], [59.7, 31.7], [64.0, 30.0], [82.0, 30.0], [85.1, 31.2], [87.7, 34.7], [89.5, 39.9], [90.1, 46.0], [89.5, 52.1], [87.7, 57.3], [85.1, 60.8], [82.0, 62.0], [48.0, 62.0]]}], "pins": [[92.0, 74.0], [64.0, 74.0], [73.0, 30.0], [90.1, 46.0], [48.0, 62.0]]}, "side": {"paths": [{"track": [[48, 80], [60, 80], [72, 80], [84, 36], [96, 0]]}], "pins": [[48, 80], [60, 80], [72, 80], [84, 36], [96, 0]], "notes": [{"at": [74, 92], "en": "1,500 ft", "he": "1,500 רגל"}]}}"#;
 
     #[test]
     fn grades_against_the_standard() {
