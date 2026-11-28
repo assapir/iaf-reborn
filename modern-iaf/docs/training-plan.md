@@ -25,7 +25,7 @@ The pass and fail rules already built are in [training.md](training.md), the bri
 - **One range for every course.** The air-to-ground and threat lessons (phases 5 and 8) use the same range in the
   southern Negev, in the training complex by Ovda[^atc]; the flight time to it differs by base (the user, 28 Nov 2026:
   "The range should be in the same place always, so it can be different time to arrive"). From Ramon it is short,
-  from Nevatim longer, from Ramat David the longest. The range's real name and layout are open (§6).
+  from Nevatim longer, from Ramat David the longest. The range's real name and layout are open (§7).
 
 | Jet          | Home base   | Instructor                        |
 | ------------ | ----------- | --------------------------------- |
@@ -66,7 +66,7 @@ example)"):
 
 The order's other sections follow. Weather and area, and Coordination and safety, are inferred: they hold what a
 sortie briefing needs that an order's sections do not name. The sections are replaced if an IAF source is found
-(§6). In Hebrew and English:
+(§7). In Hebrew and English:
 
 | Section                     | What it holds in a lesson                                                          |
 | --------------------------- | ---------------------------------------------------------------------------------- |
@@ -275,7 +275,27 @@ The F-35I course has the same phases. Its differences:
 The F-35I's avionics are built ([status.md](status.md)), so its course is built at the same time as the F-16 courses
 (the user, 28 Nov 2026).
 
-## 5. What the lessons need
+## 5. The front end
+
+The course keeps the front end's design system ([front-end.md](front-end.md) §4): every screen, card, list row,
+mark and colour below reuses one that exists (the user, 28 Nov 2026: "Keep the current design system. Never invent
+something"). Anything the existing screens do not have is proposed on the Approvals page and built only on the
+user's yes. The route is Hangar → Missions → Training → a phase → the briefing:
+
+- **The phases:** Training opens a screen of eight phase cards in the Missions screen's card look
+  ([front-end.md](front-end.md) §1): each card has the phase's number, its title and the pilot's progress in it, and
+  the card with the next lesson is marked Next.
+- **A phase's lessons:** a card opens its lessons in today's section-list look: the day lessons, the night lesson and
+  the check ride, each with its last result (Pass, Marginal, Unsatisfactory or not flown) and the next one marked.
+- **Changes to existing screens:** the briefing's sections and diagrams (§2.2), the debrief's grades and fault
+  markers (§2.4), the notebook's Lesson tab, and the course's progress on the Hangar's jet card and in the Pilot
+  screen's logbook.
+
+Each of these is a visible change: a mock-up made from the existing screens' parts goes to the Approvals page before
+it is built. The briefing's diagrams use the look of the sim's existing drawings and the notebook's approved look
+(13 Nov 2026), not a new style.
+
+## 6. What the lessons need
 
 The courses need these capabilities. A builder checks each against [status.md](status.md) before a phase is built:
 
@@ -293,7 +313,7 @@ The courses need these capabilities. A builder checks each against [status.md](s
 - SAM sites at the range;
 - a tanker.
 
-## 6. Open
+## 7. Open
 
 - **The F-35I's lessons** where its procedures and stores differ from the F-16s' (§4).
 - **The home bases:** each jet's real training base (§1).
