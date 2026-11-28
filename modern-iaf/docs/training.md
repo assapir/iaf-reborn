@@ -340,7 +340,7 @@ reads the same `checklist` event. The throttle goes back to OFF by its own key, 
 | # | F-35I Adir | key | timing | out of order | source |
 |---|---|---|---|---|---|
 | 1 | Battery: ON | Ctrl+B | at once | — | battery, IPP, engine[^ayton] |
-| 2 | IPP: START | Ctrl+J | runs 10 s, then holds | before the battery: `no_power` | [^ayton]; the 10 s inferred |
+| 2 | IPP: START | Ctrl+J | runs 10 s, then holds for the engine start; the displays on its power 3 s later, the avionics after the self test (90 s from the battery) without the engine | before the battery: `no_power` | [^ayton]; the 10 s inferred |
 | 3 | Throttle to idle: the engine starts | the throttle up from OFF (in the 3D cockpit also the ENGINE switch or the IPP knob to START, [cockpit.md](cockpit.md) §5.2) | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
 | 4 | Canopy: close and lock | Ctrl+K | at once; the canopy, its aft end up 30° about its front hinge at the cold start, comes down over 10 s | any time; taxiing with it up has no consequence | inferred (front-hinged: [f35i.md](../../docs/f35i.md) §4; 30° and the time FlightGear's F-16's[^fgcanopy]) |
 
@@ -1063,12 +1063,13 @@ section is flown on the ground: its `landed` sections (the shutdown) open on the
 spot. A card item with `"lesson": true` (the night lighting: the F-16s' `interior_lights`, the F-35I's `hmd_night`)
 is only on a lesson's card that asks for it; elsewhere, and in the manuals, it is left out. The throttle to OFF with
 the engine running is the shutdown a lesson teaches when its `checklist` holds `throttle_off` (`Watch::step_fault`):
-no fault, so the lesson goes on; elsewhere it still fails the mission (§7.2).
+no fault while the card's item to do now is `throttle_off`, so the lesson goes on; a cut-off earlier in the lesson,
+and any elsewhere, still fails the mission (§7.2).
 
 ### 16.3 The tests
 
-A call's `when` and a mission's `end` name tests of the flight's state. Each has its rule in the instructor's call
-engine.
+A call's `when` and a mission's `end` name tests of the flight's state: data that the instructor's call engine reads
+(job train-calls) and, for an `end`, the scorer (`training::holds`).
 
 | Test | Holds when |
 |------|------------|
@@ -1101,7 +1102,7 @@ spot, the wind calm, the sky clear:
 
 | Lesson | Time | The card it asks for | Calls asked | Ends |
 |--------|------|----------------------|-------------|------|
-| 1.1 Cockpit and power | 08:00 | BEFORE STARTING ENGINE; the F-16s' lamp tests (FIRE & OHEAT, MAL & IND), the F-35I's battery, IPP, self test, HMD and cautions | radio check | `power_off` |
+| 1.1 Cockpit and power | 08:00 | BEFORE STARTING ENGINE; the F-16s' lamp tests (FIRE & OHEAT, MAL & IND) and MAIN PWR OFF, the F-35I's battery, IPP, self test, HMD, cautions and BATT OFF | radio check | `power_off` |
 | 1.2 Engine start and INS | 08:00 | the start-up to BEFORE TAXI's INS and canopy, then the shutdown | start-up | `engine_off`, `power_off` |
 | 1.3 Taxi and radio | 08:00 | the start-up, BEFORE TAXI, AFTER LANDING and the shutdown | start-up, taxi | `parked`, `engine_off`, `power_off` |
 | 1.4 At night | 21:00 | 1.3's with the night lighting (F-16s: `interior_lights`; F-35I: `hmd_night` in place of `hmd`) | start-up, taxi | `parked`, `engine_off`, `power_off` |

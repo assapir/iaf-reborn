@@ -1111,11 +1111,11 @@ pub struct Watch {
 
 impl Watch {
     /// A start-up step's fault as this run counts it: the throttle to OFF with the engine running (`cutoff`'s
-    /// `shutdown`) is the shutdown a lesson asks for when its card holds `throttle_off` (training.md §16.2), no fault
-    /// (""); any other fault stands.
-    pub fn step_fault<'a>(&self, step: &str, fault: &'a str) -> &'a str {
-        let taught =
-            step == "cutoff" && fault == "shutdown" && self.rules.checklist.iter().any(|i| i == "throttle_off");
+    /// `shutdown`) is the shutdown a lesson asks for when its card holds `throttle_off` and the card's item to do now
+    /// (`current`) is it (training.md §16.2), no fault (""); any other fault stands, a cut-off earlier in the lesson too.
+    pub fn step_fault<'a>(&self, step: &str, fault: &'a str, current: &str) -> &'a str {
+        let asked = self.rules.checklist.iter().any(|i| i == "throttle_off");
+        let taught = step == "cutoff" && fault == "shutdown" && asked && current == "throttle_off";
         if taught { "" } else { fault }
     }
 
@@ -1576,9 +1576,11 @@ pub const END_TESTS: [&str; 7] = ["power_off", "engine_off", "idle", "aligned", 
 const NIGHT_ITEMS: [&str; 2] = ["interior_lights", "hmd_night"];
 
 /// Parked: on the ground, stopped, within this of the spot the flight started from, m (inferred: a shelter's pad).
-const PARKED_M: f64 = 30.0;
+pub const PARKED_M: f64 = 30.0;
 
 /// Test `test` (END_TESTS) at sample `i` of the recording.
+// ponytail: each event test scans the events at every sample (samples x events per score); walk them once alongside
+// the samples if a long lesson's score shows in the frame time.
 fn holds(f: &Flight, i: usize, test: &str) -> bool {
     let (s, x) = (&f.samples, &f.samples[i]);
     let before = |e: &&Value| e["t"].as_f64().is_some_and(|t| t <= x.t);

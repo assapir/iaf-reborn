@@ -33,9 +33,10 @@ var _air_lesson := false
 var _ground_lesson := false  # a course lesson flown on the ground: its "landed" sections open on its spot
 var _spot = null  # the rig's first place (Vector3), a ground lesson's spot
 var _taxis := false  # a ground lesson with a runway: it taxis out and back
-var _left := false  # the jet has been farther than SPOT_M from its spot
-## A ground lesson's spot: within this of where the jet started, stopped (m, kt; inferred: a shelter's pad).
-const SPOT_M := 30.0
+var _left := false  # the jet has been farther than _spot_m from its spot
+## A ground lesson's spot: within _spot_m of where the jet started (IafTraining.parked_m, the scorer's `parked`),
+## stopped below STOPPED_KT (inferred: brake creep).
+var _spot_m: float = ClassDB.class_call_static("IafTraining", "parked_m")
 const STOPPED_KT := 1.0
 var _brakes_out := false  # the speed brakes seen open since the flight began ("speedbrake": "cycled")
 var _approach := false
@@ -197,10 +198,10 @@ func _phase(when: String, st: Dictionary) -> bool:
 	return true
 
 
-## The jet within SPOT_M of where it started.
+## The jet within _spot_m of where it started.
 func _near_spot() -> bool:
 	var p: Vector3 = flight.host.rig.position
-	return _spot == null or Vector2(p.x - _spot.x, p.z - _spot.z).length() <= SPOT_M
+	return _spot == null or Vector2(p.x - _spot.x, p.z - _spot.z).length() <= _spot_m
 
 
 ## Check `c` holds: every key of it ("step": the flight model's start-up step done (sim_flight.gd done); "set": each

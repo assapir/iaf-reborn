@@ -160,6 +160,8 @@ var _tanker_tried := false
 ## The training mission: its readable file's name (res://data/missions/<name>.json) and rules; {} for a flight without.
 var mission_name := ""
 var rules := {}
+## The flight is a course lesson's check ride: no switch ringed (training-plan.md §2.5).
+var check_ride := false
 ## The jet the mission flies (its readable file's start.unit: f16i, f16d, f35i), stored with the sortie.
 var plane := ""
 ## The debrief record once scored ({} before), and its sortie in the records database (0 before). Set from outside
@@ -280,6 +282,12 @@ func _ready() -> void:
 		rules = readable.get("training", {}) if sim.has("training") else {}
 		mission_name = String(files[0].name) if not rules.is_empty() else ""
 		checklist = readable.get("training", {}).get("checklist", [])
+		var key := String(readable.get("lesson", ""))
+		if key != "":
+			var course = JSON.parse_string(IafTraining.course(plane))
+			for ph in course.phases if course is Dictionary else []:
+				for le in ph.lessons:
+					check_ride = check_ride or (String(le.key) == key and String(le.kind) == "check")
 		_tanker_spec = readable.get("tanker", {})
 		_failures_plan = readable.get("failures", [])
 		if String(readable.get("category", "")) == "fly_now":
@@ -1397,7 +1405,8 @@ func throttle_off() -> void:
 		return
 	var fault: String = host.flight.start_step("cutoff")
 	if trainer != null and not rules.is_empty():
-		fault = String(trainer.step_fault("cutoff", fault))  # a lesson's own shutdown is no fault (training.md §16.2)
+		# A lesson's own shutdown, its card's item to do now, is no fault (training.md §16.2).
+		fault = String(trainer.step_fault("cutoff", fault, String(card.current().get("id", ""))))
 	var e := {"event": "checklist", "step": "cutoff"}
 	if fault != "":  # the fuel was on: the start's steps to take again (a cold or cranking engine keeps them)
 		e["fault"] = fault

@@ -18,8 +18,8 @@ const LESSONS: &[(&str, &str)] = &[("ground", include_str!("../../../modern-iaf/
 pub const SECTIONS: [&str; 8] =
     ["mission", "target", "enemy", "our_forces", "weather_area", "execution", "coordination", "signal"];
 
-/// The tests a call (and a lesson's end) waits for, by name (training.md §16.3). The instructor's call engine reads
-/// them; each needs its rule there.
+/// The tests a call (and a lesson's end) waits for, by name (training.md §16.3): data for the instructor's call engine
+/// and, for an end, the scorer (`training::holds`).
 pub const TESTS: [&str; 16] = [
     "start",
     "idle",

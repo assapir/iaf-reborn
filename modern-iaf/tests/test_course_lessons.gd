@@ -41,8 +41,8 @@ func run() -> void:
 
 ## The card items of jet `unit`'s card, the lesson-only ones too.
 func _card_ids(unit: String) -> Array:
-	for f in DirAccess.get_files_at(Settings.readable("res://data/checklists")):
-		var d: Dictionary = Settings.load_json("res://data/checklists/" + f)
+	for f in DirAccess.get_files_at(settings().readable("res://data/checklists")):
+		var d: Dictionary = settings().load_json("res://data/checklists/" + f)
 		if unit in d.get("jets", []):
 			var out_ids := []
 			for sec in d.sections:
@@ -61,7 +61,7 @@ func _content(unit: String, le: Dictionary, ids: Array, calls: Array) -> void:
 	check(le.lesson_tab is Array and le.lesson_tab.size() > 0, "%s: the notebook's Lesson tab" % what)
 	var check_ride := String(le.kind) == "check"
 	check(check_ride == (le.calls == null or le.calls.is_empty()), "%s: calls, none in a check ride" % what)
-	var m: Dictionary = Settings.load_json("res://data/missions/%s.json" % le.mission)
+	var m: Dictionary = settings().load_json("res://data/missions/%s.json" % le.mission)
 	var tests: Array = m.get("training", {}).get("end", []).duplicate()
 	for c in le.calls if le.calls is Array else []:
 		tests.append_array(c.when)
@@ -108,11 +108,15 @@ func _fly_lesson(unit: String, key: String) -> void:
 	if "startup" in calls:
 		await _call(tv, "startup")
 	Engine.time_scale = TIME_SCALE
+	var checked := false
 	for n in 80:
 		await frames(1)
 		var it: Dictionary = card.current()
 		if it.is_empty():
 			break
+		if it.id in ["main_power_off", "batt_off"] and "radio_check" in calls and not checked:
+			await _radio_check(tv, what)  # lesson 1.1: the radio checked before the power goes off
+			checked = true
 		if it.check.has("throttle_off"):
 			addon.throttle_off()
 		elif it.check.get("set", {}).has("BATT") or it.check.get("set", {}).has("MAIN_PWR"):
@@ -122,15 +126,10 @@ func _fly_lesson(unit: String, key: String) -> void:
 			await _do_item(tv, it, false)
 		else:
 			await _do_item(tv, it, false)
-		check(await _until(tv, func(): return card.done.has(it.id), 150.0), "%s: %s ticked" % [what, it.id])
-	if "radio_check" in calls:
-		_press(tv, KEY_T, true)
-		_press(tv, KEY_1)  # Tower
-		var i: int = tv.addon.shown.find("radio_check")
-		check(i >= 0, "%s: the radio menu lists the radio check (%s)" % [what, tv.addon.menu_text()])
-		_press(tv, KEY_1 + i)
-		await fly(tv, 0.5)
-		check(String(tv.radio.said[-2].template) == "ACFT_RADIO_CHECK", "%s: the tower reads us five" % what)
+		var ticked := await _until(tv, func(): return card.done.has(it.id), 150.0)
+		check(ticked, "%s: %s ticked" % [what, it.id])
+		if not ticked:
+			break
 	# Lesson 1.1 ends dark: the power off by its switches (the F-35I's IPP, then BATT).
 	for sw in ["IPP", "BATT"] if unit == "f35i" else ["MAIN_PWR"]:
 		for k in 4:
@@ -142,3 +141,15 @@ func _fly_lesson(unit: String, key: String) -> void:
 	for g in addon.result.get("graded", []):
 		check(String(g.grade) in GOOD, "%s: %s %s (%s)" % [what, g.id, g.grade, g.get("flown")])
 	Engine.time_scale = 1.0
+
+
+## The radio menu's radio check, and the tower's answer.
+func _radio_check(tv: Node, what: String) -> void:
+	_press(tv, KEY_T, true)
+	_press(tv, KEY_1)  # Tower
+	var i: int = tv.addon.shown.find("radio_check")
+	check(i >= 0, "%s: the radio menu lists the radio check (%s)" % [what, tv.addon.menu_text()])
+	_press(tv, KEY_1 + i)
+	await fly(tv, 0.5)
+	var answered: bool = tv.radio.said.slice(-3).any(func(x): return String(x.template) == "ACFT_RADIO_CHECK")
+	check(answered, "%s: the tower reads us five" % what)

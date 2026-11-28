@@ -27,7 +27,7 @@
     "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
     "training.time_budget_s": "fifteen minutes: the card read line by line on battery power, with time to read the notebook (inferred)",
     "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
-    "training.checklist": "the card items the lesson covers: BEFORE STARTING ENGINE and, on the F-16s, the two lamp tests of AFTER ENGINE START that work on the battery; on the F-35I the battery, the IPP, the self test, the helmet and the cautions (data/checklists, training.md §12)"
+    "training.checklist": "the card items the lesson covers: BEFORE STARTING ENGINE and, on the F-16s, the two lamp tests of AFTER ENGINE START that work on the battery and MAIN PWR OFF; on the F-35I the battery, the IPP, the self test, the helmet, the cautions and BATT OFF (data/checklists, training.md §12)"
   },
   "footnotes": {
     "oa": "OurAirports, airports.csv (public domain; LLRM elevation 2126 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
@@ -71,7 +71,8 @@
       "flcs_pwr_test",
       "main_power",
       "fire_test",
-      "mal_ind_test"
+      "mal_ind_test",
+      "main_power_off"
     ],
     "time_budget_s": 900,
     "end_hold_s": 5,

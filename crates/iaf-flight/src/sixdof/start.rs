@@ -449,7 +449,12 @@ impl Start {
             && !self.gens_failed
             && self.phase != Phase::Rundown
             && self.phase != Phase::Off
-            && if s.displays_on_starter { self.phase != Phase::Starter } else { self.rpm >= s.generator_rpm };
+            // The F-35I's displays on the IPP once it is up to speed, also while it holds for the engine start by keys.
+            && if s.displays_on_starter {
+                self.phase != Phase::Starter || self.phase_t >= s.starter_s
+            } else {
+                self.rpm >= s.generator_rpm
+            };
         // The emergency power coming on after the generators dropped (the EPU starts once they are off line) brings
         // the displays back after their warm-up.
         let emergency = main && self.emergency(s);
@@ -965,6 +970,9 @@ mod tests {
         assert!((av.unwrap() - 92.0).abs() < 0.2, "the self test 90 s after the battery: {av:?}");
         assert_eq!(keys(&IPP, &[("main_power", 1.0), ("engine", 1.0)]).0, ["no_ipp"]);
         assert_eq!(keys(&IPP, &[("main_power", 1.0), ("starter", 1.0), ("engine", 2.0)]).0, ["ipp_not_ready"]);
+        // Lesson 1.1: the battery and the IPP alone bring the displays and, after the self test, the avionics up.
+        let (faults, av) = keys(&IPP, &[("main_power", 1.0), ("starter", 1.0)]);
+        assert!(faults.is_empty() && av.is_some_and(|t| (89.0..93.0).contains(&t)), "on the IPP alone: {av:?}");
     }
 
     #[test]
