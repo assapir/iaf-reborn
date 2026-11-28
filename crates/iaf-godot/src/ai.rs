@@ -20,12 +20,25 @@ use iaf_ai::net::{self, Gci, Member, Net};
 use iaf_ai::site::{self, Emcon, Kind, Site, Target};
 use iaf_ai::strike::{self, Pylon};
 use iaf_ai::target::{Drone, Kind as DroneKind};
-use iaf_ai::{Bandit, Bogey, Decoy, Flight, Skill, Tactic, Threat};
+use iaf_ai::{Bandit, Bogey, Decoy, Flight, LeadStep, Skill, Tactic, Threat};
 use iaf_flight::Vec3;
 use iaf_flight::autopilot::Leader;
 
 use crate::flight::{IafFlight, to_enu};
 use crate::world::{get, num, rcs, terrain, vec3, vector3};
+
+/// A lead's order by its name (`IafAi.set_plan`).
+fn lead_step(order: &str) -> Option<LeadStep> {
+    Some(match order {
+        "rejoin" => LeadStep::Rejoin,
+        "close_up" => LeadStep::Close,
+        "spread_out" => LeadStep::Spread,
+        "tac_right" | "tac_left" | "in_place_right" | "in_place_left" => {
+            LeadStep::Turn { right: order.ends_with("right"), in_place: order.starts_with("in_place") }
+        }
+        s => LeadStep::Shape(iaf_ai::SHAPES.iter().position(|x| x.0 == s)?),
+    })
+}
 
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
@@ -76,6 +89,56 @@ impl IafAi {
     #[func]
     fn pairs(&mut self, on: bool) {
         self.flight.pairs(on);
+    }
+
+    /// An AI lead's plan (a lesson mission's `lead_plan`, modern-iaf/docs/data-formats.md §5): each entry
+    /// `{"wp": the waypoint index, "order": a shape of iaf_ai::SHAPES, "rejoin", "close_up", "spread_out",
+    /// "tac_right", "tac_left", "in_place_right" or "in_place_left"}`, given once the lead has passed the waypoint. An
+    /// unknown order is left out (false).
+    #[func]
+    fn set_plan(&mut self, plan: VarArray) -> bool {
+        let mut out = vec![];
+        let mut ok = true;
+        for v in plan.iter_shared() {
+            let Ok(d) = v.try_to::<VarDictionary>() else {
+                ok = false;
+                continue;
+            };
+            let wp = d.get("wp").and_then(|w| w.try_to::<i64>().ok()).unwrap_or(-1);
+            let order = d.get("order").map(|o| o.to_string()).unwrap_or_default();
+            match lead_step(&order) {
+                Some(step) if wp >= 0 => out.push((wp as usize, step)),
+                _ => ok = false,
+            }
+        }
+        self.flight.set_plan(out);
+        ok
+    }
+
+    /// The player may order `to` (0 the flight, 5 the element, 2..4 one jet): as the lead always, in an AI lead's
+    /// flight only its own wingman (`Flight::player_may_order`); the radio menu offers only these.
+    #[func]
+    fn may_order(&self, to: i64) -> bool {
+        self.flight.player_may_order(to.clamp(0, 5) as u8)
+    }
+
+    /// The flight for the instructor's calls (training.md §16.3, `Flight::facts`): `in_slot` (the player, a wingman,
+    /// in its slot), `joined` (every other live jet in position), `landed` (every live jet down after its flight).
+    #[func]
+    fn facts(&self) -> VarDictionary {
+        let (in_slot, joined, landed) = self.flight.facts();
+        let mut d = VarDictionary::new();
+        d.set("in_slot", in_slot);
+        d.set("joined", joined);
+        d.set("landed", landed);
+        d
+    }
+
+    /// The lead's order `order` now (as `set_plan`'s), said by the AI lead. False: unknown or refused (a turn under
+    /// way, the lead on the ground).
+    #[func]
+    fn lead_order(&mut self, now: f64, order: GString) -> bool {
+        lead_step(&order.to_string()).is_some_and(|s| self.flight.lead_order(now, s))
     }
 
     /// A radio command at `now` to `to` (0 the flight, 5 the element #3–#4, 2..4 one wingman): check, ops_check,
@@ -398,6 +461,10 @@ impl IafAi {
         }
         d.set("leader", self.flight.leader(m.number) as i64);
         d.set("slot_error", m.slot_error);
+        let (shape, mirror) = self.flight.shape();
+        d.set("shape", iaf_ai::SHAPES[shape].0);
+        d.set("mirror", mirror);
+        d.set("turning", self.flight.turning());
         d.set("close", self.flight.close_step() as i64);
         d.set("held", self.flight.held_step() as i64);
         d.set("avoiding", m.order.avoid.is_some());

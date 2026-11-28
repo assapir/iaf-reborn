@@ -1,0 +1,2635 @@
+{
+ "about": "Phase 4's lessons (Formation and flight lead): per lesson its missions by jet, the briefing's sections, the notebook's Lesson tab and the instructor's calls (modern-iaf/docs/training.md §16). Read by crates/iaf-tools/src/course.rs. The formations and the commands are the AI flight's (docs/ai.md §8.7, iaf_ai SHAPES), the tactical turns CNATRA P-1221's (crates/iaf-ai flight.rs TAC_G); the Hebrew terms are research/radio-terms.md's. The texts take {jet}, {base}, {runway} and {key:<record>[:<pick>]}.",
+ "lessons": {
+  "wingman": {
+   "missions": {
+    "f16d": "f16d_formation_wingman",
+    "f16i": "f16i_formation_wingman",
+    "f35i": "f35i_formation_wingman"
+   },
+   "briefing": {
+    "mission": [
+     {
+      "en": "A pair of {jet} from {base}, by day: you fly as number two. A formation take-off, fingertip and close formation, trail and the rejoin, and the landing behind the lead.",
+      "he": "זוג {jet}, {base}, יום. אתם מספר 2: המראה במבנה, ארבע אצבעות, מבנה צמוד, טור, הצטרפות ונחיתה אחרי המוביל."
+     }
+    ],
+    "target": [
+     {
+      "en": "After this lesson you can take off beside your lead, hold your slot in fingertip and close formation, fall back into trail, rejoin your lead on its order and land behind it.",
+      "he": "בסיום התרגול הזה תדעו להמריא לצד המוביל, להחזיק מקום בארבע אצבעות ובמבנה צמוד, לרדת לטור, להצטרף בפקודת המוביל ולנחות אחריו, תוך שמירה על מרחק של עד 20 מטר מהמקום והצטרפות תוך 90 שניות."
+     }
+    ],
+    "enemy": [
+     {
+      "en": "None.",
+      "he": "אין."
+     }
+    ],
+    "our_forces": [
+     {
+      "jets": [
+       "f16d",
+       "f16i"
+      ],
+      "en": "Two {jet}: Kidon 1-1, the lead, and Kidon 1-2, yours, with the instructor in the back seat on the intercom. {base} tower on the radio.",
+      "he": "שני {jet}: כידון 1-1, מוביל; כידון 1-2, אתם, המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר."
+     },
+     {
+      "jets": [
+       "f35i"
+      ],
+      "en": "Two F-35I: Kidon 1-1, the instructor's, leads; Kidon 1-2 is yours. {base} tower on the radio.",
+      "he": "שני F-35I: כידון 1-1, המדריך, מוביל; כידון 1-2, אתם. מגדל {base} בקשר."
+     }
+    ],
+    "weather_area": [
+     {
+      "en": "Day, the wind calm, the sky clear. Runway {runway} at {base}. The area: the box of steerpoints on the route, at 10,000 ft.",
+      "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. אזור התרגול: מרובע נקודות הציון במסלול, 10,000 רגל."
+     }
+    ],
+    "execution": [
+     {
+      "en": "Start-up as you know it. The lead has the flight's start-up clearance and starts with you; it taxis once your engine has run two minutes. Follow it out at taxi spacing.",
+      "he": "יש להתניע כרגיל. אישור ההתנעה של המוביל חל על כל המבנה; המוביל מתניע איתכם ויוצא להסעה שתי דקות אחרי שהמנוע שלכם עובד. יש להסיע אחריו, במרווח הסעה.",
+      "at": "start"
+     },
+     {
+      "en": "Formation take-off: line up on the lead's left wing, 15 m from it, nose level with its nose, and stop. The lead runs up and rolls at military power; release the brakes with it and hold your place on the throttle. Gear up when the lead's gear goes up.",
+      "he": "יש להיכנס למסלול על כנף שמאל של המוביל, 15 מטר ממנו, אף מול אף, ולעצור. המוביל מעלה סל\"ד ומתגלגל בכוח צבאי: יש לשחרר בלמים איתו ולשמור על המקום במצערת, ולהעלות גלגלים עם המוביל.",
+      "at": "lineup",
+      "diagram": "formation_takeoff"
+     },
+     {
+      "en": "Fingertip: your slot is 60 m behind and 60 m left of the lead, level with it. Hold it with small throttle and stick inputs; keep the lead's wingtip on its canopy.",
+      "he": "בארבע אצבעות יש לשמור על מקום 60 מטר מאחורי המוביל ו-60 מטר משמאלו, באותו גובה, בתיקוני מצערת וסטיק קטנים: קצה הכנף של המוביל מול החופה שלו.",
+      "diagram": "fingertip"
+     },
+     {
+      "en": "Close up: on the lead's \"close up\" move in to half the distance, 30 m; on the next, to the parade position, 12 m, two metres between the wingtips. \"Spread out\" takes you back one step.",
+      "he": "בפקודה \"close up\" יש להתקרב לחצי המרחק, 30 מטר; בפקודה הבאה, למבנה מצעד, 12 מטר, שני מטר בין קצות הכנפיים. בפקודה \"spread out\" יש לחזור צעד אחד אחורה.",
+      "diagram": "close_formation"
+     },
+     {
+      "en": "Trail: on \"trail\" drop back 600 m directly behind the lead, at its height. Rejoin: on \"rejoin\" fly back to fingertip on the inside of the lead's turn, with 30 to 50 kt more than the lead, and take the overtake off as you come in. The rejoin is graded from the order to in position.",
+      "he": "בפקודה \"trail\" יש לרדת 600 מטר ישר מאחורי המוביל, בגובה שלו. בפקודה \"rejoin\" יש לחזור לארבע אצבעות מפנים הפנייה של המוביל, 30 עד 50 קשר מעליו, ולהוריד את עודף המהירות בהתקרבות. זמן ההצטרפות נמדד מהפקודה ועד ההגעה למקום.",
+      "diagram": "trail_rejoin"
+     },
+     {
+      "en": "Recovery: the lead takes the pair home and lands first; land behind it on the same runway, then taxi in behind it to your shelter and shut down.",
+      "he": "המוביל מחזיר את הזוג ונוחת ראשון. יש לנחות אחריו על אותו מסלול, להסיע אחריו לדת\"ק ולכבות.",
+      "at": "start"
+     }
+    ],
+    "coordination": [
+     {
+      "en": "The lead flies the jet; you keep clear of it. Never cross under or over the lead without its order. If you lose sight of the lead, call it at once and turn away from where you last saw it: \"knock it off\" stops the exercise. Bingo fuel is the card's; the lead takes the flight home before it.",
+      "he": "המוביל מטיס; האחריות על המרחק ממנו שלכם. אין לחצות מתחת למוביל או מעליו בלי פקודה. מוביל אבד מהעין: הודעה מיידית ופנייה הרחק מהמקום האחרון שבו נראה. \"knock it off\" עוצר את התרגיל. דלק בינגו לפי הכרטיס; המוביל מחזיר את המבנה לפניו."
+     }
+    ],
+    "signal": [
+     {
+      "jets": [
+       "f16d",
+       "f16i"
+      ],
+      "en": "Callsign Kidon 1: the lead Kidon 1-1, you Kidon 1-2. The lead talks to the tower for the flight; you answer the lead's orders. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the intercom.",
+      "he": "אות קריאה כידון 1: המוביל כידון 1-1, אתם כידון 1-2. המוביל מול המגדל בשם המבנה; אתם עונים למוביל. תדרי הקרקע והמגדל של {base} בדף הקשר בפנקס. המדריך באינטרקום."
+     },
+     {
+      "jets": [
+       "f35i"
+      ],
+      "en": "Callsign Kidon 1: the instructor leads as Kidon 1-1, you fly Kidon 1-2. The lead talks to the tower for the flight; you answer the lead's orders. {base} ground and tower: the frequencies are on the notebook's RADIO page.",
+      "he": "אות קריאה כידון 1: המדריך מוביל, כידון 1-1; אתם כידון 1-2. המוביל מול המגדל בשם המבנה; אתם עונים למוביל. תדרי הקרקע והמגדל של {base} בדף הקשר בפנקס."
+     }
+    ]
+   },
+   "lesson_tab": [
+    {
+     "en": "Start-up; wait for the lead",
+     "he": "יש להתניע ולהמתין למוביל",
+     "wait": {
+      "en": "the lead taxis two minutes after your engine start",
+      "he": "המוביל יוצא שתי דקות אחרי ההתנעה שלכם"
+     }
+    },
+    {
+     "en": "Taxi behind the lead; line up on its left",
+     "he": "יש להסיע אחרי המוביל ולהיכנס למסלול משמאלו",
+     "diagram": "formation_takeoff",
+     "wait": {
+      "en": "15 m off its wing, stopped",
+      "he": "15 מטר מהכנף שלו, עצירה"
+     }
+    },
+    {
+     "en": "Roll with the lead; gear up with it",
+     "he": "יש להתגלגל עם המוביל ולהעלות גלגלים איתו"
+    },
+    {
+     "en": "Fingertip: 60 m back, 60 m left",
+     "he": "יש להחזיק ארבע אצבעות: 60 מטר אחורה, 60 מטר שמאלה",
+     "diagram": "fingertip"
+    },
+    {
+     "en": "Close up: 30 m, then 12 m",
+     "he": "יש להתקרב למבנה צמוד: 30 מטר, אחר כך 12 מטר",
+     "diagram": "close_formation"
+    },
+    {
+     "en": "Trail: 600 m behind",
+     "he": "יש לרדת לטור: 600 מטר מאחור",
+     "diagram": "trail_rejoin"
+    },
+    {
+     "en": "Rejoin to fingertip",
+     "he": "יש להצטרף לארבע אצבעות",
+     "wait": {
+      "en": "inside the lead's turn, 30 to 50 kt of overtake",
+      "he": "מפנים הפנייה, 30 עד 50 קשר עודף"
+     }
+    },
+    {
+     "en": "Land behind the lead; taxi in; shut down",
+     "he": "יש לנחות אחרי המוביל, להסיע ולכבות",
+     "wait": {
+      "en": "parked, the engine off: the end",
+      "he": "בחניה, מנוע כבוי: סוף התרגול"
+     }
+    }
+   ],
+   "calls": [
+    {
+     "id": "intro",
+     "when": [
+      "start"
+     ],
+     "lines": [
+      {
+       "en": "Today we fly as number two. The lead does the leading, we stay with it. Let's start up as usual; the lead taxis a couple of minutes after our engine is running.",
+       "he": "היום אנחנו מספר 2. המוביל מוביל, ואנחנו נשארים איתו. נתניע כרגיל; המוביל יוצא להסעה כמה דקות אחרי שהמנוע שלנו עובד."
+      }
+     ]
+    },
+    {
+     "id": "lineup",
+     "when": [
+      "hold_point"
+     ],
+     "lines": [
+      {
+       "en": "Here we line up on the lead's left wing, about fifteen metres out, noses level, and stop.",
+       "he": "כאן נעמוד על כנף שמאל של המוביל, בערך חמישה עשר מטר ממנו, אף מול אף, ונעצור."
+      }
+     ]
+    },
+    {
+     "id": "roll",
+     "when": [
+      "lined_up"
+     ],
+     "lines": [
+      {
+       "en": "Nice. Eyes on the lead. When it rolls, we let the brakes go and stay right beside it. Gear up when its gear comes up.",
+       "he": "יפה. עיניים על המוביל. כשהוא מתגלגל, נשחרר בלמים ונישאר צמוד לצדו. גלגלים למעלה כשהגלגלים שלו עולים."
+      }
+     ]
+    },
+    {
+     "id": "fingertip",
+     "when": [
+      "airborne"
+     ],
+     "lines": [
+      {
+       "en": "Now let's settle into fingertip: sixty back, sixty left. Small corrections; keep its wingtip on its canopy.",
+       "he": "עכשיו נתייצב בארבע אצבעות: שישים אחורה, שישים שמאלה. תיקונים קטנים; קצה הכנף שלו מול החופה שלו."
+      }
+     ]
+    },
+    {
+     "id": "close",
+     "when": [
+      "lead_order:close_up"
+     ],
+     "lines": [
+      {
+       "en": "Close up. We ease in to half the distance, slowly, and let the jet settle before the next nudge.",
+       "he": "מבנה צמוד. נתקרב לאט לחצי המרחק, וניתן למטוס להתייצב לפני כל תיקון."
+      }
+     ]
+    },
+    {
+     "id": "trail",
+     "when": [
+      "lead_order:trail"
+     ],
+     "lines": [
+      {
+       "en": "Trail. A touch of power off and we drop back six hundred metres behind it, at its height.",
+       "he": "טור. נוריד קצת כוח ונרד שש מאות מטר מאחוריו, בגובה שלו."
+      }
+     ]
+    },
+    {
+     "id": "rejoin",
+     "when": [
+      "lead_order:rejoin"
+     ],
+     "lines": [
+      {
+       "en": "Rejoin! We cut inside its turn, thirty to fifty knots faster, and bleed the speed off before we arrive.",
+       "he": "הצטרפות! נחתוך לפנים הפנייה שלו, שלושים עד חמישים קשר מהר יותר, ונוריד את המהירות לפני שנגיע."
+      }
+     ]
+    },
+    {
+     "id": "home",
+     "when": [
+      "in_slot"
+     ],
+     "new": true,
+     "lines": [
+      {
+       "en": "Good, we're in. Let's hold it here; the lead takes us home. It lands first, we land right after.",
+       "he": "טוב, אנחנו במקום. נחזיק כאן; המוביל מחזיר אותנו. הוא נוחת ראשון, ואנחנו מיד אחריו."
+      }
+     ]
+    },
+    {
+     "id": "taxi_in",
+     "when": [
+      "flight_landed"
+     ],
+     "lines": [
+      {
+       "en": "We're both down. Let's follow the lead back to the shelter and shut down.",
+       "he": "שנינו על הקרקע. נסיע אחרי המוביל לדת\"ק ונכבה."
+      }
+     ]
+    }
+   ]
+  },
+  "tactical": {
+   "missions": {
+    "f16d": "f16d_formation_tactical",
+    "f16i": "f16i_formation_tactical",
+    "f35i": "f35i_formation_tactical"
+   },
+   "briefing": {
+    "mission": [
+     {
+      "en": "A pair of {jet} from {base}, by day: you fly as number two in spread formation, line abreast, through the lead's tactical turns.",
+      "he": "זוג {jet}, {base}, יום. אתם מספר 2 במבנה מקבילי, בפניות הטקטיות של המוביל."
+     }
+    ],
+    "target": [
+     {
+      "en": "After this lesson you can hold the line abreast slot 1,500 m off your lead and fly the tac turn and the in-place turn with it, coming out on the other side, abeam again.",
+      "he": "בסיום התרגול הזה תדעו להחזיק מקום במבנה מקבילי, 1,500 מטר מהמוביל, ולבצע איתו פנייה טקטית ופנייה במקום עד יציאה בצד השני בקו אחד, תוך שמירה על מרחק של עד 20 מטר מהמקום."
+     }
+    ],
+    "enemy": [
+     {
+      "en": "None.",
+      "he": "אין."
+     }
+    ],
+    "our_forces": [
+     {
+      "jets": [
+       "f16d",
+       "f16i"
+      ],
+      "en": "Two {jet}: Kidon 1-1, the lead, and Kidon 1-2, yours, with the instructor in the back seat on the intercom. {base} tower on the radio.",
+      "he": "שני {jet}: כידון 1-1, מוביל; כידון 1-2, אתם, המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר."
+     },
+     {
+      "jets": [
+       "f35i"
+      ],
+      "en": "Two F-35I: Kidon 1-1, the instructor's, leads; Kidon 1-2 is yours. {base} tower on the radio.",
+      "he": "שני F-35I: כידון 1-1, המדריך, מוביל; כידון 1-2, אתם. מגדל {base} בקשר."
+     }
+    ],
+    "weather_area": [
+     {
+      "en": "Day, the wind calm, the sky clear. Runway {runway} at {base}. The area: the box of steerpoints on the route, at 10,000 ft.",
+      "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. אזור התרגול: מרובע נקודות הציון במסלול, 10,000 רגל."
+     }
+    ],
+    "execution": [
+     {
+      "en": "Start-up, taxi and formation take-off as in lesson 4.1 (Wingman), on the lead's left wing; fingertip on the climb out.",
+      "he": "יש להתניע, להסיע ולהמריא במבנה כמו בתרגול 4.1 (מספר 2), על כנף שמאל של המוביל, ולטפס בארבע אצבעות.",
+      "at": "start"
+     },
+     {
+      "en": "Spread: on \"line abreast\" move out to 1,500 m on the lead's side, level with it, at its height. Look at the lead across the gap; the line between you is square to your heading.",
+      "he": "בפקודה \"line abreast\" יש להתרחק ל-1,500 מטר לצד המוביל, בקו אחד ובגובה שלו, ולשמור על קו ניצב לכיוון הטיסה ביניכם.",
+      "diagram": "line_abreast"
+     },
+     {
+      "en": "Tac turn, 90 degrees (\"Kidon 1, tac right\" or left): the jet on the outside of the turn turns first, about 70 degrees of bank at 300 kt. The jet on the inside waits until the outside jet points its nose at it, then turns the same way. Both roll out on the new heading, abeam again, sides swapped.",
+      "he": "בפנייה טקטית, 90° (\"כידון 1, tac right\" או left), המטוס החיצוני בפנייה פונה מיד, כ-70° הטיה ב-300 קשר; המטוס הפנימי ממתין עד שאף החיצוני מכוון אליו, ואז פונה לאותו צד. יש להתיישר בכיוון החדש, בקו אחד; הצדדים מתחלפים.",
+      "diagram": "tac_turn"
+     },
+     {
+      "en": "In-place turn, 180 degrees (\"Kidon 1, in-place right\" or left): both jets turn at once, the same way, the same bank. You come out heading back, abeam, on the lead's other side.",
+      "he": "בפנייה במקום, 180° (\"כידון 1, in-place right\" או left), יש לפנות יחד עם המוביל, לאותו צד ובאותה הטיה, ולצאת בכיוון ההפוך, בקו אחד, בצד השני שלו.",
+      "diagram": "in_place_turn"
+     },
+     {
+      "en": "After the turns the lead calls fingertip and takes the pair home; land behind it and taxi in behind it.",
+      "he": "אחרי הפניות המוביל קורא לארבע אצבעות ומחזיר את הזוג; יש לנחות ולהסיע אחריו.",
+      "at": "start"
+     }
+    ],
+    "coordination": [
+     {
+      "en": "The lead flies the jet; you keep clear of it. Never cross under or over the lead without its order. If you lose sight of the lead, call it at once and turn away from where you last saw it: \"knock it off\" stops the exercise. Bingo fuel is the card's; the lead takes the flight home before it.",
+      "he": "המוביל מטיס; האחריות על המרחק ממנו שלכם. אין לחצות מתחת למוביל או מעליו בלי פקודה. מוביל אבד מהעין: הודעה מיידית ופנייה הרחק מהמקום האחרון שבו נראה. \"knock it off\" עוצר את התרגיל. דלק בינגו לפי הכרטיס; המוביל מחזיר את המבנה לפניו."
+     },
+     {
+      "en": "In a turn, keep the lead in sight all the time; the inside jet never turns before the outside jet's nose is on it.",
+      "he": "בפנייה: המוביל בעין כל הזמן. המטוס הפנימי לא פונה לפני שאף החיצוני מכוון אליו."
+     }
+    ],
+    "signal": [
+     {
+      "jets": [
+       "f16d",
+       "f16i"
+      ],
+      "en": "Callsign Kidon 1: the lead Kidon 1-1, you Kidon 1-2. The lead talks to the tower for the flight; you answer the lead's orders. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the intercom.",
+      "he": "אות קריאה כידון 1: המוביל כידון 1-1, אתם כידון 1-2. המוביל מול המגדל בשם המבנה; אתם עונים למוביל. תדרי הקרקע והמגדל של {base} בדף הקשר בפנקס. המדריך באינטרקום."
+     },
+     {
+      "jets": [
+       "f35i"
+      ],
+      "en": "Callsign Kidon 1: the instructor leads as Kidon 1-1, you fly Kidon 1-2. The lead talks to the tower for the flight; you answer the lead's orders. {base} ground and tower: the frequencies are on the notebook's RADIO page.",
+      "he": "אות קריאה כידון 1: המדריך מוביל, כידון 1-1; אתם כידון 1-2. המוביל מול המגדל בשם המבנה; אתם עונים למוביל. תדרי הקרקע והמגדל של {base} בדף הקשר בפנקס."
+     }
+    ]
+   },
+   "lesson_tab": [
+    {
+     "en": "Start-up, taxi, formation take-off on the lead's left",
+     "he": "יש להתניע, להסיע ולהמריא במבנה משמאל למוביל",
+     "diagram": "formation_takeoff"
+    },
+    {
+     "en": "Line abreast: 1,500 m, level",
+     "he": "יש להחזיק מבנה מקבילי: 1,500 מטר, בקו אחד",
+     "diagram": "line_abreast"
+    },
+    {
+     "en": "Tac turn: the outside jet first; the inside on its nose",
+     "he": "בפנייה טקטית, החיצוני פונה ראשון והפנימי כשהאף מכוון אליו",
+     "diagram": "tac_turn",
+     "wait": {
+      "en": "abeam on the new heading, sides swapped",
+      "he": "בקו אחד בכיוון החדש, הצדדים התחלפו"
+     }
+    },
+    {
+     "en": "In-place turn: both at once, 180°",
+     "he": "בפנייה במקום, שניהם פונים יחד, 180°",
+     "diagram": "in_place_turn",
+     "wait": {
+      "en": "abeam on the reciprocal",
+      "he": "בקו אחד בכיוון ההפוך"
+     }
+    },
+    {
+     "en": "Fingertip; land behind the lead; taxi in; shut down",
+     "he": "יש לחזור לארבע אצבעות, לנחות אחרי המוביל, להסיע ולכבות",
+     "wait": {
+      "en": "parked, the engine off: the end",
+      "he": "בחניה, מנוע כבוי: סוף התרגול"
+     }
+    }
+   ],
+   "calls": [
+    {
+     "id": "intro",
+     "when": [
+      "start"
+     ],
+     "lines": [
+      {
+       "en": "Today it's spread formation and the tactical turns. Same take-off as last time, on the lead's left.",
+       "he": "היום מבנה מקבילי ופניות טקטיות. אותה המראה כמו בפעם הקודמת, משמאל למוביל."
+      }
+     ]
+    },
+    {
+     "id": "spread",
+     "when": [
+      "lead_order:line_abreast"
+     ],
+     "lines": [
+      {
+       "en": "Line abreast. We move out to fifteen hundred metres, level with the lead, and keep the line between us square.",
+       "he": "מבנה מקבילי. נתרחק לאלף וחמש מאות מטר, בקו אחד עם המוביל, ונשמור שהקו בינינו ניצב."
+      }
+     ]
+    },
+    {
+     "id": "tac",
+     "when": [
+      "lead_order:tac_right"
+     ],
+     "lines": [
+      {
+       "en": "Tac right. If we're on the outside, we turn now. On the inside, we wait for its nose to point at us, then turn.",
+       "he": "פנייה טקטית ימינה. אם אנחנו בחוץ, נפנה עכשיו. אם בפנים, נחכה שהאף שלו יכוון אלינו, ואז נפנה."
+      }
+     ]
+    },
+    {
+     "id": "tac_left",
+     "when": [
+      "lead_order:tac_left"
+     ],
+     "lines": [
+      {
+       "en": "Tac left. Same rule: outside turns first, inside waits for the nose.",
+       "he": "פנייה טקטית שמאלה. אותו כלל: החיצוני פונה ראשון, הפנימי מחכה לאף."
+      }
+     ]
+    },
+    {
+     "id": "in_place",
+     "when": [
+      "lead_order:in_place_right"
+     ],
+     "lines": [
+      {
+       "en": "In-place right. We turn now, together, same bank. We'll come out on its other side.",
+       "he": "פנייה במקום ימינה. נפנה עכשיו, יחד, באותה הטיה. נצא בצד השני שלו."
+      }
+     ]
+    },
+    {
+     "id": "home",
+     "when": [
+      "lead_order:fingertip"
+     ],
+     "lines": [
+      {
+       "en": "Back to fingertip. The lead takes us home; we land behind it.",
+       "he": "חזרה לארבע אצבעות. המוביל מחזיר אותנו; ננחת אחריו."
+      }
+     ]
+    },
+    {
+     "id": "taxi_in",
+     "when": [
+      "flight_landed"
+     ],
+     "lines": [
+      {
+       "en": "We're both down. Let's taxi in behind it and shut down.",
+       "he": "שנינו על הקרקע. נסיע אחריו ונכבה."
+      }
+     ]
+    }
+   ]
+  },
+  "lead_pair": {
+   "missions": {
+    "f16d": "f16d_formation_lead_pair",
+    "f16i": "f16i_formation_lead_pair",
+    "f35i": "f35i_formation_lead_pair"
+   },
+   "briefing": {
+    "mission": [
+     {
+      "en": "A pair of {jet} from {base}, by day: you lead. The start-up and taxi for the pair, a formation take-off, the orders to your wingman in the area, and the pair's recovery and landing.",
+      "he": "זוג {jet}, {base}, יום. אתם מובילים: התנעה והסעה בשם הזוג, המראה במבנה, פקודות למספר 2 באזור, חזרה ונחיתה של הזוג."
+     }
+    ],
+    "target": [
+     {
+      "en": "After this lesson you can lead a pair: talk to the tower for it, take off with your wingman beside you, move it between the formations with the element commands, check its fuel and bring it home to land.",
+      "he": "בסיום התרגול הזה תדעו להוביל זוג: לדבר עם המגדל בשמו, להמריא עם מספר 2 לצדכם, להעביר אותו בין המבנים בפקודות, לבדוק את הדלק שלו ולהחזיר אותו לנחיתה, תוך מתן כל הפקודות ונחיתת שני המטוסים."
+     }
+    ],
+    "enemy": [
+     {
+      "en": "None.",
+      "he": "אין."
+     }
+    ],
+    "our_forces": [
+     {
+      "jets": [
+       "f16d",
+       "f16i"
+      ],
+      "en": "Two {jet}: Kidon 1-1, yours, the lead, with the instructor in the back seat on the intercom; Kidon 1-2, your wingman, in the next shelter. {base} tower on the radio.",
+      "he": "שני {jet}: כידון 1-1, אתם, מוביל, המדריך במושב האחורי, באינטרקום; כידון 1-2, מספר 2, בדת\"ק הסמוך. מגדל {base} בקשר."
+     },
+     {
+      "jets": [
+       "f35i"
+      ],
+      "en": "Two F-35I: Kidon 1-1, yours, the lead; Kidon 1-2, the instructor's, flies as your wingman. {base} tower on the radio.",
+      "he": "שני F-35I: כידון 1-1, אתם, מוביל; כידון 1-2, המדריך, מספר 2. מגדל {base} בקשר."
+     }
+    ],
+    "weather_area": [
+     {
+      "en": "Day, the wind calm, the sky clear. Runway {runway} at {base}. The area: the box of steerpoints on the route, at 10,000 ft.",
+      "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. אזור התרגול: מרובע נקודות הציון במסלול, 10,000 רגל."
+     }
+    ],
+    "execution": [
+     {
+      "en": "Call the tower for start-up ({key:47:1}): the clearance is for the flight, and your wingman starts with you. Request taxi ({key:47:2}); your wingman follows you out.",
+      "he": "יש לבקש התנעה מהמגדל ({key:47:1}): האישור חל על כל המבנה, ומספר 2 מתניע איתכם. אחר כך יש לבקש הסעה ({key:47:2}); מספר 2 יוצא אחריכם.",
+      "at": "start"
+     },
+     {
+      "en": "Formation take-off: request line-up ({key:47:3}), line up on the runway's right half and stop; your wingman lines up on your left. Request take-off ({key:47:4}), run up, and release the brakes at military power, no afterburner: your wingman needs power to spare. Gear up when you are both airborne.",
+      "he": "יש לבקש כניסה למסלול ({key:47:3}), להיכנס לחצי הימני ולעצור; מספר 2 נכנס משמאלכם. אחר כך יש לבקש המראה ({key:47:4}), להעלות סל\"ד ולשחרר בלמים בכוח צבאי, בלי מבער, כדי שלמספר 2 יישאר עודף כוח, ולהעלות גלגלים כששניכם באוויר.",
+      "at": "lineup",
+      "diagram": "formation_takeoff"
+     },
+     {
+      "en": "In the area, give these orders from the radio menu's Wingmen page ({key:47}), each once, and wait for \"Kidon 1-2\": echelon right, line abreast, fingertip, close up, and an ops check (your wingman answers with its fuel).",
+      "he": "באזור יש לתת מדף המבנה בתפריט הקשר ({key:47}) את הפקודות האלה, כל אחת פעם אחת, ולחכות ל\"כידון 1-2\" אחרי כל אחת: אלכסון ימין, מבנה מקבילי, ארבע אצבעות, מבנה צמוד, בדיקת מערכות ודלק (מספר 2 עונה בכמות הדלק).",
+      "diagram": "pair_orders"
+     },
+     {
+      "en": "Recovery: fly to the last steerpoint, 10 km out on the runway's centreline, and request landing ({key:47:1}). With your gear down near the base your wingman drops into trail and lands behind you. Taxi in; the lesson ends when both jets are down and you are parked with the engine off.",
+      "he": "בחזרה יש לטוס לנקודת הציון האחרונה, 10 ק\"מ על קו המרכז של המסלול, ולבקש נחיתה ({key:47:1}). עם הורדת הגלגלים ליד הבסיס, מספר 2 יורד לטור ונוחת אחריכם. התרגול מסתיים כששני המטוסים על הקרקע ואתם בחניה, מנוע כבוי.",
+      "at": "start"
+     }
+    ],
+    "coordination": [
+     {
+      "en": "You fly for the flight: smooth turns, no more than 45 degrees of bank, steady power, so your wingmen can stay with you. Give an order once and wait for each answer. Bingo fuel is the card's: the flight goes home before it. \"Knock it off\" stops the exercise.",
+      "he": "אתם טסים בשביל מספר 2: פניות חלקות, עד 45° הטיה, כוח קבוע. פקודה פעם אחת, והמתנה לתשובת כל מטוס. דלק בינגו לפי הכרטיס: המבנה חוזר לפניו. \"knock it off\" עוצר את התרגיל."
+     }
+    ],
+    "signal": [
+     {
+      "jets": [
+       "f16d",
+       "f16i"
+      ],
+      "en": "Callsign Kidon 1: you lead as Kidon 1-1. You talk to the tower for the whole flight; your wingmen answer \"Kidon 1-2\" and so on. {base} ground and tower: the frequencies are on the notebook's RADIO page. The orders to the flight from the radio menu's Wingmen page ({key:47}). The instructor on the intercom.",
+      "he": "אות קריאה כידון 1: אתם המוביל, כידון 1-1, מול המגדל בשם כל המבנה; מספר 2 עונה \"כידון 1-2\". תדרי הקרקע והמגדל של {base} בדף הקשר בפנקס. פקודות המבנה מדף המבנה בתפריט הקשר ({key:47}). המדריך באינטרקום."
+     },
+     {
+      "jets": [
+       "f35i"
+      ],
+      "en": "Callsign Kidon 1: you lead as Kidon 1-1; the instructor flies as Kidon 1-2. You talk to the tower for the whole flight. {base} ground and tower: the frequencies are on the notebook's RADIO page. The orders to the flight from the radio menu's Wingmen page ({key:47}).",
+      "he": "אות קריאה כידון 1: אתם המוביל, כידון 1-1; המדריך כידון 1-2. אתם מול המגדל בשם כל המבנה. תדרי הקרקע והמגדל של {base} בדף הקשר בפנקס. פקודות המבנה מדף המבנה בתפריט הקשר ({key:47})."
+     }
+    ]
+   },
+   "lesson_tab": [
+    {
+     "en": "Tower: start-up for the flight; taxi",
+     "he": "יש לבקש מהמגדל התנעה והסעה למבנה",
+     "wait": {
+      "en": "the wingman starts and follows you",
+      "he": "מספר 2 מתניע ויוצא אחריכם"
+     }
+    },
+    {
+     "en": "Line-up: your wingman on your left; take-off at military power",
+     "he": "יש להיכנס למסלול, מספר 2 משמאלכם, ולהמריא בכוח צבאי",
+     "diagram": "formation_takeoff"
+    },
+    {
+     "en": "Orders: echelon right, line abreast, fingertip, close up",
+     "he": "יש לתת את הפקודות: אלכסון ימין, מבנה מקבילי, ארבע אצבעות, מבנה צמוד",
+     "diagram": "pair_orders",
+     "wait": {
+      "en": "\"Kidon 1-2\" after each",
+      "he": "\"כידון 1-2\" אחרי כל פקודה"
+     }
+    },
+    {
+     "en": "Ops check",
+     "he": "יש לתת בדיקת מערכות ודלק",
+     "wait": {
+      "en": "its fuel state",
+      "he": "כמות הדלק שלו"
+     }
+    },
+    {
+     "en": "Last steerpoint; request landing; gear down",
+     "he": "יש לטוס לנקודת הציון האחרונה, לבקש נחיתה ולהוריד גלגלים",
+     "wait": {
+      "en": "the wingman lands behind you",
+      "he": "מספר 2 נוחת אחריכם"
+     }
+    },
+    {
+     "en": "Taxi in; shut down",
+     "he": "יש להסיע ולכבות",
+     "wait": {
+      "en": "both down, parked, the engine off: the end",
+      "he": "שניהם על הקרקע, אתם בחניה, מנוע כבוי: סוף התרגול"
+     }
+    }
+   ],
+   "calls": [
+    {
+     "id": "intro",
+     "when": [
+      "start"
+     ],
+     "lines": [
+      {
+       "en": "Today we lead. Everything we say to the tower is for both jets, and our wingman goes where we go. Let's start with the start-up call.",
+       "he": "היום אנחנו מובילים. כל מה שנגיד למגדל הוא בשביל שני המטוסים, ומספר 2 הולך לאן שאנחנו הולכים. נתחיל בבקשת התנעה."
+      }
+     ]
+    },
+    {
+     "id": "lineup",
+     "when": [
+      "hold_point"
+     ],
+     "lines": [
+      {
+       "en": "At the runway we take the right half and stop. We wait until our wingman is beside us before we ask for take-off.",
+       "he": "במסלול ניקח את החצי הימני ונעצור. נחכה שמספר 2 יהיה לצדנו לפני שנבקש המראה."
+      }
+     ]
+    },
+    {
+     "id": "roll",
+     "when": [
+      "lined_up"
+     ],
+     "lines": [
+      {
+       "en": "Military power, no burner: our wingman needs power to spare to stay with us.",
+       "he": "כוח צבאי, בלי מבער: מספר 2 צריך עודף כוח כדי להישאר איתנו."
+      }
+     ]
+    },
+    {
+     "id": "orders",
+     "when": [
+      "flight_joined"
+     ],
+     "lines": [
+      {
+       "en": "He's in. Now let's move him around: echelon right first, from the Wingmen page.",
+       "he": "הוא במקום. עכשיו נזיז אותו: קודם אלכסון ימין, מדף המבנה."
+      }
+     ]
+    },
+    {
+     "id": "abreast",
+     "when": [
+      "called:echelon_right:0"
+     ],
+     "lines": [
+      {
+       "en": "Good. Now line abreast.",
+       "he": "טוב. עכשיו מבנה מקבילי."
+      }
+     ]
+    },
+    {
+     "id": "fingertip",
+     "when": [
+      "called:line_abreast:0"
+     ],
+     "lines": [
+      {
+       "en": "Let's bring him back: fingertip.",
+       "he": "נחזיר אותו: ארבע אצבעות."
+      }
+     ]
+    },
+    {
+     "id": "close",
+     "when": [
+      "called:fingertip:0"
+     ],
+     "lines": [
+      {
+       "en": "Now close up.",
+       "he": "עכשיו מבנה צמוד."
+      }
+     ]
+    },
+    {
+     "id": "ops",
+     "when": [
+      "called:close_up:0"
+     ],
+     "lines": [
+      {
+       "en": "Ops check: let's ask for his fuel.",
+       "he": "בדיקת מערכות ודלק: נבקש את הדלק שלו."
+      }
+     ]
+    },
+    {
+     "id": "home",
+     "when": [
+      "called:ops_check:0"
+     ],
+     "lines": [
+      {
+       "en": "Let's take the pair home. We fly to the last steerpoint and ask for landing; with our gear down he drops into trail and lands behind us.",
+       "he": "נחזיר את הזוג. נטוס לנקודת הציון האחרונה ונבקש נחיתה; כשהגלגלים שלנו למטה, הוא יורד לטור ונוחת אחרינו."
+      }
+     ]
+    },
+    {
+     "id": "taxi_in",
+     "when": [
+      "flight_landed"
+     ],
+     "lines": [
+      {
+       "en": "We're both down. Let's taxi in and shut down.",
+       "he": "שנינו על הקרקע. נסיע ונכבה."
+      }
+     ]
+    }
+   ]
+  },
+  "lead_four": {
+   "missions": {
+    "f16d": "f16d_formation_lead_four",
+    "f16i": "f16i_formation_lead_four",
+    "f35i": "f35i_formation_lead_four"
+   },
+   "briefing": {
+    "mission": [
+     {
+      "en": "Four {jet} from {base}, by day: you lead the four-ship. The flight's start-up and taxi in order, a stream take-off, the formations in the area and the flight's recovery in its landing order.",
+      "he": "רביעיית {jet}, {base}, יום. אתם מובילים: התנעה והסעה בסדר המבנה, המראה בטור, מבנים באזור, חזרה ונחיתה בסדר המבנה."
+     }
+    ],
+    "target": [
+     {
+      "en": "After this lesson you can lead a four-ship: take off first with the flight behind you in its order, join it up, move it through the four-ship formations, check its fuel and land it in order.",
+      "he": "בסיום התרגול הזה תדעו להוביל רביעייה: להמריא ראשונים והמבנה אחריכם בסדרו, לאסוף אותו, להעביר אותו בין מבני הרביעייה, לבדוק את הדלק ולהנחית אותו בסדר, תוך מתן כל הפקודות ונחיתת כל ארבעת המטוסים."
+     }
+    ],
+    "enemy": [
+     {
+      "en": "None.",
+      "he": "אין."
+     }
+    ],
+    "our_forces": [
+     {
+      "jets": [
+       "f16d",
+       "f16i"
+      ],
+      "en": "Four {jet}: Kidon 1-1, yours, the lead, with the instructor in the back seat on the intercom; Kidon 1-2 your wingman; Kidon 1-3 leads the second pair with Kidon 1-4 on it, in the next shelters. {base} tower on the radio.",
+      "he": "ארבעה {jet}: כידון 1-1, אתם, מוביל, המדריך במושב האחורי, באינטרקום; כידון 1-2, מספר 2; כידון 1-3 מוביל את הזוג השני, כידון 1-4 עליו; בדת\"קים הסמוכים. מגדל {base} בקשר."
+     },
+     {
+      "jets": [
+       "f35i"
+      ],
+      "en": "Four F-35I: Kidon 1-1, yours, the lead; Kidon 1-2, the instructor's, your wingman; Kidon 1-3 and 1-4 the second pair, in the next shelters. {base} tower on the radio.",
+      "he": "ארבעה F-35I: כידון 1-1, אתם, מוביל; כידון 1-2, המדריך, מספר 2; כידון 1-3 ו-1-4, הזוג השני, בדת\"קים הסמוכים. מגדל {base} בקשר."
+     }
+    ],
+    "weather_area": [
+     {
+      "en": "Day, the wind calm, the sky clear. Runway {runway} at {base}. The area: the box of steerpoints on the route, at 10,000 ft.",
+      "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. אזור התרגול: מרובע נקודות הציון במסלול, 10,000 רגל."
+     }
+    ],
+    "execution": [
+     {
+      "en": "The tower's start-up clearance ({key:47:1}) starts the flight, one jet after the other. Request taxi ({key:47:2}): the flight taxis behind you in its order, 1-2, 1-3, 1-4.",
+      "he": "יש לבקש התנעה מהמגדל ({key:47:1}): המבנה מתניע מטוס אחרי מטוס. אחר כך יש לבקש הסעה ({key:47:2}); המבנה מסיע אחריכם בסדרו, 1-2, 1-3, 1-4.",
+      "at": "start"
+     },
+     {
+      "en": "Stream take-off: line up ({key:47:3}) and take off ({key:47:4}) first, at military power; each jet rolls when the one ahead passes 50 kt. Climb out on the runway heading at 350 kt and turn gently toward the first steerpoint: the flight joins you in fingertip and each jet calls \"in position\".",
+      "he": "יש לבקש כניסה למסלול ({key:47:3}) והמראה ({key:47:4}) ולהמריא ראשונים, בכוח צבאי; כל מטוס מתגלגל כשהקודם עובר 50 קשר. יש לטפס בכיוון המסלול ב-350 קשר ולפנות בעדינות לנקודת הציון הראשונה: המבנה מצטרף בארבע אצבעות, וכל מטוס מודיע \"במקום\".",
+      "at": "lineup",
+      "diagram": "stream_takeoff"
+     },
+     {
+      "en": "In the area, give these orders to the flight from the radio menu's Wingmen page ({key:47}), each once, and wait for every answer: diamond, echelon left, line abreast, fingertip, and an ops check.",
+      "he": "באזור יש לתת מדף המבנה בתפריט הקשר ({key:47}) את הפקודות האלה, כל אחת פעם אחת, ולחכות לכל התשובות: יהלום, אלכסון שמאל, מבנה מקבילי, ארבע אצבעות, בדיקת מערכות ודלק.",
+      "diagram": "four_ship_shapes"
+     },
+     {
+      "en": "Recovery: fly to the last steerpoint and request landing ({key:47:1}). Once your gear is down near the base the flight goes into trail and lands in its order, 1-2, 1-3, 1-4, each about 30 s behind the one before. The lesson ends when all four are down and you are parked with the engine off.",
+      "he": "בחזרה יש לטוס לנקודת הציון האחרונה ולבקש נחיתה ({key:47:1}). עם הורדת הגלגלים ליד הבסיס, המבנה עובר לטור ונוחת בסדרו, 1-2, 1-3, 1-4, כ-30 שניות בין מטוס למטוס. התרגול מסתיים כשכל הארבעה על הקרקע ואתם בחניה, מנוע כבוי.",
+      "at": "start",
+      "diagram": "landing_order"
+     }
+    ],
+    "coordination": [
+     {
+      "en": "You fly for the flight: smooth turns, no more than 45 degrees of bank, steady power, so your wingmen can stay with you. Give an order once and wait for each answer. Bingo fuel is the card's: the flight goes home before it. \"Knock it off\" stops the exercise.",
+      "he": "אתם טסים בשביל מספר 2: פניות חלקות, עד 45° הטיה, כוח קבוע. פקודה פעם אחת, והמתנה לתשובת כל מטוס. דלק בינגו לפי הכרטיס: המבנה חוזר לפניו. \"knock it off\" עוצר את התרגיל."
+     }
+    ],
+    "signal": [
+     {
+      "jets": [
+       "f16d",
+       "f16i"
+      ],
+      "en": "Callsign Kidon 1: you lead as Kidon 1-1. You talk to the tower for the whole flight; your wingmen answer \"Kidon 1-2\" and so on. {base} ground and tower: the frequencies are on the notebook's RADIO page. The orders to the flight from the radio menu's Wingmen page ({key:47}). The instructor on the intercom.",
+      "he": "אות קריאה כידון 1: אתם המוביל, כידון 1-1, מול המגדל בשם כל המבנה; מספר 2 עונה \"כידון 1-2\". תדרי הקרקע והמגדל של {base} בדף הקשר בפנקס. פקודות המבנה מדף המבנה בתפריט הקשר ({key:47}). המדריך באינטרקום."
+     },
+     {
+      "jets": [
+       "f35i"
+      ],
+      "en": "Callsign Kidon 1: you lead as Kidon 1-1; the instructor flies as Kidon 1-2. You talk to the tower for the whole flight. {base} ground and tower: the frequencies are on the notebook's RADIO page. The orders to the flight from the radio menu's Wingmen page ({key:47}).",
+      "he": "אות קריאה כידון 1: אתם המוביל, כידון 1-1; המדריך כידון 1-2. אתם מול המגדל בשם כל המבנה. תדרי הקרקע והמגדל של {base} בדף הקשר בפנקס. פקודות המבנה מדף המבנה בתפריט הקשר ({key:47})."
+     }
+    ]
+   },
+   "lesson_tab": [
+    {
+     "en": "Tower: start-up for the flight; taxi",
+     "he": "יש לבקש מהמגדל התנעה והסעה למבנה",
+     "wait": {
+      "en": "the flight behind you: 1-2, 1-3, 1-4",
+      "he": "המבנה אחריכם: 1-2, 1-3, 1-4"
+     }
+    },
+    {
+     "en": "Stream take-off at military power; 350 kt climb",
+     "he": "יש להמריא בטור בכוח צבאי ולטפס ב-350 קשר",
+     "diagram": "stream_takeoff",
+     "wait": {
+      "en": "each calls \"in position\"",
+      "he": "כל מטוס מודיע \"במקום\""
+     }
+    },
+    {
+     "en": "Orders: diamond, echelon left, line abreast, fingertip",
+     "he": "יש לתת את הפקודות: יהלום, אלכסון שמאל, מבנה מקבילי, ארבע אצבעות",
+     "diagram": "four_ship_shapes"
+    },
+    {
+     "en": "Ops check",
+     "he": "יש לתת בדיקת מערכות ודלק",
+     "wait": {
+      "en": "three fuel states",
+      "he": "שלוש כמויות דלק"
+     }
+    },
+    {
+     "en": "Last steerpoint; request landing; gear down",
+     "he": "יש לטוס לנקודת הציון האחרונה, לבקש נחיתה ולהוריד גלגלים",
+     "diagram": "landing_order",
+     "wait": {
+      "en": "the flight lands in order behind you",
+      "he": "המבנה נוחת אחריכם בסדרו"
+     }
+    },
+    {
+     "en": "Taxi in; shut down",
+     "he": "יש להסיע ולכבות",
+     "wait": {
+      "en": "all four down, parked, the engine off: the end",
+      "he": "ארבעתם על הקרקע, אתם בחניה, מנוע כבוי: סוף התרגול"
+     }
+    }
+   ],
+   "calls": [
+    {
+     "id": "intro",
+     "when": [
+      "start"
+     ],
+     "lines": [
+      {
+       "en": "Four jets today, and we lead them all. No rush: one order at a time, and we wait for every answer before the next.",
+       "he": "ארבעה מטוסים היום, וכולם אחרינו. בלי למהר: פקודה אחת בכל פעם, ונחכה לכל התשובות לפני הבאה."
+      }
+     ]
+    },
+    {
+     "id": "climb",
+     "when": [
+      "airborne"
+     ],
+     "lines": [
+      {
+       "en": "Gear up, three-fifty, and a gentle turn to the first steerpoint. Let's give them time to catch us.",
+       "he": "גלגלים למעלה, שלוש מאות חמישים, ופנייה עדינה לנקודה הראשונה. ניתן להם זמן להשיג אותנו."
+      }
+     ]
+    },
+    {
+     "id": "orders",
+     "when": [
+      "flight_joined"
+     ],
+     "lines": [
+      {
+       "en": "All three are in. Let's start with diamond.",
+       "he": "שלושתם במקום. נתחיל ביהלום."
+      }
+     ]
+    },
+    {
+     "id": "echelon",
+     "when": [
+      "called:diamond:0"
+     ],
+     "lines": [
+      {
+       "en": "Now echelon left.",
+       "he": "עכשיו אלכסון שמאל."
+      }
+     ]
+    },
+    {
+     "id": "abreast",
+     "when": [
+      "called:echelon_left:0"
+     ],
+     "lines": [
+      {
+       "en": "Line abreast.",
+       "he": "מבנה מקבילי."
+      }
+     ]
+    },
+    {
+     "id": "fingertip",
+     "when": [
+      "called:line_abreast:0"
+     ],
+     "lines": [
+      {
+       "en": "Back to fingertip.",
+       "he": "חזרה לארבע אצבעות."
+      }
+     ]
+    },
+    {
+     "id": "ops",
+     "when": [
+      "called:fingertip:0"
+     ],
+     "lines": [
+      {
+       "en": "Ops check.",
+       "he": "בדיקת מערכות ודלק."
+      }
+     ]
+    },
+    {
+     "id": "home",
+     "when": [
+      "called:ops_check:0"
+     ],
+     "lines": [
+      {
+       "en": "Let's take them home. Gear down near the base, and they'll land behind us in order.",
+       "he": "נחזיר אותם הביתה. גלגלים למטה ליד הבסיס, והם ינחתו אחרינו לפי הסדר."
+      }
+     ]
+    },
+    {
+     "id": "taxi_in",
+     "when": [
+      "flight_landed"
+     ],
+     "lines": [
+      {
+       "en": "All four down. Let's taxi in and shut down.",
+       "he": "ארבעתנו על הקרקע. נסיע ונכבה."
+      }
+     ]
+    }
+   ]
+  },
+  "night": {
+   "missions": {
+    "f16d": "f16d_formation_night",
+    "f16i": "f16i_formation_night",
+    "f35i": "f35i_formation_night"
+   },
+   "briefing": {
+    "mission": [
+     {
+      "en": "A pair of {jet} from {base}, at night: you fly as number two. The formation take-off, fingertip and close formation, trail and the rejoin by night, and the landing behind the lead.",
+      "he": "זוג {jet}, {base}, לילה. אתם מספר 2: המראה במבנה, ארבע אצבעות, מבנה צמוד, טור, הצטרפות ונחיתה אחרי המוביל, בחושך."
+     }
+    ],
+    "target": [
+     {
+      "en": "After this lesson you can hold your slot and rejoin your lead by night, on its lights and its shape against the sky.",
+      "he": "בסיום התרגול הזה תדעו להחזיק מקום ולהצטרף למוביל בלילה, לפי האורות שלו והצללית שלו מול השמיים, תוך שמירה על מרחק של עד 20 מטר מהמקום והצטרפות תוך 90 שניות."
+     }
+    ],
+    "enemy": [
+     {
+      "en": "None.",
+      "he": "אין."
+     }
+    ],
+    "our_forces": [
+     {
+      "jets": [
+       "f16d",
+       "f16i"
+      ],
+      "en": "Two {jet}: Kidon 1-1, the lead, and Kidon 1-2, yours, with the instructor in the back seat on the intercom. {base} tower on the radio.",
+      "he": "שני {jet}: כידון 1-1, מוביל; כידון 1-2, אתם, המדריך במושב האחורי, באינטרקום. מגדל {base} בקשר."
+     },
+     {
+      "jets": [
+       "f35i"
+      ],
+      "en": "Two F-35I: Kidon 1-1, the instructor's, leads; Kidon 1-2 is yours. {base} tower on the radio.",
+      "he": "שני F-35I: כידון 1-1, המדריך, מוביל; כידון 1-2, אתם. מגדל {base} בקשר."
+     }
+    ],
+    "weather_area": [
+     {
+      "en": "Night, after dark, the wind calm, the sky clear, no moon to speak of. Runway {runway} at {base}. The area: the box of steerpoints on the route, at 10,000 ft. The lead's navigation lights and anti-collision strobe are on; yours too.",
+      "he": "לילה, אחרי החשכה, רוח שקטה, שמיים בהירים, כמעט בלי ירח. {base}, מסלול {runway}. אזור התרגול: מרובע נקודות הציון במסלול, 10,000 רגל. אורות ניווט ומהבהב נגד התנגשות דולקים, אצל המוביל ואצלכם."
+     }
+    ],
+    "execution": [
+     {
+      "en": "Start-up as you know it. The lead has the flight's start-up clearance and starts with you; it taxis once your engine has run two minutes. Follow it out at taxi spacing.",
+      "he": "יש להתניע כרגיל. אישור ההתנעה של המוביל חל על כל המבנה; המוביל מתניע איתכם ויוצא להסעה שתי דקות אחרי שהמנוע שלכם עובד. יש להסיע אחריו, במרווח הסעה.",
+      "at": "start"
+     },
+     {
+      "en": "Formation take-off: line up on the lead's left wing, 15 m from it, nose level with its nose, and stop. The lead runs up and rolls at military power; release the brakes with it and hold your place on the throttle. Gear up when the lead's gear goes up.",
+      "he": "יש להיכנס למסלול על כנף שמאל של המוביל, 15 מטר ממנו, אף מול אף, ולעצור. המוביל מעלה סל\"ד ומתגלגל בכוח צבאי: יש לשחרר בלמים איתו ולשמור על המקום במצערת, ולהעלות גלגלים עם המוביל.",
+      "at": "lineup",
+      "diagram": "formation_takeoff"
+     },
+     {
+      "en": "By night: set the cockpit lighting and the NVIS setting before the taxi, as in the night start-up lesson. In the air judge your slot by the lead's navigation lights: in fingertip its left (red) wingtip light sits over its canopy. Move more slowly than by day; distance is harder to judge.",
+      "he": "בלילה יש לכוון את תאורת תא הטייס ואת מצב ה-NVIS לפני ההסעה, כמו בתרגול ההתנעה בלילה. באוויר יש לשמור על המקום לפי אורות הניווט של המוביל: בארבע אצבעות, אור קצה הכנף השמאלי (האדום) שלו מעל החופה שלו. יש לזוז לאט יותר מביום; קשה יותר להעריך מרחק."
+     },
+     {
+      "en": "Fingertip: your slot is 60 m behind and 60 m left of the lead, level with it. Hold it with small throttle and stick inputs; keep the lead's wingtip on its canopy.",
+      "he": "בארבע אצבעות יש לשמור על מקום 60 מטר מאחורי המוביל ו-60 מטר משמאלו, באותו גובה, בתיקוני מצערת וסטיק קטנים: קצה הכנף של המוביל מול החופה שלו.",
+      "diagram": "fingertip"
+     },
+     {
+      "en": "Close up: on the lead's \"close up\" move in to half the distance, 30 m; on the next, to the parade position, 12 m, two metres between the wingtips. \"Spread out\" takes you back one step.",
+      "he": "בפקודה \"close up\" יש להתקרב לחצי המרחק, 30 מטר; בפקודה הבאה, למבנה מצעד, 12 מטר, שני מטר בין קצות הכנפיים. בפקודה \"spread out\" יש לחזור צעד אחד אחורה.",
+      "diagram": "close_formation"
+     },
+     {
+      "en": "Trail: on \"trail\" drop back 600 m directly behind the lead, at its height. Rejoin: on \"rejoin\" fly back to fingertip on the inside of the lead's turn, with 30 to 50 kt more than the lead, and take the overtake off as you come in. The rejoin is graded from the order to in position.",
+      "he": "בפקודה \"trail\" יש לרדת 600 מטר ישר מאחורי המוביל, בגובה שלו. בפקודה \"rejoin\" יש לחזור לארבע אצבעות מפנים הפנייה של המוביל, 30 עד 50 קשר מעליו, ולהוריד את עודף המהירות בהתקרבות. זמן ההצטרפות נמדד מהפקודה ועד ההגעה למקום.",
+      "diagram": "trail_rejoin"
+     },
+     {
+      "en": "Recovery: the lead takes the pair home and lands first; land behind it on the same runway, then taxi in behind it to your shelter and shut down.",
+      "he": "המוביל מחזיר את הזוג ונוחת ראשון. יש לנחות אחריו על אותו מסלול, להסיע אחריו לדת\"ק ולכבות.",
+      "at": "start"
+     }
+    ],
+    "coordination": [
+     {
+      "en": "The lead flies the jet; you keep clear of it. Never cross under or over the lead without its order. If you lose sight of the lead, call it at once and turn away from where you last saw it: \"knock it off\" stops the exercise. Bingo fuel is the card's; the lead takes the flight home before it.",
+      "he": "המוביל מטיס; האחריות על המרחק ממנו שלכם. אין לחצות מתחת למוביל או מעליו בלי פקודה. מוביל אבד מהעין: הודעה מיידית ופנייה הרחק מהמקום האחרון שבו נראה. \"knock it off\" עוצר את התרגיל. דלק בינגו לפי הכרטיס; המוביל מחזיר את המבנה לפניו."
+     }
+    ],
+    "signal": [
+     {
+      "jets": [
+       "f16d",
+       "f16i"
+      ],
+      "en": "Callsign Kidon 1: the lead Kidon 1-1, you Kidon 1-2. The lead talks to the tower for the flight; you answer the lead's orders. {base} ground and tower: the frequencies are on the notebook's RADIO page. The instructor on the intercom.",
+      "he": "אות קריאה כידון 1: המוביל כידון 1-1, אתם כידון 1-2. המוביל מול המגדל בשם המבנה; אתם עונים למוביל. תדרי הקרקע והמגדל של {base} בדף הקשר בפנקס. המדריך באינטרקום."
+     },
+     {
+      "jets": [
+       "f35i"
+      ],
+      "en": "Callsign Kidon 1: the instructor leads as Kidon 1-1, you fly Kidon 1-2. The lead talks to the tower for the flight; you answer the lead's orders. {base} ground and tower: the frequencies are on the notebook's RADIO page.",
+      "he": "אות קריאה כידון 1: המדריך מוביל, כידון 1-1; אתם כידון 1-2. המוביל מול המגדל בשם המבנה; אתם עונים למוביל. תדרי הקרקע והמגדל של {base} בדף הקשר בפנקס."
+     }
+    ]
+   },
+   "lesson_tab": [
+    {
+     "en": "Cockpit lighting and NVIS set before the taxi",
+     "he": "יש לכוון את תאורת תא הטייס ואת ה-NVIS לפני ההסעה"
+    },
+    {
+     "en": "Start-up; wait for the lead",
+     "he": "יש להתניע ולהמתין למוביל",
+     "wait": {
+      "en": "the lead taxis two minutes after your engine start",
+      "he": "המוביל יוצא שתי דקות אחרי ההתנעה שלכם"
+     }
+    },
+    {
+     "en": "Taxi behind the lead; line up on its left",
+     "he": "יש להסיע אחרי המוביל ולהיכנס למסלול משמאלו",
+     "diagram": "formation_takeoff",
+     "wait": {
+      "en": "15 m off its wing, stopped",
+      "he": "15 מטר מהכנף שלו, עצירה"
+     }
+    },
+    {
+     "en": "Roll with the lead; gear up with it",
+     "he": "יש להתגלגל עם המוביל ולהעלות גלגלים איתו"
+    },
+    {
+     "en": "Fingertip: 60 m back, 60 m left",
+     "he": "יש להחזיק ארבע אצבעות: 60 מטר אחורה, 60 מטר שמאלה",
+     "diagram": "fingertip"
+    },
+    {
+     "en": "Close up: 30 m, then 12 m",
+     "he": "יש להתקרב למבנה צמוד: 30 מטר, אחר כך 12 מטר",
+     "diagram": "close_formation"
+    },
+    {
+     "en": "Trail: 600 m behind",
+     "he": "יש לרדת לטור: 600 מטר מאחור",
+     "diagram": "trail_rejoin"
+    },
+    {
+     "en": "Rejoin to fingertip",
+     "he": "יש להצטרף לארבע אצבעות",
+     "wait": {
+      "en": "inside the lead's turn, 30 to 50 kt of overtake",
+      "he": "מפנים הפנייה, 30 עד 50 קשר עודף"
+     }
+    },
+    {
+     "en": "Land behind the lead; taxi in; shut down",
+     "he": "יש לנחות אחרי המוביל, להסיע ולכבות",
+     "wait": {
+      "en": "parked, the engine off: the end",
+      "he": "בחניה, מנוע כבוי: סוף התרגול"
+     }
+    }
+   ],
+   "calls": [
+    {
+     "id": "intro",
+     "when": [
+      "start"
+     ],
+     "lines": [
+      {
+       "en": "Tonight we fly formation in the dark. Let's set the cockpit lights before we taxi. The lead goes a couple of minutes after our engine is running.",
+       "he": "הלילה נטוס במבנה בחושך. נכוון את אורות תא הטייס לפני ההסעה. המוביל יוצא כמה דקות אחרי שהמנוע שלנו עובד."
+      }
+     ]
+    },
+    {
+     "id": "lineup",
+     "when": [
+      "hold_point"
+     ],
+     "lines": [
+      {
+       "en": "Here we line up on the lead's left wing, about fifteen metres out, noses level, and stop.",
+       "he": "כאן נעמוד על כנף שמאל של המוביל, בערך חמישה עשר מטר ממנו, אף מול אף, ונעצור."
+      }
+     ]
+    },
+    {
+     "id": "roll",
+     "when": [
+      "lined_up"
+     ],
+     "lines": [
+      {
+       "en": "Nice. Eyes on the lead. When it rolls, we let the brakes go and stay right beside it. Gear up when its gear comes up.",
+       "he": "יפה. עיניים על המוביל. כשהוא מתגלגל, נשחרר בלמים ונישאר צמוד לצדו. גלגלים למעלה כשהגלגלים שלו עולים."
+      }
+     ]
+    },
+    {
+     "id": "fingertip",
+     "when": [
+      "airborne"
+     ],
+     "lines": [
+      {
+       "en": "Fingertip, on its lights: its left wingtip light over its canopy. Smaller, slower moves than by day.",
+       "he": "ארבע אצבעות, לפי האורות שלו: אור קצה הכנף השמאלי מעל החופה. תנועות קטנות ואיטיות יותר מביום."
+      }
+     ]
+    },
+    {
+     "id": "close",
+     "when": [
+      "lead_order:close_up"
+     ],
+     "lines": [
+      {
+       "en": "Close up. We ease in to half the distance, slowly, and let the jet settle before the next nudge.",
+       "he": "מבנה צמוד. נתקרב לאט לחצי המרחק, וניתן למטוס להתייצב לפני כל תיקון."
+      }
+     ]
+    },
+    {
+     "id": "trail",
+     "when": [
+      "lead_order:trail"
+     ],
+     "lines": [
+      {
+       "en": "Trail. A touch of power off and we drop back six hundred metres behind it, at its height.",
+       "he": "טור. נוריד קצת כוח ונרד שש מאות מטר מאחוריו, בגובה שלו."
+      }
+     ]
+    },
+    {
+     "id": "rejoin",
+     "when": [
+      "lead_order:rejoin"
+     ],
+     "lines": [
+      {
+       "en": "Rejoin! We cut inside its turn, thirty to fifty knots faster, and bleed the speed off before we arrive.",
+       "he": "הצטרפות! נחתוך לפנים הפנייה שלו, שלושים עד חמישים קשר מהר יותר, ונוריד את המהירות לפני שנגיע."
+      }
+     ]
+    },
+    {
+     "id": "home",
+     "when": [
+      "in_slot"
+     ],
+     "new": true,
+     "lines": [
+      {
+       "en": "Good, we're in. Let's hold it here; the lead takes us home. It lands first, we land right after.",
+       "he": "טוב, אנחנו במקום. נחזיק כאן; המוביל מחזיר אותנו. הוא נוחת ראשון, ואנחנו מיד אחריו."
+      }
+     ]
+    },
+    {
+     "id": "taxi_in",
+     "when": [
+      "flight_landed"
+     ],
+     "lines": [
+      {
+       "en": "We're both down. Let's follow the lead back to the shelter and shut down.",
+       "he": "שנינו על הקרקע. נסיע אחרי המוביל לדת\"ק ונכבה."
+      }
+     ]
+    }
+   ]
+  },
+  "check": {
+   "missions": {
+    "f16d": "f16d_formation_check",
+    "f16i": "f16i_formation_check",
+    "f35i": "f35i_formation_check"
+   },
+   "briefing": {
+    "mission": [
+     {
+      "en": "Four {jet} from {base}, by day: check ride 4. You fly number three: wingman to the lead and the lead of the second pair, from the start-up to the shutdown.",
+      "he": "רביעיית {jet}, {base}, יום. טיסת מבחן 4: אתם מספר 3, מספר 2 של המוביל ומוביל הזוג השני, מההתנעה עד הכיבוי."
+     }
+    ],
+    "target": [
+     {
+      "en": "The check ride shows that you can fly in a formation and lead in one: hold your slot in the lead's formations and turns, rejoin on its order, lead your own wingman and bring the flight home. Everything from the earlier phases counts too.",
+      "he": "בסיום טיסת המבחן הזאת תדעו לטוס במבנה ולהוביל בו: להחזיק מקום במבנים ובפניות של המוביל, להצטרף בפקודתו, להוביל את מספר 2 שלכם ולחזור עם המבנה, תוך עמידה בתקנים של כל השלבים עד כה."
+     }
+    ],
+    "enemy": [
+     {
+      "en": "None.",
+      "he": "אין."
+     }
+    ],
+    "our_forces": [
+     {
+      "jets": [
+       "f16d",
+       "f16i"
+      ],
+      "en": "Four {jet}: Kidon 1-1 leads with Kidon 1-2; Kidon 1-3, yours, with the instructor in the back seat, leads the second pair with Kidon 1-4 on your wing. {base} tower on the radio.",
+      "he": "ארבעה {jet}: כידון 1-1 מוביל, כידון 1-2 עליו; כידון 1-3, אתם, המדריך במושב האחורי, מוביל את הזוג השני, כידון 1-4 על הכנף שלכם. מגדל {base} בקשר."
+     },
+     {
+      "jets": [
+       "f35i"
+      ],
+      "en": "Four F-35I: the instructor leads as Kidon 1-1 with Kidon 1-2; Kidon 1-3, yours, leads the second pair with Kidon 1-4 on your wing. {base} tower on the radio.",
+      "he": "ארבעה F-35I: כידון 1-1, המדריך, מוביל, כידון 1-2 עליו; כידון 1-3, אתם, מוביל את הזוג השני, כידון 1-4 על הכנף שלכם. מגדל {base} בקשר."
+     }
+    ],
+    "weather_area": [
+     {
+      "en": "Day, the wind calm, the sky clear. Runway {runway} at {base}. The area: the box of steerpoints on the route, at 10,000 ft.",
+      "he": "יום, רוח שקטה, שמיים בהירים. {base}, מסלול {runway}. אזור התרגול: מרובע נקודות הציון במסלול, 10,000 רגל."
+     }
+    ],
+    "execution": [
+     {
+      "en": "The lead has the flight's start-up clearance; start up and follow the flight out in order. The take-off in pairs: once the first pair rolls, line up on the runway's left half with Kidon 1-4 on your right, and roll together.",
+      "he": "אישור ההתנעה של המוביל חל על כל המבנה. יש להתניע ולצאת אחרי המבנה בסדרו. בהמראה בזוגות, אחרי שהזוג הראשון מתגלגל, יש להיכנס לחצי השמאלי של המסלול, כידון 1-4 מימינכם, ולהתגלגל יחד.",
+      "at": "start",
+      "diagram": "formation_takeoff"
+     },
+     {
+      "en": "Fly the lead's orders as they come: fingertip, line abreast, its tactical turns, trail and the rejoin. Your slot is the lead's number three's in each formation.",
+      "he": "יש לבצע את פקודות המוביל כשהן מגיעות: ארבע אצבעות, מבנה מקבילי, פניות טקטיות, טור, הצטרפות. המקום שלכם בכל מבנה הוא של מספר 3.",
+      "diagram": "four_ship_shapes"
+     },
+     {
+      "en": "Lead your wingman: once the flight is in fingertip after the take-off, give Kidon 1-4 a check in and an ops check from the radio menu's Wingmen page ({key:47}).",
+      "he": "כשהמבנה בארבע אצבעות אחרי ההמראה, יש לתת לכידון 1-4 בדיקת קשר ובדיקת מערכות ודלק, מדף המבנה בתפריט הקשר ({key:47})."
+     },
+     {
+      "en": "The lead brings the flight home and lands first; the flight lands in its order. Land in your turn, taxi in and shut down. An emergency may come during the flight: handle it as taught, and tell the lead.",
+      "he": "המוביל מחזיר את המבנה ונוחת ראשון, והמבנה נוחת בסדרו. יש לנחות בתורכם, להסיע ולכבות. במהלך הטיסה ייתכן מצב חירום: יש לטפל בו כפי שנלמד ולהודיע למוביל.",
+      "at": "start"
+     }
+    ],
+    "coordination": [
+     {
+      "en": "The lead flies the jet; you keep clear of it. Never cross under or over the lead without its order. If you lose sight of the lead, call it at once and turn away from where you last saw it: \"knock it off\" stops the exercise. Bingo fuel is the card's; the lead takes the flight home before it.",
+      "he": "המוביל מטיס; האחריות על המרחק ממנו שלכם. אין לחצות מתחת למוביל או מעליו בלי פקודה. מוביל אבד מהעין: הודעה מיידית ופנייה הרחק מהמקום האחרון שבו נראה. \"knock it off\" עוצר את התרגיל. דלק בינגו לפי הכרטיס; המוביל מחזיר את המבנה לפניו."
+     },
+     {
+      "en": "No calls from the instructor on this flight, and no switch highlights: the notebook is open to you.",
+      "he": "בטיסה הזאת אין קריאות מהמדריך ואין הדגשת מתגים; הפנקס זמין."
+     }
+    ],
+    "signal": [
+     {
+      "en": "Callsign Kidon 1: the lead Kidon 1-1, you Kidon 1-3, your wingman Kidon 1-4. The lead talks to the tower for the flight. {base} ground and tower: the frequencies are on the notebook's RADIO page.",
+      "he": "אות קריאה כידון 1: המוביל כידון 1-1, אתם כידון 1-3, מספר 2 שלכם כידון 1-4. המוביל מול המגדל בשם המבנה. תדרי הקרקע והמגדל של {base} בדף הקשר בפנקס."
+     }
+    ]
+   },
+   "lesson_tab": [
+    {
+     "en": "Start-up; follow the flight out in order",
+     "he": "יש להתניע ולצאת אחרי המבנה בסדרו"
+    },
+    {
+     "en": "Pairs take-off after the first pair: the left half; 1-4 on your right",
+     "he": "יש להמריא בזוגות אחרי הזוג הראשון: בחצי השמאלי, 1-4 מימינכם",
+     "diagram": "formation_takeoff"
+    },
+    {
+     "en": "Kidon 1-4: check in, ops check",
+     "he": "יש לתת לכידון 1-4 בדיקת קשר ובדיקת מערכות ודלק"
+    },
+    {
+     "en": "The lead's orders: shapes, tactical turns, trail, rejoin",
+     "he": "יש לבצע את פקודות המוביל: מבנים, פניות טקטיות, טור, הצטרפות",
+     "diagram": "tac_turn"
+    },
+    {
+     "en": "Land in your turn; taxi in; shut down",
+     "he": "יש לנחות בתורכם, להסיע ולכבות",
+     "wait": {
+      "en": "all four down, parked, the engine off: the end",
+      "he": "ארבעתם על הקרקע, אתם בחניה, מנוע כבוי: סוף התרגול"
+     }
+    }
+   ]
+  }
+ },
+ "diagrams": {
+  "formation_takeoff": {
+   "title": {
+    "en": "The formation take-off",
+    "he": "המראה במבנה"
+   },
+   "points": [
+    {
+     "en": "Line up",
+     "he": "כניסה למסלול",
+     "hold": {
+      "en": "15 m on the lead's left · noses level",
+      "he": "15 מטר משמאל למוביל · האפים בקו אחד"
+     }
+    },
+    {
+     "en": "Brake release",
+     "he": "שחרור בלמים",
+     "hold": {
+      "en": "with the lead · military power",
+      "he": "עם המוביל · כוח צבאי"
+     }
+    },
+    {
+     "en": "Lift-off",
+     "he": "ניתוק",
+     "hold": {
+      "en": "gear up with the lead",
+      "he": "גלגלים למעלה עם המוביל"
+     }
+    }
+   ],
+   "top": {
+    "runway": [
+     [
+      10.0,
+      60.0
+     ],
+     [
+      90.0,
+      60.0
+     ]
+    ],
+    "paths": [
+     {
+      "track": [
+       [
+        12.0,
+        57.0
+       ],
+       [
+        96.0,
+        57.0
+       ]
+      ]
+     },
+     {
+      "track": [
+       [
+        12.0,
+        63.0
+       ],
+       [
+        96.0,
+        63.0
+       ]
+      ],
+      "kind": "other"
+     }
+    ],
+    "pins": [
+     [
+      12.0,
+      57.0
+     ],
+     [
+      22.0,
+      57.0
+     ],
+     [
+      72.0,
+      57.0
+     ]
+    ],
+    "notes": [
+     {
+      "at": [
+       14.0,
+       70.0
+      ],
+      "en": "lead",
+      "he": "מוביל"
+     },
+     {
+      "at": [
+       40.0,
+       50.0
+      ],
+      "en": "15 m",
+      "he": "15 מטר"
+     }
+    ]
+   }
+  },
+  "fingertip": {
+   "title": {
+    "en": "Fingertip: your slot",
+    "he": "ארבע אצבעות: המקום שלכם"
+   },
+   "points": [
+    {
+     "en": "Your slot",
+     "he": "המקום שלכם",
+     "hold": {
+      "en": "60 m back · 60 m left · level",
+      "he": "60 מטר אחורה · 60 מטר שמאלה · באותו גובה"
+     }
+    }
+   ],
+   "top": {
+    "paths": [
+     {
+      "track": [
+       [
+        60.0,
+        95.0
+       ],
+       [
+        60.0,
+        10.0
+       ]
+      ],
+      "kind": "other"
+     },
+     {
+      "track": [
+       [
+        40.0,
+        95.0
+       ],
+       [
+        40.0,
+        35.0
+       ]
+      ]
+     }
+    ],
+    "pins": [
+     [
+      40.0,
+      40.0
+     ]
+    ],
+    "notes": [
+     {
+      "at": [
+       64.0,
+       22.0
+      ],
+      "en": "lead",
+      "he": "מוביל"
+     },
+     {
+      "at": [
+       50.0,
+       34.0
+      ],
+      "en": "60 m",
+      "he": "60 מטר"
+     }
+    ]
+   }
+  },
+  "close_formation": {
+   "title": {
+    "en": "Close up, step by step",
+    "he": "מבנה צמוד, צעד אחר צעד"
+   },
+   "points": [
+    {
+     "en": "Fingertip",
+     "he": "ארבע אצבעות",
+     "hold": {
+      "en": "60 m",
+      "he": "60 מטר"
+     }
+    },
+    {
+     "en": "Close",
+     "he": "צמוד",
+     "hold": {
+      "en": "30 m",
+      "he": "30 מטר"
+     }
+    },
+    {
+     "en": "Parade",
+     "he": "מצעד",
+     "hold": {
+      "en": "12 m · 2 m between the wingtips",
+      "he": "12 מטר · 2 מטר בין קצות הכנפיים"
+     }
+    }
+   ],
+   "top": {
+    "paths": [
+     {
+      "track": [
+       [
+        62.0,
+        95.0
+       ],
+       [
+        62.0,
+        10.0
+       ]
+      ],
+      "kind": "other"
+     },
+     {
+      "track": [
+       [
+        22.0,
+        88.0
+       ],
+       [
+        34.0,
+        70.0
+       ],
+       [
+        44.0,
+        55.0
+       ],
+       [
+        54.0,
+        40.0
+       ]
+      ]
+     }
+    ],
+    "pins": [
+     [
+      26.0,
+      82.0
+     ],
+     [
+      40.0,
+      61.0
+     ],
+     [
+      54.0,
+      40.0
+     ]
+    ],
+    "notes": [
+     {
+      "at": [
+       66.0,
+       20.0
+      ],
+      "en": "lead",
+      "he": "מוביל"
+     }
+    ]
+   }
+  },
+  "trail_rejoin": {
+   "title": {
+    "en": "Trail and the rejoin",
+    "he": "מבנה טור וההצטרפות"
+   },
+   "points": [
+    {
+     "en": "Trail",
+     "he": "טור",
+     "hold": {
+      "en": "600 m behind · the lead's height",
+      "he": "600 מטר מאחור · בגובה המוביל"
+     }
+    },
+    {
+     "en": "Rejoin",
+     "he": "הצטרפות",
+     "hold": {
+      "en": "on the order: inside the turn · +30 to 50 kt",
+      "he": "בפקודה: מצד הפנים של הפנייה · 30 עד 50 קשר יותר"
+     }
+    },
+    {
+     "en": "In position",
+     "he": "במקום",
+     "hold": {
+      "en": "fingertip · the overtake off",
+      "he": "ארבע אצבעות · בלי עודף מהירות"
+     }
+    }
+   ],
+   "top": {
+    "paths": [
+     {
+      "track": [
+       [
+        62.0,
+        92.0
+       ],
+       [
+        62.0,
+        60.0
+       ],
+       [
+        58.0,
+        45.0
+       ],
+       [
+        50.0,
+        34.0
+       ],
+       [
+        40.0,
+        26.0
+       ],
+       [
+        25.0,
+        21.0
+       ],
+       [
+        8.0,
+        20.0
+       ]
+      ],
+      "kind": "other"
+     },
+     {
+      "track": [
+       [
+        62.0,
+        100.0
+       ],
+       [
+        56.0,
+        78.0
+       ],
+       [
+        47.0,
+        58.0
+       ],
+       [
+        38.0,
+        44.0
+       ],
+       [
+        27.0,
+        34.0
+       ]
+      ]
+     }
+    ],
+    "pins": [
+     [
+      62.0,
+      98.0
+     ],
+     [
+      56.0,
+      78.0
+     ],
+     [
+      27.0,
+      34.0
+     ]
+    ],
+    "notes": [
+     {
+      "at": [
+       66.0,
+       62.0
+      ],
+      "en": "lead",
+      "he": "מוביל"
+     }
+    ]
+   }
+  },
+  "line_abreast": {
+   "title": {
+    "en": "Line abreast (spread)",
+    "he": "מבנה מקבילי"
+   },
+   "points": [
+    {
+     "en": "Your slot",
+     "he": "המקום שלכם",
+     "hold": {
+      "en": "1,500 m abeam · level · the lead's height",
+      "he": "1,500 מטר בקו אחד · באותו גובה"
+     }
+    }
+   ],
+   "top": {
+    "paths": [
+     {
+      "track": [
+       [
+        70.0,
+        95.0
+       ],
+       [
+        70.0,
+        10.0
+       ]
+      ],
+      "kind": "other"
+     },
+     {
+      "track": [
+       [
+        30.0,
+        95.0
+       ],
+       [
+        30.0,
+        10.0
+       ]
+      ]
+     }
+    ],
+    "pins": [
+     [
+      30.0,
+      50.0
+     ]
+    ],
+    "notes": [
+     {
+      "at": [
+       74.0,
+       50.0
+      ],
+      "en": "lead",
+      "he": "מוביל"
+     },
+     {
+      "at": [
+       50.0,
+       46.0
+      ],
+      "en": "1,500 m",
+      "he": "1,500 מטר"
+     }
+    ]
+   }
+  },
+  "tac_turn": {
+   "title": {
+    "en": "The tac turn (right)",
+    "he": "פנייה טקטית ימינה"
+   },
+   "points": [
+    {
+     "en": "\"Tac right\"",
+     "he": "\"פנייה טקטית ימינה\"",
+     "hold": {
+      "en": "the lead's call",
+      "he": "קריאת המוביל"
+     }
+    },
+    {
+     "en": "Outside jet turns",
+     "he": "המטוס החיצוני פונה",
+     "hold": {
+      "en": "at once · 70° bank · 300 kt",
+      "he": "מיד · 70° הטיה · 300 קשר"
+     }
+    },
+    {
+     "en": "Inside jet turns",
+     "he": "המטוס הפנימי פונה",
+     "hold": {
+      "en": "when the outside jet's nose is on it",
+      "he": "כשהאף של החיצוני מכוון אליו"
+     }
+    },
+    {
+     "en": "Roll out",
+     "he": "יציאה מהפנייה",
+     "hold": {
+      "en": "abeam · sides swapped",
+      "he": "בקו אחד · הצדדים התחלפו"
+     }
+    }
+   ],
+   "top": {
+    "paths": [
+     {
+      "track": [
+       [
+        30.0,
+        95.0
+       ],
+       [
+        30.0,
+        60.0
+       ],
+       [
+        33.0,
+        50.0
+       ],
+       [
+        40.0,
+        44.0
+       ],
+       [
+        50.0,
+        42.0
+       ],
+       [
+        95.0,
+        42.0
+       ]
+      ]
+     },
+     {
+      "track": [
+       [
+        60.0,
+        95.0
+       ],
+       [
+        60.0,
+        30.0
+       ],
+       [
+        63.0,
+        20.0
+       ],
+       [
+        70.0,
+        14.0
+       ],
+       [
+        80.0,
+        12.0
+       ],
+       [
+        95.0,
+        12.0
+       ]
+      ],
+      "kind": "other"
+     }
+    ],
+    "pins": [
+     [
+      30.0,
+      82.0
+     ],
+     [
+      30.0,
+      60.0
+     ],
+     [
+      60.0,
+      30.0
+     ],
+     [
+      90.0,
+      42.0
+     ]
+    ],
+    "notes": [
+     {
+      "at": [
+       64.0,
+       80.0
+      ],
+      "en": "lead",
+      "he": "מוביל"
+     }
+    ]
+   }
+  },
+  "in_place_turn": {
+   "title": {
+    "en": "The in-place turn (right)",
+    "he": "פנייה במקום ימינה"
+   },
+   "points": [
+    {
+     "en": "\"In-place right\"",
+     "he": "\"פנייה במקום ימינה\"",
+     "hold": {
+      "en": "the lead's call",
+      "he": "קריאת המוביל"
+     }
+    },
+    {
+     "en": "Both turn",
+     "he": "שניהם פונים",
+     "hold": {
+      "en": "at once · the same bank",
+      "he": "יחד · באותה הטיה"
+     }
+    },
+    {
+     "en": "Roll out",
+     "he": "יציאה מהפנייה",
+     "hold": {
+      "en": "abeam on the reciprocal · sides swapped",
+      "he": "בקו אחד בכיוון ההפוך · הצדדים התחלפו"
+     }
+    }
+   ],
+   "top": {
+    "paths": [
+     {
+      "track": [
+       [
+        30.0,
+        95.0
+       ],
+       [
+        30.0,
+        40.0
+       ],
+       [
+        32.0,
+        33.0
+       ],
+       [
+        37.0,
+        30.0
+       ],
+       [
+        43.0,
+        30.0
+       ],
+       [
+        48.0,
+        33.0
+       ],
+       [
+        50.0,
+        40.0
+       ],
+       [
+        50.0,
+        95.0
+       ]
+      ]
+     },
+     {
+      "track": [
+       [
+        60.0,
+        95.0
+       ],
+       [
+        60.0,
+        40.0
+       ],
+       [
+        62.0,
+        33.0
+       ],
+       [
+        67.0,
+        30.0
+       ],
+       [
+        73.0,
+        30.0
+       ],
+       [
+        78.0,
+        33.0
+       ],
+       [
+        80.0,
+        40.0
+       ],
+       [
+        80.0,
+        95.0
+       ]
+      ],
+      "kind": "other"
+     }
+    ],
+    "pins": [
+     [
+      30.0,
+      82.0
+     ],
+     [
+      30.0,
+      40.0
+     ],
+     [
+      50.0,
+      82.0
+     ]
+    ],
+    "notes": [
+     {
+      "at": [
+       64.0,
+       88.0
+      ],
+      "en": "lead",
+      "he": "מוביל"
+     }
+    ]
+   }
+  },
+  "pair_orders": {
+   "title": {
+    "en": "Your wingman's slots",
+    "he": "המקומות של מספר 2"
+   },
+   "points": [
+    {
+     "en": "Echelon right",
+     "he": "אלכסון ימין",
+     "hold": {
+      "en": "60 m back · 60 m right",
+      "he": "60 מטר אחורה · 60 מטר ימינה"
+     }
+    },
+    {
+     "en": "Line abreast",
+     "he": "מבנה מקבילי",
+     "hold": {
+      "en": "1,500 m on your left",
+      "he": "1,500 מטר משמאלכם"
+     }
+    },
+    {
+     "en": "Fingertip",
+     "he": "ארבע אצבעות",
+     "hold": {
+      "en": "60 m back · 60 m left",
+      "he": "60 מטר אחורה · 60 מטר שמאלה"
+     }
+    },
+    {
+     "en": "Close up",
+     "he": "מבנה צמוד",
+     "hold": {
+      "en": "30 m, then 12 m",
+      "he": "30 מטר, ואז 12 מטר"
+     }
+    }
+   ],
+   "top": {
+    "paths": [
+     {
+      "track": [
+       [
+        50.0,
+        95.0
+       ],
+       [
+        50.0,
+        10.0
+       ]
+      ]
+     },
+     {
+      "track": [
+       [
+        62.0,
+        40.0
+       ],
+       [
+        62.0,
+        30.0
+       ]
+      ],
+      "kind": "other"
+     },
+     {
+      "track": [
+       [
+        10.0,
+        30.0
+       ],
+       [
+        10.0,
+        20.0
+       ]
+      ],
+      "kind": "other"
+     },
+     {
+      "track": [
+       [
+        38.0,
+        40.0
+       ],
+       [
+        38.0,
+        30.0
+       ]
+      ],
+      "kind": "other"
+     },
+     {
+      "track": [
+       [
+        44.0,
+        32.0
+       ],
+       [
+        44.0,
+        24.0
+       ]
+      ],
+      "kind": "other"
+     }
+    ],
+    "pins": [
+     [
+      62.0,
+      30.0
+     ],
+     [
+      10.0,
+      20.0
+     ],
+     [
+      38.0,
+      30.0
+     ],
+     [
+      44.0,
+      24.0
+     ]
+    ],
+    "notes": [
+     {
+      "at": [
+       54.0,
+       14.0
+      ],
+      "en": "you",
+      "he": "אתם"
+     }
+    ]
+   }
+  },
+  "stream_takeoff": {
+   "title": {
+    "en": "The stream take-off and the join-up",
+    "he": "המראה בטור והאיסוף"
+   },
+   "points": [
+    {
+     "en": "Brake release",
+     "he": "שחרור בלמים",
+     "hold": {
+      "en": "military power",
+      "he": "כוח צבאי"
+     }
+    },
+    {
+     "en": "Lift-off",
+     "he": "ניתוק",
+     "hold": {
+      "en": "each jet: the one ahead past 50 kt",
+      "he": "כל מטוס: הקודם עבר 50 קשר"
+     }
+    },
+    {
+     "en": "Climb out",
+     "he": "טיפוס",
+     "hold": {
+      "en": "350 kt · the runway heading",
+      "he": "350 קשר · כיוון המסלול"
+     }
+    },
+    {
+     "en": "Join-up",
+     "he": "איסוף",
+     "hold": {
+      "en": "a gentle turn · \"in position\" from each",
+      "he": "פנייה עדינה · \"במקום\" מכל מטוס"
+     }
+    }
+   ],
+   "top": {
+    "runway": [
+     [
+      10.0,
+      70.0
+     ],
+     [
+      70.0,
+      70.0
+     ]
+    ],
+    "paths": [
+     {
+      "track": [
+       [
+        12.0,
+        70.0
+       ],
+       [
+        70.0,
+        70.0
+       ],
+       [
+        86.0,
+        60.0
+       ],
+       [
+        92.0,
+        40.0
+       ],
+       [
+        84.0,
+        20.0
+       ],
+       [
+        66.0,
+        12.0
+       ]
+      ]
+     },
+     {
+      "track": [
+       [
+        12.0,
+        74.0
+       ],
+       [
+        60.0,
+        74.0
+       ],
+       [
+        78.0,
+        66.0
+       ]
+      ],
+      "kind": "other"
+     }
+    ],
+    "pins": [
+     [
+      12.0,
+      70.0
+     ],
+     [
+      55.0,
+      70.0
+     ],
+     [
+      88.0,
+      55.0
+     ],
+     [
+      70.0,
+      13.0
+     ]
+    ]
+   }
+  },
+  "four_ship_shapes": {
+   "title": {
+    "en": "The four-ship's shapes",
+    "he": "מבני הרביעייה"
+   },
+   "points": [
+    {
+     "en": "Diamond",
+     "he": "יהלום",
+     "hold": {
+      "en": "1-4 behind the lead",
+      "he": "1-4 מאחורי המוביל"
+     }
+    },
+    {
+     "en": "Echelon left",
+     "he": "אלכסון שמאל",
+     "hold": {
+      "en": "all on the left · 60 m steps",
+      "he": "כולם משמאל · צעדים של 60 מטר"
+     }
+    },
+    {
+     "en": "Line abreast",
+     "he": "מבנה מקבילי",
+     "hold": {
+      "en": "1,500 m apart",
+      "he": "1,500 מטר ביניהם"
+     }
+    },
+    {
+     "en": "Fingertip",
+     "he": "ארבע אצבעות",
+     "hold": {
+      "en": "1-2 left · 1-3 and 1-4 right",
+      "he": "1-2 משמאל · 1-3 ו-1-4 מימין"
+     }
+    }
+   ],
+   "top": {
+    "paths": [
+     {
+      "track": [
+       [
+        50.0,
+        95.0
+       ],
+       [
+        50.0,
+        10.0
+       ]
+      ]
+     },
+     {
+      "track": [
+       [
+        50.0,
+        48.0
+       ],
+       [
+        50.0,
+        40.0
+       ]
+      ],
+      "kind": "other"
+     },
+     {
+      "track": [
+       [
+        30.0,
+        52.0
+       ],
+       [
+        30.0,
+        44.0
+       ]
+      ],
+      "kind": "other"
+     },
+     {
+      "track": [
+       [
+        8.0,
+        30.0
+       ],
+       [
+        8.0,
+        22.0
+       ]
+      ],
+      "kind": "other"
+     },
+     {
+      "track": [
+       [
+        64.0,
+        40.0
+       ],
+       [
+        64.0,
+        32.0
+       ]
+      ],
+      "kind": "other"
+     }
+    ],
+    "pins": [
+     [
+      50.0,
+      40.0
+     ],
+     [
+      30.0,
+      44.0
+     ],
+     [
+      8.0,
+      22.0
+     ],
+     [
+      64.0,
+      32.0
+     ]
+    ],
+    "notes": [
+     {
+      "at": [
+       54.0,
+       14.0
+      ],
+      "en": "lead",
+      "he": "מוביל"
+     }
+    ]
+   }
+  },
+  "landing_order": {
+   "title": {
+    "en": "The landing order",
+    "he": "סדר הנחיתה"
+   },
+   "points": [
+    {
+     "en": "Gear down near the base",
+     "he": "גלגלים למטה ליד הבסיס",
+     "hold": {
+      "en": "the flight goes into trail",
+      "he": "המבנה עובר לטור"
+     }
+    },
+    {
+     "en": "Touchdown",
+     "he": "נגיעה",
+     "hold": {
+      "en": "you first",
+      "he": "אתם ראשונים"
+     }
+    },
+    {
+     "en": "Kidon 1-2",
+     "he": "כידון 1-2",
+     "hold": {
+      "en": "about 30 s behind",
+      "he": "כ-30 שניות אחריכם"
+     }
+    },
+    {
+     "en": "Kidon 1-3, 1-4",
+     "he": "כידון 1-3, 1-4",
+     "hold": {
+      "en": "30 s apart",
+      "he": "30 שניות ביניהם"
+     }
+    }
+   ],
+   "top": {
+    "runway": [
+     [
+      20.0,
+      60.0
+     ],
+     [
+      60.0,
+      60.0
+     ]
+    ],
+    "paths": [
+     {
+      "track": [
+       [
+        98.0,
+        60.0
+       ],
+       [
+        22.0,
+        60.0
+       ]
+      ]
+     },
+     {
+      "track": [
+       [
+        98.0,
+        52.0
+       ],
+       [
+        80.0,
+        56.0
+       ]
+      ],
+      "kind": "other"
+     },
+     {
+      "track": [
+       [
+        98.0,
+        40.0
+       ],
+       [
+        88.0,
+        44.0
+       ]
+      ],
+      "kind": "other"
+     }
+    ],
+    "pins": [
+     [
+      90.0,
+      60.0
+     ],
+     [
+      55.0,
+      60.0
+     ],
+     [
+      84.0,
+      55.0
+     ],
+     [
+      92.0,
+      42.0
+     ]
+    ]
+   }
+  }
+ }
+}

@@ -1190,6 +1190,9 @@ func flight_call(from: int, id: String, fuel_kg := 0.0, at := Vector3.INF) -> vo
 				parts.append("WNG_D" + ch)
 			parts.append("WNG_D%d" % (tenths % 10))
 			say("WNG_FUEL" if whole.length() == 1 else "WNG_FUEL2", parts)
+		_ when id.begins_with("lead_"):
+			# An AI lead's order to its flight (IafAi.lead_order, the player its wingman): "Kidon 1, tac right".
+			say("LEAD_CALL", ["WNG_KIDON1", "WNG_L_" + id.trim_prefix("lead_").to_upper()])
 		"break_left", "break_right":
 			var mate := from + 1 if from % 2 == 1 else from - 1
 			say("WNG_CALL", [WING_NUMBERS[clampi(mate, 0, 4)], WING_WORDS[id]])

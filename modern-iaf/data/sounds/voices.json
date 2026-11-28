@@ -4062,6 +4062,118 @@
       "say_he": "במקום."
     },
     {
+      "file": "flt_wng_kidon1.ogg",
+      "voice": "wingman",
+      "say": "Kidon 1.",
+      "mode": "particle",
+      "say_he": "כידון 1."
+    },
+    {
+      "file": "flt_wng_l_fingertip.ogg",
+      "voice": "wingman",
+      "say": "Fingertip.",
+      "mode": "particle",
+      "say_he": "מבנה ארבע אצבעות."
+    },
+    {
+      "file": "flt_wng_l_line_abreast.ogg",
+      "voice": "wingman",
+      "say": "Line abreast.",
+      "mode": "particle",
+      "say_he": "מבנה מקבילי."
+    },
+    {
+      "file": "flt_wng_l_trail.ogg",
+      "voice": "wingman",
+      "say": "Trail.",
+      "mode": "particle",
+      "say_he": "מבנה טור."
+    },
+    {
+      "file": "flt_wng_l_echelon_right.ogg",
+      "voice": "wingman",
+      "say": "Echelon right.",
+      "mode": "particle",
+      "say_he": "מבנה אלכסון ימין."
+    },
+    {
+      "file": "flt_wng_l_echelon_left.ogg",
+      "voice": "wingman",
+      "say": "Echelon left.",
+      "mode": "particle",
+      "say_he": "מבנה אלכסון שמאל."
+    },
+    {
+      "file": "flt_wng_l_diamond.ogg",
+      "voice": "wingman",
+      "say": "Diamond.",
+      "mode": "particle",
+      "say_he": "מבנה יהלום."
+    },
+    {
+      "file": "flt_wng_l_vic.ogg",
+      "voice": "wingman",
+      "say": "Vic.",
+      "mode": "particle",
+      "say_he": "מבנה וי."
+    },
+    {
+      "file": "flt_wng_l_delta.ogg",
+      "voice": "wingman",
+      "say": "Delta.",
+      "mode": "particle",
+      "say_he": "מבנה דלתא."
+    },
+    {
+      "file": "flt_wng_l_rejoin.ogg",
+      "voice": "wingman",
+      "say": "Rejoin.",
+      "mode": "particle",
+      "say_he": "הצטרפות."
+    },
+    {
+      "file": "flt_wng_l_close_up.ogg",
+      "voice": "wingman",
+      "say": "Close up.",
+      "mode": "particle",
+      "say_he": "מבנה צמוד."
+    },
+    {
+      "file": "flt_wng_l_spread_out.ogg",
+      "voice": "wingman",
+      "say": "Spread out.",
+      "mode": "particle",
+      "say_he": "להגדיל מרווחים."
+    },
+    {
+      "file": "flt_wng_l_tac_right.ogg",
+      "voice": "wingman",
+      "say": "Tac right.",
+      "mode": "particle",
+      "say_he": "פנייה טקטית ימינה."
+    },
+    {
+      "file": "flt_wng_l_tac_left.ogg",
+      "voice": "wingman",
+      "say": "Tac left.",
+      "mode": "particle",
+      "say_he": "פנייה טקטית שמאלה."
+    },
+    {
+      "file": "flt_wng_l_in_place_right.ogg",
+      "voice": "wingman",
+      "say": "In-place right.",
+      "mode": "particle",
+      "say_he": "פנייה במקום ימינה."
+    },
+    {
+      "file": "flt_wng_l_in_place_left.ogg",
+      "voice": "wingman",
+      "say": "In-place left.",
+      "mode": "particle",
+      "say_he": "פנייה במקום שמאלה."
+    },
+    {
       "file": "flt_wng_joker.ogg",
       "voice": "wingman",
       "say": "Joker.",
@@ -11191,6 +11303,86 @@
       "file": "twr_read_five.ogg",
       "text": "read you five",
       "text_he": "שומע אותך חמש"
+    },
+    "WNG_KIDON1": {
+      "file": "flt_wng_kidon1.ogg",
+      "text": "Kidon 1",
+      "text_he": "כידון 1"
+    },
+    "WNG_L_FINGERTIP": {
+      "file": "flt_wng_l_fingertip.ogg",
+      "text": "fingertip",
+      "text_he": "מבנה ארבע אצבעות"
+    },
+    "WNG_L_LINE_ABREAST": {
+      "file": "flt_wng_l_line_abreast.ogg",
+      "text": "line abreast",
+      "text_he": "מבנה מקבילי"
+    },
+    "WNG_L_TRAIL": {
+      "file": "flt_wng_l_trail.ogg",
+      "text": "trail",
+      "text_he": "מבנה טור"
+    },
+    "WNG_L_ECHELON_RIGHT": {
+      "file": "flt_wng_l_echelon_right.ogg",
+      "text": "echelon right",
+      "text_he": "מבנה אלכסון ימין"
+    },
+    "WNG_L_ECHELON_LEFT": {
+      "file": "flt_wng_l_echelon_left.ogg",
+      "text": "echelon left",
+      "text_he": "מבנה אלכסון שמאל"
+    },
+    "WNG_L_DIAMOND": {
+      "file": "flt_wng_l_diamond.ogg",
+      "text": "diamond",
+      "text_he": "מבנה יהלום"
+    },
+    "WNG_L_VIC": {
+      "file": "flt_wng_l_vic.ogg",
+      "text": "vic",
+      "text_he": "מבנה וי"
+    },
+    "WNG_L_DELTA": {
+      "file": "flt_wng_l_delta.ogg",
+      "text": "delta",
+      "text_he": "מבנה דלתא"
+    },
+    "WNG_L_REJOIN": {
+      "file": "flt_wng_l_rejoin.ogg",
+      "text": "rejoin",
+      "text_he": "הצטרפות"
+    },
+    "WNG_L_CLOSE_UP": {
+      "file": "flt_wng_l_close_up.ogg",
+      "text": "close up",
+      "text_he": "מבנה צמוד"
+    },
+    "WNG_L_SPREAD_OUT": {
+      "file": "flt_wng_l_spread_out.ogg",
+      "text": "spread out",
+      "text_he": "להגדיל מרווחים"
+    },
+    "WNG_L_TAC_RIGHT": {
+      "file": "flt_wng_l_tac_right.ogg",
+      "text": "tac right",
+      "text_he": "פנייה טקטית ימינה"
+    },
+    "WNG_L_TAC_LEFT": {
+      "file": "flt_wng_l_tac_left.ogg",
+      "text": "tac left",
+      "text_he": "פנייה טקטית שמאלה"
+    },
+    "WNG_L_IN_PLACE_RIGHT": {
+      "file": "flt_wng_l_in_place_right.ogg",
+      "text": "in-place right",
+      "text_he": "פנייה במקום ימינה"
+    },
+    "WNG_L_IN_PLACE_LEFT": {
+      "file": "flt_wng_l_in_place_left.ogg",
+      "text": "in-place left",
+      "text_he": "פנייה במקום שמאלה"
     }
   },
   "templates": {
@@ -11241,7 +11433,8 @@
     "AWX_HELP": "%S1 , AWX_THREAT , AWX_GROUP_W %S2 , %S3 , %S4 , AWX_RETROGRADE , AWX_COMMIT",
     "TNK_CALL": "%S1 , %S2",
     "TNK_CALL3": "%S1 , %S2 , %S3",
-    "ACFT_RADIO_CHECK": "%S1 , READ_FIVE"
+    "ACFT_RADIO_CHECK": "%S1 , READ_FIVE",
+    "LEAD_CALL": "%S1 , %S2"
   },
   "he": {
     "engine": "BlueTTS BlueV3 (github.com/maxmelichov/BlueTTS, git 91b1789): code and weights MIT, the RenikudPlus G2P Apache-2.0, the voices CC BY 4.0 (LibriTTS-R speakers), the vocoder OpenRAIL-M (modern-iaf/docs/research/hebrew-voices.md §4)",

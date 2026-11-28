@@ -3,6 +3,16 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The formation phase's lessons (2026-11-28, [training.md](training.md) §16.8, [training-plan.md](training-plan.md)
+  §3 phase 4):** the six lessons of phase 4 for the Barak, the Sufa and the Adir: as number two behind an AI lead
+  (the wingman lesson, tactical formation, at night), leading a pair and a four-ship, and check ride 4 as Kidon 1-3.
+  A mission's `start.seat` puts the player in an AI lead's flight: the lead starts, waits for the player's engine,
+  takes off in pairs with the player beside it and gives its orders from the mission's `lead_plan` (the shapes, the
+  rejoin, close up and spread out, the tac turn and the in-place turn, said in the wingmen's voice); `start.pairs`
+  the take-off in pairs. The tactical turns are the AI lead's (CNATRA P-1221: the outside jet first, the inside on
+  its nose, the sides swapped). The items `formation_position`, `rejoin_time`, `flight_commands` and
+  `flight_landed` are measured from the recording. `crates/iaf-ai/tests/lead.rs`, `modern-iaf/tests/test_formation_lessons.gd`.
+  The lead's talk to the tower is not voiced.
 - **The instructor's calls in flight (2026-11-28, [training-plan.md](training-plan.md) §2.3;
   [training.md](training.md) §17):** each lesson's calls as data, fired in order by the flight's state in Rust (any
   number of calls on a step, any number of lines in a call), the start-up calls left out once phase 1 is passed, none

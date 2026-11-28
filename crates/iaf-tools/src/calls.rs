@@ -78,7 +78,7 @@ pub enum Test {
     Item(String),
     /// The tower's clearance given for `startup`, `taxi` or `takeoff` (§3.3).
     Cleared(String),
-    /// The pilot made the radio call (§8).
+    /// The pilot made the radio call (§8); a flight command is `<command>:<addressee>`.
     Called(String),
     /// The failure is on (training.md §15): the engine fire while it burns, any other once started.
     Failure(String),
@@ -88,6 +88,16 @@ pub enum Test {
     Aoa(f64),
     /// In the air at a load factor of at least this, g.
     G(f64),
+    /// In the air.
+    Airborne,
+    /// The player, a wingman, in its slot (§16.8: `iaf_ai::Flight::facts`).
+    InSlot,
+    /// Every other live jet of the flight in position.
+    FlightJoined,
+    /// Every live jet of the flight down after its flight.
+    FlightLanded,
+    /// The AI lead gave the order (`iaf_ai::LEAD_CALLS` without "lead_").
+    LeadOrder(String),
 }
 
 impl Test {
@@ -109,6 +119,10 @@ impl Test {
             "parked" => Test::Parked,
             "engine_off" => Test::EngineOff,
             "power_off" => Test::PowerOff,
+            "airborne" => Test::Airborne,
+            "in_slot" => Test::InSlot,
+            "flight_joined" => Test::FlightJoined,
+            "flight_landed" => Test::FlightLanded,
             t => match t.split_once(':') {
                 Some(("item", a)) if !a.is_empty() => Test::Item(a.into()),
                 Some(("cleared", a)) if ["startup", "taxi", "takeoff"].contains(&a) => Test::Cleared(a.into()),
@@ -122,6 +136,7 @@ impl Test {
                         _ => Test::G(v),
                     }
                 }
+                Some(("lead_order", a)) if !a.is_empty() => Test::LeadOrder(a.into()),
                 _ => bail!("calls: \"{t}\" is no test"),
             },
         })
@@ -294,13 +309,19 @@ pub struct Now {
     pub items: Vec<String>,
     /// The tower's clearances so far.
     pub cleared: crate::training::Cleared,
-    /// The radio calls the pilot made, by id.
+    /// The radio calls the pilot made, by id; a flight command `<command>:<addressee>`.
     pub called: Vec<String>,
     /// The angle of attack (deg) and the load factor (g).
     pub aoa: f64,
     pub g: f64,
     /// The failures on (training.md §15; the engine fire while it burns), by id.
     pub failures: Vec<String>,
+    /// The player's flight (`IafAi.facts`, §16.8): the player in its slot, every other jet in position, every jet
+    /// down; the AI lead's orders given.
+    pub in_slot: bool,
+    pub flight_joined: bool,
+    pub flight_landed: bool,
+    pub lead_orders: Vec<String>,
 }
 
 /// A line said: its call, its clip, its English and Hebrew subtitles.
@@ -432,6 +453,11 @@ impl Calls {
             Test::Alt(ft) => air && agl >= *ft,
             Test::Aoa(deg) => air && s.aoa >= *deg,
             Test::G(g) => air && s.g >= *g,
+            Test::Airborne => air,
+            Test::InSlot => s.in_slot,
+            Test::FlightJoined => s.flight_joined,
+            Test::FlightLanded => s.flight_landed,
+            Test::LeadOrder(o) => s.lead_orders.contains(o),
         }
     }
 
@@ -494,7 +520,8 @@ mod tests {
         for t in course::TESTS {
             assert!(Test::of(t).is_ok(), "{t}");
         }
-        for t in ["item:batt", "cleared:taxi", "called:radio_check", "failure:flameout", "alt:9500", "aoa:15", "g:7"] {
+        let args = ["item:batt", "cleared:taxi", "called:radio_check", "failure:flameout", "alt:9500", "aoa:15", "g:7"];
+        for t in args.into_iter().chain(["called:fingertip:0", "lead_order:tac_right"]) {
             assert!(Test::of(t).is_ok(), "{t}");
         }
         assert!(Test::of("cleared:landing").is_err() && Test::of("nope").is_err() && Test::of("aoa:x").is_err());

@@ -102,6 +102,7 @@ const SIM: &[&str] = &[
     "modern-iaf/data/training/lessons/ground.json",
     "crates/iaf-tools/src/calls.rs",
     "modern-iaf/data/training/lessons/pattern.json",
+    "modern-iaf/data/training/lessons/formation.json",
     "crates/iaf-tools/src/roads.rs",
     "crates/iaf-tools/src/scenery.rs",
 ];

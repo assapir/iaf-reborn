@@ -1,0 +1,114 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16i",
+    "base": "Ramon",
+    "at": "parking",
+    "count": 4,
+    "elevation_m": 648
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "runway": "25R",
+  "route": [
+    {
+      "lat": 30.73737,
+      "lon": 34.55702,
+      "alt_m": 1548,
+      "speed_kmh": 600
+    },
+    {
+      "lat": 30.91723,
+      "lon": 34.55702,
+      "alt_m": 3648,
+      "speed_kmh": 650
+    },
+    {
+      "lat": 30.91723,
+      "lon": 34.81909,
+      "alt_m": 3648,
+      "speed_kmh": 650
+    },
+    {
+      "lat": 30.73737,
+      "lon": 34.81909,
+      "alt_m": 3648,
+      "speed_kmh": 650
+    },
+    {
+      "lat": 30.81771,
+      "lon": 34.77526,
+      "alt_m": 1098,
+      "speed_kmh": 550,
+      "land": true
+    }
+  ],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "a day lesson (training-plan.md §1)",
+    "wind_kt": "calm (inferred: the formation lessons need no wind)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spots for the unit (data/airbases, airbases.md §5), Kidon 1-1 on the first; the player flies Kidon 1-1",
+    "route": "the departure point of the Take-off lesson, then a box of three legs of 20 to 25 km at 3,000 m above the field, and the last point 10 km out on runway 25R's extended centreline (`land`: the flight goes home from it)",
+    "training.time_budget_s": "forty minutes: the start-up, the taxi, the sortie of about 100 km and the landing (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f16i_formation_lead_four",
+  "menu_id": 3442,
+  "lesson": "formation.lead_four",
+  "title": {
+    "en": "Lead a four-ship",
+    "he": "הובלת רביעייה"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off",
+      "flight_landed"
+    ],
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "calls": [
+      "startup",
+      "taxi",
+      "lineup",
+      "takeoff",
+      "landing",
+      "diamond:0",
+      "echelon_left:0",
+      "line_abreast:0",
+      "fingertip:0",
+      "ops_check:0"
+    ],
+    "time_budget_s": 2400,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

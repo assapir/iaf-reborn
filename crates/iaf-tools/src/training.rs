@@ -1592,8 +1592,13 @@ fn startup(f: &Flight, mission: String, budget: f64) -> Debrief {
     }
 }
 
+/// The player as a wingman is in position within this of its slot, m (iaf-ai flight.rs IN_POSITION_M at the standard
+/// spacing).
+const FORMATION_IN_M: f64 = 50.0;
+
 /// The tests a lesson's `end` may name: the ones `holds` reads from the recording (training.md §16.3).
-pub const END_TESTS: [&str; 7] = ["power_off", "engine_off", "idle", "aligned", "parked", "item", "called"];
+pub const END_TESTS: [&str; 8] =
+    ["power_off", "engine_off", "idle", "aligned", "parked", "item", "called", "flight_landed"];
 
 /// The card items that set the cockpit for the night (data/checklists: the F-16s' interior lights, the F-35I's HMD).
 const NIGHT_ITEMS: [&str; 2] = ["interior_lights", "hmd_night"];
@@ -1601,10 +1606,10 @@ const NIGHT_ITEMS: [&str; 2] = ["interior_lights", "hmd_night"];
 /// Parked: on the ground, stopped, within this of the spot the flight started from, m (inferred: a shelter's pad).
 pub const PARKED_M: f64 = 30.0;
 
-/// Test `test` (END_TESTS) at sample `i` of the recording.
+/// Test `test` (END_TESTS) at sample `i` of the recording, in a flight of `count` jets.
 // ponytail: each event test scans the events at every sample (samples x events per score); walk them once alongside
 // the samples if a long lesson's score shows in the frame time.
-fn holds(f: &Flight, i: usize, test: &str) -> bool {
+fn holds(f: &Flight, i: usize, test: &str, count: usize) -> bool {
     let (s, x) = (&f.samples, &f.samples[i]);
     let before = |e: &&Value| e["t"].as_f64().is_some_and(|t| t <= x.t);
     let (name, arg) = test.split_once(':').unwrap_or((test, ""));
@@ -1622,16 +1627,33 @@ fn holds(f: &Flight, i: usize, test: &str) -> bool {
             last.is_some_and(|e| e["on"] != false)
         }
         "called" => f.events.iter().filter(before).any(|e| e["event"] == "radio" && e["call"] == arg),
+        // Every jet of the player's flight down: each AI jet's `landed` event (ai_flights.gd, the stop after its
+        // roll) or its `flight_lost` (a jet lost counts for none: IafAi.facts' rule), and the player on the ground
+        // after its flight.
+        "flight_landed" => {
+            let mut landed: Vec<u64> = (f.events.iter().filter(before))
+                .filter(|e| e["event"] == "landed")
+                .filter_map(|e| e["number"].as_u64())
+                .collect();
+            let lost = (f.events.iter().filter(before))
+                .filter(|e| e["event"] == "flight_lost")
+                .filter_map(|e| e["number"].as_u64());
+            landed.extend(lost);
+            landed.sort_unstable();
+            landed.dedup();
+            let flew = s[..=i].iter().any(|y| !y.on_ground);
+            x.on_ground && flew && landed.len() + 1 >= count
+        }
         _ => false,
     }
 }
 
 /// The time from the start the lesson's end came (training.md §16.2): the first sample where every test of `end` has
 /// failed at least once since the start and all hold; None before it.
-pub fn end_at(f: &Flight, end: &[String]) -> Option<f64> {
+pub fn end_at(f: &Flight, end: &[String], count: usize) -> Option<f64> {
     let mut failed = vec![false; end.len()];
     for i in 0..f.samples.len() {
-        let now: Vec<bool> = end.iter().map(|t| holds(f, i, t)).collect();
+        let now: Vec<bool> = end.iter().map(|t| holds(f, i, t, count)).collect();
         for (k, h) in now.iter().enumerate() {
             failed[k] |= !h;
         }
@@ -1659,7 +1681,7 @@ fn lesson(
     let figures = c.figures(mission["start"]["unit"].as_str().unwrap_or(""));
     let (p, l) = c.find(key).with_context(|| format!("{mission_id}: \"lesson\" {key} is no lesson of the course"))?;
     let Kind::Lesson { end, .. } = &r.kind else { bail!("{mission_id}: not a lesson") };
-    let end = end_at(f, end);
+    let end = end_at(f, end, mission["start"]["count"].as_u64().unwrap_or(1) as usize);
     let mut reasons = vec![];
     match end {
         None => reasons.push("lesson_not_done"),
@@ -1674,7 +1696,7 @@ fn lesson(
         .into_iter()
         .filter_map(|id| {
             let i = c.item(&id)?;
-            let (mut flown, mut at) = measure(f, &id, r, calls);
+            let (mut flown, mut at) = measure(f, &id, mission, r, calls);
             if let (None, Some(fd)) = (flown, &field) {
                 (flown, at) = self::flown(f, &id, fd, figures);
             }
@@ -1704,10 +1726,11 @@ fn lesson(
 /// A course item's flown value from the recording (training.md §16.2), with the sample it was flown at (None for an
 /// item of the whole flight); None: not flown, or no measure for the item yet (each phase adds its items' measures
 /// here).
-fn measure(f: &Flight, id: &str, r: &Rules, calls: &[String]) -> (Option<f64>, Option<usize>) {
+fn measure(f: &Flight, id: &str, mission: &Value, r: &Rules, calls: &[String]) -> (Option<f64>, Option<usize>) {
     let s = &f.samples;
     let t0 = s[0].t;
-    let pct = |done: usize, of: usize| (of > 0).then(|| 100.0 * done as f64 / of as f64);
+    // (Nothing asked: the item is met, as a check ride flown in another's flight asks for no tower call.)
+    let pct = |done: usize, of: usize| Some(if of == 0 { 100.0 } else { 100.0 * done as f64 / of as f64 });
     let ticked = |item: &str| {
         let last = f.events.iter().rev().find(|e| e["event"] == "checklist" && e["item"] == item);
         last.is_some_and(|e| e["on"] != false)
@@ -1717,9 +1740,62 @@ fn measure(f: &Flight, id: &str, r: &Rules, calls: &[String]) -> (Option<f64>, O
     let whole = |v: Option<f64>| (v, None);
     match id {
         "checklist_items" => whole(pct(r.checklist.iter().filter(|i| ticked(i)).count(), r.checklist.len())),
-        "tower_calls" => {
-            let made = |c: &String| f.events.iter().any(|e| e["event"] == "radio" && e["call"] == c.as_str());
-            whole(pct(calls.iter().filter(|c| made(c)).count(), calls.len()))
+        "tower_calls" | "flight_commands" => {
+            // A flight command is "<command>:<addressee number>" (sim_flight.gd's radio event); a tower call has no
+            // colon.
+            let command = |c: &&String| c.rsplit_once(':').is_some_and(|(_, n)| n.parse::<u8>().is_ok());
+            let asked: Vec<&String> = calls.iter().filter(|c| command(c) == (id == "flight_commands")).collect();
+            let made = |c: &&String| f.events.iter().any(|e| e["event"] == "radio" && e["call"] == c.as_str());
+            whole(pct(asked.iter().filter(|c| made(c)).count(), asked.len()))
+        }
+        // The player as a wingman (the recording's `formation` events, one a second in the air): the mean distance
+        // from its slot once in position, within FORMATION_IN_M, after each of the lead's orders and outside its
+        // tactical turns; none before the first time in position.
+        "formation_position" => {
+            let (mut settled, mut sum, mut n) = (false, 0.0, 0usize);
+            for e in &f.events {
+                if e["event"] == "lead_order" {
+                    settled = false;
+                }
+                if e["event"] != "formation" {
+                    continue;
+                }
+                let Some(d) = e["slot_m"].as_f64() else { continue };
+                if e["turning"] == true {
+                    settled = false;
+                    continue;
+                }
+                settled |= d <= FORMATION_IN_M;
+                if settled {
+                    (sum, n) = (sum + d, n + 1);
+                }
+            }
+            whole((n > 0).then(|| sum / n as f64))
+        }
+        // From each of the lead's "rejoin" orders to the first second in position after it, s: the longest; none
+        // without a rejoin order or with one never made.
+        "rejoin_time" => {
+            let mut worst: Option<f64> = None;
+            let mut never = false;
+            for (i, e) in f.events.iter().enumerate() {
+                if !(e["event"] == "lead_order" && e["order"] == "rejoin") {
+                    continue;
+                }
+                let t = e["t"].as_f64().unwrap_or(0.0);
+                let back = f.events[i + 1..]
+                    .iter()
+                    .find(|x| x["event"] == "formation" && x["slot_m"].as_f64().is_some_and(|d| d <= FORMATION_IN_M));
+                match back.and_then(|x| x["t"].as_f64()) {
+                    Some(b) => worst = Some(worst.unwrap_or(0.0).max(b - t)),
+                    None => never = true,
+                }
+            }
+            whole(worst.filter(|_| !never))
+        }
+        // 1 when every jet of the player's flight landed by the recording's end (`holds`), else 0.
+        "flight_landed" => {
+            let count = mission["start"]["count"].as_u64().unwrap_or(1) as usize;
+            whole(Some(if holds(f, s.len() - 1, "flight_landed", count) { 1.0 } else { 0.0 }))
         }
         // Placed where the later of the two came.
         "startup_time" => {
@@ -2389,6 +2465,59 @@ impl Run {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The formation items from a recording (training.md §16.8): the slot's mean once in position after each lead
+    /// order, outside the turns; the rejoin's time to in position; the flight landed; the commands' share.
+    #[test]
+    fn formation_items_from_the_recording() {
+        let air = Sample { on_ground: false, engine: true, ..Default::default() };
+        let mut f =
+            Flight { samples: (0..200).map(|t| Sample { t: t as f64, ..air.clone() }).collect(), ..Default::default() };
+        f.samples[0].on_ground = true;
+        f.samples[199].on_ground = true;
+        let mut events = vec![];
+        for t in 1..200 {
+            let (slot, turning) = match t {
+                1..=9 => (200.0, false),     // the join-up: not counted before in position
+                10..=49 => (10.0, false),    // fingertip: 10 m
+                50..=59 => (300.0, true),    // a tactical turn: left out
+                60..=99 => (30.0, false),    // after the turn: 30 m
+                101..=129 => (600.0, false), // trail, ordered at 100, then the rejoin at 130
+                _ => (if t < 160 { 400.0 } else { 20.0 }, false),
+            };
+            if t == 100 {
+                events.push(json!({"event": "lead_order", "order": "trail", "t": 100.0}));
+            }
+            if t == 130 {
+                events.push(json!({"event": "lead_order", "order": "rejoin", "t": 130.0}));
+            }
+            events.push(json!({"event": "formation", "slot_m": slot, "turning": turning, "t": t as f64}));
+        }
+        events.push(json!({"event": "radio", "call": "fingertip:0", "t": 20.0}));
+        events.push(json!({"event": "touchdown", "t": 190.0}));
+        events.push(json!({"event": "landed", "number": 1, "t": 195.0}));
+        f.events = events;
+        let m = json!({"start": {"count": 2}, "training": {"kind": "lesson", "lesson": "x", "end": ["parked"]}});
+        let r = Rules {
+            kind: Kind::Lesson { end: vec![], calls: vec![] },
+            time_budget_s: 1e9,
+            end_hold_s: 0.0,
+            goals: vec![],
+            checklist: vec![],
+            clearances: vec![],
+        };
+        let calls = vec!["fingertip:0".to_string(), "line_abreast:0".to_string(), "startup".to_string()];
+        // 40 s at 10 m, 40 s at 30 m (after the turn), 30 s at 600 m in trail (in position never: none counted after
+        // the trail order), then 40 s at 20 m after the rejoin: (400 + 1200 + 800) / 120.
+        let pos = measure(&f, "formation_position", &m, &r, &calls).0.unwrap();
+        assert!((pos - 20.0).abs() < 0.01, "{pos}");
+        assert_eq!(measure(&f, "rejoin_time", &m, &r, &calls).0, Some(30.0));
+        assert_eq!(measure(&f, "flight_landed", &m, &r, &calls).0, Some(1.0));
+        assert_eq!(measure(&f, "flight_commands", &m, &r, &calls).0, Some(50.0));
+        assert_eq!(measure(&f, "tower_calls", &m, &r, &calls).0, Some(0.0));
+        let four = json!({"start": {"count": 4}});
+        assert_eq!(measure(&f, "flight_landed", &four, &r, &calls).0, Some(0.0), "two jets still in the air");
+    }
     use std::path::{Path, PathBuf};
 
     const KT: f64 = 1852.0 / 3600.0; // m/s per knot

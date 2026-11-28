@@ -1099,11 +1099,19 @@ engine (§17.2, with its figures).
 | `power_off` | no electrical power: the jet dark |
 | `item:<id>` | the checklist card's item `<id>` ticked (§12) |
 | `cleared:<phase>` | the tower's clearance for `startup`, `taxi` or `takeoff` given (§3.3) |
-| `called:<call>` | the pilot made the radio call `<call>` (§8) |
+| `called:<call>` | the pilot made the radio call `<call>` (§8); a flight command is `<command>:<addressee>` (`fingertip:0`) |
 | `failure:<id>` | the failure `<id>` of §15 is on: the engine fire while it burns, any other once it has started |
 | `alt:<ft>` | in the air at least `<ft>` above the field |
 | `aoa:<deg>` | in the air at an angle of attack of at least `<deg>` |
 | `g:<g>` | in the air at a load factor of at least `<g>` |
+| `airborne` | in the air |
+| `in_slot` | the player, a wingman, within 50 m of its slot, not in a tactical turn (§16.8) |
+| `flight_joined` | every other jet of the flight in position: an AI jet's "in position" since its take-off, the player in its slot |
+| `flight_landed` | every jet of the flight on the ground after its flight |
+| `lead_order:<order>` | the AI lead gave the order `<order>` (§16.8: a shape, `rejoin`, `close_up`, `spread_out`, `tac_right`, …) |
+
+The flight's tests read `ai_flights.gd flight_facts()`: `IafAi.facts` (`iaf_ai::Flight::facts`: `in_slot`, `joined`,
+`landed`) and the lead's orders given.
 
 A mission's `end` takes the tests the scorer reads from the recording (`training::END_TESTS`): `power_off`,
 `engine_off`, `idle`, `aligned`, `parked` (stopped within 30 m of the start), `item:` and `called:`. A phase that
@@ -1249,6 +1257,65 @@ flight decides:
 A lesson's second engine fire comes after the first is out: a plan comes once on its own moment, and a fire put out
 may break out again (`failures.rs` `Failures::start`); `sim_flight.gd` announces it again. A check ride's emergency is
 planned with the mission's failures at the flight's start (`sim_flight.gd` `_check_ride_emergency`).
+
+### 16.8 The formation phase
+
+Phase 4 ([training-plan.md](training-plan.md) §3) is the one with AI wingmen. Its lessons are in
+`data/training/lessons/formation.json`, its missions `<jet>_formation_<lesson>.json`, menu ids 3411–3463.
+
+| Lesson | The player | The flight | The AI lead's plan |
+|--------|-----------|------------|--------------------|
+| 4.1 Wingman, 4.5 At night | Kidon 1-2 (`start.seat` 2) | a pair, pairs take-off | close up, spread out, trail, rejoin |
+| 4.2 Tactical formation | Kidon 1-2 | a pair, pairs take-off | line abreast, tac right, tac left, in-place right, fingertip |
+| 4.3 Lead a pair | Kidon 1-1 | a pair, pairs take-off | none: the player's orders (echelon right, line abreast, fingertip, close up, ops check) |
+| 4.4 Lead a four-ship | Kidon 1-1 | four, stream take-off | none: the player's orders (diamond, echelon left, line abreast, fingertip, ops check) |
+| 4.6 Check ride 4 | Kidon 1-3, the second pair's lead | four, pairs take-off | line abreast, tac right, tac left, in-place right, trail, rejoin; the player checks in Kidon 1-4 and asks its fuel |
+
+In the F-35I the instructor's jet is the lead (4.1, 4.2, 4.5, 4.6) or Kidon 1-2 (4.3, 4.4); in the F-16s the
+instructor is in the back seat and an AI jet flies the lead. Each lesson ends parked, the engine off, every jet of the
+flight down (`flight_landed`).
+
+**The AI lead** (`start.seat` 2 or more, data-formats.md §5): the jets keep their spots and the player flies the number
+the seat names; the lead has the flight's start-up clearance at the start (it talks to the tower for the flight;
+nothing of it is said), starts its engine, and taxis once every other jet has run its engine 120 s (inferred: the
+stored-heading alignment's 90 s and a margin). In a pairs take-off it waits on the runway for the player beside it,
+without the AI wingman's 90 s limit, and rolls at military power; it takes no avoiding action from the player in its
+slot. The player then orders only its own wingman (Kidon 1-4 when it flies 1-3; `Flight::player_may_order`, every
+order and the radio menu's Wingmen page); the flight's orders are the lead's.
+It flies the route and, once past each waypoint of the mission's `lead_plan`, gives its order: said in the
+wingmen's voice ("Kidon 1, tac right", voices.json `LEAD_CALL`), recorded as a `lead_order` event. From the route's
+`land` point it goes home and lands; the flight lands in its order.
+
+**Tactical turns** (`iaf_ai::LeadStep::Turn`, CNATRA P-1221[^tac]): in the tac turn (90°) the jet on the outside of the
+turn turns first, at 70° of bank (2.9 g); the jet on the inside waits until the outside jet is nose on, then turns the
+same way. Ours for that moment: once the outside jet has flown the distance across between them (two equal turns then
+end abeam at the same spacing; inferred). In the in-place turn (180°) every jet turns at once. Each turn swaps the sides: the
+slots are mirrored after it. The AI wingmen fly the same rule; the player's turn is the player's. A turn ends when
+every jet has turned within 10° of the new heading, at the latest after 120 s (inferred). A new shape or the rejoin
+flies the shape as drawn again.
+
+**The items.** `formation_position`: the mean distance from the player's slot (the recording's `formation` events, one
+a second in the air), counted from the first second within 50 m after each lead order and outside the turns (the 50 m at every spacing;
+the flight's own "in position" in flight, `IafAi.facts`, takes the close-up step's share of it).
+`rejoin_time`: from each `rejoin` order to the first second within 50 m, the longest. `flight_commands`: the share of
+the mission's `training.calls` that are flight commands (`<command>:<addressee>`) the player gave; `tower_calls`
+counts the others. An item with nothing asked (no tower call in a flight another jet leads) is met.
+`flight_landed`: 1 when every AI jet has its `landed` event (or `flight_lost`: a lost jet counts for none) and the
+player ends on the ground after its flight; the same rule ends a lesson whose `end` names it, and `IafAi.facts` gives it
+in flight.
+
+**The diagrams** (the lesson file's `diagrams`, in the diagram format of §16.5): `formation_takeoff`, `fingertip`, `close_formation`, `trail_rejoin`,
+`line_abreast`, `tac_turn`, `in_place_turn`, `pair_orders`, `stream_takeoff`, `four_ship_shapes`, `landing_order`.
+
+**Checks.** `cargo test -p iaf-ai --test lead`: the tac turn (the outside jet first, the inside waiting, both on the new
+heading, the sides swapped) and the in-place turn (both at once), the plan's orders past their waypoints, and the lead
+waiting for the player's engine. `cargo test -p iaf-tools --lib course` loads the phase's lessons for every jet.
+`modern-iaf/tests/test_formation_lessons.gd` compiles and loads each lesson's mission per jet and checks its calls and
+items.
+
+[^tac]: CNATRA P-1221, Tactical Formation, Tac Turn ("The outside man ... will add power and execute a 14-unit AOA turn,
+    using approximately 70 degrees AOB", 300 KIAS; "the inside man waits until the outside man is nose on"; the call
+    "[Call sign], Tac right/left"), https://navyflightmanuals.tpub.com/P-1221/Tac-Turn-27.htm
 
 ## 17. The instructor's calls
 The instructor's calls in flight ([training-plan.md](training-plan.md) §2.3) are data: each lesson's `calls` in its

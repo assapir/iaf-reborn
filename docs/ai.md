@@ -783,6 +783,15 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
     (2026-11-23; before the lineup's line steering 9.6 m at Nevatim, the wings 0.2 m apart).
     The 15 m is inferred: the lineup runways are 44–46 m wide, Hatzerim's 28L 34 m, where the wingman's wheels run
     0.8 m inside the edge (the F-16's track is 2.4 m).
+  - **An AI lead with the player in its flight** (ours, Modern IAF's formation lessons; a mission's `start.seat`,
+    [../modern-iaf/docs/training.md](../modern-iaf/docs/training.md) §16.8): the lead starts on the flight's
+    clearance, taxis once every other jet has run its engine `TAXI_AFTER_S` (120 s), waits on the runway in a pairs
+    take-off for the player beside it (no time limit) and takes no avoiding action from the player. Its plan
+    (`Flight::set_plan`) gives an order once it has passed each waypoint (`Flight::lead_order`: a shape, the rejoin,
+    close up, spread out, a tactical turn), said as `lead_*` calls. The tactical turns (`LeadStep::Turn`, CNATRA
+    P-1221): the tac turn of 90°, the jet on the outside of the turn first at 70° of bank (`TAC_G` 2.9 g), the inside
+    jet once the outside jet has flown the distance across between them (P-1221's "nose on"; inferred); the in-place turn of 180°, every jet at once; each mirrors the
+    slots (the sides swap). `cargo test -p iaf-ai --test lead`.
   - **Tests:** `cargo test -p iaf-ai --test four_ship ground_run` (the ground runs at Ramon and Nevatim: at the least
     30 m between jets on the ground, the tower's calls to #2–#4 in order and none to the player),
     `--test four_ship taxi_in_behind_a_stopped_lead` (the lead stops 240 s on its way in: the wingmen hold behind it,

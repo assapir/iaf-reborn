@@ -322,8 +322,9 @@ impl IafCalls {
     /// The lines to say this frame, in order, each {call, file, en, he}: `now` = {on_ground, x, y (the engine frame,
     /// m), alt_ft, speed_kt, heading (deg), roll (deg), vs_fpm, rpm (%), ins_aligned, engine_on, power (0 none, 1 the
     /// battery, 2 the displays), items (the card's items ticked), answers (the tower's answer templates), hot (the
-    /// flight started with the engine running), called (the radio calls made), aoa (deg), g, failures (the failures on, the
-    /// engine fire while it burns)}.
+    /// flight started with the engine running), called (the radio calls made), aoa (deg), g, failures (the failures
+    /// on, the engine fire while it burns), in_slot, flight_joined, flight_landed, lead_orders (the player's flight:
+    /// ai_flights.gd flight_facts)}.
     #[func]
     fn tick(&mut self, now: VarDictionary) -> VarArray {
         let f = |k: &str| now.get(k).and_then(|v| v.try_to::<f64>().ok()).unwrap_or(0.0);
@@ -347,6 +348,10 @@ impl IafCalls {
             aoa: f("aoa"),
             g: f("g"),
             failures: list(&now, "failures"),
+            in_slot: b("in_slot"),
+            flight_joined: b("flight_joined"),
+            flight_landed: b("flight_landed"),
+            lead_orders: list(&now, "lead_orders"),
         };
         let mut out = VarArray::new();
         for s in self.calls.as_mut().map_or(vec![], |c| c.tick(&n)) {

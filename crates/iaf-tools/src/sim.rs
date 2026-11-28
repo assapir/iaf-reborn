@@ -922,7 +922,14 @@ pub fn compile_mission(
             };
             // The fifth value is the waypoint's action: 5 the target (`"target": true`; the GPS bombs' PRE target,
             // gps.rs default_target, avionics-plan.md G4), else 0.
-            let action = if p["target"].as_bool() == Some(true) { 5 } else { 0 };
+            // 7 the landing (`"land": true`: an AI lead goes home from it, autopilot.rs go_home).
+            let action = if p["target"].as_bool() == Some(true) {
+                5
+            } else if p["land"].as_bool() == Some(true) {
+                7
+            } else {
+                0
+            };
             out.push(json!([px.round(), py.round(), alt, t.round(), action]));
             at = [px, py, alt];
         }
@@ -936,6 +943,13 @@ pub fn compile_mission(
         "{}: start.count {count} needs a \"parking\" start with {count} of {}'s spots for its unit (Kidon 1-2..1-4 on the next)",
         f.name,
         base.name_en
+    );
+    let seat = start["seat"].as_i64().unwrap_or(1);
+    ensure!((1..=count).contains(&seat), "{}: start.seat {seat}: the player's number in a flight of {count}", f.name);
+    ensure!(
+        start["pairs"].is_null() || (start["pairs"].is_boolean() && count >= 2),
+        "{}: start.pairs is true or false, in a flight of two or more",
+        f.name
     );
     let mut spec = json!({"type": int(unit, "number")?, "count": count,
         "slot_x": x.round(), "slot_y": y.round(), "alt": elev, "heading": h.round(), "wings": wings});

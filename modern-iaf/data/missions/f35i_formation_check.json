@@ -1,0 +1,143 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f35i",
+    "base": "Nevatim",
+    "at": "parking",
+    "count": 4,
+    "elevation_m": 405,
+    "pairs": true,
+    "seat": 3
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "runway": "26L",
+  "route": [
+    {
+      "lat": 31.18394,
+      "lon": 34.89001,
+      "alt_m": 1305,
+      "speed_kmh": 600
+    },
+    {
+      "lat": 31.00408,
+      "lon": 34.89001,
+      "alt_m": 3405,
+      "speed_kmh": 556
+    },
+    {
+      "lat": 31.00408,
+      "lon": 34.68017,
+      "alt_m": 3405,
+      "speed_kmh": 556
+    },
+    {
+      "lat": 30.82422,
+      "lon": 34.68017,
+      "alt_m": 3405,
+      "speed_kmh": 556
+    },
+    {
+      "lat": 31.00408,
+      "lon": 34.66132,
+      "alt_m": 3405,
+      "speed_kmh": 556
+    },
+    {
+      "lat": 31.13898,
+      "lon": 34.66132,
+      "alt_m": 3405,
+      "speed_kmh": 556
+    },
+    {
+      "lat": 31.23291,
+      "lon": 35.13523,
+      "alt_m": 855,
+      "speed_kmh": 550,
+      "land": true
+    }
+  ],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "a day lesson (training-plan.md §1)",
+    "wind_kt": "calm (inferred: the formation lessons need no wind)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spots for the unit (data/airbases, airbases.md §5), Kidon 1-1 on the first; the player flies Kidon 1-3, an AI jet leads (data-formats.md §5 start.seat)",
+    "route": "the departure point of the Take-off lesson, then straight 20 km legs for the tactical turns, each leg the heading after the turn at 3,000 m above the field, and the last point 10 km out on runway 26L's extended centreline (`land`: the flight goes home from it)",
+    "training.time_budget_s": "forty minutes: the start-up, the taxi, the sortie of about 100 km and the landing (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "lead_plan": "the AI lead's orders, each once it has passed its waypoint (data-formats.md §5)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f35i_formation_check",
+  "menu_id": 3463,
+  "lesson": "formation.check",
+  "title": {
+    "en": "Check ride 4",
+    "he": "טיסת מבחן 4"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off",
+      "flight_landed"
+    ],
+    "clearances": [],
+    "calls": [
+      "check:4",
+      "ops_check:4"
+    ],
+    "time_budget_s": 2400,
+    "end_hold_s": 5,
+    "goals": []
+  },
+  "lead_plan": [
+    {
+      "wp": 0,
+      "order": "line_abreast"
+    },
+    {
+      "wp": 1,
+      "order": "tac_right"
+    },
+    {
+      "wp": 2,
+      "order": "tac_left"
+    },
+    {
+      "wp": 3,
+      "order": "in_place_right"
+    },
+    {
+      "wp": 4,
+      "order": "trail"
+    },
+    {
+      "wp": 5,
+      "order": "rejoin"
+    }
+  ]
+}

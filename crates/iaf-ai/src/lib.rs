@@ -27,5 +27,7 @@ pub mod target;
 pub mod wingman;
 
 pub use fighter::Bogey;
-pub use flight::{Bandit, CLOSE_STEPS, Call, Decoy, Flight, Member, Order, SHAPES, Tactic, Threat, apply};
+pub use flight::{
+    Bandit, CLOSE_STEPS, Call, Decoy, Flight, LEAD_CALLS, LeadStep, Member, Order, SHAPES, TAC_G, Tactic, Threat, apply,
+};
 pub use skill::Skill;

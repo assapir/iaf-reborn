@@ -141,6 +141,8 @@ const FINAL := ["wrong_runway", "excursion", "over_time"]
 var host: Node
 var open := false
 var _menu_at := 0  # the radio menu's opening or last key (ms): MENU_S later it closes
+var _slot_next := 0.0  # the next `formation` event's recording time (s)
+var _flight_spec := {}  # the mission's start and lead_plan until the flight's AI is set up (_flight_setup)
 ## The menu's page: "" the first (Tower, Wingmen, AWACS), "tower" the tower's calls, "awacs" the AWACS's requests,
 ## "wingmen" the flight's
 ## addressees, "to" an addressee's commands (`_to`), "formation" the flight's shapes, "spacing" close up / spread out.
@@ -298,6 +300,9 @@ func _ready() -> void:
 		_tanker_spec = readable.get("tanker", {})
 		_failures_plan = readable.get("failures", [])
 		_check_ride_emergency(key, plane)
+		# The player's number in the flight, the take-off in pairs and the AI lead's plan (data-formats.md §5:
+		# start.seat, start.pairs, lead_plan; docs/ai.md §8.7), applied once the flight's AI is made (_flight_setup).
+		_flight_spec = {"start": readable.get("start", {}), "plan": readable.get("lead_plan", [])}
 		if String(readable.get("category", "")) == "fly_now":
 			add_child(FreeCombat.new(host, host.radio.runway_base))  # Scramble's enemy and task (front-end.md §2.1)
 	if not rules.is_empty():
@@ -529,7 +534,9 @@ func _entries() -> Array:
 			alive[int(m[0])] = true
 	for a in ADDRESSEES:
 		var n: int = a[0]
-		if (n == 0 and not alive.is_empty()) or (n == 5 and (alive.has(3) or alive.has(4))) or alive.has(n):
+		var up: bool = (n == 0 and not alive.is_empty()) or (n == 5 and (alive.has(3) or alive.has(4))) or alive.has(n)
+		# In an AI lead's flight only the player's own wingman (IafAi.may_order: the flight's orders are the lead's).
+		if up and fa.may_order(n):
 			ids.append("to:%d" % n)
 	return ids
 
@@ -706,6 +713,7 @@ func flight_command(to: int, id: String) -> void:
 		_:
 			ok = ai.flight_ai.command(now, to, id)
 	host._log_event(host._log_st, {"event": "radio", "call": "%s:%d" % [id, to], "answer": "ok" if ok else "none"})
+	called.append("%s:%d" % [id, to])  # the instructor's `called:<command>:<addressee>` (training.md §16.3)
 
 
 ## One AWACS request `id` (docs/ai.md §24.2): the pilot's call printed in both languages and said ("Eitam, Kidon 1,
@@ -831,7 +839,24 @@ func pick(id: String) -> String:
 # --- the training run -------------------------------------------------------------------------------------------------
 
 
+## The mission's flight set up once its AI exists: the player's seat, the pairs take-off, the lead's plan.
+func _flight_setup() -> void:
+	var ai = host.get("ai")
+	if _flight_spec.is_empty() or ai == null or ai.flight_ai == null:
+		return
+	var start: Dictionary = _flight_spec.start
+	var plan: Array = _flight_spec.plan
+	_flight_spec = {}
+	if int(start.get("seat", 1)) > 1:
+		ai.player_seat(int(start.seat))
+	if bool(start.get("pairs", false)):
+		ai.flight_pairs(true)
+	if not plan.is_empty() and not ai.lead_plan(plan):
+		push_warning("lead_plan: an order unknown (%s)" % [plan])
+
+
 func _process(delta: float) -> void:
+	_flight_setup()
 	if float(host._sim_time) >= _end_at:
 		trainer.run_ended()
 		host._end_flight(true)  # into the debrief (Settings.flown_sortie)
@@ -854,6 +879,13 @@ func _process(delta: float) -> void:
 	var st: Dictionary = host._log_st  # this frame's flight state (terrain_view.gd _record)
 	if st.is_empty():
 		return
+	# The player as a wingman: its slot each second in the air (training.rs formation_position, rejoin_time).
+	if t >= _slot_next and not bool(st.on_ground) and host.get("ai") != null:
+		_slot_next = t + 1.0
+		var slot: Dictionary = host.ai.player_slot()
+		if not slot.is_empty():
+			slot["event"] = "formation"
+			host._log_event(st, slot)
 	# A fail ends the mission at once (IafTraining decides; the wheels off the pavement go into the recording).
 	if _why == "":
 		var o: Vector2 = host.terrain.world_origin

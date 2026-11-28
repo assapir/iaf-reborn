@@ -28,6 +28,7 @@ const START_SPEED := 282.842712
 
 var host: Node  # terrain_view.gd
 var runtime: Node  # mission_runtime.gd
+var _lost := {}  # the flight's numbers lost, recorded once (_step_flight_ai)
 var pilots: Array = []  # Pilot
 var combat: Node  # combat.gd: the armed units' weapon handlers, sensors and fire
 var _brains := {}  # bdb brain id -> rules
@@ -624,6 +625,66 @@ func flight_cleared_to_start() -> void:
 		flight_ai.start_up(runtime.now)
 
 
+## Ours (Modern IAF; a lesson's `start.seat`, modern-iaf/docs/data-formats.md §5): the player flies as number `n`
+## (2..4) of the flight: its jets keep their spots, their numbers follow the new order, an AI jet leads (Kidon 1-1)
+## and the player flies in its slot; the flight is cleared to start (the lead's call for the flight). False: no
+## flight AI, or no such number.
+func player_seat(n: int) -> bool:
+	var me: Dictionary = runtime.player_entity()
+	var f := _formation_of(me)
+	if f.is_empty() or n < 1 or n > f.members.size():
+		return false
+	var i: int = f.members.find(me)
+	var t = f.targets[i]
+	f.members.remove_at(i)
+	f.targets.remove_at(i)
+	f.members.insert(n - 1, me)
+	f.targets.insert(n - 1, t)
+	_ai_members = []
+	flight_ai = null
+	_setup_flight_ai()
+	if flight_ai != null and n > 1:
+		flight_ai.start_up(runtime.now)
+	return flight_ai != null
+
+
+## Ours (a lesson's `lead_plan`): the AI lead's orders by waypoint (IafAi.set_plan). False: no flight AI or an order
+## unknown.
+func lead_plan(plan: Array) -> bool:
+	return flight_ai != null and flight_ai.set_plan(plan)
+
+
+## The player's place in the formation this second, for the recording's `formation` event (training.rs
+## formation_position): its slot error (m), the shape and a tactical turn under way; {} when the player leads or
+## no flight AI.
+func player_slot() -> Dictionary:
+	if flight_ai == null:
+		return {}
+	for m in _ai_members:
+		if m[1] == runtime.player_entity():
+			var st: Dictionary = flight_ai.state(m[0])
+			if String(st.get("role", "")) != "wingman":
+				return {}
+			return {"slot_m": snappedf(float(st.slot_error), 0.1), "shape": st.shape, "turning": st.turning}
+	return {}
+
+
+## The player's flight for the instructor's calls (training.md §16.3: in_slot, flight_joined, flight_landed,
+## lead_order:<order>): IafAi.facts (in_slot, joined, landed) and the AI lead's orders given (lead_order's names).
+## {} without a flight AI.
+func flight_facts() -> Dictionary:
+	if flight_ai == null:
+		return {}
+	var d: Dictionary = flight_ai.facts()
+	d["orders"] = flight_calls.filter(_is_lead_order).map(func(c): return String(c.id).trim_prefix("lead_"))
+	return d
+
+
+## An AI lead's order among the flight's calls (lead_*; a promotion's lead_change is none).
+static func _is_lead_order(c: Dictionary) -> bool:
+	return String(c.id).begins_with("lead_") and String(c.id) != "lead_change"
+
+
 ## Ours (Modern IAF; Scramble's runway start sets it, modern-iaf/flight/free_combat.gd): the player's flight takes
 ## off in pairs (true) or in a stream (false, the default): Kidon 1-2 lines up beside the lead, 1-4 beside 1-3, each
 ## rolls with its lead (docs/ai.md §8.7). False: no flight AI.
@@ -651,7 +712,12 @@ func _step_flight_ai(now: float) -> void:
 		host.flight.ap_set_waypoint_index(host.cockpit.current_waypoint)
 	for m in _ai_members:
 		var ent: Dictionary = m[1]
-		flight_ai.set_alive(m[0], int(ent.state) < 3 and not (ent.player and host.ejected))
+		var alive: bool = int(ent.state) < 3 and not (ent.player and host.ejected)
+		flight_ai.set_alive(m[0], alive)
+		# A jet of the flight lost, once in the recording (training.rs flight_landed leaves it out).
+		if not alive and not _lost.has(m[0]) and host.has_method("_log_event"):
+			_lost[m[0]] = true
+			host._log_event(host._log_st, {"event": "flight_lost", "number": m[0]})
 		var th := _threat_of(ent)
 		flight_ai.set_threat(m[0], th[0], th[1], th[2])
 	attack_ent = _feed_strike(flight_ai, _ai_members, attack_ent)
@@ -692,10 +758,13 @@ func _step_flight_ai(now: float) -> void:
 			_set_jam(m[1], flight_ai.jams(m[0]))
 
 
-## A call of the flight (IafAi.step's, or a wingman's launch call) said by the radio and recorded.
+## A call of the flight (IafAi.step's, or a wingman's launch call) said by the radio and recorded; an AI lead's order
+## (its id lead_*) also in the flight's recording (training.rs rejoin_time, formation_position).
 func _flight_say(c: Dictionary, now: float) -> void:
 	c["t"] = now
 	flight_calls.append(c)
+	if _is_lead_order(c) and host.has_method("_log_event"):
+		host._log_event(host._log_st, {"event": "lead_order", "order": String(c.id).trim_prefix("lead_")})
 	if host.get("radio") != null:
 		var ent: Dictionary = {}
 		for m in _ai_members:
@@ -1152,6 +1221,10 @@ func _fly(delta: float) -> void:
 		if p.flight.ap_landed() and not p.landed_reported:
 			p.landed_reported = true
 			landed_handler(ent)
+			# The recording's `landed` of a jet of the player's flight, its number (training.rs flight_landed).
+			var mine := _formation_of(runtime.player_entity())
+			if not mine.is_empty() and mine.members.has(ent) and host.has_method("_log_event"):
+				host._log_event(host._log_st, {"event": "landed", "number": mine.members.find(ent) + 1})
 			if host.get("radio") != null:
 				host.radio.report_landed(ent)  # StopPlaneCL's LandedReport (5d44d0, docs/radio.md §4)
 		if p.flight.ap_airborne() and not p.airborne_reported:

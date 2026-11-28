@@ -45,6 +45,7 @@ chapters:
   sections:
   - {id: course-ground, title: "Phase 1: Ground and start-up", file: game/missions-training/course-ground.typ}
   - {id: course-pattern, title: "Phase 2: Basic handling, the pattern and landing", file: game/missions-training/course-pattern.typ}
+  - {id: course-formation, title: "Phase 4: Formation and flight lead", file: game/missions-training/course-formation.typ}
   - {id: instructor, title: "The instructor", file: game/missions-training/instructor.typ}
   - {id: training-fight, title: "Training fight", file: game/missions-training/training-fight.typ}
 - id: bases

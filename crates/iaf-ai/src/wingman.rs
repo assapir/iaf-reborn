@@ -147,7 +147,7 @@ pub fn wingman() -> Node<Member> {
     ])
 }
 
-/// An AI flight lead (after a promotion): the route (mode 7), then home (mode 8) at its landing waypoint, on an RTB
+/// An AI flight lead (after a promotion, or the lead of the player's flight: a lesson's `start.seat`): the route (mode 7), then home (mode 8) at its landing waypoint, on an RTB
 /// or below the reserve; a threat on it is answered as a wingman's; an attack it has (strike.rs) before the route.
 pub fn lead() -> Node<Member> {
     Sel(vec![
@@ -155,10 +155,23 @@ pub fn lead() -> Node<Member> {
         Seq(vec![Cond(|m| m.landed && !m.engine_on), Act(idle)]),
         Seq(vec![Cond(flying), Act(defend)]),
         Seq(vec![Cond(|m| m.mode == MODE_GO_HOME), Act(idle)]),
-        Seq(vec![Cond(|m| m.v.on_ground && !m.airborne), Act(idle)]),
+        // With the player in its flight: the start at the clearance, the taxi once every jet has run its engine long
+        // enough (`flight_wait`), the take-off; any other lead stays on the ground.
+        Seq(vec![
+            Cond(|m| m.v.on_ground && !m.airborne),
+            Sel(vec![
+                Seq(vec![Cond(|m| !m.leads_player), Act(idle)]),
+                Seq(vec![Cond(|m| !m.engine_on), Act(start_engine)]),
+                Seq(vec![Cond(|m| m.flight_wait && m.mode != MODE_TAKE_OFF), Act(idle)]),
+                Act(taxi),
+            ]),
+        ]),
+        Seq(vec![Cond(|m| m.mode == MODE_TAKE_OFF && !m.airborne), Act(idle)]),
         Act(fuel_calls),
         Seq(vec![Cond(|m| m.rtb || m.fuel_kg <= RESERVE_KG || m.wp_action == 7), Act(|m| set_mode(m, MODE_GO_HOME))]),
         Seq(vec![Cond(strike::striking), Act(strike::fly)]),
+        // A tactical turn ([`crate::flight::LeadStep::Turn`]): its steer, then the route again.
+        Seq(vec![Cond(|m| m.task.is_some() && flying(m)), Act(fly_task)]),
         Act(|m| set_mode(m, 7)),
     ])
 }

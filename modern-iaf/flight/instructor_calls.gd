@@ -40,6 +40,7 @@ func _process(delta: float) -> void:
 	var o: Vector2 = host.terrain.world_origin
 	var p: Vector3 = host.rig.position
 	var ins: Array = host.flight.ins_status()
+	var fl: Dictionary = host.ai.flight_facts() if host.get("ai") != null else {}
 	tick(
 		{
 			"on_ground": bool(st.on_ground),
@@ -61,6 +62,10 @@ func _process(delta: float) -> void:
 			"aoa": float(st.get("aoa", 0.0)),
 			"g": float(st.get("g", 1.0)),
 			"failures": _failures(),
+			"in_slot": bool(fl.get("in_slot", false)),
+			"flight_joined": bool(fl.get("joined", false)),
+			"flight_landed": bool(fl.get("landed", false)),
+			"lead_orders": PackedStringArray(fl.get("orders", [])),
 		}
 	)
 

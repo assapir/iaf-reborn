@@ -15,6 +15,7 @@ const DATA: &str = include_str!("../../../modern-iaf/data/training/course.json")
 const LESSONS: &[(&str, &str)] = &[
     ("ground", include_str!("../../../modern-iaf/data/training/lessons/ground.json")),
     ("pattern", include_str!("../../../modern-iaf/data/training/lessons/pattern.json")),
+    ("formation", include_str!("../../../modern-iaf/data/training/lessons/formation.json")),
 ];
 
 /// The briefing's sections in their order (training-plan.md §2.2): each a list of paragraphs.
@@ -23,7 +24,7 @@ pub const SECTIONS: [&str; 8] =
 
 /// The tests a call (and a lesson's end) waits for, by name (training.md §16.3): data for the instructor's call engine
 /// and, for an end, the scorer (`training::holds`).
-pub const TESTS: [&str; 16] = [
+pub const TESTS: [&str; 20] = [
     "start",
     "idle",
     "aligned",
@@ -40,13 +41,18 @@ pub const TESTS: [&str; 16] = [
     "parked",
     "engine_off",
     "power_off",
+    "airborne",
+    "in_slot",
+    "flight_joined",
+    "flight_landed",
 ];
 
 /// The tests with an argument after a colon: `item:<card item id>` (ticked on the jet's checklist card),
 /// `cleared:<phase>` (the tower's clearance, training::CLEARANCES), `called:<radio call id>` (the pilot made the call),
 /// `failure:<id>` (the flight's failure `<id>` started, training.md §15), and the figures held at least: `alt:<ft>`
-/// (the altitude above the field), `aoa:<deg>` (the angle of attack), `g:<g>` (the load factor).
-pub const ARG_TESTS: [&str; 7] = ["item", "cleared", "called", "failure", "alt", "aoa", "g"];
+/// (the altitude above the field), `aoa:<deg>` (the angle of attack), `g:<g>` (the load factor), and
+/// `lead_order:<order>` (the AI lead gave the order: iaf_ai::LEAD_CALLS without "lead_").
+pub const ARG_TESTS: [&str; 8] = ["item", "cleared", "called", "failure", "alt", "aoa", "g", "lead_order"];
 
 /// The argument tests whose argument is a number.
 const NUMBER_TESTS: [&str; 3] = ["alt", "aoa", "g"];
@@ -908,7 +914,38 @@ mod tests {
                 .collect()
         };
         // The radio menu's calls (training.md §8; `called:` names them).
-        let radio = ["startup", "taxi", "lineup", "takeoff", "landing", "radio_check"];
+        let tower = ["startup", "taxi", "lineup", "takeoff", "landing", "radio_check"];
+        // A flight command, `<command>:<addressee>` (sim_flight.gd COMMANDS, SHAPES, SPACING; 0 the flight, 2..4 one
+        // jet, 5 the second element).
+        let commands = [
+            "rejoin",
+            "split",
+            "engage",
+            "sort",
+            "free",
+            "low",
+            "high",
+            "cover",
+            "refuel",
+            "rtb",
+            "check",
+            "ops_check",
+            "fingertip",
+            "line_abreast",
+            "trail",
+            "echelon_right",
+            "echelon_left",
+            "diamond",
+            "vic",
+            "delta",
+            "close_up",
+            "spread_out",
+        ];
+        let radio = |r: &str| {
+            tower.contains(&r)
+                || r.split_once(':')
+                    .is_some_and(|(c, n)| commands.contains(&c) && n.parse::<u8>().is_ok_and(|n| n <= 5))
+        };
         for (pid, _) in LESSONS {
             let p = c.phases.iter().find(|p| p.id == *pid).unwrap();
             for l in p.lessons.iter().filter(|l| !l.content.is_null()) {
@@ -946,7 +983,7 @@ mod tests {
                     for t in tests {
                         match t.split_once(':') {
                             Some(("item", i)) => assert!(ids.contains(&i.to_string()), "{key} {jet}: no card item {i}"),
-                            Some(("called", r)) => assert!(radio.contains(&r), "{key} {jet}: no radio call {r}"),
+                            Some(("called", r)) => assert!(radio(r), "{key} {jet}: no radio call {r}"),
                             _ => {}
                         }
                     }
@@ -954,7 +991,7 @@ mod tests {
                         assert!(ids.contains(&i), "{id}: no card item {i}");
                     }
                     for r in strings(&m["training"]["calls"], "").unwrap() {
-                        assert!(radio.contains(&r.as_str()), "{id}: no radio call {r}");
+                        assert!(radio(&r), "{id}: no radio call {r}");
                     }
                     if l.kind != Kind::Check {
                         assert!(le["calls"].as_array().is_some_and(|c| !c.is_empty()), "{key} {jet}: no calls");

@@ -1,0 +1,120 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16i",
+    "base": "Ramon",
+    "at": "parking",
+    "count": 2,
+    "elevation_m": 648,
+    "pairs": true,
+    "seat": 2
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "runway": "25R",
+  "route": [
+    {
+      "lat": 30.73737,
+      "lon": 34.55702,
+      "alt_m": 1548,
+      "speed_kmh": 600
+    },
+    {
+      "lat": 30.91723,
+      "lon": 34.55702,
+      "alt_m": 3648,
+      "speed_kmh": 650
+    },
+    {
+      "lat": 30.91723,
+      "lon": 34.81909,
+      "alt_m": 3648,
+      "speed_kmh": 650
+    },
+    {
+      "lat": 30.73737,
+      "lon": 34.81909,
+      "alt_m": 3648,
+      "speed_kmh": 650
+    },
+    {
+      "lat": 30.81771,
+      "lon": 34.77526,
+      "alt_m": 1098,
+      "speed_kmh": 550,
+      "land": true
+    }
+  ],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "a day lesson (training-plan.md §1)",
+    "wind_kt": "calm (inferred: the formation lessons need no wind)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spots for the unit (data/airbases, airbases.md §5), Kidon 1-1 on the first; the player flies Kidon 1-2, an AI jet leads (data-formats.md §5 start.seat)",
+    "route": "the departure point of the Take-off lesson, then a box of three legs of 20 to 25 km at 3,000 m above the field, and the last point 10 km out on runway 25R's extended centreline (`land`: the flight goes home from it)",
+    "training.time_budget_s": "forty minutes: the start-up, the taxi, the sortie of about 100 km and the landing (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "lead_plan": "the AI lead's orders, each once it has passed its waypoint (data-formats.md §5)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f16i_formation_wingman",
+  "menu_id": 3412,
+  "lesson": "formation.wingman",
+  "title": {
+    "en": "Wingman",
+    "he": "מספר 2"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off",
+      "flight_landed"
+    ],
+    "clearances": [],
+    "calls": [],
+    "time_budget_s": 2400,
+    "end_hold_s": 5,
+    "goals": []
+  },
+  "lead_plan": [
+    {
+      "wp": 0,
+      "order": "close_up"
+    },
+    {
+      "wp": 1,
+      "order": "spread_out"
+    },
+    {
+      "wp": 2,
+      "order": "trail"
+    },
+    {
+      "wp": 3,
+      "order": "rejoin"
+    }
+  ]
+}

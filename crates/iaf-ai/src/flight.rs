@@ -158,6 +158,66 @@ const PAIR_FREE: (f64, f64) = (60.0, 120.0);
 /// The landing pattern's steps that bring the tower's calls (autopilot `phase`): the turn to final (LandingCL's CH4)
 /// and StopPlane's end.
 const TURN_FINAL: usize = 11;
+/// An AI lead with the player as its wingman (`Flight::add`, a lesson's `start.seat`): it taxis once every other jet
+/// of the flight has run its engine this long, s (inferred: the stored-heading alignment's 90 s and a margin).
+pub const TAXI_AFTER_S: f64 = 120.0;
+/// A tactical turn ([`LeadStep::Turn`]): "the outside man ... turns first", "a 14-unit AOA turn, using approximately
+/// 70 degrees AOB", at 300 KIAS; "the inside man waits until the outside man is nose on" (CNATRA P-1221, Tac Turn[^tac]).
+/// A level turn at 70° of bank pulls 2.9 g (1 / cos 70°). Ours for the wait: each inside jet starts once the outside
+/// jet has flown the distance across between them at the turn's start (two equal turns then end abeam at the same
+/// spacing, the sides swapped; inferred: the nose-on rule's aim). A jet has turned within [`TURNED_DEG`] of the new
+/// heading; the turn is over at the latest after [`TAC_MAX_S`] (inferred). The in-place turn turns every jet at once,
+/// 180°.
+///
+/// [^tac]: CNATRA P-1221, Tactical Formation, Tac Turn; <https://navyflightmanuals.tpub.com/P-1221/Tac-Turn-27.htm>
+pub const TAC_G: f32 = 2.9;
+const TURNED_DEG: f64 = 10.0;
+const TAC_MAX_S: f64 = 120.0;
+
+/// One order of an AI lead's plan ([`Flight::set_plan`], [`Flight::lead_order`]): a shape of [`SHAPES`] (its index),
+/// the rejoin (to fingertip), close up or spread out one step, a tactical turn (right or left; in place: 180°, else
+/// 90°).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LeadStep {
+    Shape(usize),
+    Rejoin,
+    Close,
+    Spread,
+    Turn { right: bool, in_place: bool },
+}
+
+/// The lead's calls for its orders: the shapes' in [`SHAPES`] order, then the rejoin, close up, spread out and the
+/// turns (tac right, tac left, in-place right, in-place left).
+pub const LEAD_CALLS: [&str; 15] = [
+    "lead_fingertip",
+    "lead_line_abreast",
+    "lead_trail",
+    "lead_echelon_right",
+    "lead_echelon_left",
+    "lead_diamond",
+    "lead_vic",
+    "lead_delta",
+    "lead_rejoin",
+    "lead_close_up",
+    "lead_spread_out",
+    "lead_tac_right",
+    "lead_tac_left",
+    "lead_in_place_right",
+    "lead_in_place_left",
+];
+
+/// A tactical turn under way: its start, the heading before it and the new one (rad), its way, each jet's wait after
+/// the start (s), the numbers that have started their turn and those that have turned.
+#[derive(Debug, Clone)]
+struct Tac {
+    at: f64,
+    from: f64,
+    to: f64,
+    right: bool,
+    wait: Vec<(u8, f64)>,
+    started: Vec<u8>,
+    done: Vec<u8>,
+}
 
 /// The shapes, the gallery of Hebrew Wikipedia's "טיסת מבנה" (echelon both ways; not the missing man): id, then the
 /// slots of #2, #3, #4 (forward, right, up m) relative to #1. The spacing is inferred: any two jets at least 84 m
@@ -391,6 +451,12 @@ pub struct Member {
     pub refuel: Option<(Leader, [f32; 3])>,
     /// The flight's low-level height this decision ([`Flight::low`]).
     pub(crate) low: Option<f32>,
+    /// Its engine running since (the host's time); an AI lead waits for the flight's ([`TAXI_AFTER_S`]).
+    engine_since: Option<f64>,
+    /// An AI lead on the ground: another jet of the flight has not run its engine [`TAXI_AFTER_S`] yet.
+    pub(crate) flight_wait: bool,
+    /// An AI lead with the player in its flight.
+    pub(crate) leads_player: bool,
     /// The bandits its radar holds this decision ([`radar_holds`]), and the jammers beyond their burn-through it sees
     /// as strobes (in its cone and reach and in sight).
     radar: Vec<u32>,
@@ -451,6 +517,11 @@ pub struct Flight {
     hit_by: Option<u8>,
     /// The flight's low-level height ([`Flight::low`]).
     low: Option<f32>,
+    /// An AI lead's plan: (the waypoint, its order once the lead has passed it), in route order ([`Flight::set_plan`]).
+    plan: Vec<(usize, LeadStep)>,
+    /// A tactical turn under way; the slots mirrored (each turn swaps the sides).
+    tac: Option<Tac>,
+    mirror: bool,
 }
 
 impl Default for Flight {
@@ -481,6 +552,9 @@ impl Default for Flight {
             ground: None,
             hit_by: None,
             low: None,
+            plan: Vec::new(),
+            tac: None,
+            mirror: false,
         }
     }
 }
@@ -670,6 +744,9 @@ impl Flight {
             refuelling: false,
             refuel: None,
             low: None,
+            engine_since: None,
+            flight_wait: false,
+            leads_player: false,
         });
         self.members.sort_by_key(|m| m.number);
         self.lead = 0;
@@ -758,7 +835,8 @@ impl Flight {
     /// The slots of #2, #3, #4 in the shape now, at its spacing ([`Flight::spacing`]).
     fn slots(&self) -> [[f32; 3]; 3] {
         let k = self.spacing() as f32;
-        SHAPES[self.shape].1.map(|s| s.map(|x| x * k))
+        let side = if self.mirror { -1.0 } else { 1.0 };
+        SHAPES[self.shape].1.map(|s| [s[0] * k, s[1] * k * side, s[2] * k])
     }
 
     /// The close-up step the flight keeps: 0 standard, 1 close, 2 tight ([`CLOSE_STEPS`]).
@@ -780,6 +858,9 @@ impl Flight {
     /// circles it until a regroup (`command` "regroup"); the flight stays one (one route, one landing sequence, the
     /// threats and calls). False: no AI #3 in the air with the flight to take it. #3 and #4 answer (unable: too far).
     pub fn split(&mut self, now: f64, at: Vec3) -> bool {
+        if !self.player_may_order(5) {
+            return false;
+        }
         let Some(k) = self.index(3).filter(|&k| {
             let m = &self.members[k];
             k != self.lead && m.ai && m.alive && m.airborne && !m.landed && !m.rtb
@@ -815,6 +896,9 @@ impl Flight {
     /// turn: lock it, engage. `id` None or not a bandit now, or a jet that cannot fight: "unable". Some(true): a jet took
     /// it; Some(false): each answered "unable" (a jet already engaging keeps its bandit); None: nobody to take it.
     pub fn engage(&mut self, now: f64, to: u8, id: Option<u32>) -> Option<bool> {
+        if !self.player_may_order(to) {
+            return None;
+        }
         let who = self.addressed(to);
         if who.is_empty() {
             return None;
@@ -846,6 +930,9 @@ impl Flight {
     /// the picture nobody has, else the nearest; none left: it rejoins. Nothing in the picture, or a jet that cannot
     /// fight: "unable". False: no AI wingman to take it.
     pub fn sort(&mut self, now: f64) -> bool {
+        if !self.player_may_order(0) {
+            return false;
+        }
         let who = self.addressed(0);
         if who.is_empty() {
             return false;
@@ -906,6 +993,9 @@ impl Flight {
     /// other jet of its lead's group by [`sort::deal`]). The hunt ends at joker fuel or on "rejoin". Too far, or a jet
     /// that cannot fight: "unable". Some(true): a jet took it; Some(false): none could; None: nobody to take it.
     pub fn free(&mut self, now: f64, to: u8, at: Vec3) -> Option<bool> {
+        if !self.player_may_order(to) {
+            return None;
+        }
         let who = self.addressed(to);
         if who.is_empty() {
             return None;
@@ -940,6 +1030,15 @@ impl Flight {
                 self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: "splash" }));
             }
         }
+    }
+
+    /// The player may give an order to `to` (0 the flight, 5 the element, 2..4 one jet): always as the lead; in an AI
+    /// lead's flight only to its own wingman (#4 when it flies #3), the flight's orders being the lead's
+    /// ([`Flight::lead_order`]). The radio menu offers only these.
+    pub fn player_may_order(&self, to: u8) -> bool {
+        let player =
+            self.members.iter().position(|m| !m.ai).filter(|&i| i != self.lead).map(|i| self.members[i].number);
+        player.is_none_or(|p| p % 2 == 1 && to == p + 1)
     }
 
     /// The lead's "attack my target" at `now` to `to` (0 the flight, 5 the element, 2..4 one wingman) on the ground target
@@ -1130,6 +1229,7 @@ impl Flight {
     /// 44 s apart from its wingmen's put the lead 50 m off where it flew, test_four_ship).
     pub fn sense(&mut self, number: u8, alive: bool, fm: &Fm, ap: &Autopilot) {
         let Some(i) = self.index(number) else { return };
+        let now = self.now;
         let m = &mut self.members[i];
         let s = fm.state();
         m.alive = alive && s.crashed.is_none();
@@ -1148,6 +1248,7 @@ impl Flight {
         m.airborne = if m.ai { ap.airborne || m.airborne && !m.v.on_ground } else { m.airborne || !m.v.on_ground };
         m.landed = ap.landed;
         m.engine_on = fm.engine_on();
+        m.engine_since = if m.engine_on { m.engine_since.or(Some(now)) } else { None };
         m.fuel_kg = s.fuel_kg;
         m.wp_index = ap.wp_index;
         m.wp_action = ap.route.get(ap.wp_index).map_or(0, |w| w.action);
@@ -1156,6 +1257,145 @@ impl Flight {
     /// The tower's start-up clearance: the wingmen start their engines, one after the other.
     pub fn start_up(&mut self, now: f64) {
         self.cleared.get_or_insert(now);
+    }
+
+    /// An AI lead's plan (a lesson's `lead_plan`, modern-iaf/docs/data-formats.md §5): each order given once the lead
+    /// has passed its waypoint ([`Flight::lead_order`]). The player as the lead has no plan.
+    pub fn set_plan(&mut self, plan: Vec<(usize, LeadStep)>) {
+        self.plan = plan;
+    }
+
+    /// The shape now ([`SHAPES`]' index) and whether its sides are mirrored by the tactical turns flown.
+    pub fn shape(&self) -> (usize, bool) {
+        (self.shape, self.mirror)
+    }
+
+    /// The flight for the instructor's calls (training.md §16.3): the player, a wingman, in its slot (within the
+    /// in-position distance, no turn under way); every other live jet in position (in the air in its slot, not
+    /// changing slots; the lead counts as in); every live jet down after its flight (an AI jet stopped after its
+    /// landing roll, the player on the ground after its take-off). A lost jet counts for neither.
+    pub fn facts(&self) -> (bool, bool, bool) {
+        let k = self.spacing() as f32;
+        let in_pos = |m: &Member| m.airborne && !m.v.on_ground && !m.transit && m.slot_error < IN_POSITION_M * k;
+        let lead = self.members.get(self.lead).map(|m| m.number);
+        let me = self.members.iter().find(|m| !m.ai);
+        let in_slot = me.is_some_and(|m| Some(m.number) != lead && in_pos(m) && self.tac.is_none());
+        let live = || self.members.iter().filter(|m| m.alive);
+        let joined = live().all(|m| Some(m.number) == lead || in_pos(m));
+        let down = live().all(|m| m.airborne && m.v.on_ground && (m.landed || !m.ai));
+        (in_slot, joined, down)
+    }
+
+    /// A tactical turn under way ([`LeadStep::Turn`]).
+    pub fn turning(&self) -> bool {
+        self.tac.is_some()
+    }
+
+    /// The lead's order `step` at `now`, said by the lead ([`LEAD_CALLS`]) and acknowledged by each AI wingman in
+    /// the air: a shape (the rejoin: fingertip), a close-up step, or a tactical turn (the lead in the air with the gear
+    /// up). False: refused (a turn under way, the lead on the ground, close up past the last step).
+    pub fn lead_order(&mut self, now: f64, step: LeadStep) -> bool {
+        let Some(lead) = self.members.get(self.lead) else { return false };
+        if !wingman::flying(lead) || self.tac.is_some() {
+            return false;
+        }
+        let call = match step {
+            // (A new shape is flown as drawn: the sides the turns swapped go back.)
+            LeadStep::Shape(s) if s < SHAPES.len() => {
+                (self.shape, self.split, self.mirror) = (s, None, false);
+                LEAD_CALLS[s]
+            }
+            LeadStep::Shape(_) => return false,
+            LeadStep::Rejoin => {
+                (self.shape, self.split, self.mirror) = (0, None, false);
+                LEAD_CALLS[8]
+            }
+            LeadStep::Close | LeadStep::Spread => {
+                let up = step == LeadStep::Close;
+                let c = if up { self.close + 1 } else { self.close.wrapping_sub(1) };
+                if c >= CLOSE_STEPS.len() || matches!(self.shape, LINE_ABREAST | TRAIL) {
+                    return false;
+                }
+                self.close = c;
+                LEAD_CALLS[if up { 9 } else { 10 }]
+            }
+            LeadStep::Turn { right, in_place } => {
+                let l = &self.members[self.lead];
+                let from = l.v.vel[0].atan2(l.v.vel[1]);
+                let sign = if right { 1.0 } else { -1.0 };
+                let turn = if in_place { std::f64::consts::PI } else { std::f64::consts::FRAC_PI_2 };
+                // The outside jet: the farthest from the turn's side (the lead's right: (cos h, -sin h)).
+                let across = |m: &Member| {
+                    let d = m.v.pos - l.v.pos;
+                    sign * (d[0] * from.cos() - d[1] * from.sin())
+                };
+                let flying: Vec<&Member> = self.members.iter().filter(|m| m.alive && wingman::flying(m)).collect();
+                let outside = flying.iter().map(|m| across(m)).fold(f64::MAX, f64::min);
+                let wait = (flying.iter())
+                    .map(|m| {
+                        (m.number, if in_place { 0.0 } else { (across(m) - outside) / m.v.speed.max(50.0) as f64 })
+                    })
+                    .collect();
+                let to = from + sign * turn;
+                self.tac = Some(Tac { at: now, from, to, right, wait, started: vec![], done: vec![] });
+                self.mirror = !self.mirror;
+                LEAD_CALLS[11 + 2 * in_place as usize + !right as usize]
+            }
+        };
+        let lead_n = self.members[self.lead].number;
+        self.calls.push((now, Call { from: lead_n, id: call }));
+        for m in self.members.iter_mut().filter(|m| m.number != lead_n && m.alive && m.airborne && !m.landed) {
+            (m.transit, m.report) = (true, true);
+            if m.ai {
+                self.calls.push((now + m.skill.reaction_s, Call { from: m.number, id: "ack" }));
+            }
+        }
+        true
+    }
+
+    /// The plan's next order once the lead has passed its waypoint; the tactical turn under way: who starts now (its
+    /// wait over), who has turned, and its end (every jet turned, or [`TAC_MAX_S`]). Each AI jet's
+    /// steer this decision while it turns (its old heading until it starts), by number.
+    fn tac_step(&mut self, now: f64) -> Vec<(u8, Steer)> {
+        if self.tac.is_none()
+            && let Some(&(wp, step)) = self.plan.first()
+            && self.members.get(self.lead).is_some_and(|l| l.ai && l.wp_index > wp)
+        {
+            self.plan.remove(0);
+            self.lead_order(now, step);
+        }
+        let Some(t) = self.tac.as_mut() else { return vec![] };
+        use std::f64::consts::{FRAC_PI_2, PI, TAU};
+        let track = |m: &Member| m.v.vel[0].atan2(m.v.vel[1]);
+        let mut out = vec![];
+        for m in self.members.iter().filter(|m| m.alive && wingman::flying(m)) {
+            let due = t.wait.iter().find(|w| w.0 == m.number).is_none_or(|w| now - t.at >= w.1);
+            if !t.started.contains(&m.number) && due {
+                t.started.push(m.number);
+            }
+            let sign = if t.right { 1.0 } else { -1.0 };
+            // The turn left in its way (0 to 2π; past the new heading a little: 0).
+            let left = (sign * (t.to - track(m))).rem_euclid(TAU);
+            let left = if left > 1.5 * PI { 0.0 } else { left };
+            if t.started.contains(&m.number) && left <= TURNED_DEG.to_radians() && !t.done.contains(&m.number) {
+                t.done.push(m.number);
+            }
+            let aim = if !t.started.contains(&m.number) {
+                t.from
+            } else if t.done.contains(&m.number) {
+                t.to
+            } else {
+                track(m) + sign * left.min(FRAC_PI_2)
+            };
+            let to = m.v.pos + Vec3::new(aim.sin(), aim.cos(), 0.0) * 20_000.0;
+            out.push((m.number, Steer { to, g: TAC_G, speed: m.v.speed, thr_max: 1.0, fighter: false }));
+        }
+        let all = self.members.iter().filter(|m| m.alive && wingman::flying(m)).all(|m| t.done.contains(&m.number));
+        if all || now - t.at > TAC_MAX_S {
+            self.tac = None;
+            return vec![];
+        }
+        out
     }
 
     /// The take-off in pairs (true) or in a stream behind the lead (false, the default): #2 lines up beside #1 and #4
@@ -1191,6 +1431,9 @@ impl Flight {
     pub fn command(&mut self, now: f64, to: u8, cmd: &str) -> bool {
         // The regroup: element 2 rejoins (from a split).
         let (to, cmd) = if cmd == "regroup" { (5, "rejoin") } else { (to, cmd) };
+        if !self.player_may_order(to) {
+            return false;
+        }
         let who = self.addressed(to);
         if who.is_empty() {
             return false;
@@ -1401,6 +1644,19 @@ impl Flight {
                 (short > 0.0).then(|| (v - (SPACING.1 * short) as f32).max(SPACING.2))
             });
         }
+        let tac = self.tac_step(now);
+        // An AI lead with the player in its flight starts, taxies and takes off with it: it taxies once every other
+        // jet has run its engine [`TAXI_AFTER_S`] (any other AI lead stays on the ground as before).
+        let led_player = self.members[self.lead].ai && self.members.iter().any(|m| !m.ai);
+        let lead_i = self.lead;
+        let waiting = (self.members.iter().enumerate()).any(|(i, m)| {
+            i != lead_i
+                && m.alive
+                && m.v.on_ground
+                && !m.airborne
+                && m.engine_since.is_none_or(|t| now - t < TAXI_AFTER_S)
+        });
+        (self.members[lead_i].flight_wait, self.members[lead_i].leads_player) = (waiting, led_player);
         let committed = self.members[self.lead].enemy.committed;
         let lead_striking = matches!(self.members[self.lead].strike.phase, Phase::Run | Phase::Egress);
         // The bandits: the flight's picture; our flight's orders kept up (and its contact calls), an enemy pair's share.
@@ -1541,7 +1797,10 @@ impl Flight {
                     orbit = to.map(|to| Steer { to, g: TASK_G, speed, thr_max: 1.0, fighter: false });
                 }
             }
-            let own = orbit.or(if m.number == 3 { self.split } else { None });
+            let turn = tac.iter().find(|t| t.0 == m.number).map(|t| t.1);
+            // (The lead's own task is its tactical turn only: a promoted lead keeps no wingman's orbit or split.)
+            let own =
+                if i == self.lead { turn } else { turn.or(orbit).or(if m.number == 3 { self.split } else { None }) };
             m.rejoining = own.is_none() && rejoin.is_some();
             m.task = own.or(rejoin);
             if i == self.lead {
@@ -1588,8 +1847,14 @@ impl Flight {
         for i in 0..self.members.len() {
             let n = self.members[i].number;
             let lead_pos = self.index(n.wrapping_sub(1)).map(|j| self.members[j].v.pos).filter(|_| n.is_multiple_of(2));
+            // The player as a pair's wingman: lined up once stopped on the ground within 40 m of its lead lined up.
+            let lead_lined = (self.index(n.wrapping_sub(1)).map(|j| &self.members[j]))
+                .filter(|l| n.is_multiple_of(2) && l.lined_up.is_some())
+                .map(|l| l.v.pos);
             let m = &mut self.members[i];
-            let on_runway = m.mode == MODE_TAKE_OFF && m.phase == Some(1);
+            let player_lined =
+                !m.ai && m.v.on_ground && m.v.speed < 2.0 && lead_lined.is_some_and(|p| flat(p, m.v.pos) < 40.0);
+            let on_runway = m.mode == MODE_TAKE_OFF && m.phase == Some(1) || player_lined;
             m.lined_up = if on_runway { Some(m.lined_up.unwrap_or(now)) } else { None };
             if self.pairs && on_runway && m.v.on_ground && m.order.lineup_offset != 0.0 && m.pair_free.is_none() {
                 m.pair_free = Some(None);
@@ -1638,7 +1903,7 @@ impl Flight {
             // (Until the lead's own lift-off: a wingman off the ground a moment first leaves its stage on the runway.)
             let rolling = self.members[i].lined_up.is_some();
             let mate_up = |o: &Member| o.lined_up.is_some() || o.airborne;
-            let pair_lead = self.pairs && n % 2 == 1 && rolling && mate.is_some_and(|o| o.ai && o.alive && mate_up(o));
+            let pair_lead = self.pairs && n % 2 == 1 && rolling && mate.is_some_and(|o| o.alive && mate_up(o));
             self.members[i].order.pair_lead = pair_lead;
             self.members[i].order.hold = hold;
             self.members[i].order.lineup_offset = if self.pairs && n.is_multiple_of(2) { side(n) } else { 0.0 };
@@ -1731,12 +1996,14 @@ impl Flight {
     /// wingman, alive and still on the ground, is not yet lined up beside it, at most [`PAIR_WAIT_S`].
     fn pair_hold(&self, i: usize, now: f64) -> bool {
         let me = &self.members[i];
-        let waiting = me.lined_up.is_some_and(|t| now - t < PAIR_WAIT_S);
+        let mate = self.index(me.number + 1).map(|j| &self.members[j]);
+        // (The player as its wingman: no limit; the lesson waits for the student.)
+        let player = mate.is_some_and(|o| !o.ai);
+        let waiting = me.lined_up.is_some_and(|t| player || now - t < PAIR_WAIT_S);
         if !(self.pairs && me.ai && me.number % 2 == 1 && waiting) {
             return false;
         }
-        let mate = self.index(me.number + 1).map(|j| &self.members[j]);
-        mate.is_some_and(|o| o.ai && o.alive && !o.airborne && o.lined_up.is_none())
+        mate.is_some_and(|o| o.alive && !o.airborne && o.lined_up.is_none())
     }
 
     fn bandit(&self, id: Option<u32>) -> Option<&Bandit> {
@@ -1908,8 +2175,11 @@ impl Flight {
         }
         // (The look-ahead shrinks with the spacing: at the tight step, 0.8 s.)
         let (h, dt) = (AVOID_S * self.guard(), AVOID_STEP_S * self.guard());
+        // (A lead keeps its line and leaves the room to its wingman: an AI lead takes no avoiding action from the
+        // player flying on it.)
+        let mine = |o: &Member| i == self.lead && !o.ai;
         let (miss, other, closing) = (self.members.iter())
-            .filter(|o| o.number != me.number && o.alive && !o.v.on_ground && !pair_free(me, o))
+            .filter(|o| o.number != me.number && o.alive && !o.v.on_ground && !pair_free(me, o) && !mine(o))
             .flat_map(|o| {
                 let (op, ov) = (o.v.pos, o.v.vel);
                 let (dp, dv, da) = (op - me.v.pos, ov - me.v.vel, o.acc - me.acc);

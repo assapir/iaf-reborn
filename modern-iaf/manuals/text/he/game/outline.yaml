@@ -45,6 +45,7 @@ chapters:
   sections:
   - {id: course-ground, title: "שלב 1: קרקע והתנעה", file: game/missions-training/course-ground.typ}
   - {id: course-pattern, title: "שלב 2: שליטה בסיסית, המראה ונחיתה", file: game/missions-training/course-pattern.typ}
+  - {id: course-formation, title: "שלב 4: מבנה והובלה", file: game/missions-training/course-formation.typ}
   - {id: instructor, title: "המדריך", file: game/missions-training/instructor.typ}
   - {id: training-fight, title: "קרב אימון", file: game/missions-training/training-fight.typ}
 - id: bases
