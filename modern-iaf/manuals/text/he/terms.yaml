@@ -16,7 +16,7 @@
 - {en: setup step, he: שלב התקנה, from: game}
 - {en: mission, he: משימה, from: game}
 - {en: Training, he: אימון, from: game}
-- {en: lesson, he: שיעור, from: plain}
+- {en: lesson, he: תרגול, from: plain, not: [שיעור]}
 - {en: briefing, he: תדריך, from: game, not: [בריפינג]}
 - {en: debrief, he: תחקיר, from: game, not: [דיבריף, תדריך סיכום]}
 - {en: goal / objective, he: יעד, from: game}

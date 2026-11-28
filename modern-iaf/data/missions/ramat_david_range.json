@@ -498,7 +498,7 @@
       {
         "at": "start",
         "en": "Start, taxi and take off from runway {runway} as in the Take-off lesson, with the tower's clearances.",
-        "he": "להתניע, להסיע ולהמריא ממסלול {runway} כמו בשיעור ההמראה, עם אישורי המגדל."
+        "he": "להתניע, להסיע ולהמריא ממסלול {runway} כמו בתרגול ההמראה, עם אישורי המגדל."
       },
       {
         "en": "Fly the route's first steerpoint, the air range. Bring the radar up: {key:56} cycles its modes, {key:57} switches air and ground. Five drones fly there, red for the exercise: one at 15,000 ft, one low, one that breaks away when you close in, and a pair at 25,000 ft whose radars your RWR hears. None of them shoots.",

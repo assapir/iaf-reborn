@@ -70,7 +70,7 @@
 	"fail": "נכשל",
 	"not_flown": "טרם בוצעה",
 	"phase_n": "שלב %d",
-	"lesson_n": "שיעור %d.%d",
+	"lesson_n": "תרגול %d.%d",
 	"grade_marginal": "גבולי",
 	"grade_unsat": "לא מספק",
 	"squadron": "טייסת %d %s",

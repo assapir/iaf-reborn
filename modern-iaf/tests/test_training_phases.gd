@@ -106,7 +106,7 @@ func walk(fe: Control, lang: String) -> void:
 	await frames(2)
 	var side: Control = fe.find_child("Side", true, false)
 	for t in (
-		["שיעור 1.2", "התנעת המנוע ויישור INS", "מה לומדים", "גבולי · 26 בנובמבר 2026"]
+		["תרגול 1.2", "התנעת המנוע ויישור INS", "מה לומדים", "גבולי · 26 בנובמבר 2026"]
 		if he
 		else ["Lesson 1.2", "Engine start and INS", "WHAT YOU WILL LEARN", "Marginal · 26 Nov 2026"]
 	):

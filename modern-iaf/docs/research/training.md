@@ -69,7 +69,7 @@ One term for each thing. "In use" means the sim's Hebrew strings or docs already
 | Training (the menu) | אימון | in use (the front end's strings) |
 | A jet's course | הסבה (for example "הסבה לסופה") | "שנה של הסבה והכשרה מבצעית"[^mako-after]; the "לסופה" form is ours |
 | A phase | שלב | the IAF's recruiting site names the flight course's "שלבי הכשרה", second-hand[^iaf-recruits] |
-| A lesson | שיעור | in use (the Training screens' strings, `lesson_n` in `modern-iaf/menu/strings_he.json`) |
+| A lesson | תרגול | in use (the Training screens' strings, `lesson_n` in `modern-iaf/menu/strings_he.json`) |
 | A sortie | גיחה | ynet on two F-15 pilots, "הפלה בגיחה הראשונה" (`docs/ai.md`, footnote `ynet-uav`) |
 | A check ride | טיסת מבחן | the flight course's "טיסות מבחן" in the Efroni, second-hand[^mako-course] |
 | The briefing | תדריך | in use (the briefing screen) |
