@@ -4,7 +4,7 @@
 "sections": [
 {"id": "before_start", "en": "BEFORE ENGINE START", "he": "לפני התנעה", "items": [
   {"id": "survival_kit", "en": "Survival kit switch – AUTO", "he": "מתג ערכת ההישרדות – ‏AUTO", "where": {"en": "on the ejection seat", "he": "בכיסא המפלט"}},
-  {"id": "loose_items", "en": "Loose items – stow", "he": "חפצים לא מאובטחים – לאחסן", "how": {"en": "nothing loose by the stick and the throttle", "he": "ללא חפצים לא מאובטחים ליד מוט ההיגוי והמצערת"}},
+  {"id": "loose_items", "en": "Loose items – stow", "he": "חפצים לא מאובטחים – לאחסן", "how": {"en": "nothing loose by the stick and the throttle", "he": "ללא חפצים לא מאובטחים ליד הסטיק והמצערת"}},
   {"id": "park_brake", "en": "PARKING BRAKE – ON", "he": "PARKING BRAKE – ‏ON", "where": {"en": "gear panel, left of the front panel", "he": "לוח כן הנסע, משמאל ללוח הקדמי"}, "check": {"set": {"PARK_BRAKE": 1}}, "control": ["PARK_BRAKE"]},
   {"id": "master_arm_safe", "en": "MASTER ARM – SAFE", "he": "MASTER ARM – ‏SAFE", "check": {"set": {"MASTER_ARM": 0}}, "control": ["MASTER_ARM"]},
   {"id": "alt_gear_norm", "en": "ALT GEAR – in, guard down", "he": "ALT GEAR – פנימה, מכסה סגור", "check": {"set": {"ALT_GEAR": 0}}, "control": ["ALT_GEAR"]},

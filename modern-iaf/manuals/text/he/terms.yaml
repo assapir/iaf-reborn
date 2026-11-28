@@ -65,7 +65,7 @@
 - {en: throttle, he: מצערת, from: game}
 - {en: afterburner, he: מבער, from: game}
 - {en: afterburner detent, he: נקודת המבער, from: game}
-- {en: stick, he: סטיק, from: game}
+- {en: stick, he: סטיק, from: game, not: [מוט היגוי, מוט ההיגוי, ידית היגוי, ידית ההיגוי]}
 - {en: rudder, he: הגה כיוון, from: game}
 - {en: pedals, he: דוושות, from: game}
 - {en: roll / pitch, he: גלגול / עלרוד, from: game}
