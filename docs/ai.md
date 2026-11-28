@@ -711,8 +711,8 @@ model, where none of the 6-DoF cases applies. Every figure here is inferred, tun
   it (an AI lead first; behind the player, whose own landing has no track, the 20 s alone), by the way left to the lineup along its track (`Autopilot::to_go`: to the route's last
   waypoint, then the pattern's points): short of that, or ahead of it, it flies that jet's speed less 0.02 m/s per m
   short, at least 85 m/s, until the turn to final (`Autopilot::pace`: the throttle held under it, the speed brake out
-  15 m/s above it; `flight::SPACING`) (§8.3; the AI flies no overhead break: the 1998 game has none and no
-  source gives the IAF's). Every figure in this list is inferred. Measured at Ramon (F-16I, 2 t of stores): landed
+  15 m/s above it; `flight::SPACING`) (§8.3; the flight flies no overhead break: the 1998 game has none and no
+  source gives the IAF's; Modern IAF's instructor flies one, [../modern-iaf/docs/training.md](../modern-iaf/docs/training.md) §14). Every figure in this list is inferred. Measured at Ramon (F-16I, 2 t of stores): landed
   136, 57 and 36 s apart (the first is the lead's own way in before #2 is sent); at Nevatim (MiG-29A) 131, 55 and 28 s;
   the lead landing away from home 239, 42 and 26 s. Jets in a circuit land some 15-40 s apart (inferred; no source
   found for the IAF's). With the 20 s alone (until 2026-11-23) they landed 136, 23 and 21 s apart, and on the

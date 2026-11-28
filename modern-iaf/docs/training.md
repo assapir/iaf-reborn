@@ -849,6 +849,62 @@ pick; `training::tests` the goals' grades, gaps and the lesson grade of the samp
 `pilot_log::tests::course_logbook_of_the_jet` the logbook from the database. `modern-iaf/tests/test_training_grades.gd`
 flies ramon_startup, ends it through `sim_flight.gd`'s score and store, and checks the stored record and the calls.
 
+## 14. The instructor flies
+The course's one demonstration ([training-plan.md](training-plan.md) §2.3, §4): the instructor flies the overhead
+pattern and the landing. No lesson starts it yet; dev hooks in `modern-iaf/flight/instructor.gd` start it, and the
+course's lessons call the same hooks.
+
+**The pattern** (`iaf_flight::autopilot::OVERHEAD`, set on a jet's autopilot by `IafFlight.ap_set_overhead`): the
+landing waypoint is the pattern's initial point (`ap_overhead_initial`), and the landing flies the overhead in place of
+the 1998 game's left-hand circuit, at the base nearest the waypoint and on the runway the tower uses. The steps keep the
+circuit's numbers (`ap_landing_step`):
+
+| Step | Leg | Figures |
+|------|-----|---------|
+| 0–3 | the initial: onto the centreline, the pattern's height, the run to the break point | from 5 NM out, 1,500 ft above the field, 300 kt (inferred) |
+| 4 | the break: a level turn of 180° onto the downwind, throttle back | starts 300 m past the lineup, over the touchdown zone (the F-35A's rule) |
+| 5–7 | the downwind, descending to the perch abeam the roll-out; the gear and flaps down on entering step 7, once below 300 kt | 1 NM left of the runway, wider for a heavy jet (below); the perch 800 ft above the field (inferred) |
+| 11 | the base turn: a descending turn of 180° onto the final | rolls out 1 NM out at 300 ft (the F-35A's rule), farther out on the same 3° path behind a wider downwind |
+| 13, 14 | the final and the landing roll | the 6-DoF's real final ([flight-model.md](flight-model.md) §9.6) |
+
+The two turns fly the circle through the jet that meets the line of the next leg, at most 80° of bank in the break and
+60° in the base turn, on a runway of any heading. In a turn the jet flies no slower than its final's speed (13° α) at
+the turn's load factor. The downwind is twice the radius of a 40° bank at the jet's speed of 11° α level, at least 1
+NM: a Sufa with full fuel and 2 t of stores flies it 2.6 km out (inferred). Tried and dropped (28 November 2026): the
+1 NM downwind and a perch at 1,500 ft for every jet; the laden Sufa sank into the ground in the base turn at the
+11° α speed, and at a higher speed overshot the final by 4.7 km. The pattern's sources are the manuals' landing sections
+(`modern-iaf/manuals/text/en/f16/ch2/landing.typ`, `f35i/ch2/landing.typ`).
+
+**The F-16s: "My controls"** (`demo`): the player's autopilot flies the player's jet through the pattern
+([../../docs/autopilot.md](../../docs/autopilot.md) §2.3). The stick and the throttle in the 3D cockpit move with the
+autopilot's commands. On the runway, stopped, the autopilot lets go; or the player takes the stick past the
+autopilot's break-out. Then "Your controls", and the route is the mission's again.
+
+**The F-35I: a second F-35I** (`chase`, `lead`): the instructor's jet (`ai_flights.gd spawn`, unit `f35i`) starts
+400 m ahead and 100 m left of the player's, at the player's speed. `chase` puts it in the player's flight as Kidon 1-2
+(`ai_flights.gd join_flight`: its slot, the radio commands, the landing sequence). `lead` takes it out of the flight
+(`leave_flight`) and it flies the pattern to its landing and its shelter, "Follow me"; the player flies behind it.
+
+**The lines** are subtitles only, in the screen's language; the voice comes with the course's script:
+
+| Id | English | Hebrew |
+|----|---------|--------|
+| `my_controls` | My controls. | השליטה אצלי. |
+| `your_controls` | Your controls. | השליטה אצלך. |
+| `follow_me` | Follow me. | לעקוב אחריי. |
+
+The hand-over's Hebrew is the course script's wording. Open: no Hebrew source was found for the hand-over words
+(searched 28 November 2026).
+
+**Checks.** `crates/iaf-flight/tests/fm.rs overhead_pattern_on_the_sixdof`: the Barak at Ramat David and the Sufa at
+Ramon on the player's autopilot (the Sufa also with full fuel and 2 t of stores), the Adir at Nevatim on the AI's (at
+half and at full fuel), from 12 km out on the centreline. Each flies the steps in order, breaks over the touchdown
+zone, lowers the gear under 300 kt, flies the downwind to the left, rolls out on final 1.5–2.5 km out at 100–155 m,
+and lands at 1.6–3.0 m/s of sink, stopping on the runway.
+`modern-iaf/tests/test_instructor_demo.gd` (the Sufa's demonstration: the lines, the steps in order, the stick and the
+throttle moving, stopped on the runway) and `test_instructor_lead.gd` (the Adir's chase within 400 m after 60 s, then
+the lead's steps and its landing at Nevatim).
+
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II", Specifications (F-35A): empty weight 29,300 lb (13,290 kg), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II

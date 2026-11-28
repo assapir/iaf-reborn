@@ -198,14 +198,18 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 ## points]) under its autopilot, as a mission's brain-less aircraft does: its plane, flight model and model from its
 ## unit's record and aircraft definition, on the ground at a base when `at` is there (the start rule). `side` −1: the
 ## player's enemy. `arm` {pylon index (0..8): [weapon record name, count]} replaces those pylons of its record's load
-## (a strike load, docs/ai.md §8.10). Its entity, {} for a unit that does not fly.
-func spawn(unit: String, at: Vector3, heading: float, route: Array, side := -1, arm := {}) -> Dictionary:
+## (a strike load, docs/ai.md §8.10). `speed` (m/s) its speed in the air. Its entity, {} for a unit that does not fly.
+func spawn(
+	unit: String, at: Vector3, heading: float, route: Array, side := -1, arm := {}, speed := START_SPEED
+) -> Dictionary:
 	var obj: Dictionary = {}
 	for o in _objects.values():
 		if String(o.get("0x514", "")) == unit:
 			obj = o
 	var pr: Dictionary = _present.get(int(obj.get("0x53c", -1)), {})
 	var plane := _plane_of(AircraftModel.index(), String(pr.get("0x64a", "")))
+	if plane == "" and obj.has("airframe"):
+		plane = PlayerAircraft.plane_for(int(obj.get("0x5b4", -1)))  # a flyable unit, as setup's
 	if plane == "":
 		return {}
 	_spawned += 1
@@ -214,6 +218,7 @@ func spawn(unit: String, at: Vector3, heading: float, route: Array, side := -1, 
 	var e := {"0x1e": -1000 - _spawned, "0x2bc": "%s %d" % [unit, _spawned], "0x2c6": int(obj["0x1e"])}
 	e.merge({"0x2e4": at.x, "0x2ee": at.y, "0x2f8": at.z, "0x2d0": side, "0x302": heading})
 	var ent := MissionRuntime.entity(e, "jet:%d" % _spawned, -1, false)
+	ent["start_speed"] = speed
 	MissionRuntime._init_damage(ent, obj)
 	var pts := []
 	for q in route:
@@ -544,6 +549,46 @@ func flight_in_air(heading: float) -> bool:
 	flight_ai = null
 	_setup_flight_ai()
 	return flight_ai != null
+
+
+## Ours (Modern IAF, a dev / test hook: no mission sets it yet; modern-iaf/docs/training.md "The instructor flies"):
+## the AI jet `ent` (one `spawn` made) joins the player's formation as its next number and the flight's IafAi is made
+## again with it (the slots, the commands, the landing sequence). A player with no formation gets one of the two. False:
+## no flight AI.
+func join_flight(ent: Dictionary) -> bool:
+	var me: Dictionary = runtime.player_entity()
+	var p = ent.get("pilot")
+	if p == null or not Settings.new_ai() or not ClassDB.class_exists("IafAi"):
+		return false
+	var f := _formation_of(me)
+	if f.is_empty():
+		f = {"id": -1, "kind": 0, "slot": 0, "members": [me], "targets": [{}], "route": []}
+		_formations.append(f)
+	f.members.append(ent)
+	f.targets.append({})
+	p.formation = f
+	_ai_members = []
+	flight_ai = null
+	_setup_flight_ai()
+	return flight_ai != null
+
+
+## Ours (the dev hook's other half): the AI jet `ent` leaves the player's formation and flies on under its own
+## autopilot; the flight's IafAi is made again without it (none when no AI jet is left).
+func leave_flight(ent: Dictionary) -> void:
+	var f := _formation_of(ent)
+	var p = ent.get("pilot")
+	if f.is_empty() or p == null:
+		return
+	var i: int = f.members.find(ent)
+	f.members.remove_at(i)
+	f.targets.remove_at(i)
+	p.formation = {"id": ent.id, "kind": 0, "slot": 0, "members": [ent], "targets": [], "route": []}
+	p.by_ai = false
+	p.flight.ap_clear_orders()
+	_ai_members = []
+	flight_ai = null
+	_setup_flight_ai()
 
 
 ## The tower's start-up clearance (sim_flight.gd): the flight's wingmen start their engines.
@@ -980,7 +1025,7 @@ func _start(p: Pilot, install: String, plane: String) -> bool:
 	var w: Vector3 = p.ent.world
 	var pos: Vector3 = host.world_to_scene(w)
 	var h := deg_to_rad(float(p.ent.heading))
-	var vel := Vector3(sin(h), 0, -cos(h)) * START_SPEED
+	var vel := Vector3(sin(h), 0, -cos(h)) * float(p.ent.get("start_speed", START_SPEED))
 	var rule: Vector2i = flight.start_rule(install, w.x, w.y, w.z)
 	var airborne: bool = flight.is_airborne_start(w.z, rule.x != 0)
 	var engine_on := rule.y != 0

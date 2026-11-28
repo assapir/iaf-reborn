@@ -306,7 +306,8 @@ capabilities. A builder checks each against [status.md](status.md) before a phas
 - a grade for each item and fault markers on the debrief's track (the record holds both, [training.md](training.md)
   §13; the debrief page shows them once its mock-up is approved);
 - the instructor's "what's next" calls, paced by the player's actions, and their script;
-- the overhead-break demonstration: the instructor flies the player's jet;
+- the overhead-break demonstration: the instructor flies the player's jet (built, started by dev hooks:
+  [training.md](training.md) §14);
 - time acceleration on the ground after phase 1;
 - failures that a lesson starts (engine fire, flameout, hydraulics, electrics);
 - instrument approaches and cloud; night with the goggles, the DAS night camera, the targeting pod and the tanker;

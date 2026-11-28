@@ -423,3 +423,127 @@ fn landing_circuit_on_the_sixdof() {
         }
     }
 }
+
+#[test]
+fn overhead_pattern_on_the_sixdof() {
+    // Modern IAF's instructor (`Autopilot::overhead`, modern-iaf/docs/training.md "The instructor flies"): the overhead
+    // pattern on the 6-DoF, from 12 km out on the centreline at 1,500 ft and 300 kt, the landing waypoint at the
+    // initial point 5 NM out. The player's autopilot flies the Barak at Ramat David and the Sufa at Ramon (the F-16
+    // instructor's demonstration); the AI flies the Adir at Nevatim (the F-35I instructor's lead). Each flies the
+    // steps in order: the initial on the centreline, the break over the touchdown zone, the downwind about 1 NM to the
+    // left with the gear down under 300 kt, descending to the perch, the base turn down to the final 1–3.5 km out under
+    // 250 m, then lands on the runway and stops on it, touching at less than the gear's 3.05 m/s.
+    use iaf_flight::airbase::Airbase;
+    use iaf_flight::autopilot::{Autopilot, Config, OVERHEAD, Waypoint};
+    let Some(dir) = own() else { return println!("skipped: no assets/converted/own") };
+    let bases = Airbase::load_all(&std::fs::read(dir.join("iaf.ibx")).unwrap());
+    // (jet, base, the player's autopilot, fuel share, stores kg and their ΔCD a side)
+    let jets = [
+        ("F-16", "David", true, 0.5, 0.0, 0.0),
+        ("F-16I", "Ramon", true, 0.5, 0.0, 0.0),
+        ("F-16I", "Ramon", true, 1.0, 2000.0, 0.004),
+        ("F-35I", "Nevatim", false, 0.5, 0.0, 0.0),
+        ("F-35I", "Nevatim", false, 1.0, 0.0, 0.0),
+    ];
+    for (name, base, player, fuel, stores, dcd) in jets {
+        let b = bases.iter().find(|b| b.name == base).unwrap().clone();
+        let z = b.lineup[2] as f64;
+        let (rs, rc) = (b.runway_deg as f64).to_radians().sin_cos();
+        let at =
+            |along: f64, up: f64| Vec3::new(b.lineup[0] as f64 + along * rs, b.lineup[1] as f64 + along * rc, z + up);
+        // (m along the runway from the lineup, m right of the centreline, m above the field)
+        let frame = |p: Vec3| {
+            let (dx, dy) = (p.x - b.lineup[0] as f64, p.y - b.lineup[1] as f64);
+            (dx * rs + dy * rc, dx * rc - dy * rs, p.z - z)
+        };
+        let i = at(-OVERHEAD.initial as f64, OVERHEAD.height);
+        let st = Start {
+            position: at(-12_000.0, OVERHEAD.height),
+            heading: (b.runway_deg as f32).to_radians(),
+            velocity: Vec3::new(rs * 154.3, rc * 154.3, 0.0),
+            ..start()
+        };
+        let (p, e) = iaf_flight::load_with(&dir, name, DataSet::Original).unwrap();
+        let mut fm = Fm::start(name, p, e, st);
+        if let Fm::SixDof(s) = &mut fm {
+            s.set_fuel(s.fuel_capacity_kg() * fuel);
+            s.set_stores(stores, dcd, dcd);
+        }
+        let mut ap = Autopilot::new(Config::default());
+        ap.bases = vec![b.clone()];
+        ap.route = vec![Waypoint { x: i.x, y: i.y, z: i.z, t: 0.0, action: 7 }];
+        ap.overhead = true;
+        if player {
+            ap.player_flare = true;
+            ap.player_mode(&mut fm, 2, 0);
+        } else {
+            ap.set_mode(&mut fm, 8);
+        }
+        let (mut steps, mut entered) = (Vec::new(), std::collections::HashMap::new());
+        let (mut last_sink, mut touch, mut stop, mut down_left) = (0.0, None, None, f64::MAX);
+        let mut gear_kt = f32::NAN;
+        // The way left to the lineup (`Autopilot::to_go`, the flight's spacing) the tick before the landing begins and
+        // the tick after: the same pattern, so within 5 % (the light jets' 1 NM downwind is a laden jet's 2.6 km).
+        let (mut go_before, mut go_jump) = (None, None);
+        for _ in 0..900 * 60 {
+            let landing = ap.stage().starts_with("landing");
+            if let Fm::SixDof(s) = &mut fm {
+                s.set_ground_height(z as f32);
+                s.ap_landing = landing;
+            }
+            ap.step(&mut fm, &|_: f64, _: f64| z as f32);
+            fm.step(1.0 / 60.0);
+            let s = fm.state();
+            assert!(s.crashed.is_none(), "{name}: crashed ({:?}) in {}", s.crashed, ap.stage());
+            let go = ap.to_go(s.position);
+            if go_jump.is_none() && ap.stage().starts_with("landing") {
+                go_jump = go_before.zip(go);
+            } else if !ap.stage().starts_with("landing") {
+                go_before = go;
+            }
+            if let Some(n) = ap.phase().filter(|_| landing) {
+                if steps.last() != Some(&n) {
+                    steps.push(n);
+                    entered.insert(n, frame(s.position));
+                    if n == 7 {
+                        gear_kt = s.speed * 1.943_844;
+                    }
+                }
+                if n == 7 {
+                    down_left = down_left.min(-frame(s.position).1);
+                }
+            }
+            if touch.is_none() && s.on_ground {
+                touch = Some((last_sink, frame(s.position)));
+            } else if touch.is_none() {
+                last_sink = -s.velocity[2];
+            } else if s.speed < if player { 2.0 } else { 26.0 } {
+                stop = Some(frame(s.position));
+                break;
+            }
+        }
+        println!("{name} at {base}: steps {steps:?}, entered {entered:?}, touch {touch:?}, stop {stop:?}");
+        let ord: Vec<usize> = steps.iter().copied().filter(|n| [3, 4, 7, 11, 13, 14].contains(n)).collect();
+        assert_eq!(ord, [3, 4, 7, 11, 13, 14], "{name}: the steps in order ({steps:?})");
+        let brk = entered[&4];
+        assert!((0.0..900.0).contains(&brk.0) && brk.1.abs() < 150.0, "{name}: the break over the runway {brk:?}");
+        assert!((brk.2 - OVERHEAD.height).abs() < 60.0, "{name}: the break's height {brk:?}");
+        let perch = entered[&11];
+        assert!((1300.0..4500.0).contains(&-perch.1), "{name}: the downwind 1-2 NM left {perch:?}");
+        assert!((perch.2 - OVERHEAD.perch_height).abs() < 80.0, "{name}: the perch's height {perch:?}");
+        assert!(down_left > 1000.0, "{name}: the downwind stays left of the runway ({down_left:.0} m)");
+        let (a, b) = go_jump.unwrap_or_else(|| panic!("{name}: the way left before and in the landing"));
+        assert!((a - b).abs() < 0.05 * b, "{name}: the way left {a:.0} m before the landing, {b:.0} m in it");
+        // The gear comes down on entering step 7: under the game's 300 kt limit (terrain_view.gd GEAR_DOWN_MAX_KT).
+        assert!(gear_kt < 300.0, "{name}: the gear at {gear_kt:.0} kt");
+        let fin = entered[&13];
+        assert!(
+            (-3500.0..-800.0).contains(&fin.0) && fin.1.abs() < 150.0 && fin.2 < 250.0,
+            "{name}: the final {fin:?}"
+        );
+        let (sink, t) = touch.unwrap_or_else(|| panic!("{name}: touched down"));
+        assert!(sink < 3.05, "{name}: sink {sink:.2} m/s");
+        let s = stop.unwrap_or_else(|| panic!("{name}: stopped"));
+        assert!(t.0 > -100.0 && s.0 < 2800.0 && s.1.abs() < 22.0, "{name}: on the runway {t:?} {s:?}");
+    }
+}

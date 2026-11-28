@@ -11,6 +11,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   attempt, each phase's progress, the next lesson) and the check ride's unannounced emergency (the pick and the time).
   The screens and the lessons' missions are later items of the plan; today's training missions grade the same way.
   `course` and `training` tests, `test_training_grades.gd`.
+- **The instructor flies (2026-11-28, [training-plan.md](training-plan.md) §2.3; [training.md](training.md) §14):** the
+  overhead pattern on the autopilot (the initial, the break over the touchdown zone, the downwind 1 NM left, the
+  descending base turn onto a final 1 NM out, the landing). The F-16 instructor's "My controls" flies the player's jet
+  through it, the stick and the throttle moving in the 3D cockpit, then "Your controls"; the F-35I instructor flies a
+  second F-35I, as Kidon 1-2 beside the player or leading the pattern ("Follow me"). Dev hooks and subtitles only: no
+  lesson starts it yet, and the voice comes with the course's script. `overhead_pattern_on_the_sixdof`,
+  `test_instructor_demo.gd`, `test_instructor_lead.gd`.
 - **Hidden state machines, clarity: the start-up switches and the canopy (2026-11-25, the audit's #10 and #11):**
   MAIN PWR, the JFS and RDR ALT are each one position in the flight model, and the canopy's travel, its switch, the
   lock lever and the Canopy key's sequence moved into the flight model ([cockpit.md](cockpit.md) §5.2, §5.6); the

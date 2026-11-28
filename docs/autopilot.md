@@ -226,6 +226,13 @@ approach and the float before touchdown steer to the centreline with a damped la
   ([modern-iaf/docs/flight-model.md](../modern-iaf/docs/flight-model.md) §9.6). The original model's circuit is the
   one above, with every switch.
 
+**Ours, the overhead pattern (Modern IAF's instructor).** With `Autopilot::overhead` set (`IafFlight.ap_set_overhead`;
+the 1998 game never sets it) LandingCL flies the overhead pattern in place of the circuit: the initial along the
+centreline, a level 180° break over the touchdown zone, the downwind at least 1 NM left, a descending 180° base turn onto the
+final 1 NM out, then the same final, flare and StopPlane. The step numbers keep their meaning (7 the gear, 11 the turn
+to final, 13 the final). Points, figures and sources: [../modern-iaf/docs/training.md](../modern-iaf/docs/training.md)
+§14.
+
 ### 2.4 Runway into the wind (ours, Better physics "Wind and turbulence")
 **The original** flies every base one way, whatever the wind:
 - Each iaf.ibx base has one lineup point and one `RunwayNumber` (`54eda0`). The AI's take-off taxi ends at that lineup

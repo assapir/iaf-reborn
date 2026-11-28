@@ -1808,7 +1808,11 @@ impl DiveBomb {
 #[derive(Debug, Clone)]
 struct Landing {
     step: usize,
-    pts: [Vec3; 5],
+    /// P1–P4 and the lineup P5; the overhead's ([`OVERHEAD`]): the break point, the downwind's start abeam it, the
+    /// perch, the roll-out on final, the lineup, and the initial point.
+    pts: [Vec3; 6],
+    /// The overhead pattern ([`Autopilot::overhead`]).
+    overhead: bool,
     rn: f32,
     k: f64,
     lw_pitch: f32,
@@ -1859,6 +1863,93 @@ enum Leg {
     Stop,
     Taxi,
     Park,
+    /// Ours, the overhead ([`OVERHEAD`]): the level or descending turn onto the line from point `from` to point
+    /// `to` ([`turn_onto`]): bank limit, fixed speed, and the point whose height the turn descends to.
+    Turn(usize, usize, f32, f32, Option<usize>),
+    /// Ours, the overhead: a step of the original's list it has no leg for (the step numbers keep their meaning:
+    /// 7 the gear, 11 the turn to final, 13 the final).
+    Skip,
+}
+
+/// Ours, the overhead pattern's points (Modern IAF's instructor, [`Autopilot::overhead`]), in the runway's frame from
+/// the lineup, m: the initial along the centreline from 5 NM out at 1,500 ft above the field and 300 kt (inferred:
+/// the F-16 manual's initial is 300 kt, its height and length are not given); the break over the touchdown zone,
+/// 300 m past the lineup (the F-35A's rule: the break starts over the touchdown point); the downwind 1 NM to the
+/// left (inferred: the base turn's half-circle at the circuit's speed and a bank near 37°), descending to the perch
+/// abeam the roll-out at 800 ft (inferred: the base turn then descends about 3°; from 1,500 ft its 7° at the gear-down
+/// speed sank a laden Sufa into the ground in the turn), and the roll-out on final 1 NM out at 300 ft (the F-35A's rule:
+/// wings level about 1 mile out and 300 ft above the ground). modern-iaf/manuals/text/en/f35i/ch2/landing.typ, f16/ch2/landing.typ.
+pub struct Overhead {
+    pub initial: f32,
+    pub brk: f32,
+    pub side: f32,
+    pub perch: f32,
+    pub height: f64,
+    pub perch_height: f64,
+    pub roll_out: f64,
+    /// m/s.
+    pub initial_speed: f32,
+}
+
+pub const OVERHEAD: Overhead = Overhead {
+    initial: 9260.0,
+    brk: 300.0,
+    side: 1852.0,
+    perch: 1852.0,
+    height: 457.0,
+    perch_height: 244.0,
+    roll_out: 91.0,
+    initial_speed: 154.3,
+};
+
+/// The overhead's downwind spacing for this jet, m: at least [`OVERHEAD`]'s 1 NM, and on the 6-DoF twice the radius of
+/// a 40° bank at its speed of 11° α level (`ApView::circuit`), so the base turn's half-circle meets the final at the
+/// circuit's α (inferred: a laden Sufa, 11° α at 200 kt, overshot the 1 NM final by 4.7 km).
+fn overhead_side(v: &ApView) -> f32 {
+    let r = v.circuit.map_or(0.0, |c| c.1.powi(2) / (G * 40f32.to_radians().tan()));
+    (2.0 * r).max(OVERHEAD.side)
+}
+
+/// Ours, the overhead's turns ([`Leg::Turn`]): the turn onto the line `q` → `p` by the circle through the jet, tangent
+/// to its track and to the line (ChangeHeading2PtAcu's search in closed form, in the line's own frame, so a runway
+/// of any heading gets the same turn), banked at most `lim`; within 0.3 rad of the line's heading the track law of
+/// `align_bank` closes the rest. Flies `vt` (throttle at most 0.7, as the Acu leg) and the flight path `climb`. Done
+/// rolled out within 5° of the line's heading, under 300 m off it.
+fn turn_onto(l: &mut Laws, q: Vec3, p: Vec3, lim: f32, vt: f32, climb: f32) -> Leaf {
+    let v = l.v;
+    let (ux, uy) = (p[0] - q[0], p[1] - q[1]);
+    let n = ux.hypot(uy).max(1.0);
+    let (ux, uy) = (ux / n, uy / n);
+    let line = (ux as f32).atan2(uy as f32);
+    let (dx, dy) = (v.pos[0] - q[0], v.pos[1] - q[1]);
+    // Left of the line, m, and the track's angle to the line, rad (+ left).
+    let y = (dx * -uy + dy * ux) as f32;
+    let phi = wrap(line - v.att.heading);
+    let speed = v.speed.max(1.0);
+    let bank = if phi.abs() < 0.3 {
+        let want = wrap(line + (y / 8.0 / speed).clamp(-0.5, 0.5).asin());
+        (wrap(want - v.att.heading) * l.c.change_head_k - l.c.change_head_beta * v.rates[2]).clamp(-DEG30, DEG30)
+    } else {
+        // The circle tangent to the line, the turn to the jet's own side of it (left of the line a left turn):
+        // r = |y| / (1 − cos φ).
+        let r = (y.abs() / (1.0 - phi.cos()).max(1e-3)).max(1.0);
+        let b = (speed * speed / (G * r)).atan().min(lim);
+        if y > 0.0 { -b } else { b }
+    };
+    if phi.abs() < 5f32.to_radians() && y.abs() < 300.0 && v.att.roll.abs() < 5f32.to_radians() {
+        return Leaf::Done;
+    }
+    // On the 6-DoF never slower than the speed of 11° α level (`ApView::circuit`) at this turn's load factor, 1 / cos
+    // of its bank: the circuit's α in the turn (inferred; at the level speed a laden Sufa sank into the ground in the
+    // descending base turn).
+    let vt = v.final_speed.or(v.circuit.map(|c| c.1)).map_or(vt, |f| vt.max(f / bank.cos().max(0.3).sqrt()));
+    let thr = l.thr(vt).min(0.7);
+    l.throttle(thr);
+    let y = l.pitch(climb);
+    let x = l.roll(bank);
+    l.out.rudder = Some(0.0);
+    l.stick(y, x);
+    Leaf::Run
 }
 
 /// ChangeHeading2PtAcu (vtable 0x6138a0, Run `5dbe70`, FirstRun `5dd1f0`).
@@ -2024,6 +2115,12 @@ pub struct Autopilot {
     /// original level float. The host sets it when the player has left the original: World scale Real, Real flight
     /// data or a Better physics switch.
     pub player_flare: bool,
+    /// Ours (Modern IAF's instructor, modern-iaf/docs/training-plan.md §2.3): the landing flies the overhead pattern
+    /// ([`OVERHEAD`]) in place of the original's circuit. False: the original's (the 1998 game never sets it).
+    pub overhead: bool,
+    /// The overhead's downwind spacing for this jet as of its last tick ([`overhead_side`]), m: the pattern
+    /// [`Autopilot::to_go`] measures before the landing has begun.
+    overhead_side_m: f32,
     /// The slot loop's slot ([`MODE_SLOT`]): (forward, right, up) m in the leader's horizontal frame ([`slot_point`]).
     pub slot: [f32; 3],
     /// Ours (Modern IAF's flights): the slot is a close-up step (the lead's "close up", iaf-ai `CLOSE_STEPS`): the slot
@@ -2096,6 +2193,8 @@ impl Autopilot {
             airborne: false,
             align_final: false,
             player_flare: false,
+            overhead: false,
+            overhead_side_m: OVERHEAD.side,
             slot: [0.0; 3],
             close: false,
             precise: false,
@@ -2133,7 +2232,7 @@ impl Autopilot {
         let (pts, i, from) = match land {
             Some(l) => {
                 let i = match l.legs(false, &self.cfg).get(l.step)? {
-                    Leg::Ch(i, ..) | Leg::Ca(i, _) | Leg::CaOr(i, _) | Leg::Ka(i, ..) => *i,
+                    Leg::Ch(i, ..) | Leg::Ca(i, _) | Leg::CaOr(i, _) | Leg::Ka(i, ..) | Leg::Turn(i, ..) => *i,
                     Leg::Lw(_) => [0, 1].get(l.step / 4).copied()?,
                     Leg::Fa(_) => 4,
                     _ => return None,
@@ -2141,13 +2240,26 @@ impl Autopilot {
                 (l.pts, i, pos)
             }
             None => {
-                let l = Landing::new(&self.bases, self.origin, f.t, 0, false)?;
+                let l = Landing::new(
+                    &self.bases,
+                    self.origin,
+                    f.t,
+                    0,
+                    false,
+                    self.overhead.then_some(self.overhead_side_m),
+                )?;
                 return Some(
                     flat(pos, f.t) + flat(f.t, l.pts[0]) + (1..5).map(|j| flat(l.pts[j - 1], l.pts[j])).sum::<f64>(),
                 );
             }
         };
         Some(flat(from, pts[i]) + (i + 1..5).map(|j| flat(pts[j - 1], pts[j])).sum::<f64>())
+    }
+
+    /// Ours (Modern IAF's instructor): the overhead pattern's initial point ([`OVERHEAD`]) of the base nearest `near`,
+    /// in the route's frame: a landing waypoint there starts the pattern on the centreline.
+    pub fn overhead_initial(&self, near: Vec3) -> Option<Vec3> {
+        Landing::new(&self.bases, self.origin, near, 0, false, Some(OVERHEAD.side)).map(|l| l.pts[5])
     }
 
     /// Ours (Modern IAF's flights): the take-off's stage (0 the taxi, 1 TakeoffCL on the runway, 2 and 3 in the air)
@@ -2362,6 +2474,9 @@ impl Autopilot {
         if v.t < self.next_tick {
             return Out::default();
         }
+        if self.overhead {
+            self.overhead_side_m = overhead_side(&v);
+        }
         let vmin12 = ac.vmin(v.pos[2] as f32, 1.2);
         let vmin125 = ac.vmin(v.pos[2] as f32, 1.25);
         let vmin25 = ac.vmin(v.pos[2] as f32, 2.5);
@@ -2422,8 +2537,15 @@ impl Autopilot {
                 if land.is_none() {
                     if f.step(&mut l, vmin12) == Leaf::Done {
                         l.stick(0.0, 0.0);
-                        *land = Landing::new(&self.bases, self.origin, f.t, v.type_code, self.mode == 0)
-                            .map(|ld| Box::new(Landing { align: self.align_final, flare: self.player_flare, ..ld }));
+                        *land = Landing::new(
+                            &self.bases,
+                            self.origin,
+                            f.t,
+                            v.type_code,
+                            self.mode == 0,
+                            self.overhead.then(|| overhead_side(&v)),
+                        )
+                        .map(|ld| Box::new(Landing { align: self.align_final, flare: self.player_flare, ..ld }));
                     }
                 } else if let Some(ld) = land {
                     ld.step(&mut l, self, &mut period, vmin1, vmin12);
@@ -3299,7 +3421,15 @@ impl Taxi {
 
 impl Landing {
     /// LandingCL Init `5d2b30`: the left-hand pattern from G to the nearest base's lineup.
-    fn new(bases: &[Airbase], origin: [f64; 2], g: Vec3, type_code: u32, player: bool) -> Option<Self> {
+    /// `overhead`: the overhead pattern ([`OVERHEAD`]) with its downwind this far left, m; None the original's circuit.
+    fn new(
+        bases: &[Airbase],
+        origin: [f64; 2],
+        g: Vec3,
+        type_code: u32,
+        player: bool,
+        overhead: Option<f32>,
+    ) -> Option<Self> {
         let base = Airbase::nearest(bases, [g[0] as f32, g[1] as f32, g[2] as f32])?;
         let c130 = type_code == C130;
         let rn = base.runway_deg.to_radians();
@@ -3322,15 +3452,38 @@ impl Landing {
         let p2 = at(lw, side, -7416.0);
         let p3 = at(lw, 0.0, -7416.0);
         let p4 = at(lw, 0.0, if c130 { -1854.0 } else { -3708.0 });
-        Some(Landing {
-            step: 0,
-            pts: [
+        let pts = if let Some(side) = overhead {
+            let o = OVERHEAD;
+            let p = |x: f32, y: f32, z: f64| {
+                let q = at(lw, x, y);
+                Vec3::new(q[0], q[1], ht + z)
+            };
+            // A wider downwind rolls out as far out, on the same 3° path (inferred: a laden Sufa's 205 kt from a
+            // 1 NM final touched at 9 m/s).
+            let out = o.perch.max(side);
+            let k = (out / o.perch) as f64;
+            [
+                p(0.0, o.brk, o.height),
+                p(-side, o.brk, o.height),
+                p(-side, -out, o.perch_height * k.sqrt()),
+                p(0.0, -out, o.roll_out * k),
+                Vec3::new(l[0], l[1], ht),
+                p(0.0, -o.initial, o.height),
+            ]
+        } else {
+            [
                 Vec3::new(p1[0], p1[1], ht + 700.0),
                 Vec3::new(p2[0], p2[1], ht + if c130 { 600.0 } else { 500.0 }),
                 Vec3::new(p3[0], p3[1], ht + if c130 { 350.0 } else { 300.0 }),
                 Vec3::new(p4[0], p4[1], ht + 250.0),
                 Vec3::new(l[0], l[1], ht),
-            ],
+                Vec3::new(l[0], l[1], ht),
+            ]
+        };
+        Some(Landing {
+            step: 0,
+            pts,
+            overhead: overhead.is_some(),
             rn,
             k: if c130 { 2.0 } else { 1.0 },
             lw_pitch: 0.0,
@@ -3375,6 +3528,32 @@ impl Landing {
     /// [CA4: C-130], CH5, FinalApproach, StopPlane, TaxiCL (to park), ParkInHangar.
     fn legs(&self, c130: bool, cfg: &Config) -> Vec<Leg> {
         let k = self.k;
+        if self.overhead {
+            // The initial onto the centreline to the break point, the break onto the downwind, the downwind to the
+            // perch (the gear on entering step 7), the descending base turn onto the final, the final.
+            let (d80, d60) = (80f32.to_radians(), 60f32.to_radians());
+            let mut v = vec![
+                Leg::Turn(0, 5, d80, OVERHEAD.initial_speed, None),
+                Leg::Ca(0, 50.0),
+                Leg::Lw(OVERHEAD.initial_speed),
+                Leg::Ka(0, OVERHEAD.initial_speed, 150.0),
+                Leg::Turn(2, 1, d80, 102.944, None),
+                Leg::Ca(1, 50.0),
+                Leg::Lw(102.944),
+                Leg::Ka(2, 102.944, 150.0),
+                Leg::Skip,
+                Leg::Skip,
+                Leg::Skip,
+                Leg::Turn(4, 3, d60, 72.0611, Some(3)),
+                Leg::Skip,
+                Leg::Fa(k * cfg.allowed_err[4] as f64),
+                Leg::Stop,
+            ];
+            if !self.player {
+                v.extend([Leg::Taxi, Leg::Park]);
+            }
+            return v;
+        }
         let ae = cfg.allowed_err;
         let d = |x: f32| x.to_radians();
         let tol = |i: usize| d(if c130 { [2.0, 1.0, 0.5, 0.5, 0.5][i] } else { [1.0, 0.5, 0.5, 0.5, 0.5][i] });
@@ -3461,7 +3640,8 @@ impl Landing {
             Leg::Lw(speed) => {
                 // Ours (Real data, the player): LW2 ends below the gear's 300 kt lever limit (150 m/s = 292 kt),
                 // so step 7's gear command is not refused (docs/autopilot.md §2.5).
-                let wait = self.step == 6 && self.player && l.v.gear_speed_wait;
+                // The overhead's break ends near 300 kt: every jet waits there (its gear has the game's 300 kt limit).
+                let wait = self.step == 6 && (self.overhead || self.player && l.v.gear_speed_wait);
                 let r = level_wings_accel_max(l, &mut self.lw_pitch, speed, vmin12, wait.then_some(150.0));
                 // The wait runs with the speed brake out, so the downwind ends near P2: the F-4 on Real data with
                 // the Better physics switches entered at 400 kt and needed 6.7 km at idle, and arrived on final
@@ -3472,6 +3652,19 @@ impl Landing {
                 r
             }
             Leg::Ka(i, speed, r) => self.ka(l, i, speed, r),
+            Leg::Turn(to, from, lim, vt, down) => {
+                *period = 0.2;
+                let mut climb = down.map_or(0.0, |j| {
+                    let p = pt[j];
+                    ((p[2] - pos[2]) as f32).atan2(dist2(pos, p[0], p[1]).max(300.0) as f32)
+                });
+                // Never lower than the roll-out's height above the ground under the jet (hills under the turn).
+                if pos[2] - ((l.ground)(pos[0], pos[1]) as f64) < OVERHEAD.roll_out {
+                    climb = climb.max(0.0);
+                }
+                turn_onto(l, pt[from], pt[to], lim, vt, climb)
+            }
+            Leg::Skip => Leaf::Done,
             Leg::Fa(r) => {
                 *period = 0.1;
                 // Ours, the player's flare: StopPlane takes over once the wheels are below the flare's height for the
@@ -3480,7 +3673,11 @@ impl Landing {
                 let v = l.v;
                 let flare_h = flare_tau(v) * (-(v.vel[2] as f32) - FLARE_SINK);
                 let early = self.flares() && self.wheels_height(v) < flare_h;
-                if early || dist2(pos, pt[4][0], pt[4][1]) < r {
+                // Ours, the overhead: its short final can meet the runway level with no sink to flare from (the
+                // Adir at Nevatim, whose runway falls past the lineup, rolled to a stop still on the final, 10 m off
+                // the lineup point): the wheels on the ground end the final too.
+                let down = self.overhead && v.on_ground;
+                if early || down || dist2(pos, pt[4][0], pt[4][1]) < r {
                     l.out.rudder = Some(0.0);
                     Leaf::Done
                 } else {
@@ -3517,11 +3714,14 @@ impl Landing {
             self.thr_i = (self.thr_i + 0.2 * 0.1 * l.thr_err.unwrap_or(0.0)).clamp(-40.0, 40.0);
         }
         if r == Leaf::Done {
-            if !matches!(leg, Leg::Ch(..)) {
+            if !matches!(leg, Leg::Ch(..) | Leg::Turn(..)) {
                 l.stick(0.0, 0.0);
             }
             self.acu = None;
             self.step += 1;
+            while matches!(legs.get(self.step), Some(Leg::Skip)) {
+                self.step += 1;
+            }
             match self.step {
                 7 => {
                     l.flaps(true);
@@ -3776,7 +3976,7 @@ mod tests {
         // Runway 270 at Ramat David: in f32 the cos θ residue (~1e-8) vanishes, so the downwind, base and final
         // legs are exactly axis-parallel (the tangent search's x == x / y == y branches).
         let b = Airbase { lineup: [356483.0, 602383.0, 63.0], runway_deg: 270.0, ..Default::default() };
-        let l = Landing::new(&[b], [0.0; 2], Vec3::new(351083.0, 602383.0, 1500.0), 0, true).unwrap();
+        let l = Landing::new(&[b], [0.0; 2], Vec3::new(351083.0, 602383.0, 1500.0), 0, true, None).unwrap();
         let p = l.pts;
         assert_eq!((p[0][1], p[1][1]), (596821.0, 596821.0), "downwind P1 → P2");
         assert_eq!((p[1][0], p[2][0]), (363899.0, 363899.0), "base P2 → P3");
@@ -3794,7 +3994,7 @@ mod tests {
             runway_deg: 270.0,
             ..Default::default()
         };
-        let l = Landing::new(&[b], o, Vec3::new(351083.0 - o[0], 602383.0 - o[1], 1500.0), 0, true).unwrap();
+        let l = Landing::new(&[b], o, Vec3::new(351083.0 - o[0], 602383.0 - o[1], 1500.0), 0, true, None).unwrap();
         let p = l.pts;
         assert_eq!(p[0][1], p[1][1]);
         assert_eq!(p[1][0], p[2][0]);

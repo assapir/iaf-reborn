@@ -711,6 +711,50 @@ impl IafFlight {
         }
     }
 
+    /// Ours (Modern IAF's instructor): the landing flies the overhead pattern (`Autopilot::overhead`,
+    /// modern-iaf/docs/training.md "The instructor flies"); false: the original's circuit.
+    #[func]
+    fn ap_set_overhead(&mut self, on: bool) {
+        if let Some(ap) = &mut self.ap {
+            ap.overhead = on;
+        }
+    }
+
+    /// Ours (a jet that leaves its flight's IafAi, ai_flights.gd `leave_flight`): the flight's last orders cleared (its
+    /// leader, pull-away, holds, pace and steer), so its own loops fly it.
+    #[func]
+    fn ap_clear_orders(&mut self) {
+        if let Some(ap) = &mut self.ap {
+            ap.leader = None;
+            ap.avoid = None;
+            ap.hold = false;
+            ap.hold_short = false;
+            ap.pace = None;
+            ap.steer = None;
+        }
+    }
+
+    /// The overhead pattern's initial point (world, m) of the base nearest `world`; NaN without the autopilot's bases.
+    #[func]
+    fn ap_overhead_initial(&self, world: Vector3) -> Vector3 {
+        let (ox, oy) = self.origin;
+        let near = Vec3::new(world.x as f64 - ox, world.y as f64 - oy, world.z as f64);
+        match self.ap.as_ref().and_then(|ap| ap.overhead_initial(near)) {
+            Some(p) => Vector3::new((p[0] + ox) as f32, (p[1] + oy) as f32, p[2] as f32),
+            None => Vector3::new(f32::NAN, f32::NAN, f32::NAN),
+        }
+    }
+
+    /// The landing pattern's step (`Autopilot::phase`: 3 the initial, 4 the break, 7 the downwind, 11 the turn to
+    /// final, 13 the final, 14 StopPlane), −1 outside the landing.
+    #[func]
+    fn ap_landing_step(&self) -> i64 {
+        match self.ap.as_ref() {
+            Some(ap) if ap.stage().starts_with("landing") => ap.phase().map_or(-1, |p| p as i64),
+            _ => -1,
+        }
+    }
+
     /// Terrain height for the control loops: Callable(Vector3 scene position) -> float.
     #[func]
     fn ap_set_ground(&mut self, f: Callable) {
