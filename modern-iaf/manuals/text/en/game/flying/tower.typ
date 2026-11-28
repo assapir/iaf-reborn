@@ -23,6 +23,7 @@ The list holds the calls of the moment:
   [], [2], [Request taxi],
   [], [3], [Request line-up],
   [], [4], [Request take-off],
+  [], [5], [Radio check],
   [In the air], [1], [Contact tower (landing)],
 )
 
@@ -70,6 +71,8 @@ In a four-ship flight each wingman waits at the holding point until the jet ahea
   ["you are on runway ..., the assigned runway is ..."], [You lined up on a runway end that is not the one the tower named. Taxi off it and go to the assigned runway.],
   ["engine start without clearance", "taxi without clearance", "runway entry without clearance", "take-off without clearance"], [You did the thing before its clearance.],
 )
+
+#idx("Radio check")The radio check (#keycap("5") on the ground) needs no clearance and clears nothing: the tower answers "Kidon 1, read you five", the radio works.
 
 A wrong or repeated call costs nothing. A repeated call gets its answer again.
 

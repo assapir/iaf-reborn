@@ -116,7 +116,9 @@ func _fly_lesson(unit: String, key: String) -> void:
 		if it.check.has("throttle_off"):
 			addon.throttle_off()
 		elif it.check.get("set", {}).has("BATT") or it.check.get("set", {}).has("MAIN_PWR"):
-			await _until(tv, func(): return not tv.flight.state().engine_on and float(tv.flight.state().rpm) < 0.01, 120.0)
+			await _until(
+				tv, func(): return not tv.flight.state().engine_on and float(tv.flight.state().rpm) < 0.01, 120.0
+			)
 			await _do_item(tv, it, false)
 		else:
 			await _do_item(tv, it, false)

@@ -407,7 +407,9 @@ NEGATIVE_HOLD , %S2`: "Kidon 1, negative, hold position, request line-up first",
 the pilot's
 `REQ_LINEUP` ("request line-up", whole per base for Kidon 1) for the menu's line-up call (item E3b, [training.md](training.md) §8: the menu's three requests use
 `ACFT_CLEAR_TO_START`, `ACFT_TAXI_TO_RUNWAY`, `ACFT_CLEAR_TO_LINEUP` / `_NW`, `ACFT_HOLD_POS`, `ACFT_CLEAR_TO_TAKEOFF`). Example: `ACFT_TAXI_TO_RUNWAY` = `%S1 , %S2 , TAXI_RWY %D1` → "Kidon 1, good morning, taxi
-to runway 25 right". The particles cover the callsigns Kidon 1–8, the greetings, the winds 10 / 15 / 20 kt, every
+to runway 25 right". The radio check (since 2026-11-28, [training.md](training.md) §8): the pilot's `REQ_RADIO_CHECK`
+("radio check", `plt_req_radio_check.ogg`) and the tower's `ACFT_RADIO_CHECK` = `%S1 , READ_FIVE` ("Kidon 1, read you
+five", `twr_read_five.ogg`; Hebrew "שומע אותך חמש"). The particles cover the callsigns Kidon 1–8, the greetings, the winds 10 / 15 / 20 kt, every
 runway number 1–36 (spoken digit by digit, "two five") and the letters `RWY_L` / `RWY_R` / `RWY_C`.
 
 **The wind** (24 November 2026) is said as the standard says it, its direction in 10° steps (360 for north) and its
