@@ -1952,7 +1952,8 @@ MiG-29 first (modern-iaf/docs/ai-plan.md K2–K4). Step 1 (K2, 2026-11-22): the 
   landing, the taxi in and parking, on the 6-DoF. Its final approach flies its own α (`Jet::final_alpha`, 10°).
 - **The dev hook.** No mission places one (the user, 19 Nov: "we need to have the code for ai enemies. Just isn't
   reachable by mission yet"): `ai_flights.gd` `spawn(unit, at, heading, route)` puts a jet of a bdb unit in the world
-  with its plane, flight model and model, its route under its autopilot, on the player's enemy side; the caller sets
+  with its plane, flight model and model (a flyable unit, such as the Sufa, its plane from its aircraft
+  definition, as a mission's wingman), its route under its autopilot, on the player's enemy side; the caller sets
   its modes (take-off 9, the waypoints 7, the landing 8), as a brain's rules would.
 - **Its damage.** A hit breaks one engine of two: the definition's `engines` 2 makes it a twin (`ai_flights.gd`
   `_twin`; the 1998 jets keep the type-code table `PlayerAircraft.TWIN`).
@@ -2708,6 +2709,65 @@ part (`crates/iaf-ai/src/tanker.rs`, `flight.rs`; `shared/ai/tanker.gd`):
   behind to full, the contact
   held into the tanker's turn), `modern-iaf/tests/test_air_refuel.gd` (the four-ship).
 
+## 26. Modern IAF's training fight against an aggressor (ours)
+
+The training plan's air-to-air phase ([../modern-iaf/docs/training-plan.md](../modern-iaf/docs/training-plan.md) §3,
+phase 7): "Drones are shot down for real. Against a jet, shots are simulated as in real training: the shot's call ("Fox
+3"), the "kill" call, the killed jet leaves the fight, and "knock it off" ends the round" (the user, 28 November 2026),
+and the BFM lessons' engagements each start from a set-up in the air. This section is the capability; no lesson places
+it yet. The rules are Rust (`crates/iaf-ai/src/aggressor.rs`, gdext `IafAggressor`); the host is
+`shared/ai/aggressor.gd`. Every figure is inferred unless a source is named.
+
+- **The aggressor** is a Sufa of the enemy side (`ai_flights.gd spawn`, record `f16i`) flown by the enemy fighter's
+  trees of §18 (the intercept, the shot, the dogfight's BFM leaf, the defence) at the High skill's tactics, the
+  adversary tactics (`enemy_flight`'s `skill` 2, §17). Its flight's `vector` gives it the player's jet while the
+  engagement runs, as a ground controller's vector: the pilots of a training fight know where the other jet starts.
+- **The set-ups** (`aggressor::place`, round a centre and the player's heading):
+
+  | set-up | the player | the aggressor | height, speed |
+  |---|---|---|---|
+  | offensive | 3,000 ft behind the aggressor (the user's example: "you at his six o'clock, 3,000 ft") | ahead, the same heading | 15,000 ft, 230 m/s |
+  | defensive | ahead | 3,000 ft behind the player | 15,000 ft, 230 m/s |
+  | high aspect | head-on 6 km apart, 450 m to one side | head-on, 450 m to the other side | 15,000 ft, 230 m/s |
+  | BVR | head-on 40 NM apart | head-on | 20,000 ft, 250 m/s |
+
+  A round flies its set-ups in turn (by default the three BFM ones), round again after the last. At each set-up both
+  jets start again in the air there (the player's flight model and the aggressor's, `ai_flights.gd restart_in_air`, its
+  IafAi made again round its new flight model) with their stores full.
+- **Simulated shots.** Both jets are shielded (`ent.shield`: nothing hurts them). An air-to-air missile of either jet at
+  the other (or at nothing), and every air-to-air missile of the player's with MASTER ARM at SIMULATE, is simulated:
+  `player_weapons.gd launch_homing` flies it on the existing physical missile (its seeker, the decoys, the jammer) with
+  no model, no sound, no launch warning and no damage; the defender knows of it by the radio's call, and the aggressor's
+  tree defends against it as against a live one. At its burst, `aggressor::missile_kill`: a kill when it bursts within
+  its blast radius of the other jet and is no dud. The gun's rounds fly against the shielded jets; three hits on the
+  other jet are a kill (`GUN_HITS`: the 20 mm's power 100 against a fighter's strength 300 on the sim's damage scale). A
+  shot at another unit, a drone, is live at ARM. With MASTER ARM at SIMULATE the player's air-to-air missiles and gun
+  fire in a training fight (`player_weapons.gd _may_fire`; the gun's rounds then hurt nothing; bombs and jettisons stay
+  safe); a missile of an engagement already knocked off kills nothing; the store's count goes down as for a live shot
+  and comes back at the next set-up.
+- **The calls** (`aggressor::Round`), NATO brevity[^brevity] with Hebrew subtitles
+  ([../modern-iaf/docs/research/radio-terms.md](../modern-iaf/docs/research/radio-terms.md), eighth search): the
+  shooter's "Fox one / two / three" at the launch (by the missile's guidance, as the wingmen's, §8.9) or "guns" at a
+  burst's first round; "kill" 1 s after the killing burst (the burst stands for the brevity KILL's missile time-out);
+  the aggressor's "knock it off" 3 s after the kill. The player's calls are said in the pilot's voice ("Kidon 1, Fox
+  two", "כידון 1, שיגור"), the aggressor's in the wingmen's ("Red 1, kill", "אדום 1, הפלה"; the Hebrew voice of the
+  cast's first wingman). New clips: `plt_fox1` … `plt_kio`, `flt_agr_red1`, `flt_wng_kill`, `flt_wng_kio`
+  (modern-iaf/data/sounds/voices.json).
+- **The killed jet leaves the fight:** its entity is `out`; `ai_flights.gd _bandits` leaves it out of every bandit list,
+  and an aggressor out has no bogey: it flies back to its station's orbit.
+- **Knock it off** ends the engagement: called by the aggressor after a kill, when the jets are more than 20 km apart
+  (BVR 150 km), after 180 s (BVR 300 s) or when either jet is below the training floor (5,000 ft above the ground); or
+  by the player, the key Shift + F4 (command 304; [controls.md](controls.md)). Both jets are out of the fight until the
+  next set-up starts, 6 s later.
+- **The dev hook:** `Aggressor.start(host, setups, at, heading)`; freeing the node unshields both jets
+  (`shared/ai/aggressor.gd`): the round of `setups` (offensive, defensive, high_aspect, bvr) round `at` (world), the
+  player heading `heading`.
+- **Tests:** `cargo test -p iaf-ai --lib aggressor` (the set-ups' places, the missile's kill rule, the calls and their
+  order after a kill, "guns" once a burst and the third hit, every way to knock it off and the next set-up);
+  `modern-iaf/tests/test_aggressor.gd` (headless on the range: the defensive set-up, the aggressor's shot simulated and
+  its kill called, the player out and the next set-up; the player's simulated missile from the offensive set-up and its
+  kill; the player's knock it off; which shots are simulated).
+
 ## UNCERTAIN
 Open questions in this document:
 - The RWR field names behind conditions 19, 26, 27, 38, 39 (§13.2); what else writes brain+0x7c.
@@ -2727,7 +2787,7 @@ Open questions in this document:
 [^ni-beast]: The National Interest, "The F-35 Has a 'Beast Mode' (But There's a Catch)", https://nationalinterest.org/node/180849 (external hardpoints "drastically increase" the radar cross-section; second-hand: as quoted by a search engine on 2026-11-19).
 [^hamichlol-rwr]: Hamichlol, "מקלט התרעת מכ"ם", https://www.hamichlol.org.il/%D7%9E%D7%A7%D7%9C%D7%98_%D7%94%D7%9E%D7%96%D7%94%D7%99%D7%A8_%D7%91%D7%A4%D7%A0%D7%99_%D7%9E%D7%9B%22%D7%9D (a search radar's warning "ואחריה נעילה ומעקב"; read as quoted by a search engine on 2026-11-19, second-hand).
 [^mako-102]: Mako, "pzm-magazine", on the 102 Squadron's air-combat training, https://www.mako.co.il/pzm-magazine/Article-1c3f6f796402d61027.htm (a good pilot "תוקף ומתחמק מטילי נ"מ"; read as quoted by a search engine on 2026-11-19, second-hand).
-[^brevity]: Wikipedia, "Multiservice tactical brevity code", https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code (SPIKE, MUD, DEFENDING, BREAK, CONTACT, SPLIT, read 2026-11-19; GROUP, AZIMUTH, RANGE, SORT, TARGETED, WEAPONS FREE, read 2026-11-23; PICTURE, BOGEY DOPE, DECLARE, BRAA, BOGEY, HOSTILE, FRIENDLY, CLEAN, HOT, FLANK, BEAM, DRAG, VECTOR, HOME PLATE, THREAT, RETROGRADE, COMMIT, read 2026-11-25).
+[^brevity]: Wikipedia, "Multiservice tactical brevity code", https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code (SPIKE, MUD, DEFENDING, BREAK, CONTACT, SPLIT, read 2026-11-19; GROUP, AZIMUTH, RANGE, SORT, TARGETED, WEAPONS FREE, read 2026-11-23; PICTURE, BOGEY DOPE, DECLARE, BRAA, BOGEY, HOSTILE, FRIENDLY, CLEAN, HOT, FLANK, BEAM, DRAG, VECTOR, HOME PLATE, THREAT, RETROGRADE, COMMIT, read 2026-11-25; KILL "In training, shooters are TALLY at assessed missile timeout", KNOCK-IT-OFF "Cease all air combat maneuvers, attacks, activities, or exercises (training use only)", FOX "Simulated or actual launch of air-to-air weapon", read 2026-11-28).
 [^w-shahed]: Wikipedia, "HESA Shahed 136", https://en.wikipedia.org/wiki/HESA_Shahed_136 (length 3.5 m, span 2.5 m, mass 200 kg, about 185 km/h; "typically fired in multiples from a launch rack"; "extra-low" altitude flight; read 2026-11-19).
 [^csis-shahed]: CSIS Missile Defense Project, "Shahed-131 and 136", https://missilethreat.csis.org/missile/shahed-131-and-136/ ("approximately 180 km per hour"; read 2026-11-19).
 [^ar-shahed]: Army Recognition, "Shahed-136 loitering munition kamikaze suicide drone technical data", https://armyrecognition.com/military-products/army/unmanned-systems/unmanned-aerial-vehicles/shahed-136-loitering-munition-kamikaze-suicide-drone-technical-data ("It can fly at an altitude from 60 to 4,000 m"; read 2026-11-19).

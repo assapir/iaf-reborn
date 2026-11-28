@@ -8,8 +8,10 @@
 //! `IafConvoy`: a column of ground vehicles on the roads (`iaf_ai::convoy`, §19) for `shared/ai/convoys.gd`.
 //! `IafTargetDrone`: a target drone's decisions (`iaf_ai::target`, §21) for `shared/ai/ai_flights.gd`.
 //! `IafFreeCombat`: Scramble's roll, refusal, layout, air start and AWACS task call (`iaf_ai::free_combat`, §23).
+//! `IafAggressor`: the training round against an aggressor with simulated shots (`iaf_ai::aggressor`, §26).
 
 use godot::prelude::*;
+use iaf_ai::aggressor::{self, Round, SetUp, Side};
 use iaf_ai::convoy::{self, Convoy, Route};
 use iaf_ai::drone::{SHAHED_136, Salvo};
 use iaf_ai::fighter;
@@ -1075,5 +1077,121 @@ impl IafFreeCombat {
                 .to_variant()
             })
             .collect()
+    }
+}
+
+/// `IafAggressor`: the training round against an aggressor F-16 with simulated shots (`iaf_ai::aggressor`, docs/ai.md
+/// §26) for `shared/ai/aggressor.gd`. A side is 0 the player, 1 the aggressor; a call {from (side), id}.
+#[derive(GodotClass)]
+#[class(init, base = RefCounted)]
+pub struct IafAggressor {
+    round: Option<Round>,
+}
+
+fn side(s: i64) -> Side {
+    if s == 0 { Side::Player } else { Side::Aggressor }
+}
+
+fn start_dict(s: aggressor::Start) -> VarDictionary {
+    vdict! {"pos" => vector3(s.pos), "heading" => s.heading, "speed" => s.speed}
+}
+
+#[godot_api]
+impl IafAggressor {
+    /// The training floor (m above the ground): either jet below it knocks the engagement off.
+    #[func]
+    fn floor() -> f64 {
+        aggressor::FLOOR
+    }
+
+    /// The round of the set-ups named in `setups` (offensive, defensive, high_aspect, bvr; none or an unknown name:
+    /// the three BFM ones in turn), its first engagement starting at `now`.
+    #[func]
+    fn start(&mut self, setups: PackedStringArray, now: f64) {
+        let list = setups.as_slice().iter().filter_map(|s| SetUp::from_name(&s.to_string())).collect();
+        self.round = Some(Round::new(list, now));
+    }
+
+    /// The two jets' starts of set-up `name` round `at` (world), the player heading `heading` (deg): {player,
+    /// aggressor}, each {pos (world), heading, speed (m/s)}; {} for an unknown name.
+    #[func]
+    fn place(name: GString, at: Vector3, heading: f64) -> VarDictionary {
+        let Some(s) = SetUp::from_name(&name.to_string()) else { return VarDictionary::new() };
+        let (p, a) = aggressor::place(s, vec3(at), heading);
+        vdict! {"player" => &start_dict(p), "aggressor" => &start_dict(a)}
+    }
+
+    /// Whether a simulated missile bursting at `burst` kills the jet at `target` (world), its blast `radius` m, `dud`.
+    #[func]
+    fn missile_kill(burst: Vector3, target: Vector3, radius: f64, dud: bool) -> bool {
+        aggressor::missile_kill(vec3(burst), vec3(target), radius, dud)
+    }
+
+    /// The engagement's set-up's name ("" before `start`).
+    #[func]
+    fn setup(&self) -> GString {
+        self.round.as_ref().map_or_else(GString::new, |r| GString::from(r.setup().name()))
+    }
+
+    /// Whether jet `side` is out of the fight (killed, or the engagement knocked off).
+    #[func]
+    fn out(&self, side_: i64) -> bool {
+        self.round.as_ref().is_some_and(|r| r.out(side(side_)))
+    }
+
+    /// `side_` launched a missile at `now`, its call `fox` (fox_1..fox_3): whether it is called.
+    #[func]
+    fn fox(&mut self, now: f64, side_: i64, fox: GString) -> bool {
+        let id = match fox.to_string().as_str() {
+            "fox_1" => "fox_1",
+            "fox_2" => "fox_2",
+            _ => "fox_3",
+        };
+        self.round.as_mut().is_some_and(|r| r.fox(now, side(side_), id))
+    }
+
+    /// `side_` fired a gun round at `now` ("guns" at a burst's first).
+    #[func]
+    fn round_fired(&mut self, now: f64, side_: i64) {
+        if let Some(r) = self.round.as_mut() {
+            r.round_fired(now, side(side_));
+        }
+    }
+
+    /// `side_`'s simulated missile killed the other jet at `now`: whether it counts.
+    #[func]
+    fn missile_hit(&mut self, now: f64, side_: i64) -> bool {
+        self.round.as_mut().is_some_and(|r| r.missile_hit(now, side(side_)))
+    }
+
+    /// One of `side_`'s gun rounds hit the other jet at `now`: whether it was the kill.
+    #[func]
+    fn gun_hit(&mut self, now: f64, side_: i64) -> bool {
+        self.round.as_mut().is_some_and(|r| r.gun_hit(now, side(side_)))
+    }
+
+    /// `side_` calls "knock it off" at `now`: whether it ended the engagement (false: already knocked off).
+    #[func]
+    fn knock_it_off(&mut self, now: f64, side_: i64) -> bool {
+        self.round.as_mut().is_some_and(|r| r.knock_it_off(now, side(side_)))
+    }
+
+    /// One frame at `now`, the jets `apart` m apart, `low` either below the floor: {calls [{from, id}], next (the
+    /// set-up starting now, "" none)}.
+    #[func]
+    fn step(&mut self, now: f64, apart: f64, low: bool) -> VarDictionary {
+        let Some(r) = self.round.as_mut() else { return VarDictionary::new() };
+        let (calls, next) = r.step(now, apart, low);
+        let calls: VarArray =
+            calls.iter().map(|c| vdict! {"from" => c.from as i64, "id" => c.id}.to_variant()).collect();
+        vdict! {"calls" => &calls, "next" => next.map_or("", |s| s.name())}
+    }
+
+    /// {engagements (flown to their end), kills [the player's, the aggressor's]}.
+    #[func]
+    fn score(&self) -> VarDictionary {
+        let Some(r) = self.round.as_ref() else { return VarDictionary::new() };
+        let kills: VarArray = r.kills.iter().map(|&k| i64::from(k).to_variant()).collect();
+        vdict! {"engagements" => i64::from(r.engagements), "kills" => &kills}
     }
 }

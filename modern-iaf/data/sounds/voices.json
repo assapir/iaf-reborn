@@ -6467,6 +6467,78 @@
       "mode": "helmet",
       "say_he": "תדלוק.",
       "note": "air refuelling (modern-iaf/docs/research/air-refuelling.md §8.4): the Hebrew ours around Hamichlol's terms"
+    },
+    {
+      "file": "plt_fox1.ogg",
+      "voice": "pilot",
+      "say": "Fox one.",
+      "mode": "helmet",
+      "say_he": "שיגור.",
+      "note": "the training round against an aggressor (docs/ai.md §26)"
+    },
+    {
+      "file": "plt_fox2.ogg",
+      "voice": "pilot",
+      "say": "Fox two.",
+      "mode": "helmet",
+      "say_he": "שיגור.",
+      "note": "the training round against an aggressor (docs/ai.md §26)"
+    },
+    {
+      "file": "plt_fox3.ogg",
+      "voice": "pilot",
+      "say": "Fox three.",
+      "mode": "helmet",
+      "say_he": "שיגור.",
+      "note": "the training round against an aggressor (docs/ai.md §26)"
+    },
+    {
+      "file": "plt_guns.ogg",
+      "voice": "pilot",
+      "say": "Guns.",
+      "mode": "helmet",
+      "say_he": "תותח.",
+      "note": "the training round against an aggressor (docs/ai.md §26)"
+    },
+    {
+      "file": "plt_kill.ogg",
+      "voice": "pilot",
+      "say": "Kill.",
+      "mode": "helmet",
+      "say_he": "הפלה.",
+      "note": "the training round against an aggressor (docs/ai.md §26)"
+    },
+    {
+      "file": "plt_kio.ogg",
+      "voice": "pilot",
+      "say": "Knock it off.",
+      "mode": "helmet",
+      "say_he": "סיום קרב.",
+      "note": "the training round against an aggressor (docs/ai.md §26)"
+    },
+    {
+      "file": "flt_agr_red1.ogg",
+      "voice": "wingman",
+      "say": "Red one.",
+      "mode": "particle",
+      "say_he": "אדום אחד.",
+      "note": "the training round against an aggressor (docs/ai.md §26)"
+    },
+    {
+      "file": "flt_wng_kill.ogg",
+      "voice": "wingman",
+      "say": "Kill!",
+      "mode": "particle",
+      "say_he": "הפלה!",
+      "note": "the training round against an aggressor (docs/ai.md §26)"
+    },
+    {
+      "file": "flt_wng_kio.ogg",
+      "voice": "wingman",
+      "say": "Knock it off!",
+      "mode": "particle",
+      "say_he": "סיום קרב!",
+      "note": "the training round against an aggressor (docs/ai.md §26)"
     }
   ],
   "particles": {
@@ -11043,6 +11115,51 @@
       "file": "flt_cmd_refuel.ogg",
       "text": "refuel",
       "text_he": "תדלוק"
+    },
+    "PLT_FOX1": {
+      "file": "plt_fox1.ogg",
+      "text": "fox one",
+      "text_he": "שיגור"
+    },
+    "PLT_FOX2": {
+      "file": "plt_fox2.ogg",
+      "text": "fox two",
+      "text_he": "שיגור"
+    },
+    "PLT_FOX3": {
+      "file": "plt_fox3.ogg",
+      "text": "fox three",
+      "text_he": "שיגור"
+    },
+    "PLT_GUNS": {
+      "file": "plt_guns.ogg",
+      "text": "guns",
+      "text_he": "תותח"
+    },
+    "PLT_KILL": {
+      "file": "plt_kill.ogg",
+      "text": "kill",
+      "text_he": "הפלה"
+    },
+    "PLT_KIO": {
+      "file": "plt_kio.ogg",
+      "text": "knock it off",
+      "text_he": "סיום קרב"
+    },
+    "AGR_RED1": {
+      "file": "flt_agr_red1.ogg",
+      "text": "Red 1",
+      "text_he": "אדום 1"
+    },
+    "WNG_KILL": {
+      "file": "flt_wng_kill.ogg",
+      "text": "kill",
+      "text_he": "הפלה"
+    },
+    "WNG_KIO": {
+      "file": "flt_wng_kio.ogg",
+      "text": "knock it off",
+      "text_he": "סיום קרב"
     }
   },
   "templates": {

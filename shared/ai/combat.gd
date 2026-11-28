@@ -756,6 +756,9 @@ func _gun_round(u: Unit, now: float) -> void:
 	var t: Dictionary = u.brain.target if u.brain != null else u.gun_target
 	u.rounds.fire(now, o.pos, o.pos + o.fwd * 10.0, o.vel, a, String(t.get("key", "")), u.ent.key, Settings.easy_aiming)
 	_spent(u, 9)
+	var agg = host.get_node_or_null("Aggressor")
+	if agg != null:
+		agg.round_fired(u.ent)  # a training round's "guns" (aggressor.gd)
 
 
 ## Condition 10: the target's bearing relative to my heading (degrees, FUN_0044e770).
@@ -1083,6 +1086,9 @@ func _detonate(r: Dictionary, pos: Vector3, cands, hit: Dictionary, key: String)
 	var u: Unit = units.get(key)
 	if u == null:
 		return
+	var agg = host.get_node_or_null("Aggressor")
+	if agg != null and agg.gun_hit(u.ent, hit):
+		return  # a training round's simulated hit (aggressor.gd)
 	var rocket := int(u.w.type) == 560
 	var flag: int = r.get("flag", 1)
 	if flag != 0:

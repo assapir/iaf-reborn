@@ -723,6 +723,9 @@ On 2026-11-25 air refuelling got its two keys (records 259 / 260; [research/air-
 §8.2): the refuelling door, open / close, on Shift + F1 (command 296; the F-16's AIR REFUEL switch, the F-35I's door)
 and the stick's A/R disconnect on Shift + F2 (command 297), both in the Flight group.
 
+The training fight against an aggressor has the player's "knock it off" on Shift + F4 (record 261, command 304,
+the Sim group; [../../docs/ai.md](../../docs/ai.md) §26): the engagement ends and the next set-up follows.
+
 **The missile seeker's keys (2026-11-18).** Two records in the Weapons group work the seeker head of the air-to-air
 missiles on every Modern IAF jet ([weapons.md](weapons.md) §8.1): Missile seeker: UNCAGE / CAGE on Shift + M (record
 224) and Missile seeker: SPOT / SCAN on Ctrl + S (record 225; on the F-16s also OSB 2 of the SMS's AAM page). Both

@@ -3472,6 +3472,12 @@ func _command(cmd: Array) -> bool:
 		303:
 			# Ours, Modern IAF's F-16s: the night-vision goggles flipped down / up (Shift + N; _goggles_key).
 			_goggles_key()
+		304:
+			# Ours, Modern IAF's training fight (Shift + F4; shared/ai/aggressor.gd, docs/ai.md §26): the player's "knock
+			# it off" ends the engagement, the next set-up follows.
+			var agg = get_node_or_null("Aggressor")
+			if agg != null:
+				agg.knock_it_off()
 		296:
 			# Ours, Modern IAF's jets: the air refuelling door (keys.json record 259; the F-16's AIR REFUEL switch, the
 			# F-35I's door on the PCD's fuel portal; modern-iaf/docs/research/air-refuelling.md §8.2): p1 1 open, -1

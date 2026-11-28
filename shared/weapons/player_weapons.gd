@@ -1157,10 +1157,11 @@ func unmet_need() -> String:
 ## Space (event 0x40): HUD mode 1..8; the gear handle down only with Safety off and the gun; not
 ## with weapon systems damage (flag 20).
 func fire_selected() -> void:
-	if not master_arm:
+	if not master_arm and not (_may_fire() and stores.current_type() in AA_TYPES + [Stores.GUN]):
 		return
 	if sel_jett:
-		selective_jettison()  # Weapon data Real: the S-J page up, WPN REL jettisons the selected store
+		if master_arm:
+			selective_jettison()  # Weapon data Real: the S-J page up, WPN REL jettisons the selected store
 		return
 	if not ClassDB.class_call_static(
 		"IafRelease",
@@ -1193,6 +1194,12 @@ func fire_selected() -> void:
 			releasing = false
 		500, 510, 560, 650:
 			_bomb_space()
+
+
+## MASTER ARM at ARM, or at SIMULATE in a training round against an aggressor (shared/ai/aggressor.gd: its shots
+## simulated, docs/ai.md §26): at SIMULATE only the air-to-air missiles and the gun fire (fire_selected).
+func _may_fire() -> bool:
+	return master_arm or (master_sim and host.get_node_or_null("Aggressor") != null)
 
 
 ## Space up (event 0x41, FUN_00456100): bomb types stop the ripple timer and unfreeze the HUD.
@@ -1433,7 +1440,7 @@ func gun_key() -> void:
 
 ## FUN_004579f0: the first round at once, then the 0.2 s timer and the gun sound loop.
 func gun_trigger() -> bool:
-	if not master_arm or _weapons_down() or _flag(DMG_GUN) or firing:
+	if not _may_fire() or _weapons_down() or _flag(DMG_GUN) or firing:
 		return false
 	firing = true
 	if stores.station(9).is_empty():
@@ -1509,6 +1516,9 @@ func _gun_shot() -> bool:
 		String(me.get("key", "")),
 		easy_aiming
 	)
+	var agg = host.get_node_or_null("Aggressor")
+	if agg != null:
+		agg.round_fired(me)
 	var before: int = stores.displayed(9)
 	stores.consume(9)
 	_gun_k = maxi(before - stores.displayed(9), 1)
@@ -1528,6 +1538,9 @@ func _gun_offset() -> Vector3:
 func _gun_detonate(_r: Dictionary, pos: Vector3, cands, hit: Dictionary) -> void:
 	var w: Dictionary = stores.station(9).get("w", {"power": 100.0, "radius": 50.0})
 	var me := _me()
+	var agg = host.get_node_or_null("Aggressor")
+	if agg != null and (agg.gun_hit(me, hit) or master_sim):
+		return  # a training round's simulated hit, or any round at SIMULATE (aggressor.gd): no damage
 	if host.runtime != null and not me.is_empty():
 		_log_hit(w, host.runtime.area_damage(pos, float(w.power), float(w.radius), me, "gun", cands), _gun_k, true)
 	if not hit.is_empty():
@@ -1605,8 +1618,11 @@ func _release_missile() -> void:
 	if int(w.type) == 610 and not target.is_empty():
 		radar.lock_stt()
 		semi_active.append(mis)
-	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", WEAPON_OST.get(int(w.type), "OST_RADARMISSILE")), mis.p0)
-	_log_fire(w)
+	if not mis.has_meta("sim"):
+		_place_sound(
+			host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", WEAPON_OST.get(int(w.type), "OST_RADARMISSILE")), mis.p0
+		)
+		_log_fire(w)
 	stores.fired(i)
 	_push_stores()
 	_update_store_nodes()
@@ -1813,9 +1829,17 @@ func launch_homing(
 	var tu: Dictionary = _rwr_unit(target)
 	mis.set_meta("dist", pos.distance_to(own().pos if target == String(_me().get("key", "")) else tu.get("pos", pos)))
 	missiles.append(mis)
-	_missile_visual(mis)
 	if is_same(owner, _me()):
 		last_launched = mis
+	# Ours: a shot between a training round's two jets is simulated (shared/ai/aggressor.gd, docs/ai.md §26): it flies
+	# unseen and unheard, gives no launch warning and hurts nothing; its burst is judged in place of the damage.
+	var agg = host.get_node_or_null("Aggressor")
+	var sim: int = agg.sim_side(owner, target, int(w.get("type", 0))) if agg != null else -1
+	if sim >= 0:
+		mis.set_meta("sim", sim)  # (no "node" and no "sound" meta: none drawn, none heard)
+		agg.launched(mis, sim)
+		return mis
+	_missile_visual(mis)
 	if target != "" and target == String(_me().get("key", "")):
 		rwr.launch(String(owner.get("key", "")), _rwr_missile(mis))
 		if host.has_method("blackbox_event"):
@@ -1902,7 +1926,7 @@ func _update_missiles() -> void:
 				node.basis = Basis.looking_at(
 					dv.normalized(), Vector3.UP if absf(dv.normalized().y) < 0.99 else Vector3.RIGHT
 				)
-		_place_sound(mis.get_meta("sound"), p)
+		_place_sound(mis.get_meta("sound") if mis.has_meta("sound") else null, p)
 		if not gone:
 			_trail(mis, node, MissileFx.burning(String(mis.weapon.get("name", "")), now - mis.t0, mis.motor_left(now)))
 		if gone:
@@ -1951,6 +1975,11 @@ func _loal(mis: RefCounted, units: Dictionary) -> void:
 func _missile_detonate(mis: RefCounted) -> void:
 	missiles.erase(mis)
 	semi_active.erase(mis)
+	if mis.has_meta("sim"):
+		var agg = host.get_node_or_null("Aggressor")
+		if agg != null:
+			agg.missile_end(mis)
+		return
 	var p: Vector3 = mis.last_pos
 	var owner: Dictionary = mis.get_meta("owner", {})
 	var hit := []

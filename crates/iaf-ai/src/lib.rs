@@ -4,8 +4,10 @@
 //! §15; the one-way attack drones (`drone`): §16; a unit's skill (`skill`): §17; the enemy fighters (`fighter`, the
 //! network's vector `net::Gci`): §18; the air-to-ground attack (`strike`): §8.10; the sort of the bandits between the
 //! jets (`sort`): §8.11; the moving ground vehicles (`convoy`): §19; the target drones of the range and the lessons
-//! (`target`): §21; Scramble's rules (`free_combat`): §23; the AWACS controller (`awacs`) and the Eitam (`eitam`): §24.
+//! (`target`): §21; Scramble's rules (`free_combat`): §23; the AWACS controller (`awacs`) and the Eitam (`eitam`): §24;
+//! the training round against an aggressor with simulated shots (`aggressor`): §26.
 
+pub mod aggressor;
 pub mod awacs;
 pub mod bfm;
 pub mod bt;

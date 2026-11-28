@@ -617,7 +617,9 @@ their press command (the doc's names for them look swapped).
 4. `sim::own_sounds` compiles the sound folder into `assets/converted/own/resource/soundfiles/`, as `iaf-sim own`
    (the wizard's "sounds, voices, keys and effects art" step) does.
 The set is 374 clips (the AWACS's 97 `awx_*` since 17 November and Scramble's 11 `awx_task_*` since 24 November, `--only awx_task`; the four-ship's 45 `flt_*` since 19 November, `--only flt_`) plus four computed ones (`kch2`, `key_on`, `key_off`,
-`twr_pause`); every seat's whole calls and Kidon 5–8 since 25 November (`--only kidon5,kidon6,…`): 737 clips in all.
+`twr_pause`); every seat's whole calls and Kidon 5–8 since 25 November (`--only kidon5,kidon6,…`); the training
+fight's nine since 28 November (`--only plt_fox,plt_guns,plt_kill,plt_kio,flt_agr,flt_wng_kill,flt_wng_kio`,
+[../../docs/ai.md](../../docs/ai.md) §26): 746 clips in all.
 `iaf-sim voices --only <name part>[,<name part>…]` remakes the clips whose file name holds one of the parts (`--only
 awx` the AWACS's, about 1 minute). A line new in both languages needs both runs (`voices` and `voices --he`, in either
 order): the first run leaves the deploy (`sim::own_sounds`) to the second and says how many clips are still to make;

@@ -76,6 +76,10 @@ strings.
 | the task: intercept the drones | ours: "יירוט מל"טים" (the front end's word מל"ט) | "intercept the drones" | no IAF call found; open |
 | the task: attack the convoy / the SAM battery | ours around the press's **תקיפה**[^mako-kaz]: "תקיפת השיירה", "תקיפת סוללת הטילים" (**סוללת טילים** from aircrew on an exercise[^n12-lock]) | "attack the convoy", "attack the SAM battery" | no IAF call found; open |
 | a distance beyond 35 miles | "ארבעים מייל" … "תשעים מייל" (as the contact calls' miles, ours) | "40 miles" … "90 miles" | the contact calls stop at 35 (docs/radio.md §4); the task call goes on in fives to 50, then tens to 90 (inferred) |
+| **Eighth search: the training fight against an aggressor (28 November 2026)** | | | |
+| the aggressor's callsign | ours: "**אדום 1**" | "Red 1" | the press names the other pair of the IAF's pair air-combat training "the reds" ("לשבת לאדומים על הזנב"; read on the page 28 November 2026)[^mako-kaz]; the callsign itself is ours |
+| kill (in training: the shot's kill assessed at the missile's time-out) | "כידון 1, **הפלה**" | "Kidon 1, kill." | the noun for a kill in the press ("הפלה בגיחה הראשונה")[^ynet-uav]; as a training call: inferred. NATO KILL, "In training, shooters are TALLY at assessed missile timeout"[^alsa] |
+| knock it off (cease the training fight) | none found. Ours: "כידון 1, **סיום קרב**" | "Kidon 1, knock it off." | no IAF call found (searched in Hebrew, 28 November 2026: "נוק איט אוף", "נוק אוף"); NATO KNOCK-IT-OFF, "Cease all air combat maneuvers, attacks, activities, or exercises (training use only)"[^alsa] |
 | **Terms** | | | |
 | the flight's callsign | **כידון N** for flight N (the player's is כידון 1, the next כידון 2, …); its jets **כידון N-M**, spoken "כידון אחד-אחד", "כידון אחד-שתיים". The callsign's term is **אות קריאה** | "Kidon 1", "Kidon 1-2" (spoken "Kidon one-two") | Hebrew Wikipedia: "זה נובע מצורת חלוקת אותות הקריאה בקשר: במבנה כידון 1, המוביל במבנה יהיה כידון 1-1 (אחד-אחד) ומספר 2 יהיה כידון 1-2 (אחד-שתיים)"[^hewiki-formation]; the user, 20 November 2026: "Use kidon style, where kidon 1 is the first formation the second is kidon 2 etc". The term אות קריאה: press, search quote[^mako-kaz]. Until 20 November the flight was "Alpha" (NATO style; no IAF style had been found on 19 November) |
 | the flight | **מבנה** (any group flying together); a flight of four is a **רביעייה** | "Kidon 1", "flight" | press: "כל 'מוביל' בכל מבנה", "להוביל רביעיית מטוסים"[^walla-2012], "מוביל של רביעיית מטוסי הקרב"[^walla-2020]; Hebrew Wikipedia[^hewiki-formation] |
@@ -222,7 +226,8 @@ exact hit, not for bomb release. bomb release, if can't find it, is "חימוש 
 [^alsa]: Wikipedia, "Multiservice tactical brevity code" (SORT, TARGETED, WEAPONS FREE read 2026-11-23), citing ATP 1-02.1 / AFTTP 3-2.5, *Multi-Service Brevity
     Codes* (Air Land Sea Space Application Center, 25 April 2025) and NATO APP-7(D) (2007): BINGO "Prebriefed fuel
     state needed for recovery", JOKER, FUEL STATE, UNABLE, LINE ABREAST, WEDGE, ECHELON, SPREAD; no AIRBORNE, RTB,
-    REJOIN or OPS CHECK: https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code
+    REJOIN or OPS CHECK; KILL, KNOCK-IT-OFF, FOX, GUNS read 2026-11-28:
+    https://en.wikipedia.org/wiki/Multiservice_tactical_brevity_code
 [^wiki-formation]: Wikipedia, "Formation flying" (the fingertip four; echelon; the move into trail, "#2 slides back
     and behind lead"): https://en.wikipedia.org/wiki/Formation_flying
 [^wiki-vic]: Wikipedia, "Vic formation" ("the leader at the apex and the rest of the flight en echelon to the left and

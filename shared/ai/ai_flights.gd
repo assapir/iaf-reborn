@@ -248,9 +248,9 @@ func _arm(ent: Dictionary, obj: Dictionary, arm: Dictionary) -> Array:
 ## Ours (a dev / test hook, docs/ai.md §18; no mission places one yet): the AI jets `ents` (from `spawn`: in the air,
 ## or parked at a base, `enemy_base`) fly as an enemy pair under IafAi on station at `station` (world: a CAP orbit's
 ## centre at its height, or where they were spawned), vectored by the network `net` (an air_defence.gd network: its
-## IafGci; {} none: its own radar only), at the pilot's enemy skill. The flight, null when fewer than one jet could
-## join.
-func enemy_flight(ents: Array, station: Vector3, net := {}) -> RefCounted:
+## IafGci; {} none: its own radar only), at the pilot's enemy skill (`skill` 0..2 in its place: the aggressor's High,
+## aggressor.gd). The flight, null when fewer than one jet could join.
+func enemy_flight(ents: Array, station: Vector3, net := {}, skill := -1) -> RefCounted:
 	var ai = ClassDB.instantiate("IafAi")
 	var members := []
 	for k in ents.size():
@@ -260,9 +260,36 @@ func enemy_flight(ents: Array, station: Vector3, net := {}) -> RefCounted:
 			members.append([k + 1, ents[k]])
 	if members.is_empty():
 		return null
-	ai.enemy(Settings.enemy_skill(), host.world_to_scene(station))
-	enemy_flights.append({"ai": ai, "members": members, "net": net, "station": station, "locks": {}, "strike": {}})
+	ai.enemy(Settings.enemy_skill() if skill < 0 else skill, host.world_to_scene(station))
+	enemy_flights.append(
+		{"ai": ai, "members": members, "net": net, "station": station, "locks": {}, "strike": {}, "skill": skill}
+	)
 	return ai
+
+
+## Ours (a dev / test hook, docs/ai.md §26: aggressor.gd's next set-up): the enemy flight's jet `ent` (enemy_flight's)
+## put in the air again at `at` (world) heading `heading` (deg) at `speed` (m/s true), engine on; its flight's IafAi
+## made again round its new flight model (the same station, network, skill and `vector`). The new IafAi, null when the
+## jet could not start.
+func restart_in_air(ent: Dictionary, at: Vector3, heading: float, speed: float) -> RefCounted:
+	var p = ent.get("pilot")
+	if p == null:
+		return null
+	ent.world = at
+	ent.heading = heading
+	ent["start_speed"] = speed
+	if not _start(p, Settings.own_dir(), p.plane):
+		return null
+	p.airborne_reported = true
+	p.landed_reported = false
+	for f in enemy_flights.duplicate():
+		if f.members.any(func(m): return is_same(m[1], ent)):
+			enemy_flights.erase(f)
+			var ai = enemy_flight(f.members.map(func(m): return m[1]), f.station, f.net, int(f.get("skill", -1)))
+			if ai != null and f.has("vector"):
+				enemy_flights[-1].vector = f.vector
+			return ai
+	return null
 
 
 ## Ours (a dev / test hook, docs/ai.md §8.10; no mission orders one): the enemy flight `ai` (enemy_flight's) attacks the
@@ -692,12 +719,13 @@ func _bandit_id(ent: Dictionary) -> int:
 	return _bandit_ids[k]
 
 
-## The hostile jets (AirDefence's jets not of `side`, alive) as IafAi bandits: [{id, pos, vel, nose (scene), jam (its
-## jammer's share), rcs, bays, stores (what a radar sees of it)}].
+## The hostile jets (AirDefence's jets not of `side`, alive, not out of a training fight: the entity's `out`,
+## aggressor.gd) as IafAi bandits: [{id, pos, vel, nose (scene), jam (its jammer's share), rcs, bays, stores (what a
+## radar sees of it)}].
 func _bandits(side: int) -> Array:
 	var out := []
 	for j in AirDefence.of(host).jets(side):
-		if int(j.ent.state) < 3:
+		if int(j.ent.state) < 3 and not j.ent.get("out", false):
 			(
 				out
 				. append(
@@ -922,21 +950,26 @@ func _threat_of(ent: Dictionary) -> Array:
 
 ## An enemy flight's frame (docs/ai.md §18), after every jet's step: its bogey (the network's vector while its radar
 ## and post stand, else the nearest hostile jet, which only its own radar can find), each jet's threat and weapons,
-## the orders; then its shots and decoys through combat.gd, and its radar's lock on the bogey while it holds it.
+## the orders; then its shots and decoys through combat.gd, and its radar's lock on the bogey while it holds it. A
+## flight with a `vector` (a Callable giving {id (the jet's key), pos, vel (world)} or {}: aggressor.gd's, the training
+## fight's "fight's on") takes it with no network; a lead out of a training fight (`out`) has no bogey and no bandit.
 func _step_enemy(f: Dictionary, now: float) -> void:
 	var lead: Dictionary = f.members[0][1]
 	var side := int(lead.side)
+	var out: bool = lead.get("out", false)
 	var gci := {}
 	var n: Dictionary = f.net
 	if not n.is_empty() and n.ents.all(func(e): return int(e.state) < 3):
 		gci = n.gci.vector(now, f.station)
+	elif f.get("vector") is Callable and not out:
+		gci = f.vector.call()
 	var t: Dictionary = runtime.entities.get(gci.get("id", ""), {})
 	if not t.is_empty() and int(t.state) >= 3:
 		# Shot down: the network's track coasts on a while; neither it nor the jet is a bogey.
 		t = {}
 		gci = {}
 	_splash(f.ai, f.members, now)
-	f.ai.set_bandits(_bandits(side))
+	f.ai.set_bandits([] if out else _bandits(side))
 	f.ai.set_gci(
 		not gci.is_empty(),
 		host.world_to_scene(gci.get("pos", Vector3.ZERO)),

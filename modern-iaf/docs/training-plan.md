@@ -313,7 +313,8 @@ capabilities. A builder checks each against [status.md](status.md) before a phas
 - instrument approaches and cloud; night with the goggles, the DAS night camera, the targeting pod and the tanker;
 - AI wingmen in formation; the flight's commands;
 - AWACS and ground-control calls;
-- drone targets; aggressor F-16s; simulated shots with kill calls;
+- drone targets; aggressor F-16s; simulated shots with kill calls (built: the aggressor, the set-ups and the
+  simulated shots, [../../docs/ai.md](../../docs/ai.md) §26);
 - SAM sites at the range;
 - a tanker.
 

@@ -104,6 +104,16 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   ([training.md](training.md) §11). `crates/iaf-ai/tests/tanker.rs`, `refuel.rs`, `test_air_refuel.gd`,
   `test_awacs.gd`. Open: the flight controls' gains with the door open, the hose and drogue, the radio-silent
   procedure (research §8.5).
+- **The training fight against an aggressor (2026-11-28; [training-plan.md](training-plan.md) §3 phase 7,
+  [../../docs/ai.md](../../docs/ai.md) §26):** an aggressor Sufa flown by the enemy fighter's trees at the High
+  tactics; the engagements start in the air from their set-ups (offensive "at his six o'clock, 3,000 ft", defensive,
+  high aspect, BVR 40 NM head-on), one after the other. A shot between the two jets is simulated: the missile flies
+  unseen and harmless on the physical missile and its burst is judged, the gun's hits count (three are a kill), the
+  jets are shielded; shots at drones stay live (at SIMULATE every shot of the player's is simulated). The calls "Fox"
+  / "guns", "kill" and "knock it off" are said in the pilot's voice ("Kidon 1") and the wingmen's ("Red 1") with
+  Hebrew subtitles; the killed jet leaves the fight; "knock it off" (the aggressor's after a kill, apart, too long or
+  below the floor; the player's on Shift + F4) starts the next set-up. A dev hook (`shared/ai/aggressor.gd start`):
+  no lesson places it yet. `cargo test -p iaf-ai --lib aggressor`, `modern-iaf/tests/test_aggressor.gd`.
 - **Every seat's radio calls whole, Kidon 5–8 voiced (2026-11-25, the game gaps' row 15; [sound.md](sound.md) §3,
   §5.2):** the player's call to a tower ("Hatzerim tower, Kidon 3, request taxi") is one clip as Kidon 1 to 8 (160
   English clips; before, Kidon 2–4 played the address, the callsign and the request apart); the tower's "negative,

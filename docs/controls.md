@@ -148,7 +148,8 @@ Terms used on this page:
   flipped down / up; the F-35I has none (a notice). Record 258 (command 302 p1 4), Alt + F6: the throttle's Lights
   Master, the F-35I's navigation lights and strobe on / off (modern-iaf/docs/cockpit.md §5.5). Records 259 / 260
   (commands 296 / 297), Shift + F1 / Shift + F2: air refuelling's door, open / close (the F-16's AIR REFUEL switch,
-  the F-35I's door), and the stick's A/R disconnect (modern-iaf/docs/research/air-refuelling.md §8.2). DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
+  the F-35I's door), and the stick's A/R disconnect (modern-iaf/docs/research/air-refuelling.md §8.2). Record 261
+  (command 304), Shift + F4: the training fight's "knock it off" (the player's call; [ai.md](ai.md) §26). DMS left / right (records 149 / 150, Ctrl + `[` / `]`) move the cursor between its
   portals; DMS up / down give the sensor of interest to the helmet and back. The F-16's ICP keys (records 152–174)
   work the CNI.
 * **Modern IAF's four-ship orders** (the formations, rejoin, RTB, the split into pairs and the regroup, engage my
