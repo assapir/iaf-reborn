@@ -393,7 +393,8 @@ mod tests {
     /// its HUD) and `drag_chute: false`, as the 1998 F-16 (its model has no `Parach` part, docs/part-animation.md),
     /// and `gear_limit`, which only Flight data Real and the 6-DoF read, `rcs`, which only Modern IAF's enemy radars
     /// read (`iaf_ai::site`), `canopy_deg`, which only Modern IAF's cold start reads, and `receptacle`, which only Modern
-    /// IAF's tanker reads (shared/ai/tanker.gd: the 1998 game has none).
+    /// IAF's tanker reads (shared/ai/tanker.gd: the 1998 game has none), and `course`, which only Modern IAF's training
+    /// course reads (`iaf_tools::training`).
     #[test]
     fn switches_off_give_the_1998_values() {
         let off = Switches { f16: "barak", f15: "baz" };
@@ -416,6 +417,7 @@ mod tests {
                         "rcs",
                         "canopy_deg",
                         "receptacle",
+                        "course",
                     ]
                     .contains(k)
                 }),
