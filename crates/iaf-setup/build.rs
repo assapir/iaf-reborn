@@ -48,6 +48,7 @@ fn main() {
         // The training course built into iaf-tools (course.rs).
         "modern-iaf/data/training/course.json",
         "modern-iaf/data/training/lessons/ground.json",
+        "modern-iaf/data/training/lessons/pattern.json",
         "tools/install-launcher.sh",
         "tools/windows/install-launcher.ps1",
     ];

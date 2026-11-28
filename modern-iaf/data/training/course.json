@@ -1,9 +1,9 @@
 {
   "about": "The training course of each jet (modern-iaf/docs/training-plan.md §3, modern-iaf/docs/training.md §13): its phases, lessons and graded items with their standards. Every standard is inferred (no published IAF standard was found, training-plan.md §7). The Hebrew terms follow modern-iaf/docs/research/training.md §3; the names built from them are ours.",
   "jets": {
-    "f16d": {"base": "Ramat David", "instructor": "back_seat", "name": {"en": "F-16D Barak", "he": "ברק"}, "one": {"en": "one F-16D Barak", "he": "ברק אחד"}, "base_name": {"en": "Ramat David", "he": "רמת דוד"}},
-    "f16i": {"base": "Ramon", "instructor": "back_seat", "name": {"en": "F-16I Sufa", "he": "סופה"}, "one": {"en": "one F-16I Sufa", "he": "סופה אחת"}, "base_name": {"en": "Ramon", "he": "רמון"}},
-    "f35i": {"base": "Nevatim", "instructor": "lead", "name": {"en": "F-35I Adir", "he": "אדיר"}, "one": {"en": "one F-35I Adir", "he": "אדיר אחד"}, "base_name": {"en": "Nevatim", "he": "נבטים"}}
+    "f16d": {"airframe": "f16", "base": "Ramat David", "instructor": "back_seat", "name": {"en": "F-16D Barak", "he": "ברק"}, "one": {"en": "one F-16D Barak", "he": "ברק אחד"}, "base_name": {"en": "Ramat David", "he": "רמת דוד"}},
+    "f16i": {"airframe": "f16i", "base": "Ramon", "instructor": "back_seat", "name": {"en": "F-16I Sufa", "he": "סופה"}, "one": {"en": "one F-16I Sufa", "he": "סופה אחת"}, "base_name": {"en": "Ramon", "he": "רמון"}},
+    "f35i": {"airframe": "f35i", "base": "Nevatim", "instructor": "lead", "name": {"en": "F-35I Adir", "he": "אדיר"}, "one": {"en": "one F-35I Adir", "he": "אדיר אחד"}, "base_name": {"en": "Nevatim", "he": "נבטים"}}
   },
   "emergencies": {
     "engine_fire_roll": {"at": "roll", "window_s": [3, 12], "label": {"en": "Engine fire on the take-off roll", "he": "אש במנוע בריצת ההמראה"}},

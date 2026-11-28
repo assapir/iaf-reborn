@@ -20,6 +20,7 @@
 use anyhow::{Context, Result, bail, ensure};
 use serde_json::{Map, Value, json};
 
+use crate::calls::{FINAL_CROSS_M, FINAL_DEG, FINAL_M, INITIAL_CROSS_M, INITIAL_M, LEG_DEG, STOPPED_KT};
 use crate::combat_log;
 use crate::course::{self, Grade, LessonGrade, Limit, Standard};
 use crate::sim;
@@ -497,6 +498,12 @@ pub struct Sample {
     pub avionics: Option<bool>,
     /// The electrical power: 0 none, 1 the battery, 2 the displays up (version 2 of the recorder).
     pub power: Option<i64>,
+    /// The angle of attack (deg), where the recording has the column.
+    pub aoa: Option<f64>,
+    /// The altitude above sea level (m), where the recording has the column.
+    pub alt_m: Option<f64>,
+    /// The player's autopilot mode (0: the pilot flies; the instructor's demonstration flies on it).
+    pub ap_mode: f64,
 }
 
 /// A flight recording: samples and events in time order.
@@ -523,6 +530,7 @@ pub fn parse_flight(text: &str) -> Result<Flight> {
     let (t, x, z, speed, heading, pitch) = (t?, x?, z?, speed?, heading?, pitch?);
     let (ground, engine, throttle, gear, fuel) = (ground?, engine?, throttle?, gear?, fuel?);
     let (agl, g, rpm, avionics, power) = (col("agl_m"), col("g"), col("rpm"), col("avionics"), col("power"));
+    let (aoa, ap_mode, alt) = (col("aoa"), col("ap_mode"), col("alt_m"));
     let mut f = Flight::default();
     while let Some((i, l)) = lines.next() {
         let v: Value = match serde_json::from_str(l) {
@@ -556,6 +564,9 @@ pub fn parse_flight(text: &str) -> Result<Flight> {
             rpm: rpm.and_then(|i| r.get(i)?.as_f64()),
             avionics: avionics.and_then(|i| r.get(i)?.as_bool()),
             power: power.and_then(|i| r.get(i)?.as_i64()),
+            aoa: aoa.and_then(|i| r.get(i)?.as_f64()),
+            alt_m: alt.and_then(|i| r.get(i)?.as_f64()),
+            ap_mode: ap_mode.map_or(0.0, n),
         });
     }
     ensure!(!f.samples.is_empty(), "recording has no samples");
@@ -1012,7 +1023,7 @@ pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Deb
             takeoff(flight, id, &t, r.time_budget_s, failed.is_some())
         }
         Kind::Range { air_kills, ground_kills } => range(flight, id, [*air_kills, *ground_kills], r.time_budget_s),
-        Kind::Lesson { calls, .. } => lesson(flight, id, mission, &r, calls)?,
+        Kind::Lesson { calls, .. } => lesson(flight, id, mission, airbases, &r, calls)?,
     };
     d.goals = r.goals;
     d.combat = combat_log::count(&flight.events);
@@ -1633,9 +1644,19 @@ pub fn end_at(f: &Flight, end: &[String]) -> Option<f64> {
 
 /// A course lesson (training.md §16.2): passed when its end came (`end_at`) within the time budget; each of the
 /// lesson's course items graded against its standard from what `measure` reads of the recording.
-fn lesson(f: &Flight, mission_id: String, mission: &Value, r: &Rules, calls: &[String]) -> Result<Debrief> {
+fn lesson(
+    f: &Flight,
+    mission_id: String,
+    mission: &Value,
+    airbases: &[Value],
+    r: &Rules,
+    calls: &[String],
+) -> Result<Debrief> {
     let key = mission["lesson"].as_str().unwrap_or("");
     let c = course::course();
+    // The pattern items' field: a mission with a runway has one; a lesson on the ground, without, has none.
+    let field = if mission["runway"].is_string() { Some(Field::of(mission, airbases)?) } else { None };
+    let figures = c.figures(mission["start"]["unit"].as_str().unwrap_or(""));
     let (p, l) = c.find(key).with_context(|| format!("{mission_id}: \"lesson\" {key} is no lesson of the course"))?;
     let Kind::Lesson { end, .. } = &r.kind else { bail!("{mission_id}: not a lesson") };
     let end = end_at(f, end);
@@ -1645,12 +1666,22 @@ fn lesson(f: &Flight, mission_id: String, mission: &Value, r: &Rules, calls: &[S
         Some(t) if t > r.time_budget_s => reasons.push("over_time"),
         Some(_) => {}
     }
+    let check_ride = c.is_check_ride(key);
+    let came = failures(f);
+    let came: Vec<(&str, bool)> = came.iter().map(|x| (x.0.as_str(), f.samples[x.1].on_ground)).collect();
     let graded = c
-        .items(p, l)
+        .graded_items(p, l, &came)
         .into_iter()
         .filter_map(|id| {
             let i = c.item(&id)?;
-            let (flown, at) = measure(f, &id, r, calls);
+            let (mut flown, mut at) = measure(f, &id, r, calls);
+            if let (None, Some(fd)) = (flown, &field) {
+                (flown, at) = self::flown(f, &id, fd, figures);
+            }
+            // A check ride's emergency item its emergency gave no occasion for (course.rs emergency_only).
+            if flown.is_none() && check_ride && c.emergency_only(p, &id) {
+                return None;
+            }
             let at = at.map(|k| [f.samples[k].x, f.samples[k].y]);
             Some(Graded { label: i.label.clone(), standard: i.standard.clone(), flown, at, item: i.clone(), id })
         })
@@ -1722,6 +1753,232 @@ fn measure(f: &Flight, id: &str, r: &Rules, calls: &[String]) -> (Option<f64>, O
             (k.map(|k| s[k].speed_kt), k)
         }
         _ => (None, None),
+    }
+}
+
+// --- The flown items of the pattern phase (training.md §16.6) -------------------------------------------------------
+
+/// The pattern's height above the field, ft (training.md §14: the initial at 1,500 ft).
+const PATTERN_FT: f64 = 1_500.0;
+/// The final's samples are graded from 50 to 1,000 ft above the ground (inferred: above the flare, below the final
+/// turn's roll-out).
+const FINAL_AGL_M: [f64; 2] = [15.0, 305.0];
+/// Slow flight is flown above this height (m, about 3,000 ft: clear of the pattern; inferred) and held for this long
+/// (s; inferred).
+const SLOW_AGL_M: f64 = 900.0;
+const SLOW_HOLD_S: f64 = 30.0;
+/// A turn at the corner speed: the samples at this load factor or more (g; inferred: two thirds of 9 g).
+const CORNER_G: f64 = 6.0;
+/// A final left without a touchdown within this long is a go-around (s; inferred: the flare and float take less).
+const GO_AROUND_S: f64 = 20.0;
+
+/// The mission's airbase: every runway end (a touchdown on any counts), the runway in use (the initial and the final
+/// are flown to it, as the call engine's tests: calls.rs `Calls::holds`) and the field's elevation (m).
+struct Field {
+    ends: Vec<Runway>,
+    used: Runway,
+    elevation_m: f64,
+}
+
+impl Field {
+    fn of(mission: &Value, airbases: &[Value]) -> Result<Field> {
+        let airbase = airbase_of(mission, airbases)?;
+        let base = sim_bases::base(airbase, "start.base")?;
+        let ends = base.runways.iter().flat_map(|r| r.designators.clone()).map(|d| runway(airbase, &d));
+        let used = runway(airbase, base.mission_runway(mission).unwrap_or(""))?;
+        Ok(Field { ends: ends.collect::<Result<_>>()?, used, elevation_m: base.elevation })
+    }
+
+    /// The runway end the jet at `x` is on, rolling or landing on its heading (within LEG_DEG).
+    fn on(&self, x: &Sample) -> Option<&Runway> {
+        self.ends.iter().find(|r| r.on(x.x, x.y) && angle(x.heading, r.heading).abs() <= LEG_DEG)
+    }
+
+    /// The jet at `x` flies toward the runway in use on its heading within `deg`: (m before the threshold, m off the
+    /// centreline).
+    fn toward(&self, x: &Sample, deg: f64) -> Option<(f64, f64)> {
+        let r = &self.used;
+        let (along, cross) = r.local(x.x, x.y);
+        (angle(x.heading, r.heading).abs() <= deg && along < r.start_m).then_some((r.start_m - along, cross.abs()))
+    }
+
+    fn on_final(&self, x: &Sample) -> bool {
+        let low = x.agl_m.is_some_and(|h| (FINAL_AGL_M[0]..=FINAL_AGL_M[1]).contains(&h));
+        !x.on_ground && low && self.toward(x, FINAL_DEG).is_some_and(|(out, c)| out <= FINAL_M && c <= FINAL_CROSS_M)
+    }
+}
+
+/// The flight's failure events: (its id, the sample it came at).
+fn failures(f: &Flight) -> Vec<(String, usize)> {
+    let s = &f.samples;
+    f.events
+        .iter()
+        .filter(|e| e["event"] == "failure")
+        .map(|e| {
+            let t = e["t"].as_f64().unwrap_or(s[0].t);
+            (e["failure"].as_str().unwrap_or("").to_string(), s.partition_point(|x| x.t < t).min(s.len() - 1))
+        })
+        .collect()
+}
+
+/// The largest of `v` (value, sample) with its sample.
+fn worst(v: impl Iterator<Item = (f64, usize)>) -> (Option<f64>, Option<usize>) {
+    v.max_by(|a, b| a.0.total_cmp(&b.0)).map_or((None, None), |(x, i)| (Some(x), Some(i)))
+}
+
+/// A pattern-phase item's flown value (training.md §16.6) against the mission's field and the jet's figures, with the
+/// sample it was flown at for the debrief's marker (the lift-off for the take-off's items, the worst touchdown for the
+/// landing's, the highest load, the failure's start; None for an item of a stretch of the flight). None: not flown,
+/// or an item of another phase. The samples the instructor flies (the autopilot on: the demonstration) are left out.
+fn flown(
+    f: &Flight,
+    id: &str,
+    field: &Field,
+    fig: Option<&iaf_flight::airframe::CourseFigures>,
+) -> (Option<f64>, Option<usize>) {
+    let s = &f.samples;
+    let own = |x: &Sample| x.ap_mode == 0.0;
+    let air = || s.iter().enumerate().filter(|(_, x)| own(x) && !x.on_ground);
+    let ft = |m: f64| m * FT_PER_M;
+    let at = |v: Option<f64>, i: usize| (v, v.map(|_| i));
+    // The pilot's touchdowns on a runway: (the end, the sample, the sink rate m/s).
+    let touchdowns = || {
+        f.events.iter().filter(|e| e["event"] == "touchdown").filter_map(|e| {
+            let i = s.partition_point(|x| x.t < e["t"].as_f64().unwrap_or(s[0].t)).min(s.len() - 1);
+            let rw = field.on(&s[i]).filter(|_| own(&s[i]))?;
+            Some((rw, i, e["sink_ms"].as_f64().unwrap_or(0.0)))
+        })
+    };
+    // The pilot's first take-off: the lift-off and the runway end it rolled on.
+    let takeoff = (1..s.len())
+        .find(|&i| s[i - 1].on_ground && !s[i].on_ground && own(&s[i]))
+        .and_then(|lift| Some((lift, field.on(&s[lift - 1])?)));
+    let after = |id: &'static str| failures(f).into_iter().filter(move |(k, _)| k == id).map(|(_, i)| i);
+    let idle = |x: &Sample| x.engine && x.rpm.unwrap_or(0.0) >= IDLE_RPM;
+    let lever = iaf_flight::sixdof::failures::FIRE_MIN_LEVER;
+    let none = (None, None);
+    match id {
+        "max_centreline_offset" => {
+            let Some((lift, rw)) = takeoff else { return none };
+            let (roll, _) = roll_start(s, lift, rw);
+            let v = s[roll..lift].iter().map(|x| rw.local(x.x, x.y).1.abs()).reduce(f64::max);
+            at(v, lift)
+        }
+        "liftoff_speed_error" => {
+            let (Some((lift, _)), Some(fig)) = (takeoff, fig) else { return none };
+            at(Some(s[lift].speed_kt - interpolate(&fig.takeoff_kt, fig.empty_kg + s[lift].fuel_kg)), lift)
+        }
+        "gear_up_time" => {
+            let Some((lift, _)) = takeoff else { return none };
+            at(s[lift..].iter().find(|x| !x.gear && !x.on_ground).map(|x| x.t - s[lift].t), lift)
+        }
+        "touchdown_distance" => {
+            worst(touchdowns().map(|(rw, i, _)| ((rw.local(s[i].x, s[i].y).0 - rw.start_m).abs(), i)))
+        }
+        "landing_centreline" => worst(touchdowns().map(|(rw, i, _)| (rw.local(s[i].x, s[i].y).1.abs(), i))),
+        "sink_rate" => worst(touchdowns().map(|(_, i, sink)| (ft(sink.abs()), i))),
+        "pattern_altitude_error" => worst(air().filter(|(_, x)| !x.gear).filter_map(|(i, x)| {
+            let (out, cross) = field.toward(x, LEG_DEG)?;
+            let on = (INITIAL_M[0]..=INITIAL_M[1]).contains(&out) && cross <= INITIAL_CROSS_M;
+            let above = ft(x.alt_m? - field.elevation_m);
+            on.then(|| ((above - PATTERN_FT).abs(), i))
+        })),
+        "final_aoa_error" => {
+            let Some(fig) = fig else { return none };
+            let a: Vec<f64> = air().filter(|(_, x)| x.gear && field.on_final(x)).filter_map(|(_, x)| x.aoa).collect();
+            ((!a.is_empty()).then(|| a.iter().sum::<f64>() / a.len() as f64 - fig.final_aoa_deg), None)
+        }
+        "go_around_height" => {
+            // Each run of the pilot's samples on final not followed by a touchdown within GO_AROUND_S: a go-around;
+            // its lowest height.
+            let mut lowest: Option<(f64, usize)> = None;
+            let mut run: Option<(f64, usize)> = None;
+            for (i, x) in s.iter().enumerate().filter(|(_, x)| own(x)) {
+                if field.on_final(x) {
+                    let h = x.agl_m.unwrap_or(0.0);
+                    run = Some(run.filter(|r| r.0 <= h).unwrap_or((h, i)));
+                } else if let Some(r) = run.take() {
+                    let landed = s[i..].iter().take_while(|y| y.t - x.t <= GO_AROUND_S).any(|y| y.on_ground);
+                    if !landed && lowest.is_none_or(|l| r.0 < l.0) {
+                        lowest = Some(r);
+                    }
+                }
+            }
+            lowest.map_or(none, |(h, i)| (Some(ft(h)), Some(i)))
+        }
+        "max_g" => worst(air().filter_map(|(i, x)| Some((x.g?, i)))),
+        "airspeed_error" => {
+            // The slow flight: the SLOW_HOLD_S stretch above SLOW_AGL_M held nearest the jet's slow speed, its largest
+            // deviation from it. ponytail: every window is scanned, O(n × window); fine for a lesson's recording.
+            let Some(fig) = fig else { return none };
+            let high: Vec<&Sample> =
+                air().map(|(_, x)| x).filter(|x| x.agl_m.is_some_and(|h| h >= SLOW_AGL_M)).collect();
+            let mut best: Option<f64> = None;
+            for (i, a) in high.iter().enumerate() {
+                let w: Vec<&&Sample> = high[i..].iter().take_while(|b| b.t - a.t <= SLOW_HOLD_S).collect();
+                if w.last().is_none_or(|b| b.t - a.t < SLOW_HOLD_S * 0.9) {
+                    continue;
+                }
+                let dev = w.iter().map(|b| (b.speed_kt - fig.slow_kt).abs()).fold(0.0, f64::max);
+                best = Some(best.map_or(dev, |d| d.min(dev)));
+            }
+            (best, None)
+        }
+        "corner_speed_error" => {
+            let Some(fig) = fig else { return none };
+            let v: Vec<f64> =
+                air().filter(|(_, x)| x.g.is_some_and(|g| g >= CORNER_G)).map(|(_, x)| x.speed_kt).collect();
+            ((!v.is_empty()).then(|| v.iter().sum::<f64>() / v.len() as f64 - fig.corner_kt), None)
+        }
+        "abort_stopped" => {
+            // A fire on the take-off roll: stopped on the runway before any lift-off.
+            let Some(i) = after("engine_fire").find(|&i| s[i].on_ground) else { return none };
+            let rest = &s[i..];
+            let lift = rest.iter().position(|x| !x.on_ground).unwrap_or(rest.len());
+            let stopped = rest[..lift].iter().any(|x| x.speed_kt < STOPPED_KT && field.on(x).is_some());
+            at(Some(if stopped { 1.0 } else { 0.0 }), i)
+        }
+        "fire_throttle_time" => {
+            // Each fire, the worst: never throttled back counts to the recording's end.
+            let end = s[s.len() - 1].t;
+            worst(
+                after("engine_fire")
+                    .map(|i| (s[i..].iter().find(|x| x.throttle <= lever).map_or(end, |x| x.t) - s[i].t, i)),
+            )
+        }
+        "emergency_checklist" => {
+            // The steps of each failure the recording shows, done after it (ponytail: the throttle, the stop, the
+            // engine and the relight only; switches the recording lacks, MASTER FUEL or the JFS, are not counted).
+            let (mut done, mut of) = (0, 0);
+            for (id, i) in failures(f) {
+                let rest = &s[i..];
+                let steps: Vec<bool> = match id.as_str() {
+                    "engine_fire" if s[i].on_ground => vec![
+                        rest.iter().any(|x| x.throttle <= lever),
+                        rest.iter().any(|x| x.on_ground && x.speed_kt < STOPPED_KT),
+                        rest.iter().any(|x| x.on_ground && !x.engine),
+                    ],
+                    "engine_fire" => vec![rest.iter().any(|x| x.throttle <= lever), rest.iter().any(|x| x.on_ground)],
+                    "flameout" => {
+                        let back = rest.iter().position(|x| x.throttle <= 0.0);
+                        vec![back.is_some(), back.is_some_and(|k| rest[k..].iter().any(|x| !x.on_ground && idle(x)))]
+                    }
+                    _ => vec![],
+                };
+                of += steps.len();
+                done += steps.iter().filter(|d| **d).count();
+            }
+            ((of > 0).then(|| 100.0 * done as f64 / of as f64), None)
+        }
+        "airstart_done" => {
+            let Some(i) = after("flameout").next() else { return none };
+            at(Some(if s[i..].iter().any(|x| !x.on_ground && idle(x)) { 1.0 } else { 0.0 }), i)
+        }
+        "flameout_landing" => {
+            let Some(i) = after("flameout").next() else { return none };
+            at(Some(if touchdowns().any(|(_, k, _)| k > i) { 1.0 } else { 0.0 }), i)
+        }
+        _ => none,
     }
 }
 
@@ -2274,6 +2531,86 @@ mod tests {
             t += 0.1;
         }
         (jsonl(&out), rw)
+    }
+
+    /// The pattern phase's measures (training.md §16.6) on a synthetic Sufa flight at Ramon on 25R: the initial at
+    /// 1,550 ft above the field, a final at 12° to a touchdown 200 m past the threshold and 2 m right at 1.5 m/s, then
+    /// a second final left at 164 ft (a go-around); 7 g at 380 kt; an airborne fire throttled back after 4 s.
+    #[test]
+    fn the_pattern_items_are_measured_from_the_flight() {
+        let m = mission("f16i_pattern_touch_and_go");
+        let field = Field::of(&m, &airbases()).unwrap();
+        let fig = course::course().figures("f16i");
+        let rw = field.used.clone();
+        let p = |along: f64, right: f64| {
+            let a = rw.start_m + along;
+            [rw.from[0] + rw.dir[0] * a + rw.dir[1] * right, rw.from[1] + rw.dir[1] * a - rw.dir[0] * right]
+        };
+        let elev = field.elevation_m;
+        let mut s: Vec<Sample> = vec![];
+        let hdg = rw.heading;
+        let put = |s: &mut Vec<Sample>, at: [f64; 2], agl: f64, x: Sample| {
+            let t = s.len() as f64 + 1.0;
+            s.push(Sample { t, x: at[0], y: at[1], heading: hdg, agl_m: Some(agl), alt_m: Some(elev + agl), ..x });
+        };
+        let flying = Sample { speed_kt: 300.0, engine: true, rpm: Some(80.0), throttle: 0.6, ..Default::default() };
+        for k in 0..8 {
+            put(&mut s, p(-9_000.0 + 600.0 * k as f64, 0.0), 1_550.0 / FT_PER_M, flying.clone());
+        }
+        let fin = Sample { gear: true, aoa: Some(12.0), speed_kt: 160.0, ..flying.clone() };
+        for k in 0..5 {
+            put(&mut s, p(-2_500.0 + 500.0 * k as f64, 0.0), 250.0 - 50.0 * k as f64, fin.clone());
+        }
+        put(&mut s, p(200.0, 2.0), 0.0, Sample { on_ground: true, ..fin.clone() });
+        let touch = s.len() - 1;
+        for k in 0..5 {
+            put(&mut s, p(-2_500.0 + 500.0 * k as f64, 0.0), (250.0 - 50.0 * k as f64).max(46.0), fin.clone());
+        }
+        for k in 0..25 {
+            put(&mut s, p(1_000.0 + 300.0 * k as f64, 0.0), 300.0, Sample { gear: false, ..flying.clone() });
+        }
+        put(
+            &mut s,
+            p(9_000.0, 0.0),
+            3_000.0,
+            Sample { g: Some(7.0), speed_kt: 380.0, throttle: 1.0, ..flying.clone() },
+        );
+        let fire = s.len();
+        for k in 0..6 {
+            let thr = if k < 4 { 1.0 } else { 0.2 };
+            put(&mut s, p(9_500.0 + 100.0 * k as f64, 0.0), 3_000.0, Sample { throttle: thr, ..flying.clone() });
+        }
+        let f = Flight {
+            events: vec![
+                json!({"event": "touchdown", "t": s[touch].t, "sink_ms": -1.5}),
+                json!({"event": "failure", "failure": "engine_fire", "t": s[fire].t}),
+            ],
+            samples: s,
+            cut_lines: 0,
+        };
+        let v = |id: &str| flown(&f, id, &field, fig).0;
+        assert!((v("pattern_altitude_error").unwrap() - 50.0).abs() < 1.0, "{:?}", v("pattern_altitude_error"));
+        assert!((v("touchdown_distance").unwrap() - 200.0).abs() < 1.0);
+        assert!((v("landing_centreline").unwrap() - 2.0).abs() < 0.1);
+        assert!((v("sink_rate").unwrap() - 1.5 * FT_PER_M).abs() < 0.01);
+        assert!((v("final_aoa_error").unwrap() + 1.0).abs() < 0.01, "12° against the Sufa's 13°");
+        assert!((v("go_around_height").unwrap() - 50.0 * FT_PER_M).abs() < 1.0, "{:?}", v("go_around_height"));
+        assert_eq!(v("max_g"), Some(7.0));
+        assert!((v("corner_speed_error").unwrap() + 5.0).abs() < 0.01, "380 kt against the Sufa's 385");
+        assert_eq!(v("fire_throttle_time"), Some(4.0));
+        assert_eq!(v("abort_stopped"), None, "a fire in the air: no abort");
+        assert_eq!(flown(&f, "touchdown_distance", &field, fig).1, Some(touch), "the marker at the touchdown");
+    }
+
+    /// A lesson on the ground (no mission runway) is scored: its items without the pattern's field.
+    #[test]
+    fn a_ground_lesson_is_scored_without_a_runway() {
+        let m = mission("f16i_ground_cockpit");
+        assert!(m["runway"].is_null());
+        let s = Sample { t: 1.0, on_ground: true, ..Default::default() };
+        let f = Flight { samples: vec![s.clone(), Sample { t: 2.0, ..s }], events: vec![], cut_lines: 0 };
+        let d = score(&f, &m, &airbases()).unwrap();
+        assert!(!d.pass && !d.graded.is_empty(), "scored: {:?}", d.reasons);
     }
 
     fn scored(text: &str, id: &str) -> Debrief {

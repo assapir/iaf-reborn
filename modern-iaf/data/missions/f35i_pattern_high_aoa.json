@@ -1,0 +1,79 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f35i",
+    "base": "Nevatim",
+    "at": "parking",
+    "elevation_m": 405
+  },
+  "runway": "26L",
+  "route": [
+    {
+      "lat": 31.18394,
+      "lon": 34.89001,
+      "alt_m": 1305,
+      "speed_kmh": 600
+    }
+  ],
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "a day lesson (training-plan.md §1: every lesson but the night lesson and the night check rides by day)",
+    "wind_kt": "calm (inferred: the pattern is learnt without a crosswind)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "runway": "the base's runway the take-off missions use; the tower turns it into the wind",
+    "route": "the departure point: 10 km beyond runway 26L's far end on its heading, 900 m above the field",
+    "training.time_budget_s": "the start-up, the taxi and the lesson's flight with time to spare (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.end": "the lesson ends with the jet back on its spot and the engine off (training.md §16.3)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f35i_pattern_high_aoa",
+  "menu_id": 3243,
+  "lesson": "pattern.high_aoa",
+  "title": {
+    "en": "High AoA and G",
+    "he": "זווית התקפה גבוהה ועומסים"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "calls": [],
+    "checklist": [],
+    "time_budget_s": 3000,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

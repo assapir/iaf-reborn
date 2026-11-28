@@ -44,6 +44,7 @@ chapters:
   intro: "שלבי מסלול האימון, המדריך בתרגול, וקרב האימון מול מטוס תוקף."
   sections:
   - {id: course-ground, title: "שלב 1: קרקע והתנעה", file: game/missions-training/course-ground.typ}
+  - {id: course-pattern, title: "שלב 2: שליטה בסיסית, המראה ונחיתה", file: game/missions-training/course-pattern.typ}
   - {id: instructor, title: "המדריך", file: game/missions-training/instructor.typ}
   - {id: training-fight, title: "קרב אימון", file: game/missions-training/training-fight.typ}
 - id: bases

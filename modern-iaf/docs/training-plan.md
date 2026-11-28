@@ -209,6 +209,8 @@ The help line above the notebook appears in lesson 1 only (13 Nov 2026).
    the helmet (F-35I).
 8. **Check ride 2.**
 
+Built for the three jets: the lessons' missions, briefings, Lesson tabs and calls ([training.md](training.md) §16.7).
+
 ### Phase 3: Navigation and instruments
 
 1. **Steerpoint navigation** at medium altitude with the ICP and DED.

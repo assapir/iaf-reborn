@@ -223,6 +223,7 @@ var kneeboard: Node
 ## failures already announced (master caution and the voice once each).
 var _failures_plan: Array = []
 var _failures_seen: Array = []
+var _fire_was := false  # the engine fire burnt at the last check
 const STEP_IDS := ["main_power", "starter", "engine", "avionics", "ins", "canopy"]
 ## The F-16's power switches one by one (command 219's p2 → SYSTEMS[i]; iaf-flight start.rs SYSTEMS, the same order):
 ## the four AVIONIC POWER switches (together the avionics step) and the SNSR PWR panel's FCR, RDR ALT, LEFT HDPT and
@@ -292,14 +293,11 @@ func _ready() -> void:
 		mission_name = String(files[0].name) if not rules.is_empty() else ""
 		checklist = readable.get("training", {}).get("checklist", [])
 		var key := String(readable.get("lesson", ""))
-		if key != "":
-			var course = JSON.parse_string(IafTraining.course(plane))
-			for ph in course.phases if course is Dictionary else []:
-				for le in ph.lessons:
-					check_ride = check_ride or (String(le.key) == key and String(le.kind) == "check")
+		check_ride = IafTraining.is_check_ride(key)  # the course's rule (course.rs is_check_ride)
 		_lesson = String(IafCalls.lesson_of(plane, String(files[0].name)))
 		_tanker_spec = readable.get("tanker", {})
 		_failures_plan = readable.get("failures", [])
+		_check_ride_emergency(key, plane)
 		if String(readable.get("category", "")) == "fly_now":
 			add_child(FreeCombat.new(host, host.radio.runway_base))  # Scramble's enemy and task (front-end.md §2.1)
 	if not rules.is_empty():
@@ -346,12 +344,20 @@ func start_calls(key: String) -> void:
 
 
 ## A call of the instructor said: "My controls" starts the F-16s' demonstration (instructor.gd demo, training.md §14);
-## the lesson's calls say its hand-over lines with the voice, so the demonstration does not show them again.
+## the lesson's calls say its hand-over lines with the voice, so the demonstration does not show them again. The
+## F-35I's instructor joins the player's flight on "join" (instructor.gd chase) and leads the pattern on "follow_me"
+## (lead, §16.7).
 func _on_call(id: String) -> void:
-	if id == "my_controls":
-		var demo: Node = Instructor.of(host)
-		demo.voiced.append_array(["my_controls", "your_controls"])
-		demo.demo()
+	var ins: Node = Instructor.of(host)
+	match id:
+		"my_controls":
+			ins.voiced.append_array(["my_controls", "your_controls"])
+			ins.demo()
+		"join":
+			ins.chase()
+		"follow_me":
+			ins.voiced.append("follow_me")
+			ins.lead()
 
 
 func _dir() -> String:
@@ -918,14 +924,26 @@ func _failures() -> void:
 	if host.flight == null or not host.flight.has_method("failures"):
 		return
 	for f in _failures_plan:
-		var e := String(
-			host.flight.plan_failure(String(f.get("id", "")), String(f.get("on", "time")), float(f.get("value", 0.0)))
+		var c: Dictionary = f.get("course", {})
+		var e := (
+			String(host.flight.plan_course_emergency(String(c.id), String(c.at), float(c.after_s), randi()))
+			if not c.is_empty()
+			else String(
+				host.flight.plan_failure(
+					String(f.get("id", "")), String(f.get("on", "time")), float(f.get("value", 0.0))
+				)
+			)
 		)
 		if e != "":
 			push_warning("failure %s: %s" % [f, e])
 	_failures_plan = []
 	var d: Dictionary = host.flight.failures()
 	var warnings: PackedStringArray = d.get("warnings", PackedStringArray())
+	# A fire put out may break out again (a lesson's second fire): announced again.
+	var fire := bool(d.get("fire", false))
+	if fire and not _fire_was:
+		_failures_seen.erase("engine_fire")
+	_fire_was = fire
 	for id in d.get("active", PackedStringArray()):
 		if _failures_seen.has(id):
 			continue
@@ -933,6 +951,16 @@ func _failures() -> void:
 		host.damage_light(0, true)
 		host.damage_sound("VOC_BBETTY", "BTY_FIRE" if warnings.has(id) else "BTY_CAUTION")
 		host._log_event(host.get("_log_st") if host.get("_log_st") != null else {}, {"event": "failure", "failure": id})
+
+
+## A check ride's unannounced emergency (training.md §13.4): one the phase and the earlier ones teach, at a random
+## time, planned with the mission's failures. None for a lesson that is no check ride, or check ride 1.
+func _check_ride_emergency(lesson: String, jet: String) -> void:
+	if lesson == "":
+		return
+	var e = JSON.parse_string(String(IafTraining.check_ride_emergency(jet, lesson, randi())))
+	if e is Dictionary:
+		_failures_plan.append({"course": e})
 
 
 ## Lined up on runway end `wrong` ("" none), not the mission's: the tower says so once per end ("Kidon 1, you are on

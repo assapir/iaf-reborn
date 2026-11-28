@@ -12,22 +12,22 @@ use serde_json::Value;
 /// Engine idle, % RPM (training.md §3.1).
 const IDLE_RPM: f64 = 60.0;
 /// Stopped, kt (inferred: below brake creep).
-const STOPPED_KT: f64 = 3.0;
+pub(crate) const STOPPED_KT: f64 = 3.0;
 /// The initial point: on the runway's extended centreline 2 to 6 NM out, within 1.5 km of it, on the runway's heading
 /// within 30° (inferred: the overhead pattern's initial lies 3 to 5 NM out).
-const INITIAL_M: [f64; 2] = [3_704.0, 11_112.0];
-const INITIAL_CROSS_M: f64 = 1_500.0;
+pub(crate) const INITIAL_M: [f64; 2] = [3_704.0, 11_112.0];
+pub(crate) const INITIAL_CROSS_M: f64 = 1_500.0;
 /// On a leg's heading (deg; inferred).
-const LEG_DEG: f64 = 30.0;
+pub(crate) const LEG_DEG: f64 = 30.0;
 /// Over the runway (the break): within this of its centreline, m (inferred).
 const OVER_RUNWAY_M: f64 = 500.0;
 /// The downwind leg: this far abeam the runway, m (inferred: about 1 NM, A137's pattern).
 const DOWNWIND_M: [f64; 2] = [500.0, 4_000.0];
 /// The final: up to 6 km out, within 150 m of the centreline, on its heading within 10°, wings within 10° of level
 /// (inferred).
-const FINAL_M: f64 = 6_000.0;
-const FINAL_CROSS_M: f64 = 150.0;
-const FINAL_DEG: f64 = 10.0;
+pub(crate) const FINAL_M: f64 = 6_000.0;
+pub(crate) const FINAL_CROSS_M: f64 = 150.0;
+pub(crate) const FINAL_DEG: f64 = 10.0;
 const LEVEL_DEG: f64 = 10.0;
 /// The touchdown zone: the first 3,000 ft of the runway, below 300 ft over it (FAA's touchdown zone).
 const TDZ_M: f64 = 914.4;
@@ -80,6 +80,14 @@ pub enum Test {
     Cleared(String),
     /// The pilot made the radio call (§8).
     Called(String),
+    /// The failure is on (training.md §15): the engine fire while it burns, any other once started.
+    Failure(String),
+    /// In the air at least this far above the field, ft.
+    Alt(f64),
+    /// In the air at an angle of attack of at least this, deg.
+    Aoa(f64),
+    /// In the air at a load factor of at least this, g.
+    G(f64),
 }
 
 impl Test {
@@ -105,6 +113,15 @@ impl Test {
                 Some(("item", a)) if !a.is_empty() => Test::Item(a.into()),
                 Some(("cleared", a)) if ["startup", "taxi", "takeoff"].contains(&a) => Test::Cleared(a.into()),
                 Some(("called", a)) if !a.is_empty() => Test::Called(a.into()),
+                Some(("failure", a)) if !a.is_empty() => Test::Failure(a.into()),
+                Some((k @ ("alt" | "aoa" | "g"), a)) if a.parse::<f64>().is_ok() => {
+                    let v = a.parse::<f64>().unwrap_or(0.0);
+                    match k {
+                        "alt" => Test::Alt(v),
+                        "aoa" => Test::Aoa(v),
+                        _ => Test::G(v),
+                    }
+                }
                 _ => bail!("calls: \"{t}\" is no test"),
             },
         })
@@ -279,6 +296,11 @@ pub struct Now {
     pub cleared: crate::training::Cleared,
     /// The radio calls the pilot made, by id.
     pub called: Vec<String>,
+    /// The angle of attack (deg) and the load factor (g).
+    pub aoa: f64,
+    pub g: f64,
+    /// The failures on (training.md §15; the engine fire while it burns), by id.
+    pub failures: Vec<String>,
 }
 
 /// A line said: its call, its clip, its English and Hebrew subtitles.
@@ -406,6 +428,10 @@ impl Calls {
                 _ => s.cleared.takeoff,
             },
             Test::Called(id) => s.called.contains(id),
+            Test::Failure(id) => s.failures.contains(id),
+            Test::Alt(ft) => air && agl >= *ft,
+            Test::Aoa(deg) => air && s.aoa >= *deg,
+            Test::G(g) => air && s.g >= *g,
         }
     }
 
@@ -468,10 +494,10 @@ mod tests {
         for t in course::TESTS {
             assert!(Test::of(t).is_ok(), "{t}");
         }
-        for t in ["item:batt", "cleared:taxi", "called:radio_check"] {
+        for t in ["item:batt", "cleared:taxi", "called:radio_check", "failure:flameout", "alt:9500", "aoa:15", "g:7"] {
             assert!(Test::of(t).is_ok(), "{t}");
         }
-        assert!(Test::of("cleared:landing").is_err() && Test::of("nope").is_err());
+        assert!(Test::of("cleared:landing").is_err() && Test::of("nope").is_err() && Test::of("aoa:x").is_err());
         assert_eq!(runway_words("25R"), ["two five right".to_string(), "25 right".into(), "25 ימין".into()]);
         assert_eq!(runway_words("07L")[0], "seven left");
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/airbases");
@@ -508,6 +534,37 @@ mod tests {
         // The Adir's calls are its own.
         let c = Calls::open("ground.cockpit", "f35i", &b, "", false).unwrap();
         assert!(c.left().contains(&"ipp") && !c.left().contains(&"batt"));
+    }
+
+    /// Lesson 2.4 (pattern.json) in the Sufa, its exercises' calls on the height, the angle of attack and the load; and
+    /// lesson 2.5's fire calls on the fire burning, the second once the first is out.
+    #[test]
+    fn the_figures_and_failures_calls_fire_at_their_values() {
+        let b = ramon();
+        let mut c = Calls::open("pattern.high_aoa", "f16i", &b, "25R", true).unwrap();
+        c.calls.retain(|x| ["slow", "limiter", "corner", "home"].contains(&x.id.as_str()));
+        let (p, elev, hdg) = c.place(2000.0, 0.0);
+        let mut n = Now { x: p[0], y: p[1], heading: hdg, alt_ft: elev + 15_000.0, g: 1.0, aoa: 5.0, ..Now::default() };
+        let mut flown: Vec<String> = vec![];
+        let mut fly = |c: &mut Calls, n: &Now| flown.extend(c.tick(n).into_iter().map(|s| s.call));
+        fly(&mut c, &n);
+        n.aoa = 14.0;
+        fly(&mut c, &n);
+        n.aoa = 24.0;
+        fly(&mut c, &n);
+        n.g = 8.0;
+        fly(&mut c, &n);
+        assert_eq!(flown, ["slow", "limiter", "corner", "home"]);
+        let mut c = Calls::open("pattern.engine_fire", "f16i", &b, "25R", true).unwrap();
+        c.calls.retain(|x| ["abort", "fire"].contains(&x.id.as_str()));
+        c.calls[1].new = true;
+        let mut n = Now { failures: vec!["engine_fire".into()], ..Now::default() };
+        assert_eq!(c.tick(&n).len(), 1, "the roll's fire");
+        assert!(c.tick(&n).is_empty(), "the same fire: no second call");
+        n.failures.clear();
+        c.tick(&n);
+        n.failures.push("engine_fire".into());
+        assert_eq!(c.tick(&n).len(), 1, "the flight's fire");
     }
 
     /// A lesson of the overhead pattern flown as a script of frames: every call in order, each once, at its step.

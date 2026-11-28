@@ -32,6 +32,7 @@
   "rcs": { "front_m2": 0.0015, "side_m2": 0.05, "rear_m2": 0.01, "bays_open_m2": 1.0, "store_m2": 0.5 },
   "receptacle": [2.5, 0.0, 1.15],
   "receptacle_door": "up",
+  "course": {"empty_kg": 13290, "takeoff_kt": [[13290, 165]], "final_aoa_deg": 13, "slow_kt": 200, "corner_kt": 360},
   "notes": {
     "receptacle": "on the spine behind the cockpit (modern-iaf/docs/research/air-refuelling.md §6): read off the model, 1.4 m behind the canopy's aft end on the spine's top (inferred)",
     "jammer": "Modern IAF only: the self-protection jamming of the AN/ASQ-239 suite (BAE: \"evasion, engagement, countermeasure, and jamming options\") and the AN/APG-81's electronic attack (Northrop Grumman, via Wikipedia), with Israel's own Elbit EW equipment in the F-35I (Aviation Week 2011, Flight International 2012; via Wikipedia, second-hand; details not public): docs/f35i.md §7.1. The J key stands in for its controls (open); the share is the Sufa's 0.3 (inferred: no jammer's power is published); against the jet's small cross-section it holds a radar to a short burn-through (docs/ai.md §15.6)",
@@ -53,6 +54,11 @@
     "engine_spool": "F135-PW-100: flight idle -> maximum power about 6 s (Pratt & Whitney); the split inferred (docs/flight-model.md §10.2)",
     "goggles": "the helmet's night camera, drawn as the late Gen III; its cockpit lit for it (docs/rendering.md §8.3)",
     "flir": "the built-in EOTS (docs/f35i.md §3.1)",
-    "weapons.loads": "modern_weapons.gd record id -> [count, stations A..I] (docs/f35i.md §3.1)"
+    "weapons.loads": "modern_weapons.gd record id -> [count, stations A..I] (docs/f35i.md §3.1)",
+    "course.empty_kg": "the F-35A's empty weight, 29,300 lb (Wikipedia, F-35 specifications; training.md [^w-f35])",
+    "course.takeoff_kt": "one figure for every weight, about 165 kt (WION, weak; training.md [^wn]): no public table by weight",
+    "course.final_aoa_deg": "inferred: the 6-DoF's final at 13 deg for every jet (flight-model.md 9.6); the F-35's approach figures are in its flight manual, not public (open)",
+    "course.slow_kt": "inferred, as the F-16's",
+    "course.corner_kt": "open: no published F-35 corner speed (searched 28 Nov 2026); inferred near the F-16's"
   }
 }

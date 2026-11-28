@@ -76,6 +76,9 @@ pub struct Airframe {
     /// aft end down into the fuselage) or `up` (the F-35's: up about its aft edge); none: `slipway`.
     pub receptacle_door: Option<String>,
     pub guide: Option<String>,
+    /// The training course's reference figures, which a lesson's graded items are measured against
+    /// (`iaf_tools::training`, modern-iaf/docs/training.md §16.6).
+    pub course: Option<CourseFigures>,
     /// Each value's source, by field (`"radar.km"`); read by no code.
     pub notes: Option<BTreeMap<String, String>>,
 }
@@ -136,6 +139,18 @@ pub struct Fcr {
 pub struct GearLimit {
     pub kcas: f64,
     pub mach: Option<f64>,
+}
+
+/// `course`: the jet's empty mass (kg) and its take-off speed by gross mass (`[[kg, kt]]`, linear between), the final's
+/// angle of attack (deg), the slow flight's speed and the corner speed (kt).
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CourseFigures {
+    pub empty_kg: f64,
+    pub takeoff_kt: Vec<[f64; 2]>,
+    pub final_aoa_deg: f64,
+    pub slow_kt: f64,
+    pub corner_kt: f64,
 }
 
 /// `jammer`: the burn-through share of a radar's reach against the reference 5 m² (`iaf_avionics::ecm::burn_through`).

@@ -206,6 +206,12 @@ impl IafTraining {
         GString::from(v.to_string().as_str())
     }
 
+    /// Lesson `lesson` (its key) is a check ride (`course::Course::is_check_ride`): no calls, no highlights.
+    #[func]
+    fn is_check_ride(lesson: GString) -> bool {
+        course::course().is_check_ride(&lesson.to_string())
+    }
+
     /// The unannounced emergency of the check ride `lesson` (its key) in jet `jet` as JSON text, `{"id", "at", "after_s"}`
     /// (`course::Course::check_ride_emergency`; `seed` makes the pick), "null" for none.
     #[func]
@@ -316,7 +322,8 @@ impl IafCalls {
     /// The lines to say this frame, in order, each {call, file, en, he}: `now` = {on_ground, x, y (the engine frame,
     /// m), alt_ft, speed_kt, heading (deg), roll (deg), vs_fpm, rpm (%), ins_aligned, engine_on, power (0 none, 1 the
     /// battery, 2 the displays), items (the card's items ticked), answers (the tower's answer templates), hot (the
-    /// flight started with the engine running), called (the radio calls made)}.
+    /// flight started with the engine running), called (the radio calls made), aoa (deg), g, failures (the failures on, the
+    /// engine fire while it burns)}.
     #[func]
     fn tick(&mut self, now: VarDictionary) -> VarArray {
         let f = |k: &str| now.get(k).and_then(|v| v.try_to::<f64>().ok()).unwrap_or(0.0);
@@ -337,6 +344,9 @@ impl IafCalls {
             items: list(&now, "items"),
             cleared: training::Cleared::of(&answers(&now), b("hot")),
             called: list(&now, "called"),
+            aoa: f("aoa"),
+            g: f("g"),
+            failures: list(&now, "failures"),
         };
         let mut out = VarArray::new();
         for s in self.calls.as_mut().map_or(vec![], |c| c.tick(&n)) {

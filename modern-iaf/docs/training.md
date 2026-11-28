@@ -813,8 +813,10 @@ replaces them"): their files stay for the automated tests and `--mission <id>` r
   flight controls, a landing gear fault ([research/training.md](research/training.md) §2).
 
 The course has 31 day lessons, 8 night lessons and 8 check rides. A check ride grades every item of its phase's and
-the earlier phases' lessons, without the formation phase's except in its own check ride; a check ride by day also
-without the items only the night lessons grade (the night lighting). The loader refuses an item
+the earlier phases' lessons, without the formation phase's except in its own check ride, a check ride by day also
+without the items only the night lessons grade (the night lighting), and a check ride's flight without the items only
+emergency lessons grade when none of their emergencies came (`Course::graded_items`). A jet's `airframe` names its aircraft definition, whose `course`
+figures the items are measured against (§16.6). The loader refuses an item
 or emergency not in the lists, a lesson without an item (check rides excepted), a phase that does not end with its one
 check ride, and a jet without a course in `missions` or `jets`. Every standard is inferred: no published IAF
 standard was found ([training-plan.md](training-plan.md) §7). The Hebrew names use the terms of
@@ -1098,6 +1100,10 @@ engine (§17.2, with its figures).
 | `item:<id>` | the checklist card's item `<id>` ticked (§12) |
 | `cleared:<phase>` | the tower's clearance for `startup`, `taxi` or `takeoff` given (§3.3) |
 | `called:<call>` | the pilot made the radio call `<call>` (§8) |
+| `failure:<id>` | the failure `<id>` of §15 is on: the engine fire while it burns, any other once it has started |
+| `alt:<ft>` | in the air at least `<ft>` above the field |
+| `aoa:<deg>` | in the air at an angle of attack of at least `<deg>` |
+| `g:<g>` | in the air at a load factor of at least `<g>` |
 
 A mission's `end` takes the tests the scorer reads from the recording (`training::END_TESTS`): `power_off`,
 `engine_off`, `idle`, `aligned`, `parked` (stopped within 30 m of the start), `item:` and `called:`. A phase that
@@ -1158,6 +1164,92 @@ points (a side view may have none), a coordinate off the frame, a text without b
 diagram its file does not have. `course.rs` `a_diagram_is_checked` holds the overhead break as its example: the
 initial, the break, downwind, the final turn and the touchdown over runway 25R, with the side view's 1,500 ft.
 
+### 16.6 The flown items
+
+A lesson's graded items are measured from the flight's recording (`training.rs` `measure` and `flown`) against the
+mission's airbase and the jet's figures. The figures are the aircraft definition's `course`
+([../../docs/adding-a-plane.md](../../docs/adding-a-plane.md)): the empty mass and the take-off speed by gross mass,
+the final's angle of attack, the slow flight's speed and the corner speed.
+
+| Jet | Empty mass | Take-off speed | Final AoA | Slow flight | Corner speed |
+|---|---|---|---|---|---|
+| F-16D Barak | 8,573 kg[^w-f16] | 130 kt at 9,072 kg to 214 kt at 21,772 kg[^bms] | 13° (the flight manual, p. 2-23) | 200 kt (inferred) | 355 kt (the game's, [docs/guides/f16.md](../../docs/guides/f16.md)) |
+| F-16I Sufa | as the Barak's (inferred) | as the Barak's | 13° | 200 kt (inferred) | 385 kt (the game's with full fuel, [docs/guides/f16i.md](../../docs/guides/f16i.md)) |
+| F-35I Adir | 13,290 kg[^w-f35] | 165 kt[^wn] | 13° (inferred: the 6-DoF's final) | 200 kt (inferred) | 360 kt (inferred: no F-35 figure is published, open) |
+
+The samples the instructor flies (the player's autopilot on: the demonstration) are left out. Each item carries the sample it was flown at for the debrief's marker: the lift-off for the take-off's items, the worst touchdown for the landing's, the highest load, the failure's start. In a check ride an item only emergency lessons grade, not flown, is left out (`Course::emergency_only`: an airborne fire gives no abort to grade). Every figure below is
+inferred.
+
+| Item | Measured |
+|---|---|
+| `max_centreline_offset` | the pilot's first take-off roll, from its start to the lift-off: the largest distance off the centreline |
+| `liftoff_speed_error` | the lift-off's speed against the jet's take-off speed at its gross mass |
+| `gear_up_time` | from the lift-off to the gear up |
+| `touchdown_distance`, `landing_centreline`, `sink_rate` | each touchdown on a runway of the base, the worst: from the threshold, off the centreline, the sink rate |
+| `pattern_altitude_error` | on the initial to the runway in use (2 to 6 NM before its threshold, within 1.5 km of its centreline, on its heading within 30°, the gear up: the call engine's `initial`, §17.2): the largest distance from 1,500 ft above the field's elevation |
+| `final_aoa_error` | on final to the runway in use with the gear down (up to 6 km before the threshold, within 150 m of the centreline, on its heading within 10°, as the call engine's `final`; 50 to 1,000 ft up): the mean angle of attack against the jet's |
+| `go_around_height` | each final left without a touchdown within 20 s: its lowest height |
+| `max_g` | the highest load factor in the air |
+| `airspeed_error` | the slow flight: the 30 s above 3,000 ft held nearest the jet's slow speed, its largest deviation from it |
+| `corner_speed_error` | the mean speed at 6 g or more against the jet's corner speed |
+| `abort_stopped` | an engine fire on the ground: stopped on the runway before a lift-off (1, else 0) |
+| `fire_throttle_time` | each engine fire, the worst: from its start to the throttle at minimum practical (a quarter of its travel, §15); never throttled back: to the recording's end |
+| `emergency_checklist` | the recovery steps the recording shows, done after each failure: the fire on the ground the throttle back, the stop and the engine off; in the air the throttle back and the landing; the flameout the throttle back to idle and the relight. MASTER FUEL and the JFS are not recorded and not counted |
+| `airstart_done` | after a flameout: the engine at idle in the air (1, else 0) |
+| `flameout_landing` | after a flameout: a touchdown on a runway (1, else 0) |
+
+Open: the instructor's demonstration (§14) flies its final below the jet's on-speed angle of attack, about 7° to 11.5°
+where the measure asks 13°, because the overhead pattern's base turn rolls out near 200 kt only 1 NM out and the
+final's speed law (flight-model.md §9.6) reaches the on-speed speed only at the threshold. The measure is the lesson's;
+the pattern's speeds are the autopilot's (`iaf_flight::autopilot::OVERHEAD`), a separate item.
+`test_lessons_pattern.gd` therefore checks the final's angle of attack is measured, not its grade.
+
+### 16.7 Phase 2: the pattern and landing
+
+`data/training/lessons/pattern.json` and the missions `<jet>_pattern_<lesson>` (menu ids 3211 to 3283) fly from
+each jet's home base on the runway the take-off missions use (Ramat David 27, Ramon 25R, Nevatim 26L), by day at
+08:00, the night lesson at 19:30, the wind calm, with the tower's three clearances. Each lesson ends with the jet back
+on its spot and the engine off. The pattern is the one the sim flies (§14): the initial 5 NM out at 1,500 ft and
+300 kt, the break to the left over the touchdown zone, the downwind 1 NM abeam, the perch at 800 ft, wings level on
+final 1 NM out at 300 ft, 13° of angle of attack.
+
+| Lesson | The flight | Failures |
+|---|---|---|
+| 2.1 Take-off and first flight | the climb to 10,000 ft, a level turn each way at 45° of bank, a straight-in to a full stop | none |
+| 2.2 The overhead break and landing | the F-16s: the instructor's demonstration from the initial (§14) to a stop on the runway, a second take-off, the pilot's pattern to a full stop; the F-35I: the instructor joins after the take-off and leads the pattern, "follow me", the pilot lands behind | none |
+| 2.3 Touch-and-go and go-around | an overhead pattern to a touch-and-go, a closed pattern to a go-around at 200 ft, a closed pattern to a full stop | none |
+| 2.4 High AoA and G | at 15,000 ft: 200 kt held level for 30 s, the angle-of-attack limiter (the F-16s 25°, the F-35I 50°), a level turn at the corner speed to the G limiter | none |
+| 2.5 Take-off abort and engine fire | the fire on the roll and the abort, the shutdown, the restart, a second take-off, the fire in flight and a straight-in | `engine_fire` on the roll at 100 kt, `engine_fire` 180 s after the next lift-off |
+| 2.6 Flameout and airstart | the climb to 15,000 ft, the flameout and the air start, the flameout pattern with the engine at idle: high key 7,000 to 10,000 ft over the touchdown point, low key abeam it at 3,000 to 5,000 ft | `flameout` 240 s after lift-off |
+| 2.7 At night | an overhead pattern to a touch-and-go and a closed pattern to a full stop, with the goggles (the F-16s) or the helmet's night camera (the F-35I) | none |
+| 2.8 Check ride 2 | the start-up, the level turns, the overhead pattern to a touch-and-go, a go-around, a full stop; the tower's four calls and the cards from the start to the shutdown | the check ride's emergency (§13.4) |
+
+The F-16s' lesson 2.2 calls are the script approved on Approvals A136, with the demonstration's two lines fitted to
+the demonstration as built, which lands and stops: "Touchdown zone." on the touchdown, and "Your controls" on the
+runway once slowed, with the taxi back and the second take-off. The F-35I's instructor joins in the air (call
+`join`: `sim_flight.gd` `_on_call`, `instructor.gd chase`) and leads the pattern (call `follow_me`: `instructor.gd
+lead`). The file's nine
+diagrams (§16.5) are the overhead break, the straight-in, the level turns, the touch-and-go with the closed pattern, the
+go-around, slow flight and the AoA limiter, the turn at the corner speed, the take-off abort and the flameout pattern
+(`overhead`, `straight_in`, `level_turns`, `touch_and_go`, `go_around`, `slow_flight`, `corner_turn`, `abort`,
+`flameout_pattern`), each with its points and what to hold there, the pattern's to the left as the sim flies it. The flameout pattern's heights are the F-16
+flight manual's (section III, pp. 3-99, 3-105); the F-35I flies the same (inferred: its figures are not public).
+
+Decided by default on 28 November 2026 (the user: "So resolve all of these. I will try to fly it and see"); his
+flight decides:
+
+- Lesson 2.2's demonstration lands and stops; "your controls" comes on the runway once slowed, then the taxi back and
+  a second take-off.
+- The pattern is flown to the left, as the sim's pattern flies it.
+- The alternates are built bases: Ramat David's Tel Nof, Ramon's Nevatim, Nevatim's Hatzerim.
+- "Knock it off" in Hebrew is the term list's סיום קרב.
+- The F-35I's instructor joins after the take-off and leads lesson 2.2's pattern ("follow me"); the pilot lands
+  behind.
+
+A lesson's second engine fire comes after the first is out: a plan comes once on its own moment, and a fire put out
+may break out again (`failures.rs` `Failures::start`); `sim_flight.gd` announces it again. A check ride's emergency is
+planned with the mission's failures at the flight's start (`sim_flight.gd` `_check_ride_emergency`).
+
 ## 17. The instructor's calls
 The instructor's calls in flight ([training-plan.md](training-plan.md) §2.3) are data: each lesson's `calls` in its
 phase's lesson file (§16.1), read by `crates/iaf-tools/src/calls.rs` (module `calls`, the call engine). The game runs
@@ -1200,6 +1292,10 @@ the wind) along its centreline and across it. Every figure is inferred.
 | `item:<id>` | the card's item `<id>` ticked (`card.gd` `done`, §12) |
 | `cleared:<phase>` | the tower's clearance for `startup`, `taxi` or `takeoff` given (`Cleared::of`, §3.3) |
 | `called:<call>` | the pilot made the radio menu's call `<call>` (`sim_flight.gd` `called`, §8) |
+| `failure:<id>` | the failure `<id>` on (`IafFlight.failures` `active`); the engine fire only while it burns (`fire`), so a second fire is a new step |
+| `alt:<ft>` | in the air at least `<ft>` above the field's elevation |
+| `aoa:<deg>` | in the air at an angle of attack of at least `<deg>` |
+| `g:<g>` | in the air at a load factor of at least `<g>` |
 
 ### 17.3 In the game
 `sim_flight.gd` starts the calls when the mission flies a course lesson (`IafCalls.lesson_of`: the lesson's

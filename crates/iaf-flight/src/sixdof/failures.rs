@@ -195,13 +195,14 @@ impl Failures {
 
     /// Starts `f` now (a dev hook, or a plan's time come).
     pub fn start(&mut self, f: Failure) {
-        if self.active & f.bit() != 0 {
+        // A failure comes once; a fire put out may break out again (a lesson's second fire, training.md §15).
+        if self.active & f.bit() != 0 && (f != Failure::EngineFire || self.fire) {
             return;
         }
         self.active |= f.bit();
         self.started |= f.bit();
         match f {
-            Failure::EngineFire => (self.fire, self.fire_low_s) = (true, 0.0),
+            Failure::EngineFire => (self.fire, self.fire_low_s, self.fire_high_s) = (true, 0.0, 0.0),
             Failure::HydB => self.accumulator_s = ACCUMULATOR_S,
             _ => {}
         }
@@ -227,18 +228,15 @@ impl Failures {
         }
         self.t += dt;
         let (t, airborne_at, roll_at) = (self.t, self.airborne_at, self.roll_at);
-        let due: Vec<Failure> = self
-            .plan
-            .iter()
-            .filter(|(_, w)| match *w {
-                When::At(s) => t >= s,
-                When::Roll(kt) => i.on_ground && i.ground_kt >= kt,
-                When::RollAfter(s) => roll_at.is_some_and(|r| t - r >= s),
-                When::Airborne(s) => airborne_at.is_some_and(|a| t - a >= s),
-            })
-            .map(|(f, _)| *f)
-            .collect();
-        self.plan.retain(|(f, _)| !due.contains(f));
+        let is_due = |w: &When| match *w {
+            When::At(s) => t >= s,
+            When::Roll(kt) => i.on_ground && i.ground_kt >= kt,
+            When::RollAfter(s) => roll_at.is_some_and(|r| t - r >= s),
+            When::Airborne(s) => airborne_at.is_some_and(|a| t - a >= s),
+        };
+        // Each plan comes once, on its own: a second plan of the same failure waits for its own moment.
+        let due: Vec<Failure> = self.plan.iter().filter(|(_, w)| is_due(w)).map(|(f, _)| *f).collect();
+        self.plan.retain(|(_, w)| !is_due(w));
         for f in due {
             self.start(f);
         }
@@ -390,6 +388,24 @@ mod tests {
         f.step(&air(0.9), 1.0);
         f.step(&ground(250.0), 1.0); // a landing roll
         assert!(!f.on(Failure::EngineFire));
+    }
+
+    #[test]
+    fn a_lesson_has_a_fire_on_the_roll_then_one_in_flight() {
+        let mut f = Failures::default();
+        f.plan(Failure::EngineFire, When::Roll(100.0));
+        f.plan(Failure::EngineFire, When::Airborne(60.0));
+        let ground = |kt, lever| Inputs { on_ground: true, ground_kt: kt, lever, fuel_cut: false };
+        f.step(&ground(110.0, 1.0), 1.0);
+        assert!(f.fire(), "the roll's fire");
+        f.take_started();
+        f.step(&ground(0.0, 0.0), FIRE_OUT_S + 1.0); // the abort: stopped, the throttle back
+        assert!(!f.fire(), "out");
+        f.step(&ground(150.0, 1.0), 10.0); // the second take-off roll
+        f.step(&air(0.9), 30.0);
+        assert!(!f.fire());
+        f.step(&air(0.9), 31.0);
+        assert!(f.fire() && f.take_started() == Failure::EngineFire.bit(), "the flight's fire, 60 s after lift-off");
     }
 
     #[test]

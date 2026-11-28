@@ -44,6 +44,7 @@ chapters:
   intro: "The training course's phases, the instructor in a lesson, and the training fight against an aggressor."
   sections:
   - {id: course-ground, title: "Phase 1: Ground and start-up", file: game/missions-training/course-ground.typ}
+  - {id: course-pattern, title: "Phase 2: Basic handling, the pattern and landing", file: game/missions-training/course-pattern.typ}
   - {id: instructor, title: "The instructor", file: game/missions-training/instructor.typ}
   - {id: training-fight, title: "Training fight", file: game/missions-training/training-fight.typ}
 - id: bases

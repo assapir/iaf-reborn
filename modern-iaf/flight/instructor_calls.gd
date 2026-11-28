@@ -58,8 +58,22 @@ func _process(delta: float) -> void:
 			"answers": sim.answers,
 			"hot": host.start_engine_on and not host.start_airborne,
 			"called": sim.called,
+			"aoa": float(st.get("aoa", 0.0)),
+			"g": float(st.get("g", 1.0)),
+			"failures": _failures(),
 		}
 	)
+
+
+## The flight's failures on (training.md §15), by id: the engine fire only while it burns.
+func _failures() -> PackedStringArray:
+	if not host.flight.has_method("failures"):
+		return PackedStringArray()
+	var d: Dictionary = host.flight.failures()
+	var out := PackedStringArray(d.get("active", PackedStringArray()))
+	if not bool(d.get("fire", false)):
+		out.erase("engine_fire")
+	return out
 
 
 ## One frame of the flight (`now`: IafCalls.tick's): says the lines that come now; their calls' ids, one a line.

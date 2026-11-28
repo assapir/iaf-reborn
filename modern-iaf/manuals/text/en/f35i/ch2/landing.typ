@@ -26,6 +26,8 @@ The real pilot reports "gear down" to the controller before the jet crosses the 
 
 #idx("Overhead pattern")The overhead pattern: the jet flies over the runway in the landing direction, turns back in a level turn of 180° (the break) that starts over the touchdown point, flies past the runway the other way and turns onto final. It rolls its wings level on final about 1 mile out and 300 ft above the ground#afi[paragraphs 3.22.2 to 3.22.4]. In a closed pattern, flown after a go-around, the jet is below 250 kt on the downwind leg#afi[paragraph 3.26].
 
+#in-sim[#idx("Overhead pattern, in the sim")The pattern the sim flies (inferred where the manual gives no figure): to the left; the initial 5 miles out on the runway heading, 1,500 ft above the field, 300 kt; the break over the touchdown zone, a level turn of 180° at 4 to 5 g; downwind 1 mile abeam, the gear down below 300 kt; the perch 800 ft above the field abeam the touchdown point; the final turn rolls out on final 1 mile out at 300 ft; the final at 13°, touching down within the first 1,000 ft. The training course teaches it: the #other("game", "course-pattern").]
+
 At night the normal landing is a straight-in approach on instruments#afi[paragraph 3.18.7]. For instrument approaches the F-35A counts as a category E aircraft, the fastest group; a missed approach is flown at 250 kt#afi[paragraph 4.7.2].
 
 #in-sim[The helmet shows the ILS lines of the runway (@navigation). #sym.arrow.r *Keep the flight path marker where the two lines cross.* Not modelled: the calls of the pattern.]

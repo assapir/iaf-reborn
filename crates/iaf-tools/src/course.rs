@@ -12,7 +12,10 @@ const DATA: &str = include_str!("../../../modern-iaf/data/training/course.json")
 
 /// Each phase's lesson content (training.md §16): `(phase id, the text of modern-iaf/data/training/lessons/<id>.json)`.
 /// A phase without a file has no content yet; a new phase's file is added here and to the stamps' sources.
-const LESSONS: &[(&str, &str)] = &[("ground", include_str!("../../../modern-iaf/data/training/lessons/ground.json"))];
+const LESSONS: &[(&str, &str)] = &[
+    ("ground", include_str!("../../../modern-iaf/data/training/lessons/ground.json")),
+    ("pattern", include_str!("../../../modern-iaf/data/training/lessons/pattern.json")),
+];
 
 /// The briefing's sections in their order (training-plan.md §2.2): each a list of paragraphs.
 pub const SECTIONS: [&str; 8] =
@@ -40,8 +43,13 @@ pub const TESTS: [&str; 16] = [
 ];
 
 /// The tests with an argument after a colon: `item:<card item id>` (ticked on the jet's checklist card),
-/// `cleared:<phase>` (the tower's clearance, training::CLEARANCES), `called:<radio call id>` (the pilot made the call).
-pub const ARG_TESTS: [&str; 3] = ["item", "cleared", "called"];
+/// `cleared:<phase>` (the tower's clearance, training::CLEARANCES), `called:<radio call id>` (the pilot made the call),
+/// `failure:<id>` (the flight's failure `<id>` started, training.md §15), and the figures held at least: `alt:<ft>`
+/// (the altitude above the field), `aoa:<deg>` (the angle of attack), `g:<g>` (the load factor).
+pub const ARG_TESTS: [&str; 7] = ["item", "cleared", "called", "failure", "alt", "aoa", "g"];
+
+/// The argument tests whose argument is a number.
+const NUMBER_TESTS: [&str; 3] = ["alt", "aoa", "g"];
 
 /// An item's grade on the US Navy's flight-training scale (training-plan.md §2.4), worst first.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -261,7 +269,8 @@ impl Item {
 
 #[derive(Debug, Clone)]
 pub struct Course {
-    /// Per jet's unit id: `base`, `instructor`.
+    /// Per jet's unit id: `airframe` (its aircraft definition, whose `course` figures the items are measured against),
+    /// `base`, `instructor`.
     pub jets: Map<String, Value>,
     pub phases: Vec<Phase>,
     pub items: Vec<(String, Item)>,
@@ -380,7 +389,9 @@ fn check_text(v: &Value, what: &str, jets: &Value) -> Result<()> {
 /// A test's name is one of `TESTS`, or `<one of ARG_TESTS>:<argument>`.
 pub fn test_ok(t: &str) -> bool {
     match t.split_once(':') {
-        Some((k, a)) => ARG_TESTS.contains(&k) && !a.is_empty(),
+        Some((k, a)) => {
+            ARG_TESTS.contains(&k) && !a.is_empty() && (!NUMBER_TESTS.contains(&k) || a.parse::<f64>().is_ok())
+        }
         None => TESTS.contains(&t),
     }
 }
@@ -582,7 +593,12 @@ impl Course {
                 ensure!(p.lessons.iter().any(|l| l.id == *id), "lessons/{pid}.json: {id} is no lesson of the phase");
             }
         }
-        Ok(Course { jets: v["jets"].as_object().context("\"jets\"")?.clone(), phases, items, emergencies })
+        let jets = v["jets"].as_object().context("\"jets\"")?.clone();
+        for (j, d) in &jets {
+            let a = d["airframe"].as_str().unwrap_or("");
+            ensure!(iaf_flight::airframe::get(a).is_some(), "jet {j}: \"airframe\" {a:?} is no aircraft definition");
+        }
+        Ok(Course { jets, phases, items, emergencies })
     }
 
     /// A lesson's key: `<phase id>.<lesson id>`.
@@ -595,6 +611,12 @@ impl Course {
         let (p, l) = key.split_once('.')?;
         let pi = self.phases.iter().position(|x| x.id == p)?;
         Some((pi, self.phases[pi].lessons.iter().position(|x| x.id == l)?))
+    }
+
+    /// Lesson `key` is a check ride: no instructor's calls or highlights in flight, an unannounced emergency
+    /// (training-plan.md §2.5); false for a key that is no lesson.
+    pub fn is_check_ride(&self, key: &str) -> bool {
+        self.find(key).is_some_and(|(p, l)| self.phases[p].lessons[l].kind == Kind::Check)
     }
 
     /// The lesson the mission `mission` (its readable id) flies in jet `jet`'s course, by key.
@@ -633,6 +655,36 @@ impl Course {
         out
     }
 
+    /// The items a flight of lesson (`phase`, `lesson`) is graded on, with `failures` the flight's failures (their
+    /// flight ids, `iaf_flight::sixdof::failures::Failure::id`, and whether each came on the ground): `items`, without,
+    /// in a check ride, the items only emergency lessons grade when none of those lessons' emergencies came (an
+    /// emergency of the take-off roll comes on the ground, one of the flight in the air).
+    pub fn graded_items(&self, phase: usize, lesson: usize, failures: &[(&str, bool)]) -> Vec<String> {
+        let items = self.items(phase, lesson);
+        if self.phases[phase].lessons[lesson].kind != Kind::Check {
+            return items;
+        }
+        let came = |e: &String| {
+            let roll = self.emergency(e).is_some_and(|x| x.at == "roll");
+            iaf_flight::sixdof::failures::from_course(e, "airborne", 0.0, 0)
+                .is_some_and(|(f, _)| failures.contains(&(f.id(), roll)))
+        };
+        let lessons = || self.phases[..=phase].iter().flat_map(|p| &p.lessons);
+        // An item is given when a lesson grading it teaches no emergency, or one of its emergencies came.
+        let given = |i: &String| {
+            lessons().any(|x| x.items.contains(i) && (x.emergencies.is_empty() || x.emergencies.iter().any(came)))
+        };
+        items.into_iter().filter(given).collect()
+    }
+
+    /// Item `id` is graded by emergency lessons only, in phases up to `phase`: a check ride leaves it out when the
+    /// flight gave no occasion for it (an airborne fire: no abort to grade).
+    pub fn emergency_only(&self, phase: usize, id: &str) -> bool {
+        let mut grading =
+            self.phases[..=phase].iter().flat_map(|p| &p.lessons).filter(|l| l.items.iter().any(|i| i == id));
+        grading.all(|l| !l.emergencies.is_empty())
+    }
+
     pub fn emergency(&self, id: &str) -> Option<&Emergency> {
         self.emergencies.iter().find(|e| e.0 == id).map(|e| &e.1)
     }
@@ -664,6 +716,11 @@ impl Course {
         let f = (r.next() >> 11) as f64 / (1u64 << 53) as f64;
         let t = e.window_s[0] + f * (e.window_s[1] - e.window_s[0]);
         Some((id.clone(), e.at.clone(), (t * 10.0).round() / 10.0))
+    }
+
+    /// Jet `jet`'s figures the items are measured against (its aircraft definition's `course`); None without.
+    pub fn figures(&self, jet: &str) -> Option<&'static iaf_flight::airframe::CourseFigures> {
+        iaf_flight::airframe::get(self.jets.get(jet)?["airframe"].as_str()?)?.course.as_ref()
     }
 
     /// The course of jet `jet` for the screens: `jet`, `base`, `instructor`, `phases` (each `id`, `title`, `lessons`:
@@ -942,6 +999,24 @@ mod tests {
     // The same as modern-iaf/tests/data/overhead_diagram.json (inline: a test file read here would join the
     // stamps' sources, crates/iaf-setup stamp.rs).
     const OVERHEAD: &str = r#"{"title": {"en": "The overhead break", "he": "ההקפה עם שבירה"}, "points": [{"en": "Initial", "he": "כניסה", "hold": {"en": "5 nm · 300 kt · 1,500 ft", "he": "5 מייל · 300 קשר · 1,500 רגל"}}, {"en": "Break", "he": "שבירה", "hold": {"en": "4–5 G · level", "he": "4–5 G · אופקית"}}, {"en": "Downwind", "he": "עם הרוח", "hold": {"en": "200 kt · gear down", "he": "200 קשר · כן נסע למטה"}}, {"en": "Final turn", "he": "פנייה לסופית", "hold": {"en": "at the perch", "he": "בנקודת הפנייה"}}, {"en": "Touchdown", "he": "נגיעה", "hold": {"en": "first 1,000 ft", "he": "1,000 רגל ראשונות"}}], "top": {"runway": [[42.0, 62.0], [52.0, 62.0]], "paths": [{"track": [[99.0, 74.0], [64.0, 74.0], [64.0, 74.0], [59.7, 72.3], [56.1, 67.6], [53.7, 60.4], [52.8, 52.0], [53.7, 43.6], [56.1, 36.4], [59.7, 31.7], [64.0, 30.0], [82.0, 30.0], [85.1, 31.2], [87.7, 34.7], [89.5, 39.9], [90.1, 46.0], [89.5, 52.1], [87.7, 57.3], [85.1, 60.8], [82.0, 62.0], [48.0, 62.0]]}], "pins": [[92.0, 74.0], [64.0, 74.0], [73.0, 30.0], [90.1, 46.0], [48.0, 62.0]]}, "side": {"paths": [{"track": [[48, 100], [60, 100], [72, 100], [84, 45], [96, 0]]}], "pins": [[48, 100], [60, 100], [72, 100], [84, 45], [96, 0]], "notes": [{"at": [74, 100], "en": "1,500 ft", "he": "1,500 רגל"}]}}"#;
+
+    #[test]
+    fn a_check_ride_grades_what_its_flight_gave_occasion_for() {
+        let c = course();
+        assert!(c.is_check_ride("pattern.check") && !c.is_check_ride("pattern.overhead") && !c.is_check_ride("x.y"));
+        let (p, l) = c.find("pattern.check").unwrap();
+        let has = |v: &[String], i: &str| v.iter().any(|x| x == i);
+        let calm = c.graded_items(p, l, &[]);
+        assert!(has(&calm, "touchdown_distance") && has(&calm, "startup_time"));
+        assert!(!has(&calm, "night_lighting"), "a day ride: no night lesson's items");
+        assert!(!has(&calm, "fire_throttle_time") && !has(&calm, "airstart_done"), "no emergency came");
+        let roll = c.graded_items(p, l, &[("engine_fire", true)]);
+        assert!(has(&roll, "fire_throttle_time") && has(&roll, "abort_stopped") && !has(&roll, "airstart_done"));
+        assert!(c.emergency_only(p, "abort_stopped") && !c.emergency_only(p, "touchdown_distance"));
+        let (p, l) = c.find("pattern.engine_fire").unwrap();
+        assert_eq!(c.graded_items(p, l, &[]), c.items(p, l), "a lesson grades its own items");
+        assert!(c.figures("f35i").is_some_and(|f| f.final_aoa_deg == 13.0) && c.figures("f15").is_none());
+    }
 
     #[test]
     fn grades_against_the_standard() {

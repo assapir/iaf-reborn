@@ -111,6 +111,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `ews` | `shared/weapons/ews.gd` | the modern F-16s' AIFF (`aiff`) and missile approach warning (`maw`), [modern-iaf/docs/ews.md](../modern-iaf/docs/ews.md) |
 | `mfd` | `settings.gd` `real_mfd` | the F-16's real MFD formats |
 | `guide` | `reference.gd` `guide_name` | the pilot guide (`docs/guides/<guide>.md`) |
+| `course` (`empty_kg`, `takeoff_kt`, `final_aoa_deg`, `slow_kt`, `corner_kt`) | `iaf_tools::training` | Modern IAF's training course: the figures a lesson's graded items are measured against (the lift-off speed, the final's angle of attack, the slow flight's speed, the corner speed; [modern-iaf/docs/training.md](../modern-iaf/docs/training.md) §16.6); a jet without it has those items ungraded |
 | `label` | `tsd.gd` `unit_label` | the TSD's selected-unit label |
 | `info_tag` | `terrain_view.gd` | the flight info line's tag |
 

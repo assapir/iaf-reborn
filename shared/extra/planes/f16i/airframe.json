@@ -31,6 +31,7 @@
       "1007": [4, "CDFG"]
     }
   },
+  "course": {"empty_kg": 8573, "takeoff_kt": [[9072, 130], [21772, 214]], "final_aoa_deg": 13, "slow_kt": 200, "corner_kt": 385},
   "notes": {
     "sixdof": "Physics Flight model on 6-DoF: Modern IAF's 6-DoF from its own data (modern-iaf/docs/flight-model.md §9; docs/deviations.md §2)",
     "": "Every F-16 (type 100) with Extras \"F-16 version\" on Sufa, the player's and the AI's (docs/f16i.md).",
@@ -48,6 +49,8 @@
     "radar.row": "iaf_avionics::radar::F16I, the AN/APG-68(V)9's row (docs/f16i.md §2)",
     "radar.km": "30 % more air-to-air range than the F-16's APG-68: 80 km x 1.3 (Lockheed Martin, docs/f16i.md §2)",
     "radar.ai_nm": "the AI's sensor range: the F-16's 40 NM x 1.3",
-    "weapons.loads": "modern_weapons.gd record id -> [count, stations A..I] (docs/f16i.md §5)"
+    "weapons.loads": "modern_weapons.gd record id -> [count, stations A..I] (docs/f16i.md §5)",
+    "course.empty_kg": "the F-16's figure, as the Sufa's take-off mission (no F-16I empty weight in our docs)",
+    "course.corner_kt": "the corner speed at 9 g with full fuel, about 385 kt in the game (docs/guides/f16i.md, inferred: 3 x the stall speed); the real jet about 355 kt"
   }
 }

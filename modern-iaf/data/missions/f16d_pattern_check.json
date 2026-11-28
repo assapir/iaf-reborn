@@ -1,0 +1,152 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16d",
+    "base": "Ramat David",
+    "at": "parking",
+    "elevation_m": 56
+  },
+  "runway": "27",
+  "route": [
+    {
+      "lat": 32.65998,
+      "lon": 35.05315,
+      "alt_m": 956,
+      "speed_kmh": 600
+    }
+  ],
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "a day lesson (training-plan.md §1: every lesson but the night lesson and the night check rides by day)",
+    "wind_kt": "calm (inferred: the pattern is learnt without a crosswind)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "runway": "the base's runway the take-off missions use; the tower turns it into the wind",
+    "route": "the departure point: 10 km beyond runway 27's far end on its heading, 900 m above the field",
+    "training.time_budget_s": "the start-up, the taxi and the lesson's flight with time to spare (inferred)",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
+    "training.end": "the lesson ends with the jet back on its spot and the engine off (training.md §16.3)",
+    "failures": "none of its own: the check ride's unannounced emergency comes from training.md §13.4",
+    "training.checklist": "the cards from the start to the shutdown: a check ride covers phase 1's start-up and taxi (data/checklists, training.md §12)",
+    "training.calls": "the tower's four ground calls: phase 1's tower_calls item (training.md §3.3)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLRD elevation 185 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "f16d_pattern_check",
+  "menu_id": 3281,
+  "lesson": "pattern.check",
+  "title": {
+    "en": "Check ride 2",
+    "he": "טיסת מבחן 2"
+  },
+  "win": {
+    "en": "Lesson complete.",
+    "he": "התרגול הושלם."
+  },
+  "lose": {
+    "en": "Lesson failed. Fly it again.",
+    "he": "התרגול נכשל. כדאי לטוס אותו שוב."
+  },
+  "training": {
+    "kind": "lesson",
+    "end": [
+      "parked",
+      "engine_off"
+    ],
+    "clearances": [
+      "startup",
+      "taxi",
+      "takeoff"
+    ],
+    "calls": [
+      "startup",
+      "taxi",
+      "lineup",
+      "takeoff"
+    ],
+    "checklist": [
+      "epu_norm",
+      "eng_feed",
+      "fuel_master",
+      "le_flaps",
+      "air_source",
+      "master_arm_off",
+      "gear_down",
+      "batt",
+      "flcs_pwr_test",
+      "main_power",
+      "starter",
+      "engine",
+      "jfs_off",
+      "engine_lights",
+      "engine_gauges",
+      "probe_heat_test",
+      "fire_test",
+      "mal_ind_test",
+      "avionics",
+      "gps_dl",
+      "ins_align",
+      "hdpt",
+      "fcr",
+      "rdr_alt",
+      "hud",
+      "master_caution",
+      "flcs_bit",
+      "dbu",
+      "mpo",
+      "flight_controls",
+      "speedbrakes",
+      "epu_check",
+      "oxygen",
+      "canopy",
+      "altimeters",
+      "ext_lights",
+      "cmds",
+      "ins",
+      "taxi_light",
+      "parking_brake_off",
+      "alt_flaps",
+      "trim",
+      "canopy_light",
+      "iff",
+      "stores_config",
+      "probe_heat",
+      "seat_arm",
+      "cautions",
+      "landing_light",
+      "gear_up",
+      "landing_light_off",
+      "climb_checks",
+      "approach_speed",
+      "landing_light_on",
+      "gear_down_ldg",
+      "probe_heat_off",
+      "speedbrakes_closed",
+      "seat_safe",
+      "iff_stby",
+      "taxi_light_in",
+      "arm_safe",
+      "throttle_off",
+      "main_power_off",
+      "canopy_open"
+    ],
+    "time_budget_s": 3600,
+    "end_hold_s": 5,
+    "goals": []
+  }
+}

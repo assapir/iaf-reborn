@@ -48,6 +48,8 @@ You recognise the angle in three places:
 + *Base turn.* Check the gear down again. Slow to the final approach speed, so that the jet rolls out on final at 13° or 11°.
 + *Final.* Speedbrakes open. Hold the angle of attack with the stick and the glide path with the throttle (inferred: the manual gives the values, not the technique).
 
+#in-sim[#idx("Overhead pattern, in the sim")The pattern the sim flies (inferred where the manual gives no figure): to the left; the initial 5 miles out on the runway heading, 1,500 ft above the field, 300 kt; the break over the touchdown zone, a level turn of 180° at 4 to 5 g; downwind 1 mile abeam, the gear down below 300 kt; the perch 800 ft above the field abeam the touchdown point; the final turn rolls out on final 1 mile out at 300 ft; the final at 13°, touching down within the first 1,000 ft. The training course teaches it: the #other("game", "course-pattern").]
+
 A straight-in approach is the same from step 4 on. On instruments it is flown along the ILS, whose two lines the HUD shows once the runway's frequency is set on the T-ILS page (@navigation).
 
 #in-sim[The speedbrakes open while #key("Speedbrakes open (hold)") is held and stay where it is let go; #key("Speedbrakes close") closes them. #sym.arrow.r *The speedbrakes stop at 43° with the gear down*, so that they clear the runway. #term("Not modelled"): the calls of the pattern (initial, base, final, the go-around call).]

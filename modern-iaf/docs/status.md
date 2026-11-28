@@ -39,12 +39,23 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   them"); their ten files are test fixtures only: the cockpit, weapons, AI and avionics tests start them (and
   `--mission <id>` for a developer), no player screen lists them. `test_training_phases.gd`, `test_front_end.gd`,
   `test_hangar.gd`.
+- **Phase 2's lessons, the pattern and landing (2026-11-28, [training-plan.md](training-plan.md) §3 phase 2;
+  [training.md](training.md) §16.6, §16.7):** the eight lessons (take-off and first flight, the overhead break, the
+  touch-and-go and go-around, high AoA and G, the abort and engine fire, the flameout and air start, the night pattern,
+  check ride 2) for the F-16D at Ramat David, the F-16I at Ramon and the F-35I at Nevatim: a mission per jet, the
+  briefing's eight sections, the notebook's Lesson tab and the instructor's calls in English and Hebrew; lesson 2.2's
+  F-16 calls are the A136 script. Their items are measured from the recording against the jet's figures in its aircraft
+  definition (the take-off speed, the final's AoA, the slow flight, the corner speed). A check ride plans its
+  unannounced emergency and grades only the night and emergency items its flight gave occasion for. Lesson 2.5 has two
+  engine fires. The F-35I's instructor joins after the take-off and leads lesson 2.2's pattern. Nine manoeuvre
+  diagrams (the overhead break, the go-around, the flameout pattern …) as data. `course`, `training` and `calls` tests,
+  `failures::a_lesson_has_a_fire_on_the_roll_then_one_in_flight`, `test_lessons_pattern.gd`.
 - **Failures a lesson starts (2026-11-28, the training plan's §6):** a mission, a check ride's pick or the dev hook
   starts an engine fire (on the take-off roll or in flight), a flameout, hydraulic system A or B, the main generator,
   both generators (with or without the EPU's automatic start), the FLCS's standby gains or a gear fault, on the F-16D, the F-16I and
   the F-35I (no EPU or F-16 hydraulics: refused for it). Each shows its real lamps, fault list lines and ICAWS
   cautions, MASTER CAUTION and the voice, acts on the flight model, and answers to the real checklist's steps, which
-  the notebook's EMERGENCY tab holds ([training.md](training.md) §15). A check ride's pick maps onto them (`IafFlight.plan_course_emergency`); no flight calls it until the course's missions exist. `failures.rs`, `sixdof.rs failures::*`,
+  the notebook's EMERGENCY tab holds ([training.md](training.md) §15). A check ride's pick maps onto them (`IafFlight.plan_course_emergency`), planned at the check ride's start. `failures.rs`, `sixdof.rs failures::*`,
   `test_failures.gd`.
 - **The training course's records and rules (2026-11-28, [training-plan.md](training-plan.md) §2.4, §2.5, §3;
   [training.md](training.md) §13):** each jet's course as data (eight phases, 31 day lessons, 8 night lessons, 8
